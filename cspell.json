@@ -14,7 +14,7 @@
 		"vitest.config.*",
 		"tsconfig.json",
 		"typedoc.json",
-		".eslintrc.cjs",
+		"eslint.config.js",
 		"**/wordlists/**",
 		"**/*.json",
 		"changelog.md"
@@ -22,6 +22,7 @@
 	"words": [
 		"bech",
 		"abbrev",
+		"autorelease",
 		"Jsonld",
 		"nameof",
 		"openapi",
