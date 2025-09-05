@@ -21,12 +21,12 @@ import { nameof } from "@twin.org/nameof";
  * @param overrideInstanceType The instance type to override the default.
  * @returns The name of the instance created.
  */
-export function dataSpaceConnectorTypeInitialiser(
+export async function dataSpaceConnectorTypeInitialiser(
 	engineCore: IEngineCore,
 	context: IEngineCoreContext,
 	instanceConfig: { options: IDataSpaceConnectorServiceConstructorOptions },
 	overrideInstanceType: string
-): string {
+): Promise<string> {
 	const componentName = StringHelper.kebabCase(nameof<IDataSpaceConnector>(), true);
 	const dataSpaceConnector = new DataSpaceConnectorService({
 		loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
