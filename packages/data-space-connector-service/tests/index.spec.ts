@@ -7,8 +7,12 @@ import {
 	type BackgroundTask,
 	initSchema as initSchemaBackgroundTask
 } from "@twin.org/background-task-connector-entity-storage";
-import { BackgroundTaskConnectorFactory } from "@twin.org/background-task-models";
-import { Is, ObjectHelper, StringHelper } from "@twin.org/core";
+import {
+	BackgroundTaskConnectorFactory,
+	type ITaskSchedulerComponent
+} from "@twin.org/background-task-models";
+import { TaskSchedulerService } from "@twin.org/background-task-scheduler";
+import { ComponentFactory, Is, ObjectHelper, StringHelper } from "@twin.org/core";
 import {
 	ActivityProcessingStatus,
 	type IActivityLogDates,
@@ -38,6 +42,7 @@ let options: IDataSpaceConnectorServiceConstructorOptions;
 
 let backgroundTaskStorage: FileEntityStorageConnector<BackgroundTask>;
 let backgroundTaskConnectorEntityStorage: EntityStorageBackgroundTaskConnector;
+let taskScheduler: ITaskSchedulerComponent;
 
 const BASE_STORE_DIR = "./tests/.tmp";
 
@@ -136,6 +141,8 @@ describe("data-space-connector-tests", () => {
 			"background-task-4-data-space-connector",
 			() => backgroundTaskConnectorEntityStorage
 		);
+		taskScheduler = new TaskSchedulerService();
+		ComponentFactory.register("task-scheduler", () => taskScheduler);
 	});
 
 	test("It should receive an Activity in the Activity Stream - canonical", async () => {
@@ -148,7 +155,6 @@ describe("data-space-connector-tests", () => {
 		await sleep(800);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
-		console.log(JSON.stringify(entry, null, 2));
 		assertActivityLog(entry);
 	});
 

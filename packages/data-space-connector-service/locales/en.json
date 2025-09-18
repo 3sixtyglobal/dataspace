@@ -15,7 +15,12 @@
 	},
 	"debug": {
 		"dataSpaceConnectorService": {
-			"newActivity": "New Activity of type \"{activityType}\" notified by \"{generator}\""
+			"newActivity": "New Activity of type \"{activityType}\" notified by \"{generator}\"",
+			"taskSchedulerStarted": "Task Scheduler started with this config: \"{taskTime}\"",
+			"scheduledCleanUpTask": "Activity Log clean up task scheduled",
+			"engineCloneStart": "'start' method has been called from an engine clone. No task scheduler created",
+			"cleanUpOngoing": "There is an ongoing clean up of activity logs. Skipping",
+			"activityLogCleanedUp": "Activity Log has been cleaned up. \"{numRecordsDeleted}\" records deleted"
 		},
 		"dataSpaceConnectorSocketRoutes": {
 			"activityLogStatusConnected": "Web Socket Connected: Socket Id: \"{socketId}\"",

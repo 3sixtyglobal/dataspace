@@ -20,6 +20,12 @@ export interface IDataSpaceConnectorServiceConstructorOptions {
 	backgroundTaskConnectorType?: string;
 
 	/**
+	 * Task Scheduler Component Type.
+	 * @default task-scheduler
+	 */
+	taskSchedulerComponentType?: string;
+
+	/**
 	 * The entity storage for activity log details.
 	 * @default activity-log-details
 	 */

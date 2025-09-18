@@ -40,7 +40,6 @@
 		"@twin.org/data-json-ld": "next",
 		"@twin.org/data-space-connector-app-runner": "0.0.1-next.4",
 		"@twin.org/data-space-connector-models": "0.0.1-next.4",
-		"@twin.org/engine-models": "next",
 		"@twin.org/entity": "next",
 		"@twin.org/entity-storage-models": "next",
 		"@twin.org/logging-models": "next",
@@ -48,7 +47,10 @@
 		"@twin.org/nameof": "next",
 		"@twin.org/standards-schema-org": "next",
 		"@twin.org/standards-w3c-activity-streams": "next",
-		"@twin.org/web": "next"
+		"@twin.org/web": "next",
+		"@twin.org/background-task-scheduler": "next",
+		"@twin.org/engine-models": "next",
+		"@twin.org/engine-types": "next"
 	},
 	"devDependencies": {
 		"@twin.org/background-task-connector-entity-storage": "next",

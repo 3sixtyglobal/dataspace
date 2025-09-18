@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Is } from "@twin.org/core";
+import { Coerce, EnvHelper, Is } from "@twin.org/core";
 import type { IDataSpaceConnectorAppDescriptor } from "@twin.org/data-space-connector-models";
 import {
 	ActivityLogDetails,
@@ -16,6 +16,7 @@ import { LoggingConnectorType, type IEngineConfig } from "@twin.org/engine-types
 import { EntitySchemaHelper } from "@twin.org/entity";
 import { nameof } from "@twin.org/nameof";
 import { run } from "@twin.org/node-core";
+import * as dotenv from "dotenv";
 
 const DATA_SPACE_CONNECTOR_TYPE = "data-space-connector-type";
 const REST_PATH = "data-space-connector";
@@ -46,6 +47,12 @@ if (fs.existsSync(dsConnectorAppsFile)) {
 	}
 }
 
+dotenv.config({
+	path: [path.resolve(".env"), path.resolve(".env.local")],
+	quiet: true
+});
+const envVars = EnvHelper.envToJson(process.env, "DATA_SPACE_CONNECTOR");
+
 // Data Space Connector Component Config
 const customTypeConfig: IEngineCoreTypeConfig[] = [
 	{
@@ -55,7 +62,9 @@ const customTypeConfig: IEngineCoreTypeConfig[] = [
 		options: {
 			loggingConnectorType: LoggingConnectorType.Console,
 			config: {
-				dataSpaceConnectorAppDescriptors
+				dataSpaceConnectorAppDescriptors,
+				retainActivityLogsFor: Coerce.number(envVars.activityLogRetainFor),
+				activityLogsCleanUpInterval: Coerce.number(envVars.activityLogCleanupInterval)
 			}
 		}
 	}

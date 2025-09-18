@@ -31,6 +31,7 @@ export async function dataSpaceConnectorTypeInitialiser(
 	const dataSpaceConnector = new DataSpaceConnectorService({
 		loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
 		backgroundTaskConnectorType: engineCore.getRegisteredInstanceType("backgroundTaskConnector"),
+		taskSchedulerComponentType: engineCore.getRegisteredInstanceType("taskSchedulerComponent"),
 		...instanceConfig.options
 	});
 	ComponentFactory.register(componentName, () => dataSpaceConnector);

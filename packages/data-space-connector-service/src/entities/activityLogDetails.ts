@@ -36,4 +36,10 @@ export class ActivityLogDetails {
 	 */
 	@property({ type: "string", format: "date-time" })
 	public dateModified!: string;
+
+	/**
+	 * The timestamp of when to retain the entry until.
+	 */
+	@property({ type: "integer", optional: true, format: "uint64" })
+	public retainUntil?: number;
 }

@@ -3,9 +3,11 @@
 
 import {
 	BackgroundTaskConnectorFactory,
+	type IScheduledTaskTime,
 	TaskStatus,
 	type IBackgroundTask,
-	type IBackgroundTaskConnector
+	type IBackgroundTaskConnector,
+	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
 import {
 	ComponentFactory,
@@ -41,6 +43,7 @@ import {
 	type ITaskApp
 } from "@twin.org/data-space-connector-models";
 import { EngineCoreFactory, type IEngineCoreTypeConfig } from "@twin.org/engine-models";
+import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
@@ -65,6 +68,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 */
 	private static readonly _DS_CONNECTOR_APP_COMPONENT_TYPE: string =
 		nameof<IDataSpaceConnectorApp>();
+
+	/**
+	 * The default cleanup interval in minutes. (1 hour)
+	 * @internal
+	 */
+	private static readonly _DEFAULT_CLEANUP_INTERVAL: number = 60;
 
 	/**
 	 * Runtime name for the class.
@@ -122,6 +131,36 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	};
 
 	/**
+	 * Task retention. -1 retain forever.
+	 * @internal
+	 */
+	private readonly _retainTasksFor: number;
+
+	/**
+	 * Activity Log Entry retention. -1 retain forever.
+	 * @internal
+	 */
+	private readonly _retainActivityLogsFor: number;
+
+	/**
+	 * Clean up interval for activity logs.
+	 * @internal
+	 */
+	private readonly _activityLogCleanUpInterval: number;
+
+	/**
+	 * Whether there is an ongoing clean up process.
+	 * @internal
+	 */
+	private _cleanUpProcessOngoing: boolean;
+
+	/**
+	 * The task scheduler used to clean up activity logs.
+	 * @internal
+	 */
+	private readonly _taskScheduler: ITaskSchedulerComponent;
+
+	/**
 	 * Create a new instance of FederatedCatalogue service.
 	 * @param options The options for the connector.
 	 */
@@ -142,6 +181,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		this._backgroundTaskConnector = BackgroundTaskConnectorFactory.get(
 			options?.backgroundTaskConnectorType ?? "background-task"
 		);
+
+		this._taskScheduler = ComponentFactory.get<ITaskSchedulerComponent>(
+			options?.taskSchedulerComponentType ?? "task-scheduler"
+		);
+
 		this._appRegistry = new AppRegistry();
 
 		JsonLdDataTypes.registerTypes();
@@ -151,6 +195,48 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		this._initialDataSpaceConnectorApps = options.config?.dataSpaceConnectorAppDescriptors;
 
 		this._activityLogStatusCallbacks = {};
+
+		this._retainTasksFor = -1;
+		this._retainActivityLogsFor = -1;
+		this._activityLogCleanUpInterval = DataSpaceConnectorService._DEFAULT_CLEANUP_INTERVAL;
+		this._cleanUpProcessOngoing = false;
+
+		const validationErrors: IValidationFailure[] = [];
+		if (!Is.undefined(options?.config?.retainActivityLogsFor)) {
+			Guards.integer(
+				this.CLASS_NAME,
+				nameof(options.config.retainActivityLogsFor),
+				options.config.retainActivityLogsFor
+			);
+			Validation.integer(
+				nameof(options.config.retainActivityLogsFor),
+				options.config.retainActivityLogsFor,
+				validationErrors,
+				undefined,
+				{ minValue: 1 }
+			);
+			// Retention of internal tasks launched (it has to be expressed in milliseconds)
+			// 5 minutes of margin with respect to the Activity Log Entry to ensure proper removal
+			this._retainTasksFor = (options.config.retainActivityLogsFor + 5) * 60 * 1000;
+			this._retainActivityLogsFor = options.config.retainActivityLogsFor * 60 * 1000;
+		}
+
+		if (!Is.undefined(options?.config?.activityLogsCleanUpInterval)) {
+			Guards.integer(
+				this.CLASS_NAME,
+				nameof(options.config.activityLogsCleanUpInterval),
+				options.config.activityLogsCleanUpInterval
+			);
+			Validation.integer(
+				nameof(options.config.activityLogsCleanUpInterval),
+				options.config.activityLogsCleanUpInterval,
+				validationErrors,
+				undefined,
+				{ minValue: 1 }
+			);
+			this._activityLogCleanUpInterval = options.config.activityLogsCleanUpInterval;
+		}
+		Validation.asValidationError(this.CLASS_NAME, nameof(options?.config), validationErrors);
 	}
 
 	/**
@@ -163,6 +249,45 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			for (const app of this._initialDataSpaceConnectorApps) {
 				await this.registerDataSpaceConnectorApp(app);
 			}
+		}
+
+		const engine = EngineCoreFactory.getIfExists("engine");
+		if (Is.empty(engine) || engine.isClone()) {
+			this._loggingService?.log({
+				level: "debug",
+				source: this.CLASS_NAME,
+				message: "engineCloneStart"
+			});
+			return;
+		}
+
+		// Only we have a task scheduler if there is a retention different than -1
+		if (this._retainActivityLogsFor !== -1) {
+			const taskTime: IScheduledTaskTime[] = [
+				{
+					nextTriggerTime: Date.now() + 5000,
+					...this.calculateCleaningTaskSchedule(this._activityLogCleanUpInterval)
+				}
+			];
+
+			this._taskScheduler.addTask("data-space-connector-cleanup", taskTime, async () => {
+				this._loggingService?.log({
+					level: "debug",
+					source: this.CLASS_NAME,
+					message: "scheduledCleanUpTask"
+				});
+
+				await this.cleanUpActivityLog();
+			});
+
+			this._loggingService?.log({
+				level: "debug",
+				source: this.CLASS_NAME,
+				message: "taskSchedulerStarted",
+				data: {
+					taskTime
+				}
+			});
 		}
 	}
 
@@ -235,7 +360,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					taskType,
 					payload,
 					{
-						retainFor: -1
+						retainFor: this._retainTasksFor
 					}
 				);
 
@@ -495,7 +620,94 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					}
 				});
 			}
+
+			// Now let's see if the full activity processing has completed, if so the entry must be marked for retention
+			if (this._retainActivityLogsFor !== -1) {
+				const entry = await this.getActivityLogEntry(payload.activityLogEntryId);
+				if (
+					entry.status === ActivityProcessingStatus.Completed ||
+					entry.status === ActivityProcessingStatus.Error
+				) {
+					const retainUntil = Date.now() + this._retainActivityLogsFor;
+					this._entityStorageActivityLogs.set({
+						id: entry.id,
+						activityId: entry.activityId,
+						generator: entry.generator,
+						dateCreated: entry.dateCreated,
+						dateModified: entry.dateModified,
+						retainUntil
+					});
+				}
+			}
 		}
+	}
+
+	/**
+	 * Cleans up the activity log by deleting those entries that no longer shall be retained.
+	 * @internal
+	 */
+	private async cleanUpActivityLog(): Promise<void> {
+		if (this._cleanUpProcessOngoing) {
+			this._loggingService?.log({
+				level: "debug",
+				message: "cleanUpOngoing",
+				source: this.CLASS_NAME
+			});
+			return;
+		}
+
+		let numRecordsDeleted = 0;
+
+		try {
+			this._cleanUpProcessOngoing = true;
+
+			let cursor: string | undefined;
+			const now = Date.now();
+
+			do {
+				const result = await this._entityStorageActivityLogs.query({
+					conditions: [
+						{
+							property: "retainUntil",
+							value: 0,
+							comparison: ComparisonOperator.GreaterThan
+						},
+						{
+							property: "retainUntil",
+							value: now,
+							comparison: ComparisonOperator.LessThan
+						}
+					],
+					logicalOperator: LogicalOperator.And
+				});
+				cursor = result.cursor;
+
+				for (const entity of result.entities) {
+					const logEntryDetails = await this.getActivityLogEntry(entity.id as string);
+					if (
+						logEntryDetails.status === ActivityProcessingStatus.Completed ||
+						logEntryDetails.status === ActivityProcessingStatus.Error
+					) {
+						await this._entityStorageActivityLogs.remove(entity.id as string);
+						await this._entityStorageActivityTasks.remove(entity.id as string);
+						numRecordsDeleted++;
+					}
+				}
+			} while (Is.stringValue(cursor));
+		} catch {
+			// If cleaning up the retained items fail we don't really care, they will get cleaned up on the next sweep.
+		}
+
+		this._loggingService?.log({
+			level: "debug",
+			message: "activityLogCleanedUp",
+			source: this.CLASS_NAME,
+			data: {
+				numRecordsDeleted
+			}
+		});
+
+		this._cleanUpProcessOngoing = false;
 	}
 
 	/**
@@ -569,5 +781,23 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Calculates the cleaning task schedule.
+	 * @param minutes The period in minutes.
+	 * @returns The cleaning task schedule.
+	 * @internal
+	 */
+	private calculateCleaningTaskSchedule(minutes: number): IScheduledTaskTime {
+		let minutesRemain = minutes;
+
+		const days = Math.floor(minutesRemain / (24 * 60));
+		minutesRemain %= 24 * 60;
+
+		const hours = Math.floor(minutesRemain / 60);
+		minutesRemain %= 60;
+
+		return { intervalDays: days, intervalHours: hours, intervalMinutes: minutesRemain };
 	}
 }

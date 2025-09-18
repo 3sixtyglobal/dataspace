@@ -32,6 +32,20 @@ background-task
 
 ***
 
+### taskSchedulerComponentType?
+
+> `optional` **taskSchedulerComponentType**: `string`
+
+Task Scheduler Component Type.
+
+#### Default
+
+```ts
+task-scheduler
+```
+
+***
+
 ### activityLogEntityStorageType?
 
 > `optional` **activityLogEntityStorageType**: `string`
