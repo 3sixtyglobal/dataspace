@@ -4,7 +4,7 @@
 import type { IDataSpaceConnectorServiceConfig } from "./IDataSpaceConnectorServiceConfig";
 
 /**
- * Federated Catalogue service options
+ * Data Space Connector service options
  */
 export interface IDataSpaceConnectorServiceConstructorOptions {
 	/**

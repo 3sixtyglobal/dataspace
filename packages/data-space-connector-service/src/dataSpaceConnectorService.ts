@@ -161,7 +161,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	private readonly _taskScheduler: ITaskSchedulerComponent;
 
 	/**
-	 * Create a new instance of FederatedCatalogue service.
+	 * Create a new instance of DataSpaceConnector.
 	 * @param options The options for the connector.
 	 */
 	constructor(options: IDataSpaceConnectorServiceConstructorOptions) {

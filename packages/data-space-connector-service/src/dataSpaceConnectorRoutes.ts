@@ -77,7 +77,7 @@ const activityLogEntryExample: IActivityLogEntry = {
 };
 
 /**
- * The REST routes for Federated Catalogue.
+ * The REST routes for Data Space Connector.
  * @param baseRouteName Prefix to prepend to the paths.
  * @param factoryServiceName The name of the service to use in the routes store in the ServiceFactory.
  * @returns The generated routes.

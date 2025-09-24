@@ -1,6 +1,6 @@
 # Interface: IDataSpaceConnectorServiceConstructorOptions
 
-Federated Catalogue service options
+Data Space Connector service options
 
 ## Properties
 
