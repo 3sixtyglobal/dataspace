@@ -13,5 +13,11 @@
 			"package": "@twin.org/data-space-connector-service"
 		}
 	],
-	"authMethods": ["jwtBearer"]
+	"authMethods": ["jwtBearer"],
+	"externalReferences": {
+		"JsonLd(.*?)": "https://schema.twindev.org/json-ld/JsonLd$1",
+		"ActivityStreams": "https://schema.twindev.org/w3c-activity-streams/ActivityStreams",
+		"ActivityStreamsTypes": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
+	},
+	"autoExpandTypes": ["ActivityStreamsContextType"]
 }
