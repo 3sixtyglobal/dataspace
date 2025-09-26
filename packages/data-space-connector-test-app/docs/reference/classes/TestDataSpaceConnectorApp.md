@@ -40,6 +40,36 @@ Runtime name for the class.
 
 ## Methods
 
+### start()
+
+> **start**(`nodeIdentity`, `nodeLoggingComponentType`): `Promise`\<`void`\>
+
+Start method.
+
+#### Parameters
+
+##### nodeIdentity
+
+`string`
+
+the identity of the node where this application lives.
+
+##### nodeLoggingComponentType
+
+the logging component type of such a node.
+
+`undefined` | `string`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataSpaceConnectorApp.start`
+
+***
+
 ### handleActivity()
 
 > **handleActivity**\<`T`\>(`activity`): `Promise`\<`T`\>

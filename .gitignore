@@ -11,12 +11,12 @@ coverage
 .env.dev
 vitest.config.ts.timestamp*
 
-.env
+.env*
 .env.local
 .env.local.*
-.local-data
+.local-data*
 .local-data-docker
 
 .DS_Store
 
-data-space-connector-apps.json
+data-space-connector-apps*.json

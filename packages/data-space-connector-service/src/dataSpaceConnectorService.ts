@@ -247,7 +247,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	public async start(nodeIdentity: string, nodeLoggingComponentType?: string): Promise<void> {
 		if (Is.arrayValue(this._initialDataSpaceConnectorApps)) {
 			for (const app of this._initialDataSpaceConnectorApps) {
-				await this.registerDataSpaceConnectorApp(app);
+				await this.registerDataSpaceConnectorApp(app, nodeIdentity, nodeLoggingComponentType);
 			}
 		}
 
@@ -507,8 +507,14 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	/**
 	 * Registers a Data Space Connector App.
 	 * @param app The App to be registered.
+	 * @param nodeIdentity The identity of the Node.
+	 * @param nodeLoggingComponentType The Node Logging Component type.
 	 */
-	public async registerDataSpaceConnectorApp(app: IDataSpaceConnectorAppDescriptor): Promise<void> {
+	public async registerDataSpaceConnectorApp(
+		app: IDataSpaceConnectorAppDescriptor,
+		nodeIdentity?: string,
+		nodeLoggingComponentType?: string
+	): Promise<void> {
 		Guards.objectValue<IDataSpaceConnectorAppDescriptor>(this.CLASS_NAME, nameof(app), app);
 
 		const activityQuerySet = app.activitiesHandled;
@@ -547,6 +553,22 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			{ options: customTypeConfig[0].options },
 			null
 		]);
+
+		const dsConnectorAppComponent = ComponentFactory.get<IDataSpaceConnectorApp>(
+			`${StringHelper.kebabCase(nameof<IDataSpaceConnectorApp>(), true)}-${app.id}`
+		);
+		if (!Is.undefined(nodeIdentity)) {
+			await dsConnectorAppComponent.start?.(nodeIdentity, nodeLoggingComponentType);
+		}
+
+		this._loggingService?.log({
+			level: "debug",
+			message: "startDsConnectorApp",
+			source: this.CLASS_NAME,
+			data: {
+				appId: app.id
+			}
+		});
 	}
 
 	/**
