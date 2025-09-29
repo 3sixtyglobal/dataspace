@@ -34,7 +34,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	 * Node Identity
 	 * @internal
 	 */
-	private _nodeIdentity: string;
+	private _nodeIdentity?: string;
 
 	/**
 	 * Constructor options.
@@ -64,8 +64,6 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		);
 
 		this._appId = options.config.dataSpaceConnectorAppId;
-
-		this._nodeIdentity = "";
 	}
 
 	/**
@@ -73,10 +71,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	 * @param nodeIdentity the identity of the node where this application lives.
 	 * @param nodeLoggingComponentType the logging component type of such a node.
 	 */
-	public async start(
-		nodeIdentity: string,
-		nodeLoggingComponentType: string | undefined
-	): Promise<void> {
+	public async start(nodeIdentity?: string, nodeLoggingComponentType?: string): Promise<void> {
 		this._nodeIdentity = nodeIdentity;
 	}
 
@@ -94,7 +89,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		await this._loggingService?.log({
 			level: "info",
 			source: this.CLASS_NAME,
-			message: `Node Identity: ${this._nodeIdentity}`
+			message: `Node Identity: ${this._nodeIdentity ?? ""}`
 		});
 		await new Promise(resolve => setTimeout(resolve, 500));
 		return "1234" as T;

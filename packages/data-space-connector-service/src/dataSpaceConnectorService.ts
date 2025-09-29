@@ -557,9 +557,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const dsConnectorAppComponent = ComponentFactory.get<IDataSpaceConnectorApp>(
 			`${StringHelper.kebabCase(nameof<IDataSpaceConnectorApp>(), true)}-${app.id}`
 		);
-		if (!Is.undefined(nodeIdentity)) {
-			await dsConnectorAppComponent.start?.(nodeIdentity, nodeLoggingComponentType);
-		}
+		await dsConnectorAppComponent.start?.(nodeIdentity, nodeLoggingComponentType);
 
 		this._loggingService?.log({
 			level: "debug",

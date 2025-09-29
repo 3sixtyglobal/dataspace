@@ -42,23 +42,23 @@ Runtime name for the class.
 
 ### start()
 
-> **start**(`nodeIdentity`, `nodeLoggingComponentType`): `Promise`\<`void`\>
+> **start**(`nodeIdentity?`, `nodeLoggingComponentType?`): `Promise`\<`void`\>
 
 Start method.
 
 #### Parameters
 
-##### nodeIdentity
+##### nodeIdentity?
 
 `string`
 
 the identity of the node where this application lives.
 
-##### nodeLoggingComponentType
+##### nodeLoggingComponentType?
+
+`string`
 
 the logging component type of such a node.
-
-`undefined` | `string`
 
 #### Returns
 
