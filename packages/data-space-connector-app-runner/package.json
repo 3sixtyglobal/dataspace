@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/data-space-connector-app-runner",
-	"version": "0.0.1-next.5",
+	"version": "0.0.1-next.6",
 	"description": "Data Space Connector App Runner",
 	"repository": {
 		"type": "git",
@@ -33,7 +33,7 @@
 	},
 	"dependencies": {
 		"@twin.org/core": "next",
-		"@twin.org/data-space-connector-models": "0.0.1-next.5",
+		"@twin.org/data-space-connector-models": "0.0.1-next.6",
 		"@twin.org/engine-models": "next",
 		"@twin.org/engine-core": "next",
 		"@twin.org/logging-models": "next",

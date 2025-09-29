@@ -72,7 +72,7 @@ const customTypeConfig: IEngineCoreTypeConfig[] = [
 
 await run({
 	serverName: "Data Space Connector Server",
-	serverVersion: "0.0.1-next.5", // x-release-please-version
+	serverVersion: "0.0.1-next.6", // x-release-please-version
 	envPrefix: "DATA_SPACE_CONNECTOR_",
 	localesDirectory: path.resolve("dist/locales"),
 	openApiSpecFile: path.resolve("docs/open-api/spec.json"),

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.1-next.6](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.1-next.5...data-space-connector-service-v0.0.1-next.6) (2025-09-29)
+
+
+### Features
+
+* use new start signature ([4064d19](https://github.com/twinfoundation/data-space-connector/commit/4064d19676b183e7162e667a701a24c4b1f48504))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-app-runner bumped from 0.0.1-next.5 to 0.0.1-next.6
+    * @twin.org/data-space-connector-models bumped from 0.0.1-next.5 to 0.0.1-next.6
+  * devDependencies
+    * @twin.org/data-space-connector-test-app bumped from 0.0.1-next.5 to 0.0.1-next.6
+
 ## [0.0.1-next.5](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.1-next.4...data-space-connector-service-v0.0.1-next.5) (2025-09-29)
 
 
