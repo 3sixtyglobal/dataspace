@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0.
 
 import type { IRestRoute } from "@twin.org/api-models";
-import { ComponentFactory, StringHelper } from "@twin.org/core";
+import { ComponentFactory } from "@twin.org/core";
 import type { IDataSpaceConnectorApp } from "@twin.org/data-space-connector-models";
 import type { IEngineCore, IEngineCoreContext } from "@twin.org/engine-models";
-import { nameof } from "@twin.org/nameof";
+import { nameofKebabCase } from "@twin.org/nameof";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions";
 import { TestAppDescriptor } from "./testAppDescriptor";
 import { TestDataSpaceConnectorApp } from "./testDataSpaceConnectorApp";
@@ -25,7 +25,7 @@ export function appInitialiser(
 	instanceConfig: { options: ITestAppConstructorOptions },
 	overrideInstanceType: string
 ): string {
-	const componentName = `${StringHelper.kebabCase(nameof<IDataSpaceConnectorApp>(), true)}-${TestAppDescriptor.id}`;
+	const componentName = `${nameofKebabCase<IDataSpaceConnectorApp>()}-${TestAppDescriptor.id}`;
 	ComponentFactory.register(
 		componentName,
 		() => new TestDataSpaceConnectorApp(instanceConfig.options)

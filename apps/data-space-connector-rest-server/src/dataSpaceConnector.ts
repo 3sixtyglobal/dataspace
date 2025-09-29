@@ -1,7 +1,7 @@
 // Copyright 2024 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IRestRoute, ISocketRoute } from "@twin.org/api-models";
-import { ComponentFactory, StringHelper } from "@twin.org/core";
+import { ComponentFactory } from "@twin.org/core";
 import type { IDataSpaceConnector } from "@twin.org/data-space-connector-models";
 import {
 	DataSpaceConnectorService,
@@ -10,7 +10,7 @@ import {
 	type IDataSpaceConnectorServiceConstructorOptions
 } from "@twin.org/data-space-connector-service";
 import type { IEngineCore, IEngineCoreContext } from "@twin.org/engine-models";
-import { nameof } from "@twin.org/nameof";
+import { nameofKebabCase } from "@twin.org/nameof";
 
 /**
  * Data Space Connector initialiser.
@@ -27,7 +27,7 @@ export async function dataSpaceConnectorTypeInitialiser(
 	instanceConfig: { options: IDataSpaceConnectorServiceConstructorOptions },
 	overrideInstanceType: string
 ): Promise<string> {
-	const componentName = StringHelper.kebabCase(nameof<IDataSpaceConnector>(), true);
+	const componentName = nameofKebabCase<IDataSpaceConnector>();
 	const dataSpaceConnector = new DataSpaceConnectorService({
 		loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
 		backgroundTaskConnectorType: engineCore.getRegisteredInstanceType("backgroundTaskConnector"),

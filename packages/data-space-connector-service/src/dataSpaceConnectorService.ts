@@ -50,7 +50,7 @@ import {
 } from "@twin.org/entity-storage-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { ModuleHelper } from "@twin.org/modules";
-import { nameof } from "@twin.org/nameof";
+import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { SchemaOrgDataTypes } from "@twin.org/standards-schema-org";
 import { ActivityStreamsDataTypes, type IActivity } from "@twin.org/standards-w3c-activity-streams";
 import { AppRegistry } from "./appRegistry";
@@ -172,11 +172,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		this._entityStorageActivityLogs = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<ActivityLogDetails>
-		>(options.activityLogEntityStorageType ?? StringHelper.kebabCase(nameof<ActivityLogDetails>()));
+		>(options.activityLogEntityStorageType ?? nameofKebabCase<ActivityLogDetails>());
 
 		this._entityStorageActivityTasks = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<ActivityTask>
-		>(options.activityTaskEntityStorageType ?? StringHelper.kebabCase(nameof<ActivityTask>()));
+		>(options.activityTaskEntityStorageType ?? nameofKebabCase<ActivityTask>());
 
 		this._backgroundTaskConnector = BackgroundTaskConnectorFactory.get(
 			options?.backgroundTaskConnectorType ?? "background-task"
@@ -244,7 +244,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param nodeIdentity Node Identity
 	 * @param nodeLoggingComponentType Node Logging Component type.
 	 */
-	public async start(nodeIdentity: string, nodeLoggingComponentType?: string): Promise<void> {
+	public async start(nodeIdentity?: string, nodeLoggingComponentType?: string): Promise<void> {
 		if (Is.arrayValue(this._initialDataSpaceConnectorApps)) {
 			for (const app of this._initialDataSpaceConnectorApps) {
 				await this.registerDataSpaceConnectorApp(app, nodeIdentity, nodeLoggingComponentType);

@@ -4,15 +4,15 @@
 import path from "node:path";
 import {
 	EntityStorageBackgroundTaskConnector,
-	type BackgroundTask,
-	initSchema as initSchemaBackgroundTask
+	initSchema as initSchemaBackgroundTask,
+	type BackgroundTask
 } from "@twin.org/background-task-connector-entity-storage";
 import {
 	BackgroundTaskConnectorFactory,
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
 import { TaskSchedulerService } from "@twin.org/background-task-scheduler";
-import { ComponentFactory, Is, ObjectHelper, StringHelper } from "@twin.org/core";
+import { ComponentFactory, Is, ObjectHelper } from "@twin.org/core";
 import {
 	ActivityProcessingStatus,
 	type IActivityLogDates,
@@ -21,11 +21,9 @@ import {
 import { TestAppDescriptor } from "@twin.org/data-space-connector-test-app";
 import { FileEntityStorageConnector } from "@twin.org/entity-storage-connector-file";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-
 import { ModuleHelper } from "@twin.org/modules";
-import { nameof } from "@twin.org/nameof";
+import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
-
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
 import { cleanupTestEnv, setupTestEnv } from "./setupTestEnv";
 import { activityLdContextArray, canonicalActivity, extendedActivity } from "./testData";
@@ -120,11 +118,11 @@ describe("data-space-connector-tests", () => {
 		await activityTasksStore.bootstrap();
 
 		EntityStorageConnectorFactory.register(
-			StringHelper.kebabCase(nameof<ActivityLogDetails>()),
+			nameofKebabCase<ActivityLogDetails>(),
 			() => activityLogStore
 		);
 		EntityStorageConnectorFactory.register(
-			StringHelper.kebabCase(nameof<ActivityTask>()),
+			nameofKebabCase<ActivityTask>(),
 			() => activityTasksStore
 		);
 
