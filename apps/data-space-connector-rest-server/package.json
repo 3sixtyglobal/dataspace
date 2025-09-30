@@ -33,6 +33,8 @@
 	"dependencies": {
 		"@twin.org/core": "next",
 		"@twin.org/data-space-connector-models": "0.0.1-next.6",
+		"@twin.org/data-space-connector-rest-client": "0.0.1-next.6",
+		"@twin.org/data-space-connector-socket-client": "0.0.1-next.6",
 		"@twin.org/data-space-connector-service": "0.0.1-next.6",
 		"@twin.org/engine": "next",
 		"@twin.org/engine-types": "next",
