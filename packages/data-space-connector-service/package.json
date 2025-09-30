@@ -91,5 +91,19 @@
 		"dist/types",
 		"locales",
 		"docs"
+	],
+	"keywords": [
+		"twin",
+		"trade",
+		"iota",
+		"framework",
+		"blockchain",
+		"data-space-connector",
+		"service",
+		"microservice",
+		"business-logic",
+		"connector",
+		"adapter",
+		"integration"
 	]
 }
