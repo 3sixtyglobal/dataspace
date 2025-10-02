@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.1-next.7](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.1-next.6...data-space-connector-models-v0.0.1-next.7) (2025-10-02)
+
+
+### Features
+
+* use new engine extensions config ([80bdb5b](https://github.com/twinfoundation/data-space-connector/commit/80bdb5b298b65b5b22fa9927a0ad031cb9a3534d))
+
 ## [0.0.1-next.6](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.1-next.5...data-space-connector-models-v0.0.1-next.6) (2025-09-29)
 
 
