@@ -1,5 +1,6 @@
 // Copyright 2024 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+export * from "./factories/dataSpaceConnectorAppFactory";
 export * from "./IDataSpaceConnector";
 export * from "./models/activityProcessingStatus";
 export * from "./models/api/IActivityLogEntryGetRequest";
@@ -7,11 +8,7 @@ export * from "./models/api/IActivityLogEntryGetResponse";
 export * from "./models/api/IActivityLogStatusNotificationPayload";
 export * from "./models/api/IActivityLogStatusRequest";
 export * from "./models/api/IActivityStreamNotifyRequest";
-export * from "./models/app/IActivityHandler";
 export * from "./models/app/IDataSpaceConnectorApp";
-export * from "./models/app/IDataSpaceConnectorAppConfig";
-export * from "./models/app/IDataSpaceConnectorAppConstructorOptions";
-export * from "./models/app/IDataSpaceConnectorAppDescriptor";
 export * from "./models/IActivityLogDates";
 export * from "./models/IActivityLogDetails";
 export * from "./models/IActivityLogEntry";

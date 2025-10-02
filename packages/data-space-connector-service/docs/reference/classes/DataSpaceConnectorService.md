@@ -182,31 +182,25 @@ NotFoundError if activity log entry is not known.
 
 ***
 
-### registerDataSpaceConnectorApp()
+### registerApp()
 
-> **registerDataSpaceConnectorApp**(`app`, `nodeIdentity?`, `nodeLoggingComponentType?`): `Promise`\<`void`\>
+> **registerApp**(`appId`, `app`): `Promise`\<`void`\>
 
 Registers a Data Space Connector App.
 
 #### Parameters
 
+##### appId
+
+`string`
+
+The Id of the App to be registered.
+
 ##### app
 
-`IDataSpaceConnectorAppDescriptor`
+`IDataSpaceConnectorApp`
 
 The App to be registered.
-
-##### nodeIdentity?
-
-`string`
-
-The identity of the Node.
-
-##### nodeLoggingComponentType?
-
-`string`
-
-The Node Logging Component type.
 
 #### Returns
 
@@ -214,4 +208,30 @@ The Node Logging Component type.
 
 #### Implementation of
 
-`IDataSpaceConnector.registerDataSpaceConnectorApp`
+`IDataSpaceConnector.registerApp`
+
+***
+
+### unregisterApp()
+
+> **unregisterApp**(`appId`): `Promise`\<`void`\>
+
+Un-registers a Data Space Connector App.
+
+#### Parameters
+
+##### appId
+
+`string`
+
+The Id of the App to be registered.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Nothing.
+
+#### Implementation of
+
+`IDataSpaceConnector.unregisterApp`

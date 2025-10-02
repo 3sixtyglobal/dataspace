@@ -1,14 +1,14 @@
 // Copyright 2024 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
-import { ComponentFactory, Guards, Is } from "@twin.org/core";
-import type {
-	IExecutionPayload,
-	IDataSpaceConnectorApp
+import { Guards, Is } from "@twin.org/core";
+import {
+	type IDataSpaceConnectorApp,
+	type IExecutionPayload,
+	DataSpaceConnectorAppFactory
 } from "@twin.org/data-space-connector-models";
 import { EngineCore } from "@twin.org/engine-core";
 import type { IEngineCore, IEngineCoreClone } from "@twin.org/engine-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
+import { nameof } from "@twin.org/nameof";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
 
 const CLASS_NAME = "DataSpaceAppRunner";
@@ -38,9 +38,7 @@ export async function appRunner<T>(
 			await engine.start();
 		}
 
-		const app = ComponentFactory.get<IDataSpaceConnectorApp>(
-			`${nameofKebabCase<IDataSpaceConnectorApp>()}-${payload.executorApp}`
-		);
+		const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(payload.executorApp);
 
 		return app.handleActivity<T>(payload.activity);
 	} finally {

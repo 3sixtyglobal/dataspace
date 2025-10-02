@@ -18,7 +18,8 @@ import {
 	type IActivityLogDates,
 	type IActivityLogEntry
 } from "@twin.org/data-space-connector-models";
-import { TestAppDescriptor } from "@twin.org/data-space-connector-test-app";
+import { DataSpaceConnectorAppFactory } from "@twin.org/data-space-connector-models";
+import { TestDataSpaceConnectorApp } from "@twin.org/data-space-connector-test-app";
 import { FileEntityStorageConnector } from "@twin.org/entity-storage-connector-file";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { ModuleHelper } from "@twin.org/modules";
@@ -90,8 +91,8 @@ describe("data-space-connector-tests", () => {
 		initSchemaBackgroundTask();
 
 		options = {
-			loggingComponentType: "console",
-			backgroundTaskConnectorType: "background-task-4-data-space-connector",
+			loggingComponentType: "logging",
+			backgroundTaskConnectorType: "background-task",
 			config: {}
 		};
 	});
@@ -136,7 +137,7 @@ describe("data-space-connector-tests", () => {
 			backgroundTaskEntityStorageType: "background-task"
 		});
 		BackgroundTaskConnectorFactory.register(
-			"background-task-4-data-space-connector",
+			"background-task",
 			() => backgroundTaskConnectorEntityStorage
 		);
 		taskScheduler = new TaskSchedulerService();
@@ -147,7 +148,11 @@ describe("data-space-connector-tests", () => {
 		await backgroundTaskConnectorEntityStorage.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		await dataSpaceConnectorService.registerDataSpaceConnectorApp(TestAppDescriptor);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(canonicalActivity);
 		await sleep(800);
@@ -160,7 +165,12 @@ describe("data-space-connector-tests", () => {
 		await backgroundTaskConnectorEntityStorage.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		await dataSpaceConnectorService.registerDataSpaceConnectorApp(TestAppDescriptor);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
 		// Avoid duplication check
 		activityLdContextArray.updated = new Date().toISOString();
 
@@ -176,7 +186,11 @@ describe("data-space-connector-tests", () => {
 		await backgroundTaskConnectorEntityStorage.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		await dataSpaceConnectorService.registerDataSpaceConnectorApp(TestAppDescriptor);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(extendedActivity);
 		await sleep(800);

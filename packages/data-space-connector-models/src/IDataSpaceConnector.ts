@@ -3,7 +3,7 @@
 
 import type { IComponent } from "@twin.org/core";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IDataSpaceConnectorAppDescriptor } from "./models/app/IDataSpaceConnectorAppDescriptor";
+import type { IDataSpaceConnectorApp } from "./models/app/IDataSpaceConnectorApp";
 import type { IActivityLogEntry } from "./models/IActivityLogEntry";
 import type { IActivityLogStatusNotification } from "./models/IActivityLogStatusNotification";
 
@@ -46,8 +46,16 @@ export interface IDataSpaceConnector extends IComponent {
 
 	/**
 	 * Registers a Data Space Connector App.
-	 * @param app The descriptor of the App to be registered.
-	 * @returns nothing.
+	 * @param appId The Id of the App to be registered.
+	 * @param app The app to be registered.
+	 * @returns Nothing.
 	 */
-	registerDataSpaceConnectorApp(app: IDataSpaceConnectorAppDescriptor): Promise<void>;
+	registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void>;
+
+	/**
+	 * Un-registers a Data Space Connector App.
+	 * @param appId The Id of the App to be registered.
+	 * @returns Nothing.
+	 */
+	unregisterApp(appId: string): Promise<void>;
 }

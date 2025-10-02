@@ -10,7 +10,7 @@ import type {
 	IActivityLogStatusNotification,
 	IActivityStreamNotifyRequest,
 	IDataSpaceConnector,
-	IDataSpaceConnectorAppDescriptor
+	IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -95,11 +95,22 @@ export class DataSpaceConnectorClient extends BaseRestClient implements IDataSpa
 
 	/**
 	 * Registers a Data Space Connector App.
-	 * @param app The descriptor of the App to be registered.
+	 * @param appId The Id of the App to be registered.
+	 * @param app The app to be registered.
 	 * @returns nothing.
 	 */
-	public async registerDataSpaceConnectorApp(app: IDataSpaceConnectorAppDescriptor): Promise<void> {
+	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
 		// Don't want client to be able to register apps remotely
-		throw new NotSupportedError(this.CLASS_NAME, nameof("registerDataSpaceConnectorApp"));
+		throw new NotSupportedError(this.CLASS_NAME, nameof("registerApp"));
+	}
+
+	/**
+	 * Un-registers a Data Space Connector App.
+	 * @param appId The Id of the App to be registered.
+	 * @returns Nothing.
+	 */
+	public async unregisterApp(appId: string): Promise<void> {
+		// Don't want client to be able to unregister apps remotely
+		throw new NotSupportedError(this.CLASS_NAME, nameof("unregisterApp"));
 	}
 }

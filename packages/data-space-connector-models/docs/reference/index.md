@@ -16,11 +16,7 @@
 - [IActivityLogStatusNotificationPayload](interfaces/IActivityLogStatusNotificationPayload.md)
 - [IActivityLogStatusRequest](interfaces/IActivityLogStatusRequest.md)
 - [IActivityStreamNotifyRequest](interfaces/IActivityStreamNotifyRequest.md)
-- [IActivityHandler](interfaces/IActivityHandler.md)
 - [IDataSpaceConnectorApp](interfaces/IDataSpaceConnectorApp.md)
-- [IDataSpaceConnectorAppConfig](interfaces/IDataSpaceConnectorAppConfig.md)
-- [IDataSpaceConnectorAppConstructorOptions](interfaces/IDataSpaceConnectorAppConstructorOptions.md)
-- [IDataSpaceConnectorAppDescriptor](interfaces/IDataSpaceConnectorAppDescriptor.md)
 
 ## Type Aliases
 
@@ -28,4 +24,5 @@
 
 ## Variables
 
+- [DataSpaceConnectorAppFactory](variables/DataSpaceConnectorAppFactory.md)
 - [ActivityProcessingStatus](variables/ActivityProcessingStatus.md)

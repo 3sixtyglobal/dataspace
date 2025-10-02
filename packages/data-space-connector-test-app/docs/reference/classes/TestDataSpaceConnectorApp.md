@@ -10,15 +10,15 @@ Test App Activity Handler.
 
 ### Constructor
 
-> **new TestDataSpaceConnectorApp**(`options`): `TestDataSpaceConnectorApp`
+> **new TestDataSpaceConnectorApp**(`options?`): `TestDataSpaceConnectorApp`
 
-Constructor options.
+Create a new instance of TestDataSpaceConnectorApp.
 
 #### Parameters
 
-##### options
+##### options?
 
-`IDataSpaceConnectorAppConstructorOptions`
+[`ITestAppConstructorOptions`](../interfaces/ITestAppConstructorOptions.md)
 
 The constructor options.
 
@@ -27,6 +27,14 @@ The constructor options.
 `TestDataSpaceConnectorApp`
 
 ## Properties
+
+### APP\_ID
+
+> `readonly` `static` **APP\_ID**: `"https://twin.example.org/app1"` = `"https://twin.example.org/app1"`
+
+App Name.
+
+***
 
 ### CLASS\_NAME
 
@@ -67,6 +75,24 @@ the logging component type of such a node.
 #### Implementation of
 
 `IDataSpaceConnectorApp.start`
+
+***
+
+### activitiesHandled()
+
+> **activitiesHandled**(): `IActivityQuery`[]
+
+The activities handled by the App.
+
+#### Returns
+
+`IActivityQuery`[]
+
+The activities handled by the App.
+
+#### Implementation of
+
+`IDataSpaceConnectorApp.activitiesHandled`
 
 ***
 

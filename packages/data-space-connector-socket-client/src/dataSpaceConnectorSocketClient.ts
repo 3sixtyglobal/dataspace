@@ -10,6 +10,7 @@ import {
 	type IError,
 	Is,
 	NotImplementedError,
+	NotSupportedError,
 	RandomHelper
 } from "@twin.org/core";
 import type {
@@ -17,7 +18,7 @@ import type {
 	IActivityLogStatusNotification,
 	IActivityLogStatusRequest,
 	IDataSpaceConnector,
-	IDataSpaceConnectorAppDescriptor
+	IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
@@ -196,13 +197,24 @@ export class DataSpaceConnectorSocketClient
 	}
 
 	/**
-	 * Registers a Data Space Connector App - Not available from client.
-	 * @param app The descriptor of the App to be registered.
+	 * Registers a Data Space Connector App.
+	 * @param appId The Id of the App to be registered.
+	 * @param app The app to be registered.
 	 * @returns nothing.
 	 */
-	public async registerDataSpaceConnectorApp(app: IDataSpaceConnectorAppDescriptor): Promise<void> {
-		// This method is in the REST client
-		throw new NotImplementedError(this.CLASS_NAME, "registerDataSpaceConnectorApp");
+	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
+		// Don't want client to be able to register apps remotely
+		throw new NotSupportedError(this.CLASS_NAME, nameof("registerApp"));
+	}
+
+	/**
+	 * Un-registers a Data Space Connector App.
+	 * @param appId The Id of the App to be registered.
+	 * @returns Nothing.
+	 */
+	public async unregisterApp(appId: string): Promise<void> {
+		// Don't want client to be able to unregister apps remotely
+		throw new NotSupportedError(this.CLASS_NAME, nameof("unregisterApp"));
 	}
 
 	/**

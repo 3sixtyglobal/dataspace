@@ -5,7 +5,9 @@
 			"subscriptionEntryNotFound": "Subscription Entry has not been found",
 			"activityAlreadyNotified": "Activity has already been notified",
 			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
-			"invalidActivity": "Invalid Activity. Expected fields not specified"
+			"invalidActivity": "Invalid Activity. Expected fields not specified",
+			"registeredApp": "App with Id \"{appId}\" has been registered",
+			"unregisteredApp": "App with Id \"{appId}\" has been unregistered"
 		}
 	},
 	"info": {

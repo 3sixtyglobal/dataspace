@@ -3,10 +3,10 @@
 
 import {
 	BackgroundTaskConnectorFactory,
-	type IScheduledTaskTime,
 	TaskStatus,
 	type IBackgroundTask,
 	type IBackgroundTaskConnector,
+	type IScheduledTaskTime,
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
 import {
@@ -18,7 +18,6 @@ import {
 	Is,
 	NotFoundError,
 	RandomHelper,
-	StringHelper,
 	Validation,
 	type IError,
 	type IValidationFailure
@@ -38,22 +37,19 @@ import {
 	type IActivityQuery,
 	type IDataSpaceConnector,
 	type IDataSpaceConnectorApp,
-	type IDataSpaceConnectorAppDescriptor,
 	type IExecutionPayload,
 	type ITaskApp
 } from "@twin.org/data-space-connector-models";
-import { EngineCoreFactory, type IEngineCoreTypeConfig } from "@twin.org/engine-models";
+import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
 } from "@twin.org/entity-storage-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
-import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { SchemaOrgDataTypes } from "@twin.org/standards-schema-org";
 import { ActivityStreamsDataTypes, type IActivity } from "@twin.org/standards-w3c-activity-streams";
-import { AppRegistry } from "./appRegistry";
 import type { ActivityLogDetails } from "./entities/activityLogDetails";
 import type { ActivityTask } from "./entities/activityTask";
 import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDataSpaceConnectorServiceConstructorOptions";
@@ -63,17 +59,16 @@ import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDat
  */
 export class DataSpaceConnectorService implements IDataSpaceConnector {
 	/**
-	 * DS Connector App Component Type.
-	 * @internal
-	 */
-	private static readonly _DS_CONNECTOR_APP_COMPONENT_TYPE: string =
-		nameof<IDataSpaceConnectorApp>();
-
-	/**
 	 * The default cleanup interval in minutes. (1 hour)
 	 * @internal
 	 */
 	private static readonly _DEFAULT_CLEANUP_INTERVAL: number = 60;
+
+	/**
+	 * The default retain interval in minutes. (10 minutes)
+	 * @internal
+	 */
+	private static readonly _DEFAULT_RETAIN_INTERVAL: number = 10;
 
 	/**
 	 * Runtime name for the class.
@@ -108,19 +103,13 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * Handler registry of Data Space Connector Apps.
 	 * @internal
 	 */
-	private readonly _appRegistry: AppRegistry;
+	private readonly _apps: { appId: string; app: IDataSpaceConnectorApp }[];
 
 	/**
 	 * Background Task Connector.
 	 * @internal
 	 */
 	private readonly _backgroundTaskConnector: IBackgroundTaskConnector;
-
-	/**
-	 * Initial set of Data Space Connector Apps
-	 * @internal
-	 */
-	private readonly _initialDataSpaceConnectorApps?: IDataSpaceConnectorAppDescriptor[];
 
 	/**
 	 * Activity Log Status callbacks.
@@ -186,42 +175,46 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			options?.taskSchedulerComponentType ?? "task-scheduler"
 		);
 
-		this._appRegistry = new AppRegistry();
+		this._apps = [];
 
 		JsonLdDataTypes.registerTypes();
 		ActivityStreamsDataTypes.registerTypes();
 		SchemaOrgDataTypes.registerRedirects();
 
-		this._initialDataSpaceConnectorApps = options.config?.dataSpaceConnectorAppDescriptors;
-
 		this._activityLogStatusCallbacks = {};
 
-		this._retainTasksFor = -1;
-		this._retainActivityLogsFor = -1;
+		this._retainTasksFor = DataSpaceConnectorService._DEFAULT_RETAIN_INTERVAL * 60 * 1000;
+		this._retainActivityLogsFor = DataSpaceConnectorService._DEFAULT_RETAIN_INTERVAL * 60 * 1000;
 		this._activityLogCleanUpInterval = DataSpaceConnectorService._DEFAULT_CLEANUP_INTERVAL;
 		this._cleanUpProcessOngoing = false;
 
 		const validationErrors: IValidationFailure[] = [];
-		if (!Is.undefined(options?.config?.retainActivityLogsFor)) {
+		if (!Is.empty(options?.config?.retainActivityLogsFor)) {
 			Guards.integer(
 				this.CLASS_NAME,
 				nameof(options.config.retainActivityLogsFor),
 				options.config.retainActivityLogsFor
 			);
-			Validation.integer(
-				nameof(options.config.retainActivityLogsFor),
-				options.config.retainActivityLogsFor,
-				validationErrors,
-				undefined,
-				{ minValue: 1 }
-			);
-			// Retention of internal tasks launched (it has to be expressed in milliseconds)
-			// 5 minutes of margin with respect to the Activity Log Entry to ensure proper removal
-			this._retainTasksFor = (options.config.retainActivityLogsFor + 5) * 60 * 1000;
-			this._retainActivityLogsFor = options.config.retainActivityLogsFor * 60 * 1000;
+
+			if (options.config.retainActivityLogsFor === -1) {
+				this._retainTasksFor = -1;
+				this._retainActivityLogsFor = -1;
+			} else {
+				Validation.integer(
+					nameof(options.config.retainActivityLogsFor),
+					options.config.retainActivityLogsFor,
+					validationErrors,
+					undefined,
+					{ minValue: 1 }
+				);
+				// Retention of internal tasks launched (it has to be expressed in milliseconds)
+				// 5 minutes of margin with respect to the Activity Log Entry to ensure proper removal
+				this._retainTasksFor = (options.config.retainActivityLogsFor + 5) * 60 * 1000;
+				this._retainActivityLogsFor = options.config.retainActivityLogsFor * 60 * 1000;
+			}
 		}
 
-		if (!Is.undefined(options?.config?.activityLogsCleanUpInterval)) {
+		if (!Is.empty(options?.config?.activityLogsCleanUpInterval)) {
 			Guards.integer(
 				this.CLASS_NAME,
 				nameof(options.config.activityLogsCleanUpInterval),
@@ -245,12 +238,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param nodeLoggingComponentType Node Logging Component type.
 	 */
 	public async start(nodeIdentity?: string, nodeLoggingComponentType?: string): Promise<void> {
-		if (Is.arrayValue(this._initialDataSpaceConnectorApps)) {
-			for (const app of this._initialDataSpaceConnectorApps) {
-				await this.registerDataSpaceConnectorApp(app, nodeIdentity, nodeLoggingComponentType);
-			}
-		}
-
 		const engine = EngineCoreFactory.getIfExists("engine");
 		if (Is.empty(engine) || engine.isClone()) {
 			this._loggingService?.log({
@@ -345,13 +332,13 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const tasksScheduled: ITaskApp[] = [];
 		for (const query of activityQuerySet) {
-			const dataSpaceConnectorApps = this._appRegistry.getAppForActivityQuery(query);
+			const dataSpaceConnectorAppIds = this.getAppForActivityQuery(query);
 
-			for (const dataSpaceConnectorApp of dataSpaceConnectorApps) {
+			for (const dataSpaceConnectorAppId of dataSpaceConnectorAppIds) {
 				const payload: IExecutionPayload = {
 					activityLogEntryId,
 					activity: compactedObj,
-					executorApp: dataSpaceConnectorApp.id
+					executorApp: dataSpaceConnectorAppId
 				};
 				// This is needed because the Background Task component does not support multiple tasks of
 				// the same type executing at the same time
@@ -375,7 +362,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 				tasksScheduled.push({
 					taskId,
-					dataSpaceConnectorAppId: dataSpaceConnectorApp.id
+					dataSpaceConnectorAppId
 				});
 
 				await this._loggingService?.log({
@@ -384,7 +371,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					message: "scheduledTask",
 					data: {
 						taskId,
-						dataSpaceConnectorAppId: dataSpaceConnectorApp.id
+						dataSpaceConnectorAppId
 					}
 				});
 			}
@@ -506,65 +493,50 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 	/**
 	 * Registers a Data Space Connector App.
+	 * @param appId The Id of the App to be registered.
 	 * @param app The App to be registered.
-	 * @param nodeIdentity The identity of the Node.
-	 * @param nodeLoggingComponentType The Node Logging Component type.
 	 */
-	public async registerDataSpaceConnectorApp(
-		app: IDataSpaceConnectorAppDescriptor,
-		nodeIdentity?: string,
-		nodeLoggingComponentType?: string
-	): Promise<void> {
-		Guards.objectValue<IDataSpaceConnectorAppDescriptor>(this.CLASS_NAME, nameof(app), app);
+	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
+		Guards.stringValue(this.CLASS_NAME, nameof(appId), appId);
+		Guards.objectValue<IDataSpaceConnectorApp>(this.CLASS_NAME, nameof(app), app);
 
-		const activityQuerySet = app.activitiesHandled;
-
-		if (Is.arrayValue(activityQuerySet)) {
-			for (const query of activityQuerySet) {
-				this._appRegistry.setAppForActivityQuery(query, app);
-			}
+		const currentIndex = this._apps.findIndex(a => a.appId === appId);
+		if (currentIndex !== -1) {
+			this._apps[currentIndex].app = app;
+		} else {
+			this._apps.push({ appId, app });
 		}
-
-		const customTypeConfig: IEngineCoreTypeConfig[] = [
-			{
-				type: `${DataSpaceConnectorService._DS_CONNECTOR_APP_COMPONENT_TYPE}_${app.id}`,
-				options: {
-					loggingComponentType: this._loggingComponentType,
-					config: { dataSpaceConnectorAppId: app.id }
-				}
-			}
-		];
-
-		// Register within the Engine so that it can be cloned in the future
-		const engine = EngineCoreFactory.getIfExists("engine");
-		if (!Is.undefined(engine)) {
-			engine.addTypeInitialiser(
-				`${DataSpaceConnectorService._DS_CONNECTOR_APP_COMPONENT_TYPE}_${app.id}`,
-				customTypeConfig,
-				app.moduleName,
-				app.initialiserName ?? "appInitialiser"
-			);
-		}
-
-		// Instantiate the application so that it will be registered in the ComponentFactory
-		await ModuleHelper.execModuleMethod(app.moduleName, app.initialiserName ?? "appInitialiser", [
-			engine,
-			null,
-			{ options: customTypeConfig[0].options },
-			null
-		]);
-
-		const dsConnectorAppComponent = ComponentFactory.get<IDataSpaceConnectorApp>(
-			`${StringHelper.kebabCase(nameof<IDataSpaceConnectorApp>(), true)}-${app.id}`
-		);
-		await dsConnectorAppComponent.start?.(nodeIdentity, nodeLoggingComponentType);
 
 		this._loggingService?.log({
-			level: "debug",
-			message: "startDsConnectorApp",
+			level: "info",
 			source: this.CLASS_NAME,
+			message: "registeredApp",
 			data: {
-				appId: app.id
+				appId
+			}
+		});
+	}
+
+	/**
+	 * Un-registers a Data Space Connector App.
+	 * @param appId The Id of the App to be registered.
+	 * @returns Nothing.
+	 */
+	public async unregisterApp(appId: string): Promise<void> {
+		Guards.stringValue(this.CLASS_NAME, nameof(appId), appId);
+
+		const currentIndex = this._apps.findIndex(a => a.appId === appId);
+		if (currentIndex !== -1) {
+			this._apps.splice(currentIndex, 1);
+		}
+
+		this._loggingService?.log({
+			level: "info",
+			source: this.CLASS_NAME,
+			ts: Date.now(),
+			message: "unregisteredApp",
+			data: {
+				appId
 			}
 		});
 	}
@@ -819,5 +791,32 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		minutesRemain %= 60;
 
 		return { intervalDays: days, intervalHours: hours, intervalMinutes: minutesRemain };
+	}
+
+	/**
+	 * Returns an App for a (Activity, Object, Target).
+	 * @param activityQuery The (Activity, Object, Target) query specified using a FQN.
+	 * @returns The Data Space Connector Apps or empty list if nothing is registered.
+	 * @internal
+	 */
+	private getAppForActivityQuery(activityQuery: IActivityQuery): string[] {
+		const matchingElements: string[] = [];
+
+		for (const appEntry of this._apps) {
+			const appQueries = appEntry.app.activitiesHandled();
+
+			for (const appQuery of appQueries) {
+				if (
+					appQuery.objectType === activityQuery.objectType &&
+					(Is.undefined(appQuery.activityType) ||
+						appQuery.activityType === activityQuery.activityType) &&
+					(Is.undefined(appQuery.targetType) || appQuery.targetType === activityQuery.targetType)
+				) {
+					matchingElements.push(appEntry.appId);
+				}
+			}
+		}
+
+		return matchingElements;
 	}
 }

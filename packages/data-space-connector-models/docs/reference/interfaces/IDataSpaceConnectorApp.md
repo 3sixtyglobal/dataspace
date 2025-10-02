@@ -4,9 +4,23 @@ Interface describes a Data Space Connector App.
 
 ## Extends
 
-- `IComponent`.[`IActivityHandler`](IActivityHandler.md)
+- `IComponent`
 
 ## Methods
+
+### activitiesHandled()
+
+> **activitiesHandled**(): [`IActivityQuery`](IActivityQuery.md)[]
+
+The activities handled by the App.
+
+#### Returns
+
+[`IActivityQuery`](IActivityQuery.md)[]
+
+The activities handled by the App.
+
+***
 
 ### handleActivity()
 
@@ -33,7 +47,3 @@ The Activity to be handled
 `Promise`\<`T`\>
 
 The result of executing the Activity.
-
-#### Inherited from
-
-[`IActivityHandler`](IActivityHandler.md).[`handleActivity`](IActivityHandler.md#handleactivity)
