@@ -59,6 +59,9 @@ async function sleep(ms: number): Promise<void> {
  * @param entry Entry to be asserted
  */
 function assertActivityLog(entry: IActivityLogEntry): void {
+	if (entry.status !== ActivityProcessingStatus.Completed) {
+		console.log(entry);
+	}
 	expect(entry.status).toBe(ActivityProcessingStatus.Completed);
 	expect(entry.pendingTasks?.length).toBe(0);
 	expect(entry.runningTasks?.length).toBe(0);
@@ -144,7 +147,7 @@ describe("data-space-connector-tests", () => {
 		ComponentFactory.register("task-scheduler", () => taskScheduler);
 	});
 
-	test.skip("It should receive an Activity in the Activity Stream - canonical", async () => {
+	test("It should receive an Activity in the Activity Stream - canonical", async () => {
 		await backgroundTaskConnectorEntityStorage.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -161,7 +164,7 @@ describe("data-space-connector-tests", () => {
 		assertActivityLog(entry);
 	});
 
-	test.skip("It should receive an Activity in the Activity Stream - canonical LD Context Array", async () => {
+	test("It should receive an Activity in the Activity Stream - canonical LD Context Array", async () => {
 		await backgroundTaskConnectorEntityStorage.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -199,7 +202,7 @@ describe("data-space-connector-tests", () => {
 		assertActivityLog(entry);
 	});
 
-	test.skip("It should not start any task if there is no registered DS Connector App", async () => {
+	test("It should not start any task if there is no registered DS Connector App", async () => {
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 		activityLdContextArray.updated = new Date().toISOString();
 
@@ -214,7 +217,7 @@ describe("data-space-connector-tests", () => {
 		expect(entry.inErrorTasks?.length).toBe(0);
 	});
 
-	test.skip("It should report an error if Activity is duplicated", async () => {
+	test("It should report an error if Activity is duplicated", async () => {
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 
 		await expect(dataSpaceConnectorService.notifyActivity(canonicalActivity)).rejects.toMatchObject(
@@ -224,7 +227,7 @@ describe("data-space-connector-tests", () => {
 		);
 	});
 
-	test.skip("It should report an error if Activity does not contain generator nor actor", async () => {
+	test("It should report an error if Activity does not contain generator nor actor", async () => {
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 
 		const activity = ObjectHelper.clone<IActivity>(canonicalActivity);
