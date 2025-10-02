@@ -51,6 +51,7 @@
 	},
 	"devDependencies": {
 		"@twin.org/background-task-connector-entity-storage": "next",
+		"@twin.org/background-task-scheduler": "next",
 		"@twin.org/data-space-connector-test-app": "0.0.1-next.7",
 		"@twin.org/modules": "next",
 		"@twin.org/nameof-transformer": "next",
