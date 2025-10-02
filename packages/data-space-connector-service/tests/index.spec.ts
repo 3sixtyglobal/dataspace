@@ -59,6 +59,9 @@ async function sleep(ms: number): Promise<void> {
  * @param entry Entry to be asserted
  */
 function assertActivityLog(entry: IActivityLogEntry): void {
+	if (entry.status !== ActivityProcessingStatus.Completed) {
+		console.log("Entry not completed yet", entry);
+	}
 	expect(entry.status).toBe(ActivityProcessingStatus.Completed);
 	expect(entry.pendingTasks?.length).toBe(0);
 	expect(entry.runningTasks?.length).toBe(0);
