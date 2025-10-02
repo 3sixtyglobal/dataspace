@@ -155,7 +155,7 @@ describe("data-space-connector-tests", () => {
 		await testApp.start();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(canonicalActivity);
-		await sleep(800);
+		await sleep(1500);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
 		assertActivityLog(entry);
@@ -176,7 +176,7 @@ describe("data-space-connector-tests", () => {
 
 		const activityLogEntryId =
 			await dataSpaceConnectorService.notifyActivity(activityLdContextArray);
-		await sleep(800);
+		await sleep(1500);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
 		assertActivityLog(entry);
@@ -193,7 +193,7 @@ describe("data-space-connector-tests", () => {
 		await testApp.start();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(extendedActivity);
-		await sleep(800);
+		await sleep(1500);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
 		assertActivityLog(entry);
