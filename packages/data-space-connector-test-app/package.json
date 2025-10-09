@@ -15,11 +15,11 @@
 	},
 	"scripts": {
 		"clean": "rimraf dist coverage docs/reference src/schemas",
-		"build:compile": "tsc",
+		"build:compile": "tspc",
 		"build": "npm run build:compile",
 		"dev": "nodemon --watch src --ext ts --exec \"npm run build && npm run bundle:esm\"",
 		"test": "vitest --run --config ./vitest.config.ts --no-cache",
-		"test:build": "tsc -p ./tests/tsconfig.json --noEmit",
+		"test:build": "tspc -p ./tests/tsconfig.json --noEmit",
 		"validate-locales": "validate-locales",
 		"coverage": "vitest --run --coverage --config ./vitest.config.ts --no-cache",
 		"bundle:esm": "rollup --config rollup.config.mjs --environment MODULE:esm",
