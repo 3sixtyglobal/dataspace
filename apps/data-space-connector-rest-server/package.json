@@ -16,7 +16,7 @@
 	},
 	"scripts": {
 		"clean": "rimraf dist coverage",
-		"build": "tsc",
+		"build": "tspc",
 		"dev": "concurrently \"tsc --watch\" \"nodemon\"",
 		"merge-locales": "merge-locales",
 		"validate-locales": "validate-locales",
@@ -28,8 +28,7 @@
 		"docs": "npm run docs:clean && npm run docs:api",
 		"dist": "npm run clean && npm run build && npm run merge-locales && npm run validate-locales && npm run test:build && npm run test && npm run docs",
 		"dist:no-test": "npm run clean && npm run build && npm run merge-locales && npm run docs",
-		"start": "node dist/es/index.js",
-		"prepare": "ts-patch install -s"
+		"start": "node dist/es/index.js"
 	},
 	"dependencies": {
 		"@twin.org/core": "next",
