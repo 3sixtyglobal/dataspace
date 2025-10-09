@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.1-next.8](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-test-app-v0.0.1-next.7...data-space-connector-test-app-v0.0.1-next.8) (2025-10-09)
+
+
+### Features
+
+* add validate-locales ([c0b08a7](https://github.com/twinfoundation/data-space-connector/commit/c0b08a73268f9fd3eb6ac3079b49d1ab0c01f118))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.1-next.7 to 0.0.1-next.8
+
 ## [0.0.1-next.7](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-test-app-v0.0.1-next.6...data-space-connector-test-app-v0.0.1-next.7) (2025-10-02)
 
 
