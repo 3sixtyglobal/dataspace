@@ -59,6 +59,11 @@ import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDat
  */
 export class DataSpaceConnectorService implements IDataSpaceConnector {
 	/**
+	 * Runtime name for the class.
+	 */
+	public static readonly CLASS_NAME: string = nameof<DataSpaceConnectorService>();
+
+	/**
 	 * The default cleanup interval in minutes. (1 hour)
 	 * @internal
 	 */
@@ -69,11 +74,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @internal
 	 */
 	private static readonly _DEFAULT_RETAIN_INTERVAL: number = 10;
-
-	/**
-	 * Runtime name for the class.
-	 */
-	public readonly CLASS_NAME: string = nameof<DataSpaceConnectorService>();
 
 	/**
 	 * Logging service type.
@@ -191,7 +191,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const validationErrors: IValidationFailure[] = [];
 		if (!Is.empty(options?.config?.retainActivityLogsFor)) {
 			Guards.integer(
-				this.CLASS_NAME,
+				DataSpaceConnectorService.CLASS_NAME,
 				nameof(options.config.retainActivityLogsFor),
 				options.config.retainActivityLogsFor
 			);
@@ -216,7 +216,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		if (!Is.empty(options?.config?.activityLogsCleanUpInterval)) {
 			Guards.integer(
-				this.CLASS_NAME,
+				DataSpaceConnectorService.CLASS_NAME,
 				nameof(options.config.activityLogsCleanUpInterval),
 				options.config.activityLogsCleanUpInterval
 			);
@@ -229,7 +229,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			);
 			this._activityLogCleanUpInterval = options.config.activityLogsCleanUpInterval;
 		}
-		Validation.asValidationError(this.CLASS_NAME, nameof(options?.config), validationErrors);
+		Validation.asValidationError(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(options?.config),
+			validationErrors
+		);
 	}
 
 	/**
@@ -242,7 +246,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		if (Is.empty(engine) || engine.isClone()) {
 			this._loggingService?.log({
 				level: "debug",
-				source: this.CLASS_NAME,
+				source: DataSpaceConnectorService.CLASS_NAME,
 				message: "engineCloneStart"
 			});
 			return;
@@ -260,7 +264,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			this._taskScheduler.addTask("data-space-connector-cleanup", taskTime, async () => {
 				this._loggingService?.log({
 					level: "debug",
-					source: this.CLASS_NAME,
+					source: DataSpaceConnectorService.CLASS_NAME,
 					message: "scheduledCleanUpTask"
 				});
 
@@ -269,7 +273,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 			this._loggingService?.log({
 				level: "debug",
-				source: this.CLASS_NAME,
+				source: DataSpaceConnectorService.CLASS_NAME,
 				message: "taskSchedulerStarted",
 				data: {
 					taskTime
@@ -284,11 +288,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @returns The Activity's Log Entry identifier.
 	 */
 	public async notifyActivity(activity: IActivity): Promise<string> {
-		Guards.object<IActivity>(this.CLASS_NAME, nameof(activity), activity);
+		Guards.object<IActivity>(DataSpaceConnectorService.CLASS_NAME, nameof(activity), activity);
 
 		this._loggingService?.log({
 			level: "debug",
-			source: this.CLASS_NAME,
+			source: DataSpaceConnectorService.CLASS_NAME,
 			message: "newActivity",
 			data: {
 				activityType: activity.type,
@@ -299,7 +303,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		// Validate that the Activity notified is encoded using the representation format expected by the Connector
 		const validationFailures: IValidationFailure[] = [];
 		await JsonLdHelper.validate(activity, validationFailures, { failOnMissingType: true });
-		Validation.asValidationError(this.CLASS_NAME, nameof(activity), validationFailures);
+		Validation.asValidationError(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(activity),
+			validationFailures
+		);
 
 		// Avoid using terms not defined in any Ld Context
 		const compactedObj = await JsonLdProcessor.compact(activity, activity["@context"]);
@@ -315,7 +323,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			await this._entityStorageActivityLogs.get(activityLogEntryId)
 		);
 		if (entryExists) {
-			throw new ConflictError(this.CLASS_NAME, "activityAlreadyNotified", activityLogEntryId);
+			throw new ConflictError(
+				DataSpaceConnectorService.CLASS_NAME,
+				"activityAlreadyNotified",
+				activityLogEntryId
+			);
 		}
 
 		// First of all Activity Log Entry is created
@@ -367,7 +379,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 				await this._loggingService?.log({
 					level: "info",
-					source: this.CLASS_NAME,
+					source: DataSpaceConnectorService.CLASS_NAME,
 					message: "scheduledTask",
 					data: {
 						taskId,
@@ -397,7 +409,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		callback: (notification: IActivityLogStatusNotification) => Promise<void>,
 		subscriptionId?: string
 	): Promise<string> {
-		Guards.function(this.CLASS_NAME, nameof(callback), callback);
+		Guards.function(DataSpaceConnectorService.CLASS_NAME, nameof(callback), callback);
 
 		const theSubscriptionId = Is.stringValue(subscriptionId)
 			? subscriptionId
@@ -412,7 +424,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param subscriptionId The Subscription Id.
 	 */
 	public async unSubscribeToActivityLog(subscriptionId: string): Promise<void> {
-		Guards.stringValue(this.CLASS_NAME, nameof(subscriptionId), subscriptionId);
+		Guards.stringValue(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(subscriptionId),
+			subscriptionId
+		);
 		delete this._activityLogStatusCallbacks[subscriptionId];
 	}
 
@@ -423,11 +439,15 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @throws NotFoundError if activity log entry is not known.
 	 */
 	public async getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry> {
-		Guards.stringValue(this.CLASS_NAME, nameof(logEntryId), logEntryId);
+		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(logEntryId), logEntryId);
 
 		const result = await this._entityStorageActivityLogs.get(logEntryId);
 		if (Is.undefined(result)) {
-			throw new NotFoundError(this.CLASS_NAME, "activityLogEntryNotFound", logEntryId);
+			throw new NotFoundError(
+				DataSpaceConnectorService.CLASS_NAME,
+				"activityLogEntryNotFound",
+				logEntryId
+			);
 		}
 
 		let pendingTasks: IActivityLogEntry["pendingTasks"];
@@ -497,8 +517,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param app The App to be registered.
 	 */
 	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
-		Guards.stringValue(this.CLASS_NAME, nameof(appId), appId);
-		Guards.objectValue<IDataSpaceConnectorApp>(this.CLASS_NAME, nameof(app), app);
+		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(appId), appId);
+		Guards.objectValue<IDataSpaceConnectorApp>(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(app),
+			app
+		);
 
 		const currentIndex = this._apps.findIndex(a => a.appId === appId);
 		if (currentIndex !== -1) {
@@ -509,7 +533,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		this._loggingService?.log({
 			level: "info",
-			source: this.CLASS_NAME,
+			source: DataSpaceConnectorService.CLASS_NAME,
 			message: "registeredApp",
 			data: {
 				appId
@@ -523,7 +547,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @returns Nothing.
 	 */
 	public async unregisterApp(appId: string): Promise<void> {
-		Guards.stringValue(this.CLASS_NAME, nameof(appId), appId);
+		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(appId), appId);
 
 		const currentIndex = this._apps.findIndex(a => a.appId === appId);
 		if (currentIndex !== -1) {
@@ -532,7 +556,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		this._loggingService?.log({
 			level: "info",
-			source: this.CLASS_NAME,
+			source: DataSpaceConnectorService.CLASS_NAME,
 			ts: Date.now(),
 			message: "unregisteredApp",
 			data: {
@@ -566,7 +590,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		throw new GuardError(
-			this.CLASS_NAME,
+			DataSpaceConnectorService.CLASS_NAME,
 			"invalidActivityGeneratorIdentity",
 			nameof(activity.generator),
 			{
@@ -592,7 +616,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		if (Is.undefined(activityLogEntry)) {
 			this._loggingService?.log({
 				level: "error",
-				source: this.CLASS_NAME,
+				source: DataSpaceConnectorService.CLASS_NAME,
 				message: "unknownActivityLogEntryId",
 				data: {
 					activityLogEntryId: payload.activityLogEntryId
@@ -643,7 +667,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			this._loggingService?.log({
 				level: "debug",
 				message: "cleanUpOngoing",
-				source: this.CLASS_NAME
+				source: DataSpaceConnectorService.CLASS_NAME
 			});
 			return;
 		}
@@ -693,7 +717,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		this._loggingService?.log({
 			level: "debug",
 			message: "activityLogCleanedUp",
-			source: this.CLASS_NAME,
+			source: DataSpaceConnectorService.CLASS_NAME,
 			data: {
 				numRecordsDeleted
 			}
@@ -717,7 +741,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const activityTypes = expandedDoc["@type"];
 		if (!Is.arrayValue<string[]>(activityTypes)) {
 			throw new GuardError(
-				this.CLASS_NAME,
+				DataSpaceConnectorService.CLASS_NAME,
 				"invalidActivity",
 				nameof(compactedObj.type),
 				compactedObj.type
@@ -731,7 +755,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const objectTypes = objectExpanded[0]["@type"];
 		if (!Is.arrayValue<string[]>(objectTypes)) {
 			throw new GuardError(
-				this.CLASS_NAME,
+				DataSpaceConnectorService.CLASS_NAME,
 				"invalidActivity",
 				nameof(compactedObj.object.type),
 				compactedObj.object.type
@@ -748,7 +772,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 			if (!Is.arrayValue<string[]>(targetTypes)) {
 				throw new GuardError(
-					this.CLASS_NAME,
+					DataSpaceConnectorService.CLASS_NAME,
 					"invalidActivity",
 					nameof(compactedObj.target?.type),
 					compactedObj.target?.type

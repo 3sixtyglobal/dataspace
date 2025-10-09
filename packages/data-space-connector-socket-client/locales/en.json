@@ -1,13 +1,14 @@
 {
 	"error": {
-		"socketConnect": "Failure during socket connect",
-		"callback": "Error when calling local callback"
+		"dataSpaceConnectorSocketClient": {
+			"socketConnect": "Failure during socket connect",
+			"callback": "Error when calling local callback"
+		}
 	},
 	"info": {
 		"dataSpaceConnectorSocketClient": {
 			"subscribeActivityLogs": "Subscription created for topic activity logs with id \"{subscriptionId}\"",
-			"unsubscribeActivityLogs": "Subscription removed for topic activity logs with id \"{subscriptionId}\"",
-			"publishActivityLogs": "Event publish for topic activity logs with id \"{eventId}\", with \"{subscriptionCount}\" subscriptions"
+			"unsubscribeActivityLogs": "Subscription removed for topic activity logs with id \"{subscriptionId}\""
 		}
 	}
 }

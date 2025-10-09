@@ -19,18 +19,18 @@ import { HeaderTypes } from "@twin.org/web";
 /**
  * The client to connect to the data space connector service.
  */
-export class DataSpaceConnectorClient extends BaseRestClient implements IDataSpaceConnector {
+export class DataSpaceConnectorRestClient extends BaseRestClient implements IDataSpaceConnector {
 	/**
 	 * Runtime name for the class.
 	 */
-	public readonly CLASS_NAME: string = nameof<DataSpaceConnectorClient>();
+	public static readonly CLASS_NAME: string = nameof<DataSpaceConnectorRestClient>();
 
 	/**
-	 * Create a new instance of DataSpaceConnectorClient.
+	 * Create a new instance of DataSpaceConnectorRestClient.
 	 * @param config The configuration for the client.
 	 */
 	constructor(config: IBaseRestClientConfig) {
-		super(nameof<DataSpaceConnectorClient>(), config, "");
+		super(nameof<DataSpaceConnectorRestClient>(), config, "");
 	}
 
 	/**
@@ -61,7 +61,10 @@ export class DataSpaceConnectorClient extends BaseRestClient implements IDataSpa
 		subscriptionId?: string
 	): Promise<string> {
 		// This is in the socket client
-		throw new NotSupportedError(this.CLASS_NAME, nameof("subscribeToActivityLog"));
+		throw new NotSupportedError(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof("subscribeToActivityLog")
+		);
 	}
 
 	/**
@@ -71,7 +74,10 @@ export class DataSpaceConnectorClient extends BaseRestClient implements IDataSpa
 	 */
 	public async unSubscribeToActivityLog(subscriptionId: string): Promise<void> {
 		// This is in the socket client
-		throw new NotSupportedError(this.CLASS_NAME, nameof("unSubscribeToActivityLog"));
+		throw new NotSupportedError(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof("unSubscribeToActivityLog")
+		);
 	}
 
 	/**
@@ -101,7 +107,7 @@ export class DataSpaceConnectorClient extends BaseRestClient implements IDataSpa
 	 */
 	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
 		// Don't want client to be able to register apps remotely
-		throw new NotSupportedError(this.CLASS_NAME, nameof("registerApp"));
+		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, nameof("registerApp"));
 	}
 
 	/**
@@ -111,6 +117,6 @@ export class DataSpaceConnectorClient extends BaseRestClient implements IDataSpa
 	 */
 	public async unregisterApp(appId: string): Promise<void> {
 		// Don't want client to be able to unregister apps remotely
-		throw new NotSupportedError(this.CLASS_NAME, nameof("unregisterApp"));
+		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, nameof("unregisterApp"));
 	}
 }

@@ -2,17 +2,17 @@
 	"error": {
 		"dataSpaceConnectorService": {
 			"activityLogEntryNotFound": "Activity Log Entry '\"{notFoundId}\"' has not been found",
-			"subscriptionEntryNotFound": "Subscription Entry has not been found",
 			"activityAlreadyNotified": "Activity has already been notified",
 			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
 			"invalidActivity": "Invalid Activity. Expected fields not specified",
-			"registeredApp": "App with Id \"{appId}\" has been registered",
-			"unregisteredApp": "App with Id \"{appId}\" has been unregistered"
+			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\""
 		}
 	},
 	"info": {
 		"dataSpaceConnectorService": {
-			"scheduledTask": "Task scheduled: \"{taskId}\" for Data Space Connector App \"{dataSpaceConnectorAppId}\""
+			"scheduledTask": "Task scheduled: \"{taskId}\" for Data Space Connector App \"{dataSpaceConnectorAppId}\"",
+			"registeredApp": "App with Id \"{appId}\" has been registered",
+			"unregisteredApp": "App with Id \"{appId}\" has been unregistered"
 		}
 	},
 	"debug": {
@@ -22,8 +22,7 @@
 			"scheduledCleanUpTask": "Activity Log clean up task scheduled",
 			"engineCloneStart": "'start' method has been called from an engine clone. No task scheduler created",
 			"cleanUpOngoing": "There is an ongoing clean up of activity logs. Skipping",
-			"activityLogCleanedUp": "Activity Log has been cleaned up. \"{numRecordsDeleted}\" records deleted",
-			"startDsConnectorApp": "'start' method invoked successfully on DS Connector App  \"{appId}\""
+			"activityLogCleanedUp": "Activity Log has been cleaned up. \"{numRecordsDeleted}\" records deleted"
 		},
 		"dataSpaceConnectorSocketRoutes": {
 			"activityLogStatusConnected": "Web Socket Connected: Socket Id: \"{socketId}\"",

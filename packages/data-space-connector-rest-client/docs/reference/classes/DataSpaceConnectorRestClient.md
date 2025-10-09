@@ -1,4 +1,4 @@
-# Class: DataSpaceConnectorClient
+# Class: DataSpaceConnectorRestClient
 
 The client to connect to the data space connector service.
 
@@ -14,9 +14,9 @@ The client to connect to the data space connector service.
 
 ### Constructor
 
-> **new DataSpaceConnectorClient**(`config`): `DataSpaceConnectorClient`
+> **new DataSpaceConnectorRestClient**(`config`): `DataSpaceConnectorRestClient`
 
-Create a new instance of DataSpaceConnectorClient.
+Create a new instance of DataSpaceConnectorRestClient.
 
 #### Parameters
 
@@ -28,7 +28,7 @@ The configuration for the client.
 
 #### Returns
 
-`DataSpaceConnectorClient`
+`DataSpaceConnectorRestClient`
 
 #### Overrides
 
@@ -38,13 +38,9 @@ The configuration for the client.
 
 ### CLASS\_NAME
 
-> `readonly` **CLASS\_NAME**: `string`
+> `readonly` `static` **CLASS\_NAME**: `string`
 
 Runtime name for the class.
-
-#### Implementation of
-
-`IDataSpaceConnector.CLASS_NAME`
 
 ## Methods
 

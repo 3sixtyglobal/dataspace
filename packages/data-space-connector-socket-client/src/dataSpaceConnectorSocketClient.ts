@@ -33,6 +33,11 @@ export class DataSpaceConnectorSocketClient
 	implements IDataSpaceConnector
 {
 	/**
+	 * Runtime name for the class.
+	 */
+	public static readonly CLASS_NAME: string = nameof<DataSpaceConnectorSocketClient>();
+
+	/**
 	 * The topic for activity log events.
 	 * @internal
 	 */
@@ -42,11 +47,6 @@ export class DataSpaceConnectorSocketClient
 	 * Activity processing details route.
 	 */
 	private static readonly _ACTIVITY_LOG_STATUS_ROUTE = "activity-logs/status";
-
-	/**
-	 * Runtime name for the class.
-	 */
-	public readonly CLASS_NAME: string = nameof<DataSpaceConnectorSocketClient>();
 
 	/**
 	 * The logging service for information.
@@ -90,7 +90,7 @@ export class DataSpaceConnectorSocketClient
 	 */
 	public async notifyActivity(activity: IActivity): Promise<string> {
 		// This method is in the REST client
-		throw new NotImplementedError(this.CLASS_NAME, "notifyActivity");
+		throw new NotImplementedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notifyActivity");
 	}
 
 	/**
@@ -103,7 +103,7 @@ export class DataSpaceConnectorSocketClient
 		callback: (notification: IActivityLogStatusNotification) => Promise<void>,
 		subscriptionId?: string
 	): Promise<string> {
-		Guards.function(this.CLASS_NAME, nameof(callback), callback);
+		Guards.function(DataSpaceConnectorSocketClient.CLASS_NAME, nameof(callback), callback);
 
 		let needsConnect = false;
 
@@ -133,7 +133,7 @@ export class DataSpaceConnectorSocketClient
 
 		await this._logging?.log({
 			level: "info",
-			source: this.CLASS_NAME,
+			source: DataSpaceConnectorSocketClient.CLASS_NAME,
 			ts: Date.now(),
 			message: "subscribeActivityLogs",
 			data: {
@@ -151,12 +151,16 @@ export class DataSpaceConnectorSocketClient
 	 * @returns The subscription Id.
 	 */
 	public async unSubscribeToActivityLog(subscriptionId: string): Promise<void> {
-		Guards.stringValue(this.CLASS_NAME, nameof(subscriptionId), subscriptionId);
+		Guards.stringValue(
+			DataSpaceConnectorSocketClient.CLASS_NAME,
+			nameof(subscriptionId),
+			subscriptionId
+		);
 
 		if (this._activityLogSubscriptions.subscriberCallbacks[subscriptionId]) {
 			await this._logging?.log({
 				level: "info",
-				source: this.CLASS_NAME,
+				source: DataSpaceConnectorSocketClient.CLASS_NAME,
 				ts: Date.now(),
 				message: "unsubscribeActivityLogs",
 				data: {
@@ -193,7 +197,7 @@ export class DataSpaceConnectorSocketClient
 	 */
 	public async getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry> {
 		// This method is in the REST client
-		throw new NotImplementedError(this.CLASS_NAME, "getActivityLogEntry");
+		throw new NotImplementedError(DataSpaceConnectorSocketClient.CLASS_NAME, "getActivityLogEntry");
 	}
 
 	/**
@@ -204,7 +208,7 @@ export class DataSpaceConnectorSocketClient
 	 */
 	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
 		// Don't want client to be able to register apps remotely
-		throw new NotSupportedError(this.CLASS_NAME, nameof("registerApp"));
+		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, nameof("registerApp"));
 	}
 
 	/**
@@ -214,7 +218,7 @@ export class DataSpaceConnectorSocketClient
 	 */
 	public async unregisterApp(appId: string): Promise<void> {
 		// Don't want client to be able to unregister apps remotely
-		throw new NotSupportedError(this.CLASS_NAME, nameof("unregisterApp"));
+		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, nameof("unregisterApp"));
 	}
 
 	/**
@@ -244,7 +248,7 @@ export class DataSpaceConnectorSocketClient
 	protected async handleError(err: IError): Promise<void> {
 		await this._logging?.log({
 			level: "error",
-			source: this.CLASS_NAME,
+			source: DataSpaceConnectorSocketClient.CLASS_NAME,
 			ts: Date.now(),
 			message: "socketConnect",
 			error: err
@@ -267,7 +271,7 @@ export class DataSpaceConnectorSocketClient
 				} catch (error) {
 					await this._logging?.log({
 						level: "error",
-						source: this.CLASS_NAME,
+						source: DataSpaceConnectorSocketClient.CLASS_NAME,
 						ts: Date.now(),
 						message: "callback",
 						error: BaseError.fromError(error),

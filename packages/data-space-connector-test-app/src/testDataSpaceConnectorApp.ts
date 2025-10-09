@@ -24,7 +24,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	/**
 	 * Runtime name for the class.
 	 */
-	public readonly CLASS_NAME: string = nameof<TestDataSpaceConnectorApp>();
+	public static readonly CLASS_NAME: string = nameof<TestDataSpaceConnectorApp>();
 
 	/**
 	 * Data space connector component.
@@ -102,12 +102,12 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	public async handleActivity<T>(activity: IActivity): Promise<T> {
 		await this._loggingService?.log({
 			level: "info",
-			source: this.CLASS_NAME,
+			source: TestDataSpaceConnectorApp.CLASS_NAME,
 			message: `App Called: ${TestDataSpaceConnectorApp.APP_ID}`
 		});
 		await this._loggingService?.log({
 			level: "info",
-			source: this.CLASS_NAME,
+			source: TestDataSpaceConnectorApp.CLASS_NAME,
 			message: `Node Identity: ${this._nodeIdentity ?? ""}`
 		});
 		await new Promise(resolve => setTimeout(resolve, 500));
