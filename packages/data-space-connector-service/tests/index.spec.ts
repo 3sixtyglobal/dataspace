@@ -60,7 +60,7 @@ async function sleep(ms: number): Promise<void> {
  */
 function assertActivityLog(entry: IActivityLogEntry): void {
 	if (entry.status !== ActivityProcessingStatus.Completed) {
-		console.log(entry);
+		console.log(JSON.stringify(entry, null, 2));
 	}
 	expect(entry.status).toBe(ActivityProcessingStatus.Completed);
 	expect(entry.pendingTasks?.length).toBe(0);
