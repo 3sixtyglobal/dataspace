@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.1-next.8](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.1-next.7...data-space-connector-rest-server-v0.0.1-next.8) (2025-10-09)
+
+
+### Features
+
+* add validate-locales ([c0b08a7](https://github.com/twinfoundation/data-space-connector/commit/c0b08a73268f9fd3eb6ac3079b49d1ab0c01f118))
+* update node dependency ([443882a](https://github.com/twinfoundation/data-space-connector/commit/443882ad3c62456cf14c57aa414c9f5e9d0985a0))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.1-next.7 to 0.0.1-next.8
+    * @twin.org/data-space-connector-rest-client bumped from 0.0.1-next.7 to 0.0.1-next.8
+    * @twin.org/data-space-connector-socket-client bumped from 0.0.1-next.7 to 0.0.1-next.8
+    * @twin.org/data-space-connector-service bumped from 0.0.1-next.7 to 0.0.1-next.8
+
 ## [0.0.1-next.7](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.1-next.6...data-space-connector-rest-server-v0.0.1-next.7) (2025-10-02)
 
 
