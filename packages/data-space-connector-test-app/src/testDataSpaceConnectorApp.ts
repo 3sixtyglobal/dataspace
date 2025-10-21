@@ -2,8 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { ComponentFactory } from "@twin.org/core";
 import { DataTypeHandlerFactory } from "@twin.org/data-core";
+import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import type {
 	IActivityQuery,
+	IDataRequest,
+	IDataAssetQuery,
 	IDataSpaceConnector,
 	IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
@@ -11,6 +14,26 @@ import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions";
+
+// Dummy Data
+const id = "urn:ucr:24PLP051219453I002610799053311";
+const entities = [
+	{
+		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+		type: "Consignment",
+		id,
+		destinationCountry: {
+			type: "Country",
+			countryId: "unece:CountryId#GB"
+		}
+	},
+	{
+		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+		type: "Document",
+		id: "urn:document:a3456fddaa56",
+		documentTypeCode: "unece:DocumentCodeList#853"
+	}
+];
 
 /**
  * Test App Activity Handler.
@@ -55,6 +78,22 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		this._loggingService = ComponentFactory.getIfExists<ILoggingComponent>(
 			options?.loggingComponentType ?? "logging"
 		);
+	}
+
+	/**
+	 * Data Services handled.
+	 * @returns Ids.
+	 */
+	public dataServicesHandled(): IDataAssetQuery[] {
+		return [{ serviceId: "https://twin.example.org/data-service-1" }];
+	}
+
+	/**
+	 * Supported query types.
+	 * @returns Types.
+	 */
+	public supportedQueryTypes(): string[] {
+		return ["TestQueryType"];
 	}
 
 	/**
@@ -105,12 +144,43 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 			source: TestDataSpaceConnectorApp.CLASS_NAME,
 			message: `App Called: ${TestDataSpaceConnectorApp.APP_ID}`
 		});
+
 		await this._loggingService?.log({
 			level: "info",
 			source: TestDataSpaceConnectorApp.CLASS_NAME,
 			message: `Node Identity: ${this._nodeIdentity ?? ""}`
 		});
+
 		await new Promise(resolve => setTimeout(resolve, 500));
 		return "1234" as T;
+	}
+
+	/**
+	 * Handles the Data Request.
+	 * @param dataRequest The data request
+	 * @returns the Data.
+	 */
+	public async handleDataRequest(
+		dataRequest: IDataRequest
+	): Promise<{ data: IJsonLdDocument; cursor?: string }> {
+		switch (dataRequest.type) {
+			case "DataAssetEntities": {
+				if (dataRequest.entitySet.entityType === "https://vocabulary.uncefact.org/Consignment") {
+					return {
+						data: [entities[0]]
+					};
+				}
+
+				if (dataRequest.entitySet.entityId?.includes(id)) {
+					return {
+						data: entities[0]
+					};
+				}
+				return { data: [] };
+			}
+
+			case "QueryDataAsset":
+				return { data: entities };
+		}
 	}
 }

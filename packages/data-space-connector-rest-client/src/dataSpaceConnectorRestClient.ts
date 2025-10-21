@@ -1,16 +1,28 @@
 // Copyright 2024 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseRestClient } from "@twin.org/api-core";
-import type { IBaseRestClientConfig, ICreatedResponse } from "@twin.org/api-models";
-import { Is, NotSupportedError } from "@twin.org/core";
+import {
+	HttpParameterHelper,
+	type IBaseRestClientConfig,
+	type ICreatedResponse
+} from "@twin.org/api-models";
+import { Guards, Is, NotSupportedError, Coerce } from "@twin.org/core";
+import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type {
 	IActivityLogEntry,
 	IActivityLogEntryGetRequest,
 	IActivityLogEntryGetResponse,
 	IActivityLogStatusNotification,
 	IActivityStreamNotifyRequest,
+	IDataAssetGetEntitiesRequest,
+	IDataAssetItemList,
 	IDataSpaceConnector,
-	IDataSpaceConnectorApp
+	IDataSpaceConnectorApp,
+	IDataAssetEntitiesResponse,
+	IEntitySet,
+	IFilteringQuery,
+	IDataAssetQueryRequest,
+	IDataAssetDescription
 } from "@twin.org/data-space-connector-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -31,6 +43,119 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 */
 	constructor(config: IBaseRestClientConfig) {
 		super(nameof<DataSpaceConnectorRestClient>(), config, "");
+	}
+
+	/**
+	 * Get Data Asset entities. Allows to retrieve entities by their type or id.
+	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
+	 * @param entitySet The set of entities to be retrieved.
+	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
+	 * @param dataConsumerIdentity The identity of the Data Consumer.
+	 * @param cursor Pagination details - cursor.
+	 * @param limit Pagination details - max number of entities.
+	 * @returns The entities requested as a JSON-LD Document.
+	 */
+	public async getDataAssetEntities(
+		dataAsset: IDataAssetDescription,
+		entitySet: IEntitySet & {
+			jsonLdContext?: IJsonLdContextDefinitionElement[];
+		},
+		dataConsumerIdentity: string,
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemList> {
+		Guards.object<IDataAssetDescription>(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof(dataAsset),
+			dataAsset
+		);
+		Guards.object<IEntitySet>(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof(entitySet),
+			entitySet
+		);
+		Guards.stringValue(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof(entitySet.entityType),
+			entitySet.entityType
+		);
+		Guards.stringValue(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof(dataConsumerIdentity),
+			dataConsumerIdentity
+		);
+
+		// Data Consumer identity for the moment is not used in the request but it should be done in the future
+		const response = await this.fetch<IDataAssetGetEntitiesRequest, IDataAssetEntitiesResponse>(
+			"/entities",
+			"GET",
+			{
+				query: {
+					id: Is.arrayValue<string>(entitySet.entityId)
+						? (HttpParameterHelper.arrayToString(entitySet.entityId) as string)
+						: undefined,
+					type: entitySet.entityType,
+					dataServiceId: Is.stringValue(dataAsset.dataServiceId)
+						? dataAsset.dataServiceId
+						: undefined,
+					datasetId: Is.arrayValue<string>(dataAsset.dataSetId)
+						? (HttpParameterHelper.arrayToString(dataAsset.dataSetId) as string)
+						: undefined,
+					limit: Coerce.string(limit),
+					cursor
+				}
+			}
+		);
+		return response.body;
+	}
+
+	/**
+	 * Queries a data asset controlled by this DS Connector App.
+	 * @param dataAsset The data asset being referred.
+	 * @param query The filtering query.
+	 * @param dataConsumerIdentity The identity of the data consumer.
+	 * @param cursor Pagination details - cursor.
+	 * @param limit Pagination details - max number of entities.
+	 * @returns The entities requested as a JSON-LD Document.
+	 */
+	public async queryDataAsset(
+		dataAsset: IDataAssetDescription,
+		query: IFilteringQuery,
+		dataConsumerIdentity: string,
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemList> {
+		// The identity of the data consumer would need to be attested through a JWT
+		Guards.object<IDataAssetDescription>(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof(dataAsset),
+			dataAsset
+		);
+		Guards.stringValue(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof(dataAsset.dataServiceId),
+			dataAsset.dataServiceId
+		);
+		Guards.object<IFilteringQuery>(DataSpaceConnectorRestClient.CLASS_NAME, nameof(query), query);
+		Guards.stringValue(
+			DataSpaceConnectorRestClient.CLASS_NAME,
+			nameof(dataConsumerIdentity),
+			dataConsumerIdentity
+		);
+
+		const response = await this.fetch<IDataAssetQueryRequest, IDataAssetEntitiesResponse>(
+			"/entities/query",
+			"POST",
+			{
+				body: {
+					dataAsset,
+					query,
+					cursor,
+					limit
+				}
+			}
+		);
+		return response.body;
 	}
 
 	/**

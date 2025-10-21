@@ -10,20 +10,25 @@ import {
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
 import {
+	BaseError,
 	ComponentFactory,
 	ConflictError,
 	Converter,
+	GeneralError,
 	GuardError,
 	Guards,
 	Is,
 	NotFoundError,
 	RandomHelper,
+	UnprocessableError,
+	Url,
 	Validation,
 	type IError,
 	type IValidationFailure
 } from "@twin.org/core";
 import { Blake2b } from "@twin.org/crypto";
 import {
+	type IJsonLdContextDefinitionElement,
 	JsonLdDataTypes,
 	JsonLdHelper,
 	JsonLdProcessor,
@@ -31,6 +36,7 @@ import {
 } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
+	type IFilteringQuery,
 	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
@@ -38,7 +44,13 @@ import {
 	type IDataSpaceConnector,
 	type IDataSpaceConnectorApp,
 	type IExecutionPayload,
-	type ITaskApp
+	type ITaskApp,
+	type IDataAssetQuery,
+	DataSpaceConnectorAppFactory,
+	type IDataRequest,
+	type IDataAssetItemList,
+	type IEntitySet,
+	type IDataAssetDescription
 } from "@twin.org/data-space-connector-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
@@ -46,9 +58,18 @@ import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
 } from "@twin.org/entity-storage-models";
+import type {
+	IFederatedCatalogueComponent,
+	IParticipantEntry,
+	IServiceOfferingEntry
+} from "@twin.org/federated-catalogue-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import { SchemaOrgDataTypes } from "@twin.org/standards-schema-org";
+import {
+	SchemaOrgContexts,
+	SchemaOrgDataTypes,
+	SchemaOrgTypes
+} from "@twin.org/standards-schema-org";
 import { ActivityStreamsDataTypes, type IActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ActivityLogDetails } from "./entities/activityLogDetails";
 import type { ActivityTask } from "./entities/activityTask";
@@ -150,6 +171,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	private readonly _taskScheduler: ITaskSchedulerComponent;
 
 	/**
+	 * The Federated Catalogue Component.
+	 * @internal
+	 */
+	private readonly _federatedCatalogueComponent: IFederatedCatalogueComponent;
+
+	/**
 	 * Create a new instance of DataSpaceConnector.
 	 * @param options The options for the connector.
 	 */
@@ -173,6 +200,10 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		this._taskScheduler = ComponentFactory.get<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
+		);
+
+		this._federatedCatalogueComponent = ComponentFactory.get<IFederatedCatalogueComponent>(
+			options?.federatedCatalogueComponentType ?? "federated-catalogue"
 		);
 
 		this._apps = [];
@@ -340,7 +371,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		};
 		await this._entityStorageActivityLogs.set(logEntry);
 
-		const activityQuerySet = await this.calculateQuerySet(compactedObj);
+		const activityQuerySet = await this.calculateActivityQuerySet(compactedObj);
 
 		const tasksScheduled: ITaskApp[] = [];
 		for (const query of activityQuerySet) {
@@ -512,6 +543,222 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	}
 
 	/**
+	 * Get Data Asset entities. Allows to retrieve entities by their type or id.
+	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
+	 * @param entitySet The set of entities to be retrieved.
+	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
+	 * @param dataConsumerIdentity The identity of the Data Consumer.
+	 * @param cursor Pagination details - cursor.
+	 * @param limit Pagination details - max number of entities.
+	 * @returns The entities requested as a JSON-LD Document.
+	 */
+	public async getDataAssetEntities(
+		dataAsset: IDataAssetDescription,
+		entitySet: IEntitySet & {
+			jsonLdContext?: IJsonLdContextDefinitionElement[];
+		},
+		dataConsumerIdentity: string,
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemList> {
+		Guards.object<IDataAssetDescription>(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(dataAsset),
+			dataAsset
+		);
+		Guards.object<IEntitySet>(DataSpaceConnectorService.CLASS_NAME, nameof(entitySet), entitySet);
+		Guards.string(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(entitySet.entityType),
+			entitySet.entityType
+		);
+		Guards.string(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(dataConsumerIdentity),
+			dataConsumerIdentity
+		);
+
+		await this.checkParticipantExists(dataConsumerIdentity);
+
+		// Now getting the Data Space Connector App that can serve
+		if (!Is.undefined(dataAsset.dataServiceId)) {
+			const dataServiceEntry = await this.checkDataServiceExists(dataAsset.dataServiceId);
+
+			let finalType: string | undefined = entitySet.entityType;
+			if (!Is.undefined(entitySet.jsonLdContext)) {
+				// Let's expand the entity type
+				const auxiliaryObj = {
+					"@context": entitySet.jsonLdContext,
+					"@type": entitySet.entityType
+				};
+				const expanded = (await JsonLdProcessor.expand(auxiliaryObj))[0];
+				finalType = expanded["@type"]?.[0];
+			}
+			if (Is.undefined(finalType)) {
+				this._loggingService?.log({
+					source: DataSpaceConnectorService.CLASS_NAME,
+					level: "error",
+					message: "notExpandableType",
+					data: {
+						type: entitySet.entityType
+					}
+				});
+				throw new GuardError(
+					DataSpaceConnectorService.CLASS_NAME,
+					"notExpandableType",
+					nameof(entitySet.entityType),
+					entitySet.entityType
+				);
+			}
+			// Check needed if no LD Context is provided and a non fully qualified name appears
+			Url.guard(DataSpaceConnectorService.CLASS_NAME, nameof(entitySet.entityType), finalType);
+
+			const dsConnectorApp = this.getAppForDataAssetQuery({ serviceId: dataAsset.dataServiceId });
+
+			// Now get the Data from the App
+			const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
+			if (!Is.function(theApp.handleDataRequest)) {
+				throw new GuardError(
+					DataSpaceConnectorService.CLASS_NAME,
+					"invalidDataSpaceConnectorApp",
+					nameof(theApp.handleDataRequest),
+					theApp.handleDataRequest
+				);
+			}
+
+			const dataRequest: IDataRequest = {
+				type: "DataAssetEntities",
+				dataAsset: {
+					dataService: dataServiceEntry,
+					dataset: []
+				},
+				entitySet: {
+					entityType: finalType,
+					entityId: entitySet.entityId
+				},
+				cursor,
+				limit
+			};
+			const { data, cursor: cursorResult } = await theApp.handleDataRequest(dataRequest);
+
+			// We allow the DS Connector App to return just one item
+			let finalData: IJsonLdNodeObject[];
+			if (Is.array(data)) {
+				finalData = data;
+			} else {
+				finalData = [data as IJsonLdNodeObject];
+			}
+
+			// Consider here in the future combine LD Contexts of the items for efficiency reasons
+			// in further data processing by the Data Consumer
+
+			// Now with the data it is constructed the final JSON-LD
+			const finalResult = {
+				"@context": SchemaOrgContexts.ContextRoot,
+				type: SchemaOrgTypes.ItemList,
+				itemListElement: finalData,
+				nextItem: cursorResult
+			};
+
+			return JsonLdProcessor.compact(finalResult, finalResult["@context"]);
+		}
+
+		// Otherwise we query the Catalogue until finding a Service Offering that can satisfy the query
+		return {} as IDataAssetItemList;
+	}
+
+	/**
+	 * Queries a data asset controlled by this DS Connector App.
+	 * @param dataAsset The data asset being referred.
+	 * @param query The filtering query.
+	 * @param dataConsumerIdentity The identity of the data consumer.
+	 * @param cursor Pagination details - cursor.
+	 * @param limit Pagination details - max number of entities.
+	 * @returns The entities requested as a JSON-LD Document.
+	 */
+	public async queryDataAsset(
+		dataAsset: IDataAssetDescription,
+		query: IFilteringQuery,
+		dataConsumerIdentity: string,
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemList> {
+		Guards.object<IDataAssetDescription>(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(dataAsset),
+			dataAsset
+		);
+		Guards.string(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(dataAsset.dataServiceId),
+			dataAsset.dataServiceId
+		);
+		Guards.object(DataSpaceConnectorService.CLASS_NAME, nameof(query), query);
+		Guards.string(DataSpaceConnectorService.CLASS_NAME, nameof(query.type), query.type);
+
+		Guards.string(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(dataConsumerIdentity),
+			dataConsumerIdentity
+		);
+
+		const dataServiceEntry = await this.checkDataServiceExists(dataAsset.dataServiceId);
+
+		const dsConnectorApp = this.getAppForDataAssetQuery({ serviceId: dataAsset.dataServiceId });
+
+		// Now get the Data from the App
+		const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
+
+		if (!theApp.supportedQueryTypes().includes(query.type)) {
+			throw new UnprocessableError(DataSpaceConnectorService.CLASS_NAME, "queryTypeNotSupported", {
+				queryType: query.type
+			});
+		}
+
+		const dataRequestApp: IDataRequest = {
+			type: "QueryDataAsset",
+			dataAsset: {
+				dataService: dataServiceEntry,
+				dataset: []
+			},
+			query,
+			cursor,
+			limit
+		};
+		if (!Is.function(theApp.handleDataRequest)) {
+			throw new GuardError(
+				DataSpaceConnectorService.CLASS_NAME,
+				"invalidDataSpaceConnectorApp",
+				nameof(theApp.handleDataRequest),
+				theApp.handleDataRequest
+			);
+		}
+
+		const { data, cursor: cursorResult } = await theApp.handleDataRequest(dataRequestApp);
+
+		// We allow the DS Connector App to return just one item
+		let finalData: IJsonLdNodeObject[];
+		if (Is.array(data)) {
+			finalData = data;
+		} else {
+			finalData = [data as IJsonLdNodeObject];
+		}
+
+		// Consider here in the future combine LD Contexts of the items for efficiency reasons
+		// in further data processing by the Data Consumer
+
+		// Now with the data it is constructed the final JSON-LD
+		const finalResult = {
+			"@context": SchemaOrgContexts.ContextRoot,
+			type: SchemaOrgTypes.ItemList,
+			itemListElement: finalData,
+			nextItem: cursorResult
+		};
+
+		return JsonLdProcessor.compact(finalResult, finalResult["@context"]);
+	}
+
+	/**
 	 * Registers a Data Space Connector App.
 	 * @param appId The Id of the App to be registered.
 	 * @param app The App to be registered.
@@ -523,6 +770,19 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			nameof(app),
 			app
 		);
+		if (!Is.function(app.handleActivity) && !Is.function(app.handleDataRequest)) {
+			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "invalidDataSpaceConnectorApp", {
+				appId
+			});
+		}
+		if (
+			(app.activitiesHandled().length > 0 && !Is.function(app.handleActivity)) ||
+			(app.dataServicesHandled().length > 0 && !Is.function(app.handleDataRequest))
+		) {
+			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "invalidDataSpaceConnectorApp", {
+				appId
+			});
+		}
 
 		const currentIndex = this._apps.findIndex(a => a.appId === appId);
 		if (currentIndex !== -1) {
@@ -563,6 +823,61 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				appId
 			}
 		});
+	}
+
+	/**
+	 * Check that a Participant exists in the Catalogue and returns its entry if found.
+	 * @param participantId The participant Id to be checked.
+	 * @returns the Participant Entry.
+	 */
+	private async checkParticipantExists(participantId: string): Promise<IParticipantEntry> {
+		let entry;
+
+		try {
+			entry = await this._federatedCatalogueComponent.getEntry("LegalPerson", participantId);
+		} catch (error) {
+			if (BaseError.isErrorName(error, NotFoundError.CLASS_NAME)) {
+				this._loggingService?.log({
+					source: DataSpaceConnectorService.CLASS_NAME,
+					level: "error",
+					message: "participantNotFound",
+					error,
+					data: {
+						notFoundId: error.properties?.notFoundId
+					}
+				});
+			}
+			throw error;
+		}
+
+		return entry as IParticipantEntry;
+	}
+
+	/**
+	 * Checks that a Data Service exists and returns its entry if found.
+	 * @param dataServiceId The Data Service Id to be checked.
+	 * @returns The Data SErvice entry
+	 */
+	private async checkDataServiceExists(dataServiceId: string): Promise<IServiceOfferingEntry> {
+		let entry;
+		try {
+			entry = await this._federatedCatalogueComponent.getEntry("ServiceOffering", dataServiceId);
+		} catch (error) {
+			if (BaseError.isErrorName(error, NotFoundError.CLASS_NAME)) {
+				this._loggingService?.log({
+					source: DataSpaceConnectorService.CLASS_NAME,
+					level: "error",
+					message: "dataServiceNotFound",
+					error,
+					data: {
+						notFoundId: error.properties?.notFoundId
+					}
+				});
+			}
+			throw error;
+		}
+
+		return entry as IServiceOfferingEntry;
 	}
 
 	/**
@@ -732,7 +1047,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @returns the (Activity, Object, Target) query set.
 	 * @internal
 	 */
-	private async calculateQuerySet(compactedObj: IActivity): Promise<IActivityQuery[]> {
+	private async calculateActivityQuerySet(compactedObj: IActivity): Promise<IActivityQuery[]> {
 		const expanded = await JsonLdProcessor.expand({
 			"@context": compactedObj["@context"],
 			"@type": compactedObj.type
@@ -842,5 +1157,70 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		return matchingElements;
+	}
+
+	/**
+	 * Returns an App for a Data Asset query (dataServiceId, ...).
+	 * @param dataAssetQuery The data asset query.
+	 * @returns The Data Space Connector Apps or empty list if nothing is registered.
+	 * @internal
+	 */
+	private getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): string {
+		const matchingElements: string[] = [];
+
+		for (const appEntry of this._apps) {
+			const appQueries = appEntry.app.dataServicesHandled();
+
+			for (const appQuery of appQueries) {
+				if (appQuery.serviceId === dataAssetQuery.serviceId) {
+					matchingElements.push(appEntry.appId);
+				}
+			}
+		}
+
+		if (matchingElements.length > 1) {
+			const error = new ConflictError(
+				DataSpaceConnectorService.CLASS_NAME,
+				"tooManyAppsRegistered",
+				dataAssetQuery.serviceId,
+				matchingElements,
+				{
+					dataServiceId: dataAssetQuery.serviceId
+				}
+			);
+			this._loggingService?.log({
+				source: DataSpaceConnectorService.CLASS_NAME,
+				level: "error",
+				message: "tooManyAppsRegistered",
+				error,
+				data: {
+					dataServiceId: dataAssetQuery.serviceId
+				}
+			});
+			throw error;
+		}
+
+		if (matchingElements.length === 0) {
+			const error = new NotFoundError(
+				DataSpaceConnectorService.CLASS_NAME,
+				"noAppRegistered",
+				dataAssetQuery.serviceId,
+				{
+					dataServiceId: dataAssetQuery.serviceId
+				}
+			);
+			this._loggingService?.log({
+				source: DataSpaceConnectorService.CLASS_NAME,
+				level: "error",
+				message: "noAppRegistered",
+				error,
+				data: {
+					dataServiceId: dataAssetQuery.serviceId
+				}
+			});
+			throw error;
+		}
+
+		return matchingElements[0];
 	}
 }

@@ -161,3 +161,95 @@ The Id of the App to be registered.
 `Promise`\<`void`\>
 
 Nothing.
+
+***
+
+### getDataAssetEntities()
+
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+
+Get Data Asset entities. Allows to retrieve entities by their type or id
+
+#### Parameters
+
+##### dataAsset
+
+[`IDataAssetDescription`](IDataAssetDescription.md)
+
+The data asset being referred. It can be left empty and let the system to locate a proper one.
+
+##### entitySet
+
+[`IEntitySet`](IEntitySet.md) & `object`
+
+The set of entities to be retrieved.
+
+##### dataConsumerIdentity
+
+`string`
+
+The identity of the Data Consumer.
+
+##### cursor?
+
+`string`
+
+Pagination details - cursor.
+
+##### limit?
+
+`number`
+
+Pagination details - max number of entities.
+
+#### Returns
+
+`Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+
+The entities requested as a JSON-LD Document.
+
+***
+
+### queryDataAsset()
+
+> **queryDataAsset**(`dataAsset`, `query`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+
+Queries a data asset controlled by this DS Connector App.
+
+#### Parameters
+
+##### dataAsset
+
+[`IDataAssetDescription`](IDataAssetDescription.md)
+
+The data asset being referred.
+
+##### query
+
+[`IFilteringQuery`](IFilteringQuery.md)
+
+The filtering query.
+
+##### dataConsumerIdentity
+
+`string`
+
+The identity of the data consumer.
+
+##### cursor?
+
+`string`
+
+Pagination details - cursor.
+
+##### limit?
+
+`number`
+
+Pagination details - max number of entities.
+
+#### Returns
+
+`Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+
+The entities requested as a JSON-LD Document.

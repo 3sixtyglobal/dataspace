@@ -216,6 +216,106 @@ Nothing.
 
 ***
 
+### getDataAssetEntities()
+
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
+
+Get Data Asset entities. Allows to retrieve entities by their type or id.
+
+#### Parameters
+
+##### dataAsset
+
+`IDataAssetDescription`
+
+The data asset being referred. It can be left empty and let the system to locate a proper one.
+
+##### entitySet
+
+`IEntitySet` & `object`
+
+The set of entities to be retrieved.
+
+##### dataConsumerIdentity
+
+`string`
+
+The identity of the Data Consumer.
+
+##### cursor?
+
+`string`
+
+Pagination details - cursor.
+
+##### limit?
+
+`number`
+
+Pagination details - max number of entities.
+
+#### Returns
+
+`Promise`\<`IDataAssetItemList`\>
+
+The entities requested as a JSON-LD Document.
+
+#### Implementation of
+
+`IDataSpaceConnector.getDataAssetEntities`
+
+***
+
+### queryDataAsset()
+
+> **queryDataAsset**(`dataAsset`, `query`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
+
+Queries a data asset controlled by this DS Connector App.
+
+#### Parameters
+
+##### dataAsset
+
+`IDataAssetDescription`
+
+The data asset being referred.
+
+##### query
+
+`IFilteringQuery`
+
+The filtering query.
+
+##### dataConsumerIdentity
+
+`string`
+
+The identity of the data consumer.
+
+##### cursor?
+
+`string`
+
+Pagination details - cursor.
+
+##### limit?
+
+`number`
+
+Pagination details - max number of entities.
+
+#### Returns
+
+`Promise`\<`IDataAssetItemList`\>
+
+The entities requested as a JSON-LD Document.
+
+#### Implementation of
+
+`IDataSpaceConnector.queryDataAsset`
+
+***
+
 ### handleConnected()
 
 > `protected` **handleConnected**(): `Promise`\<`void`\>

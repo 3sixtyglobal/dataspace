@@ -44,6 +44,42 @@ Runtime name for the class.
 
 ## Methods
 
+### dataServicesHandled()
+
+> **dataServicesHandled**(): `IDataAssetQuery`[]
+
+Data Services handled.
+
+#### Returns
+
+`IDataAssetQuery`[]
+
+Ids.
+
+#### Implementation of
+
+`IDataSpaceConnectorApp.dataServicesHandled`
+
+***
+
+### supportedQueryTypes()
+
+> **supportedQueryTypes**(): `string`[]
+
+Supported query types.
+
+#### Returns
+
+`string`[]
+
+Types.
+
+#### Implementation of
+
+`IDataSpaceConnectorApp.supportedQueryTypes`
+
+***
+
 ### start()
 
 > **start**(`nodeIdentity?`, `nodeLoggingComponentType?`): `Promise`\<`void`\>
@@ -121,3 +157,29 @@ Activity processing result
 #### Implementation of
 
 `IDataSpaceConnectorApp.handleActivity`
+
+***
+
+### handleDataRequest()
+
+> **handleDataRequest**(`dataRequest`): `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
+
+Handles the Data Request.
+
+#### Parameters
+
+##### dataRequest
+
+`IDataRequest`
+
+The data request
+
+#### Returns
+
+`Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
+
+the Data.
+
+#### Implementation of
+
+`IDataSpaceConnectorApp.handleDataRequest`

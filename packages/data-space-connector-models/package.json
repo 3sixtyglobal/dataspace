@@ -35,9 +35,11 @@
 		"@twin.org/background-task-models": "next",
 		"@twin.org/core": "next",
 		"@twin.org/data-core": "next",
+		"@twin.org/data-json-ld": "next",
 		"@twin.org/entity": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/standards-w3c-activity-streams": "next"
+		"@twin.org/standards-w3c-activity-streams": "next",
+		"@twin.org/federated-catalogue-models": "next"
 	},
 	"devDependencies": {
 		"@rollup/plugin-json": "6.1.0",

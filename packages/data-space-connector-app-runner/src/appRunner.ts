@@ -1,6 +1,6 @@
 // Copyright 2024 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Guards, Is } from "@twin.org/core";
+import { GuardError, Guards, Is } from "@twin.org/core";
 import {
 	type IDataSpaceConnectorApp,
 	type IExecutionPayload,
@@ -39,6 +39,14 @@ export async function appRunner<T>(
 		}
 
 		const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(payload.executorApp);
+		if (!Is.function(app.handleActivity)) {
+			throw new GuardError(
+				CLASS_NAME,
+				"invalidDataSpaceConnectorApp",
+				nameof(app.handleActivity),
+				app.handleActivity
+			);
+		}
 
 		return app.handleActivity<T>(payload.activity);
 	} finally {

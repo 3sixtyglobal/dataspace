@@ -37,6 +37,7 @@
 		"@twin.org/data-core": "next",
 		"@twin.org/data-space-connector-models": "0.0.1-next.8",
 		"@twin.org/engine-models": "next",
+		"@twin.org/engine-types": "next",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
 		"@twin.org/standards-w3c-activity-streams": "next"

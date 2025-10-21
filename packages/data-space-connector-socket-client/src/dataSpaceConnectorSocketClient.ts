@@ -13,12 +13,17 @@ import {
 	NotSupportedError,
 	RandomHelper
 } from "@twin.org/core";
+import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type {
 	IActivityLogEntry,
 	IActivityLogStatusNotification,
 	IActivityLogStatusRequest,
+	IDataAssetDescription,
+	IDataAssetItemList,
 	IDataSpaceConnector,
-	IDataSpaceConnectorApp
+	IDataSpaceConnectorApp,
+	IEntitySet,
+	IFilteringQuery
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
@@ -219,6 +224,53 @@ export class DataSpaceConnectorSocketClient
 	public async unregisterApp(appId: string): Promise<void> {
 		// Don't want client to be able to unregister apps remotely
 		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, nameof("unregisterApp"));
+	}
+
+	/**
+	 * Get Data Asset entities. Allows to retrieve entities by their type or id.
+	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
+	 * @param entitySet The set of entities to be retrieved.
+	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
+	 * @param dataConsumerIdentity The identity of the Data Consumer.
+	 * @param cursor Pagination details - cursor.
+	 * @param limit Pagination details - max number of entities.
+	 * @returns The entities requested as a JSON-LD Document.
+	 */
+	public async getDataAssetEntities(
+		dataAsset: IDataAssetDescription,
+		entitySet: IEntitySet & {
+			jsonLdContext?: IJsonLdContextDefinitionElement[];
+		},
+		dataConsumerIdentity: string,
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemList> {
+		throw new NotSupportedError(
+			DataSpaceConnectorSocketClient.CLASS_NAME,
+			nameof("getDataAssetEntities")
+		);
+	}
+
+	/**
+	 * Queries a data asset controlled by this DS Connector App.
+	 * @param dataAsset The data asset being referred.
+	 * @param query The filtering query.
+	 * @param dataConsumerIdentity The identity of the data consumer.
+	 * @param cursor Pagination details - cursor.
+	 * @param limit Pagination details - max number of entities.
+	 * @returns The entities requested as a JSON-LD Document.
+	 */
+	public async queryDataAsset(
+		dataAsset: IDataAssetDescription,
+		query: IFilteringQuery,
+		dataConsumerIdentity: string,
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemList> {
+		throw new NotSupportedError(
+			DataSpaceConnectorSocketClient.CLASS_NAME,
+			nameof("queryDataAsset")
+		);
 	}
 
 	/**

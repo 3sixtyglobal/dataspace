@@ -29,7 +29,8 @@
 		"Stiftung",
 		"Unrevoke",
 		"twinfoundation",
-		"buildx"
+		"buildx",
+		"unece"
 	],
 	"ignoreRegExpList": [
 		"/from\\s+(['\"]).*\\1/",

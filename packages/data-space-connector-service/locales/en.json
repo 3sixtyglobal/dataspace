@@ -1,16 +1,23 @@
 {
 	"error": {
 		"dataSpaceConnectorService": {
-			"activityLogEntryNotFound": "Activity Log Entry '\"{notFoundId}\"' has not been found",
+			"activityLogEntryNotFound": "Not found activity Log Entry: \"{notFoundId}\"",
 			"activityAlreadyNotified": "Activity has already been notified",
 			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
 			"invalidActivity": "Invalid Activity. Expected fields not specified",
-			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\""
+			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
+			"participantNotFound": "Participant has not been found in the Catalogue: \"{notFoundId}\"",
+			"dataServiceNotFound": "Data Service has not been found in the Catalogue: \"{notFoundId}\"",
+			"tooManyAppsRegistered": "There are several DS Connector Apps registered for Data Service \"{dataServiceId}\"",
+			"noAppRegistered": "There are no DS Connector Apps registered for Data Service \"{dataServiceId}\"",
+			"notExpandableType": "\"\"{type}\"\" Entity type  cannot be expanded",
+			"queryTypeNotSupported": "Query type not supported by the DS Connector App: \"{queryType}\"",
+			"invalidDataSpaceConnectorApp": "The Data Space Connector App \"{appId}\" is invalid. It does not implement required interfaces"
 		}
 	},
 	"info": {
 		"dataSpaceConnectorService": {
-			"scheduledTask": "Task scheduled: \"{taskId}\" for Data Space Connector App \"{dataSpaceConnectorAppId}\"",
+			"scheduledTask": "\"{taskId}\": Task scheduled for Data Space Connector App \"{dataSpaceConnectorAppId}\"",
 			"registeredApp": "App with Id \"{appId}\" has been registered",
 			"unregisteredApp": "App with Id \"{appId}\" has been unregistered"
 		}

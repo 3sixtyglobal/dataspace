@@ -36,7 +36,8 @@
 		"@twin.org/core": "next",
 		"@twin.org/data-space-connector-models": "0.0.1-next.8",
 		"@twin.org/logging-models": "next",
-		"@twin.org/nameof": "next"
+		"@twin.org/nameof": "next",
+		"@twin.org/data-json-ld": "next"
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",

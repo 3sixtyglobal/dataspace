@@ -12,7 +12,7 @@ import {
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
 import { TaskSchedulerService } from "@twin.org/background-task-scheduler";
-import { ComponentFactory, Is, ObjectHelper } from "@twin.org/core";
+import { ComponentFactory, Is, NotFoundError, ObjectHelper } from "@twin.org/core";
 import {
 	ActivityProcessingStatus,
 	type IActivityLogDates,
@@ -44,6 +44,9 @@ let backgroundTaskConnectorEntityStorage: EntityStorageBackgroundTaskConnector;
 let taskScheduler: ITaskSchedulerComponent;
 
 const BASE_STORE_DIR = "./tests/.tmp";
+
+const DATA_CONSUMER_IDENTITY = "did:iota:testnet:1234567";
+const DATA_SERVICE_ID = "https://twin.example.org/data-service-1";
 
 /**
  * Waits.
@@ -145,6 +148,20 @@ describe("data-space-connector-tests", () => {
 		);
 		taskScheduler = new TaskSchedulerService();
 		ComponentFactory.register("task-scheduler", () => taskScheduler);
+
+		ComponentFactory.register("federated-catalogue", () => ({
+			CLASS_NAME: "FederatedCatalogue",
+			getEntry: async (entryType: string, entryId: string): Promise<unknown> => {
+				if (entryType === "LegalPerson" && entryId === DATA_CONSUMER_IDENTITY) {
+					return {};
+				}
+				if (entryType === "ServiceOffering" && entryId === DATA_SERVICE_ID) {
+					return {};
+				}
+
+				throw new NotFoundError("TEST", "NotFound", entryId);
+			}
+		}));
 	});
 
 	test("It should receive an Activity in the Activity Stream - canonical", async () => {
@@ -235,6 +252,192 @@ describe("data-space-connector-tests", () => {
 		delete activity.actor;
 
 		await expect(dataSpaceConnectorService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "GuardError"
+		});
+	});
+
+	test("It should get data asset entities by entity type", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const data = await dataSpaceConnectorService.getDataAssetEntities(
+			{ dataServiceId: DATA_SERVICE_ID },
+			{
+				entityType: "https://vocabulary.uncefact.org/Consignment"
+			},
+			DATA_CONSUMER_IDENTITY
+		);
+
+		expect(data.itemListElement.length).toBe(1);
+	});
+
+	test("It should get data asset entities by entity type with LD Context", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const data = await dataSpaceConnectorService.getDataAssetEntities(
+			{ dataServiceId: DATA_SERVICE_ID },
+			{
+				entityType: "Consignment",
+				jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
+			},
+			DATA_CONSUMER_IDENTITY
+		);
+
+		expect(data.itemListElement.length).toBe(1);
+	});
+
+	test("It should get data asset entities by entity type - no entities", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const data = await dataSpaceConnectorService.getDataAssetEntities(
+			{ dataServiceId: DATA_SERVICE_ID },
+			{
+				entityType: "Document",
+				jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
+			},
+			DATA_CONSUMER_IDENTITY
+		);
+
+		expect(data.itemListElement.length).toBe(0);
+	});
+
+	test("It should get data asset entities by entity id", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const data = await dataSpaceConnectorService.getDataAssetEntities(
+			{ dataServiceId: DATA_SERVICE_ID },
+			{
+				entityType: "https://vocabulary.uncefact.org/Consignment",
+				entityId: ["urn:ucr:24PLP051219453I002610799053311"]
+			},
+			DATA_CONSUMER_IDENTITY
+		);
+
+		expect(data.itemListElement.length).toBe(1);
+	});
+
+	test("It should query data asset if query type is supported", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const data = await dataSpaceConnectorService.queryDataAsset(
+			{ dataServiceId: DATA_SERVICE_ID },
+			{ type: "TestQueryType", q: "test-query" },
+			DATA_CONSUMER_IDENTITY
+		);
+
+		expect(data.itemListElement.length).toBe(2);
+	});
+
+	test("It should throw unprocessable if query type is not supported", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		await expect(
+			dataSpaceConnectorService.queryDataAsset(
+				{ dataServiceId: DATA_SERVICE_ID },
+				{ type: "UnsupportedQueryType", q: "test-query" },
+				DATA_CONSUMER_IDENTITY
+			)
+		).rejects.toMatchObject({
+			name: "UnprocessableError"
+		});
+	});
+
+	test("It should throw error if participant does not exist in the catalogue", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		await expect(
+			dataSpaceConnectorService.getDataAssetEntities(
+				{ dataServiceId: DATA_SERVICE_ID },
+				{
+					entityType: "https://vocabulary.uncefact.org/Consignment"
+				},
+				"1234"
+			)
+		).rejects.toMatchObject({
+			name: "NotFoundError"
+		});
+	});
+
+	test("It should throw error if service Id does not exist in the catalogue", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		await expect(
+			dataSpaceConnectorService.getDataAssetEntities(
+				{ dataServiceId: "xxxxx" },
+				{
+					entityType: "https://vocabulary.uncefact.org/Consignment"
+				},
+				DATA_CONSUMER_IDENTITY
+			)
+		).rejects.toMatchObject({
+			name: "NotFoundError"
+		});
+	});
+
+	test("It should throw error if non qualified type is provided", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		await expect(
+			dataSpaceConnectorService.getDataAssetEntities(
+				{ dataServiceId: DATA_SERVICE_ID },
+				{
+					entityType: "Consignment"
+				},
+				DATA_CONSUMER_IDENTITY
+			)
+		).rejects.toMatchObject({
+			name: "GuardError"
+		});
+	});
+
+	test("It should throw error if unexpandable type is provided", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		await expect(
+			dataSpaceConnectorService.getDataAssetEntities(
+				{
+					dataServiceId: DATA_SERVICE_ID
+				},
+				{
+					entityType: "Consignment33333",
+					jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
+				},
+				DATA_CONSUMER_IDENTITY
+			)
+		).rejects.toMatchObject({
 			name: "GuardError"
 		});
 	});
