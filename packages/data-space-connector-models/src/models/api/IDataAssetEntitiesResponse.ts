@@ -1,7 +1,6 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
-import type { IDataAssetItemList } from "../IDataAssetItemList";
+import type { IDataAssetItemList } from "../IDataAssetItemList.js";
 
 /**
  * Service Offering response

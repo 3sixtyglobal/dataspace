@@ -1,6 +1,5 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
 import path from "node:path";
 import {
 	EntityStorageBackgroundTaskConnector,
@@ -12,13 +11,14 @@ import {
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
 import { TaskSchedulerService } from "@twin.org/background-task-scheduler";
+import { ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Is, NotFoundError, ObjectHelper } from "@twin.org/core";
 import {
 	ActivityProcessingStatus,
+	DataSpaceConnectorAppFactory,
 	type IActivityLogDates,
 	type IActivityLogEntry
 } from "@twin.org/data-space-connector-models";
-import { DataSpaceConnectorAppFactory } from "@twin.org/data-space-connector-models";
 import { TestDataSpaceConnectorApp } from "@twin.org/data-space-connector-test-app";
 import { FileEntityStorageConnector } from "@twin.org/entity-storage-connector-file";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
@@ -26,13 +26,13 @@ import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
-import { cleanupTestEnv, setupTestEnv } from "./setupTestEnv";
-import { activityLdContextArray, canonicalActivity, extendedActivity } from "./testData";
-import { DataSpaceConnectorService } from "../src/dataSpaceConnectorService";
-import type { ActivityLogDetails } from "../src/entities/activityLogDetails";
-import type { ActivityTask } from "../src/entities/activityTask";
-import type { IDataSpaceConnectorServiceConstructorOptions } from "../src/models/IDataSpaceConnectorServiceConstructorOptions";
-import { initSchema } from "../src/schema";
+import { cleanupTestEnv, setupTestEnv } from "./setupTestEnv.js";
+import { activityLdContextArray, canonicalActivity, extendedActivity } from "./testData.js";
+import { DataSpaceConnectorService } from "../src/dataSpaceConnectorService.js";
+import type { ActivityLogDetails } from "../src/entities/activityLogDetails.js";
+import type { ActivityTask } from "../src/entities/activityTask.js";
+import type { IDataSpaceConnectorServiceConstructorOptions } from "../src/models/IDataSpaceConnectorServiceConstructorOptions.js";
+import { initSchema } from "../src/schema.js";
 
 let activityLogStore: FileEntityStorageConnector<ActivityLogDetails>;
 let activityTasksStore: FileEntityStorageConnector<ActivityTask>;
@@ -45,6 +45,7 @@ let taskScheduler: ITaskSchedulerComponent;
 
 const BASE_STORE_DIR = "./tests/.tmp";
 
+const TEST_NODE_IDENTITY = "did:iota:testnet:7654321";
 const DATA_CONSUMER_IDENTITY = "did:iota:testnet:1234567";
 const DATA_SERVICE_ID = "https://twin.example.org/data-service-1";
 
@@ -91,7 +92,7 @@ describe("data-space-connector-tests", () => {
 				ModuleHelper.execModuleMethod(module, method, args)
 			);
 
-		addAllContextsToDocumentCache();
+		await addAllContextsToDocumentCache();
 
 		initSchema();
 		initSchemaBackgroundTask();
@@ -101,6 +102,11 @@ describe("data-space-connector-tests", () => {
 			backgroundTaskConnectorType: "background-task",
 			config: {}
 		};
+
+		ContextIdStore.getContextIds = vi.fn().mockImplementation(() => ({
+			node: TEST_NODE_IDENTITY,
+			organization: DATA_CONSUMER_IDENTITY
+		}));
 	});
 
 	afterAll(async () => {
@@ -150,7 +156,7 @@ describe("data-space-connector-tests", () => {
 		ComponentFactory.register("task-scheduler", () => taskScheduler);
 
 		ComponentFactory.register("federated-catalogue", () => ({
-			CLASS_NAME: "FederatedCatalogue",
+			className: () => "FederatedCatalogue",
 			getEntry: async (entryType: string, entryId: string): Promise<unknown> => {
 				if (entryType === "LegalPerson" && entryId === DATA_CONSUMER_IDENTITY) {
 					return {};
@@ -175,7 +181,7 @@ describe("data-space-connector-tests", () => {
 		await testApp.start();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(canonicalActivity);
-		await sleep(800);
+		await sleep(1000);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
 		assertActivityLog(entry);
@@ -196,7 +202,7 @@ describe("data-space-connector-tests", () => {
 
 		const activityLogEntryId =
 			await dataSpaceConnectorService.notifyActivity(activityLdContextArray);
-		await sleep(800);
+		await sleep(1000);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
 		assertActivityLog(entry);
@@ -213,7 +219,7 @@ describe("data-space-connector-tests", () => {
 		await testApp.start();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(extendedActivity);
-		await sleep(800);
+		await sleep(1000);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
 		assertActivityLog(entry);
@@ -268,8 +274,7 @@ describe("data-space-connector-tests", () => {
 			{ dataServiceId: DATA_SERVICE_ID },
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
-			},
-			DATA_CONSUMER_IDENTITY
+			}
 		);
 
 		expect(data.itemListElement.length).toBe(1);
@@ -288,8 +293,7 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "Consignment",
 				jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
-			},
-			DATA_CONSUMER_IDENTITY
+			}
 		);
 
 		expect(data.itemListElement.length).toBe(1);
@@ -308,8 +312,7 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "Document",
 				jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
-			},
-			DATA_CONSUMER_IDENTITY
+			}
 		);
 
 		expect(data.itemListElement.length).toBe(0);
@@ -328,8 +331,7 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment",
 				entityId: ["urn:ucr:24PLP051219453I002610799053311"]
-			},
-			DATA_CONSUMER_IDENTITY
+			}
 		);
 
 		expect(data.itemListElement.length).toBe(1);
@@ -345,8 +347,7 @@ describe("data-space-connector-tests", () => {
 
 		const data = await dataSpaceConnectorService.queryDataAsset(
 			{ dataServiceId: DATA_SERVICE_ID },
-			{ type: "TestQueryType", q: "test-query" },
-			DATA_CONSUMER_IDENTITY
+			{ type: "TestQueryType", q: "test-query" }
 		);
 
 		expect(data.itemListElement.length).toBe(2);
@@ -363,8 +364,7 @@ describe("data-space-connector-tests", () => {
 		await expect(
 			dataSpaceConnectorService.queryDataAsset(
 				{ dataServiceId: DATA_SERVICE_ID },
-				{ type: "UnsupportedQueryType", q: "test-query" },
-				DATA_CONSUMER_IDENTITY
+				{ type: "UnsupportedQueryType", q: "test-query" }
 			)
 		).rejects.toMatchObject({
 			name: "UnprocessableError"
@@ -397,8 +397,7 @@ describe("data-space-connector-tests", () => {
 				{ dataServiceId: "xxxxx" },
 				{
 					entityType: "https://vocabulary.uncefact.org/Consignment"
-				},
-				DATA_CONSUMER_IDENTITY
+				}
 			)
 		).rejects.toMatchObject({
 			name: "NotFoundError"
@@ -414,8 +413,7 @@ describe("data-space-connector-tests", () => {
 				{ dataServiceId: DATA_SERVICE_ID },
 				{
 					entityType: "Consignment"
-				},
-				DATA_CONSUMER_IDENTITY
+				}
 			)
 		).rejects.toMatchObject({
 			name: "GuardError"
@@ -434,8 +432,7 @@ describe("data-space-connector-tests", () => {
 				{
 					entityType: "Consignment33333",
 					jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
-				},
-				DATA_CONSUMER_IDENTITY
+				}
 			)
 		).rejects.toMatchObject({
 			name: "GuardError"

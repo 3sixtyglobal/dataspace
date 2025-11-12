@@ -1,10 +1,11 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { GuardError, Guards, Is } from "@twin.org/core";
+import { ContextIdStore, type IContextIds } from "@twin.org/context";
+import { Guards, Is } from "@twin.org/core";
 import {
+	DataSpaceConnectorAppFactory,
 	type IDataSpaceConnectorApp,
-	type IExecutionPayload,
-	DataSpaceConnectorAppFactory
+	type IExecutionPayload
 } from "@twin.org/data-space-connector-models";
 import { EngineCore } from "@twin.org/engine-core";
 import type { IEngineCore, IEngineCoreClone } from "@twin.org/engine-models";
@@ -16,11 +17,13 @@ const CLASS_NAME = "DataSpaceAppRunner";
 /**
  * Data Space Connector Task.
  * @param engineCloneData The Engine.
+ * @param contextIds The context IDs.
  * @param payload The payload
  * @returns The execution result.
  */
 export async function appRunner<T>(
 	engineCloneData: IEngineCoreClone,
+	contextIds: IContextIds,
 	payload: IExecutionPayload
 ): Promise<T> {
 	Guards.objectValue<IExecutionPayload>(CLASS_NAME, nameof(payload), payload);
@@ -38,17 +41,14 @@ export async function appRunner<T>(
 			await engine.start();
 		}
 
-		const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(payload.executorApp);
-		if (!Is.function(app.handleActivity)) {
-			throw new GuardError(
-				CLASS_NAME,
-				"invalidDataSpaceConnectorApp",
-				nameof(app.handleActivity),
-				app.handleActivity
-			);
-		}
+		const result = await ContextIdStore.run(contextIds, async () => {
+			const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(payload.executorApp);
 
-		return app.handleActivity<T>(payload.activity);
+			const handleActivity = app?.handleActivity?.bind(app);
+			Guards.function(CLASS_NAME, nameof(handleActivity), handleActivity);
+			return handleActivity<T>(payload.activity);
+		});
+		return result;
 	} finally {
 		if (!Is.empty(engine)) {
 			await engine.stop();

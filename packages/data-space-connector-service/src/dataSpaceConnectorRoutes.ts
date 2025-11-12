@@ -1,4 +1,4 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import {
 	HttpParameterHelper,
@@ -10,19 +10,20 @@ import {
 	type ITag,
 	type IUnprocessableEntityResponse
 } from "@twin.org/api-models";
+import { ContextIdKeys } from "@twin.org/context";
 import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
 import type {
 	IActivityLogEntry,
 	IActivityLogEntryGetRequest,
 	IActivityLogEntryGetResponse,
 	IActivityStreamNotifyRequest,
-	IDataAssetGetEntitiesRequest,
-	IDataSpaceConnector,
+	IDataAssetDescription,
 	IDataAssetEntitiesResponse,
+	IDataAssetGetEntitiesRequest,
 	IDataAssetItemList,
 	IDataAssetQueryRequest,
-	IFilteringQuery,
-	IDataAssetDescription
+	IDataSpaceConnector,
+	IFilteringQuery
 } from "@twin.org/data-space-connector-models";
 import { nameof } from "@twin.org/nameof";
 import { ActivityStreamsContexts, type IActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -216,7 +217,12 @@ export function generateRestRoutesDataSpaceConnector(
 					}
 				]
 			}
-		]
+		],
+		skipAuth: true,
+		processorFeatures: ["verifiableCredential"],
+		processorData: {
+			verifiableCredential: { contextId: ContextIdKeys.Organization }
+		}
 	};
 
 	const queryDataAssetRoute: IRestRoute<
@@ -259,7 +265,12 @@ export function generateRestRoutesDataSpaceConnector(
 					}
 				]
 			}
-		]
+		],
+		skipAuth: true,
+		processorFeatures: ["verifiableCredential"],
+		processorData: {
+			verifiableCredential: { contextId: ContextIdKeys.Organization }
+		}
 	};
 
 	return [
@@ -344,28 +355,25 @@ export async function getDataAssetEntities(
 		request.query
 	);
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.query.type), request.query.type);
-	// Temporal solution until we add authentication
-	const consumerIdentity = httpRequestContext.userIdentity ?? httpRequestContext.nodeIdentity;
-	Guards.defined(ROUTES_SOURCE, nameof(consumerIdentity), consumerIdentity);
 
 	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
+	const result = await service.getDataAssetEntities(
+		{
+			dataServiceId: request.query.dataServiceId,
+			dataSetId: HttpParameterHelper.arrayFromString(request.query.datasetId)
+		},
+		{
+			entityType: request.query.type,
+			entityId: HttpParameterHelper.arrayFromString(request.query.id)
+		},
+		request.query.cursor,
+		Coerce.number(request.query.limit)
+	);
+
 	// It is still needed to process the pagination header parameters
-	// And also use an identity to query
 	return {
-		body: await service.getDataAssetEntities(
-			{
-				dataServiceId: request.query.dataServiceId,
-				dataSetId: HttpParameterHelper.arrayFromString(request.query.datasetId)
-			},
-			{
-				entityType: request.query.type,
-				entityId: HttpParameterHelper.arrayFromString(request.query.id)
-			},
-			consumerIdentity,
-			request.query.cursor,
-			Coerce.number(request.query.limit)
-		)
+		body: result
 	};
 }
 
@@ -398,19 +406,13 @@ export async function queryDataAsset(
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.type), request.body.query.type);
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.q), request.body.query.q);
 
-	// Temporal solution until we integrate authentication
-	const consumerIdentity = httpRequestContext.userIdentity ?? httpRequestContext.nodeIdentity;
-	Guards.defined(ROUTES_SOURCE, nameof(consumerIdentity), consumerIdentity);
-
 	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
 	// It is still needed to process the pagination header parameters
-	// And also use an identity to query
 	return {
 		body: await service.queryDataAsset(
 			request.body.dataAsset,
 			request.body.query,
-			consumerIdentity,
 			request.body.cursor,
 			request.body.limit
 		)

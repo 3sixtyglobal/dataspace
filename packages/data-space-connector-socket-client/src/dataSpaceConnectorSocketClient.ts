@@ -1,4 +1,4 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseSocketClient } from "@twin.org/api-core";
 import type { IHttpResponse } from "@twin.org/api-models";
@@ -28,7 +28,7 @@ import type {
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IDataSpaceConnectorSocketClientConstructorOptions } from "./models/IDataSpaceConnectorSocketClientConstructorOptions";
+import type { IDataSpaceConnectorSocketClientConstructorOptions } from "./models/IDataSpaceConnectorSocketClientConstructorOptions.js";
 
 /**
  * Data space connector which publishes using REST API and websockets.
@@ -86,6 +86,14 @@ export class DataSpaceConnectorSocketClient
 		super.onEvent<IHttpResponse<IActivityLogStatusNotification>>("publish", async data =>
 			this.incomingPublishActivityLog(data)
 		);
+	}
+
+	/**
+	 * Returns the class name of the component.
+	 * @returns The class name of the component.
+	 */
+	public className(): string {
+		return DataSpaceConnectorSocketClient.CLASS_NAME;
 	}
 
 	/**
@@ -231,7 +239,6 @@ export class DataSpaceConnectorSocketClient
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
-	 * @param dataConsumerIdentity The identity of the Data Consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -241,7 +248,6 @@ export class DataSpaceConnectorSocketClient
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
-		dataConsumerIdentity: string,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {
@@ -255,7 +261,6 @@ export class DataSpaceConnectorSocketClient
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
-	 * @param dataConsumerIdentity The identity of the data consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -263,7 +268,6 @@ export class DataSpaceConnectorSocketClient
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
-		dataConsumerIdentity: string,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {

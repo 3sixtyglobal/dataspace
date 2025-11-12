@@ -1,7 +1,7 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { Factory } from "@twin.org/core";
-import type { IDataSpaceConnectorApp } from "../models/app/IDataSpaceConnectorApp";
+import type { IDataSpaceConnectorApp } from "../models/app/IDataSpaceConnectorApp.js";
 
 /**
  * Factory for creating data space connector apps.

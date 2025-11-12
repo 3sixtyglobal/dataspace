@@ -1,6 +1,5 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
 import { ActivityStreamsContexts, type IActivity } from "@twin.org/standards-w3c-activity-streams";
 
 export const canonicalActivity: IActivity = {

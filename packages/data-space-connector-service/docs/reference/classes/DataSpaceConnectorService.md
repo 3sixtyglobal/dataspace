@@ -36,25 +36,37 @@ Runtime name for the class.
 
 ## Methods
 
-### start()
+### className()
 
-> **start**(`nodeIdentity?`, `nodeLoggingComponentType?`): `Promise`\<`void`\>
+> **className**(): `string`
 
-Start step. It just registers the Data Space Connector Apps initial descriptors.
+Returns the class name of the component.
 
-#### Parameters
-
-##### nodeIdentity?
+#### Returns
 
 `string`
 
-Node Identity
+The class name of the component.
+
+#### Implementation of
+
+`IDataSpaceConnector.className`
+
+***
+
+### start()
+
+> **start**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
+
+The service needs to be started when the application is initialized.
+
+#### Parameters
 
 ##### nodeLoggingComponentType?
 
 `string`
 
-Node Logging Component type.
+The node logging component type.
 
 #### Returns
 
@@ -180,7 +192,7 @@ NotFoundError if activity log entry is not known.
 
 ### getDataAssetEntities()
 
-> **getDataAssetEntities**(`dataAsset`, `entitySet`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
 
 Get Data Asset entities. Allows to retrieve entities by their type or id.
 
@@ -197,12 +209,6 @@ The data asset being referred. It can be left empty and let the system to locate
 `IEntitySet` & `object`
 
 The set of entities to be retrieved.
-
-##### dataConsumerIdentity
-
-`string`
-
-The identity of the Data Consumer.
 
 ##### cursor?
 
@@ -230,7 +236,7 @@ The entities requested as a JSON-LD Document.
 
 ### queryDataAsset()
 
-> **queryDataAsset**(`dataAsset`, `query`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
+> **queryDataAsset**(`dataAsset`, `query`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
 
 Queries a data asset controlled by this DS Connector App.
 
@@ -247,12 +253,6 @@ The data asset being referred.
 `IFilteringQuery`
 
 The filtering query.
-
-##### dataConsumerIdentity
-
-`string`
-
-The identity of the data consumer.
 
 ##### cursor?
 

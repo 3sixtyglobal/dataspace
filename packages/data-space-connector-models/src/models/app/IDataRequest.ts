@@ -1,9 +1,8 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
-import type { IFilteringQuery } from "../IFilteringQuery";
-import type { IBaseDataRequest } from "./IBaseDataRequest";
-import type { IEntitySet } from "../IEntitySet";
+import type { IFilteringQuery } from "../IFilteringQuery.js";
+import type { IBaseDataRequest } from "./IBaseDataRequest.js";
+import type { IEntitySet } from "../IEntitySet.js";
 
 /**
  * Data Request type for representing data requests received by DS Connector Apps.

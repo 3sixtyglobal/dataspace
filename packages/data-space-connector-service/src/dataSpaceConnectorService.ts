@@ -1,6 +1,5 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
 import {
 	BackgroundTaskConnectorFactory,
 	TaskStatus,
@@ -9,6 +8,7 @@ import {
 	type IScheduledTaskTime,
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
+import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	BaseError,
 	ComponentFactory,
@@ -71,9 +71,9 @@ import {
 	SchemaOrgTypes
 } from "@twin.org/standards-schema-org";
 import { ActivityStreamsDataTypes, type IActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { ActivityLogDetails } from "./entities/activityLogDetails";
-import type { ActivityTask } from "./entities/activityTask";
-import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDataSpaceConnectorServiceConstructorOptions";
+import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
+import type { ActivityTask } from "./entities/activityTask.js";
+import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDataSpaceConnectorServiceConstructorOptions.js";
 
 /**
  * Data Space Connector Service.
@@ -177,6 +177,18 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	private readonly _federatedCatalogueComponent: IFederatedCatalogueComponent;
 
 	/**
+	 * The keys to use from the context ids to create partitions.
+	 * @internal
+	 */
+	private readonly _partitionContextIds?: string[];
+
+	/**
+	 * The list of active tenants required for task cleanup.
+	 * @internal
+	 */
+	private readonly _activeTenants: string[];
+
+	/**
 	 * Create a new instance of DataSpaceConnector.
 	 * @param options The options for the connector.
 	 */
@@ -213,6 +225,8 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		SchemaOrgDataTypes.registerRedirects();
 
 		this._activityLogStatusCallbacks = {};
+		this._activeTenants = [];
+		this._partitionContextIds = options?.partitionContextIds;
 
 		this._retainTasksFor = DataSpaceConnectorService._DEFAULT_RETAIN_INTERVAL * 60 * 1000;
 		this._retainActivityLogsFor = DataSpaceConnectorService._DEFAULT_RETAIN_INTERVAL * 60 * 1000;
@@ -268,14 +282,21 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	}
 
 	/**
-	 * Start step. It just registers the Data Space Connector Apps initial descriptors.
-	 * @param nodeIdentity Node Identity
-	 * @param nodeLoggingComponentType Node Logging Component type.
+	 * Returns the class name of the component.
+	 * @returns The class name of the component.
 	 */
-	public async start(nodeIdentity?: string, nodeLoggingComponentType?: string): Promise<void> {
+	public className(): string {
+		return DataSpaceConnectorService.CLASS_NAME;
+	}
+
+	/**
+	 * The service needs to be started when the application is initialized.
+	 * @param nodeLoggingComponentType The node logging component type.
+	 */
+	public async start(nodeLoggingComponentType?: string): Promise<void> {
 		const engine = EngineCoreFactory.getIfExists("engine");
 		if (Is.empty(engine) || engine.isClone()) {
-			this._loggingService?.log({
+			await this._loggingService?.log({
 				level: "debug",
 				source: DataSpaceConnectorService.CLASS_NAME,
 				message: "engineCloneStart"
@@ -292,17 +313,17 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				}
 			];
 
-			this._taskScheduler.addTask("data-space-connector-cleanup", taskTime, async () => {
-				this._loggingService?.log({
+			await this._taskScheduler.addTask("data-space-connector-cleanup", taskTime, async () => {
+				await this._loggingService?.log({
 					level: "debug",
 					source: DataSpaceConnectorService.CLASS_NAME,
 					message: "scheduledCleanUpTask"
 				});
 
-				await this.cleanUpActivityLog();
+				await this.cleanupActivityLog();
 			});
 
-			this._loggingService?.log({
+			await this._loggingService?.log({
 				level: "debug",
 				source: DataSpaceConnectorService.CLASS_NAME,
 				message: "taskSchedulerStarted",
@@ -321,7 +342,9 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	public async notifyActivity(activity: IActivity): Promise<string> {
 		Guards.object<IActivity>(DataSpaceConnectorService.CLASS_NAME, nameof(activity), activity);
 
-		this._loggingService?.log({
+		await this.updateActiveTenants();
+
+		await this._loggingService?.log({
 			level: "debug",
 			source: DataSpaceConnectorService.CLASS_NAME,
 			message: "newActivity",
@@ -394,7 +417,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					}
 				);
 
-				this._backgroundTaskConnector.registerHandler<IExecutionPayload, unknown>(
+				await this._backgroundTaskConnector.registerHandler<IExecutionPayload, unknown>(
 					taskType,
 					"@twin.org/data-space-connector-app-runner",
 					"appRunner",
@@ -504,29 +527,36 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					entity.taskId
 				);
 
-				switch (taskDetails?.status) {
-					case TaskStatus.Success:
-						finalizedTasks.push({
-							...entity,
-							result: JSON.stringify(taskDetails?.result),
-							startDate: taskDetails?.dateCreated,
-							endDate: taskDetails?.dateCompleted
-						});
-						break;
+				if (Is.object(taskDetails)) {
+					switch (taskDetails.status) {
+						case TaskStatus.Success:
+							finalizedTasks.push({
+								...entity,
+								result: JSON.stringify(taskDetails.result),
+								startDate: taskDetails?.dateCreated,
+								endDate: taskDetails?.dateCompleted
+							});
+							break;
 
-					case TaskStatus.Pending:
-						pendingTasks.push(entity);
-						break;
+						case TaskStatus.Pending:
+							pendingTasks.push(entity);
+							break;
 
-					case TaskStatus.Processing:
-						runningTasks.push({ ...entity, startDate: taskDetails?.dateCreated });
-						break;
+						case TaskStatus.Processing:
+							runningTasks.push({ ...entity, startDate: taskDetails.dateCreated });
+							break;
 
-					case TaskStatus.Failed:
-						inErrorTasks.push({
-							...entity,
-							error: taskDetails.error as IError
-						});
+						case TaskStatus.Failed:
+							inErrorTasks.push({
+								...entity,
+								error: taskDetails.error as IError
+							});
+							break;
+
+						case TaskStatus.Cancelled:
+							// Nothing to do for cancelled tasks
+							break;
+					}
 				}
 			}
 			if (inErrorTasks.length > 0) {
@@ -547,7 +577,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
-	 * @param dataConsumerIdentity The identity of the Data Consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -557,7 +586,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
-		dataConsumerIdentity: string,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {
@@ -572,13 +600,10 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			nameof(entitySet.entityType),
 			entitySet.entityType
 		);
-		Guards.string(
-			DataSpaceConnectorService.CLASS_NAME,
-			nameof(dataConsumerIdentity),
-			dataConsumerIdentity
-		);
 
-		await this.checkParticipantExists(dataConsumerIdentity);
+		const contextIds = await ContextIdStore.getContextIds();
+		ContextIdHelper.guard(contextIds, ContextIdKeys.Organization);
+		await this.checkParticipantExists(contextIds[ContextIdKeys.Organization]);
 
 		// Now getting the Data Space Connector App that can serve
 		if (!Is.undefined(dataAsset.dataServiceId)) {
@@ -595,7 +620,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				finalType = expanded["@type"]?.[0];
 			}
 			if (Is.undefined(finalType)) {
-				this._loggingService?.log({
+				await this._loggingService?.log({
 					source: DataSpaceConnectorService.CLASS_NAME,
 					level: "error",
 					message: "notExpandableType",
@@ -613,18 +638,18 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			// Check needed if no LD Context is provided and a non fully qualified name appears
 			Url.guard(DataSpaceConnectorService.CLASS_NAME, nameof(entitySet.entityType), finalType);
 
-			const dsConnectorApp = this.getAppForDataAssetQuery({ serviceId: dataAsset.dataServiceId });
+			const dsConnectorApp = await this.getAppForDataAssetQuery({
+				serviceId: dataAsset.dataServiceId
+			});
 
 			// Now get the Data from the App
 			const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
-			if (!Is.function(theApp.handleDataRequest)) {
-				throw new GuardError(
-					DataSpaceConnectorService.CLASS_NAME,
-					"invalidDataSpaceConnectorApp",
-					nameof(theApp.handleDataRequest),
-					theApp.handleDataRequest
-				);
-			}
+			const handleDataRequest = theApp?.handleDataRequest?.bind(theApp);
+			Guards.function(
+				DataSpaceConnectorService.CLASS_NAME,
+				nameof(handleDataRequest),
+				handleDataRequest
+			);
 
 			const dataRequest: IDataRequest = {
 				type: "DataAssetEntities",
@@ -639,7 +664,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				cursor,
 				limit
 			};
-			const { data, cursor: cursorResult } = await theApp.handleDataRequest(dataRequest);
+			const { data, cursor: cursorResult } = await handleDataRequest(dataRequest);
 
 			// We allow the DS Connector App to return just one item
 			let finalData: IJsonLdNodeObject[];
@@ -671,7 +696,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
-	 * @param dataConsumerIdentity The identity of the data consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -679,7 +703,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
-		dataConsumerIdentity: string,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {
@@ -696,15 +719,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		Guards.object(DataSpaceConnectorService.CLASS_NAME, nameof(query), query);
 		Guards.string(DataSpaceConnectorService.CLASS_NAME, nameof(query.type), query.type);
 
-		Guards.string(
-			DataSpaceConnectorService.CLASS_NAME,
-			nameof(dataConsumerIdentity),
-			dataConsumerIdentity
-		);
-
 		const dataServiceEntry = await this.checkDataServiceExists(dataAsset.dataServiceId);
 
-		const dsConnectorApp = this.getAppForDataAssetQuery({ serviceId: dataAsset.dataServiceId });
+		const dsConnectorApp = await this.getAppForDataAssetQuery({
+			serviceId: dataAsset.dataServiceId
+		});
 
 		// Now get the Data from the App
 		const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
@@ -725,16 +744,14 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			cursor,
 			limit
 		};
-		if (!Is.function(theApp.handleDataRequest)) {
-			throw new GuardError(
-				DataSpaceConnectorService.CLASS_NAME,
-				"invalidDataSpaceConnectorApp",
-				nameof(theApp.handleDataRequest),
-				theApp.handleDataRequest
-			);
-		}
+		const handleDataRequest = theApp?.handleDataRequest?.bind(theApp);
+		Guards.function(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(handleDataRequest),
+			handleDataRequest
+		);
 
-		const { data, cursor: cursorResult } = await theApp.handleDataRequest(dataRequestApp);
+		const { data, cursor: cursorResult } = await handleDataRequest(dataRequestApp);
 
 		// We allow the DS Connector App to return just one item
 		let finalData: IJsonLdNodeObject[];
@@ -770,14 +787,21 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			nameof(app),
 			app
 		);
-		if (!Is.function(app.handleActivity) && !Is.function(app.handleDataRequest)) {
+
+		const handleActivity = app?.handleActivity?.bind(app);
+		const handleDataRequest = app?.handleDataRequest?.bind(app);
+
+		const handleActivityIsFunction = Is.function(handleActivity);
+		const handleDataRequestIsFunction = Is.function(handleDataRequest);
+
+		if (!handleActivityIsFunction && !handleDataRequestIsFunction) {
 			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "invalidDataSpaceConnectorApp", {
 				appId
 			});
 		}
 		if (
-			(app.activitiesHandled().length > 0 && !Is.function(app.handleActivity)) ||
-			(app.dataServicesHandled().length > 0 && !Is.function(app.handleDataRequest))
+			(app.activitiesHandled().length > 0 && !handleActivityIsFunction) ||
+			(app.dataServicesHandled().length > 0 && !handleDataRequestIsFunction)
 		) {
 			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "invalidDataSpaceConnectorApp", {
 				appId
@@ -791,7 +815,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			this._apps.push({ appId, app });
 		}
 
-		this._loggingService?.log({
+		await this._loggingService?.log({
 			level: "info",
 			source: DataSpaceConnectorService.CLASS_NAME,
 			message: "registeredApp",
@@ -814,7 +838,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			this._apps.splice(currentIndex, 1);
 		}
 
-		this._loggingService?.log({
+		await this._loggingService?.log({
 			level: "info",
 			source: DataSpaceConnectorService.CLASS_NAME,
 			ts: Date.now(),
@@ -837,7 +861,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			entry = await this._federatedCatalogueComponent.getEntry("LegalPerson", participantId);
 		} catch (error) {
 			if (BaseError.isErrorName(error, NotFoundError.CLASS_NAME)) {
-				this._loggingService?.log({
+				await this._loggingService?.log({
 					source: DataSpaceConnectorService.CLASS_NAME,
 					level: "error",
 					message: "participantNotFound",
@@ -864,7 +888,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			entry = await this._federatedCatalogueComponent.getEntry("ServiceOffering", dataServiceId);
 		} catch (error) {
 			if (BaseError.isErrorName(error, NotFoundError.CLASS_NAME)) {
-				this._loggingService?.log({
+				await this._loggingService?.log({
 					source: DataSpaceConnectorService.CLASS_NAME,
 					level: "error",
 					message: "dataServiceNotFound",
@@ -929,7 +953,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const activityLogEntry = await this._entityStorageActivityLogs.get(payload.activityLogEntryId);
 		if (Is.undefined(activityLogEntry)) {
-			this._loggingService?.log({
+			await this._loggingService?.log({
 				level: "error",
 				source: DataSpaceConnectorService.CLASS_NAME,
 				message: "unknownActivityLogEntryId",
@@ -960,7 +984,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					entry.status === ActivityProcessingStatus.Error
 				) {
 					const retainUntil = Date.now() + this._retainActivityLogsFor;
-					this._entityStorageActivityLogs.set({
+					await this._entityStorageActivityLogs.set({
 						id: entry.id,
 						activityId: entry.activityId,
 						generator: entry.generator,
@@ -974,24 +998,70 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	}
 
 	/**
+	 * Updates the list of active tenants for cleanup tasks.
+	 * @internal
+	 */
+	private async updateActiveTenants(): Promise<void> {
+		const contextIds = await ContextIdStore.getContextIds();
+		const tenantId = contextIds?.[ContextIdKeys.Tenant];
+		if (Is.stringValue(tenantId) && !this._activeTenants.includes(tenantId)) {
+			this._activeTenants.push(tenantId);
+		}
+	}
+
+	/**
 	 * Cleans up the activity log by deleting those entries that no longer shall be retained.
 	 * @internal
 	 */
-	private async cleanUpActivityLog(): Promise<void> {
+	private async cleanupActivityLog(): Promise<void> {
 		if (this._cleanUpProcessOngoing) {
-			this._loggingService?.log({
+			await this._loggingService?.log({
 				level: "debug",
 				message: "cleanUpOngoing",
 				source: DataSpaceConnectorService.CLASS_NAME
 			});
 			return;
 		}
+		this._cleanUpProcessOngoing = true;
 
 		let numRecordsDeleted = 0;
 
-		try {
-			this._cleanUpProcessOngoing = true;
+		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
+			// The cleanup must be done tenant by tenant
+			// as the data behind the scenes might be partitioned
+			for (const tenantId of this._activeTenants) {
+				const localContextIds = (await ContextIdStore.getContextIds()) ?? {};
+				localContextIds[ContextIdKeys.Tenant] = tenantId;
 
+				await ContextIdStore.run(localContextIds, async () => {
+					numRecordsDeleted += await this.cleanupActivityLogPartition();
+				});
+			}
+		} else {
+			numRecordsDeleted += await this.cleanupActivityLogPartition();
+		}
+
+		await this._loggingService?.log({
+			level: "debug",
+			message: "activityLogCleanedUp",
+			source: DataSpaceConnectorService.CLASS_NAME,
+			data: {
+				numRecordsDeleted
+			}
+		});
+
+		this._cleanUpProcessOngoing = false;
+	}
+
+	/**
+	 * Cleans up the activity log partition for the current context ids.
+	 * @returns The number of records deleted in this partition.
+	 * @internal
+	 */
+	private async cleanupActivityLogPartition(): Promise<number> {
+		let numRecordsDeleted = 0;
+
+		try {
 			let cursor: string | undefined;
 			const now = Date.now();
 
@@ -1028,17 +1098,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		} catch {
 			// If cleaning up the retained items fail we don't really care, they will get cleaned up on the next sweep.
 		}
-
-		this._loggingService?.log({
-			level: "debug",
-			message: "activityLogCleanedUp",
-			source: DataSpaceConnectorService.CLASS_NAME,
-			data: {
-				numRecordsDeleted
-			}
-		});
-
-		this._cleanUpProcessOngoing = false;
+		return numRecordsDeleted;
 	}
 
 	/**
@@ -1165,7 +1225,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @returns The Data Space Connector Apps or empty list if nothing is registered.
 	 * @internal
 	 */
-	private getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): string {
+	private async getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): Promise<string> {
 		const matchingElements: string[] = [];
 
 		for (const appEntry of this._apps) {
@@ -1188,7 +1248,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					dataServiceId: dataAssetQuery.serviceId
 				}
 			);
-			this._loggingService?.log({
+			await this._loggingService?.log({
 				source: DataSpaceConnectorService.CLASS_NAME,
 				level: "error",
 				message: "tooManyAppsRegistered",
@@ -1209,7 +1269,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					dataServiceId: dataAssetQuery.serviceId
 				}
 			);
-			this._loggingService?.log({
+			await this._loggingService?.log({
 				source: DataSpaceConnectorService.CLASS_NAME,
 				level: "error",
 				message: "noAppRegistered",

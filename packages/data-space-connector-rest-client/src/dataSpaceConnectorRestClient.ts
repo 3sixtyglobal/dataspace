@@ -1,4 +1,4 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseRestClient } from "@twin.org/api-core";
 import {
@@ -6,6 +6,7 @@ import {
 	type IBaseRestClientConfig,
 	type ICreatedResponse
 } from "@twin.org/api-models";
+import { ContextIdKeys } from "@twin.org/context";
 import { Guards, Is, NotSupportedError, Coerce } from "@twin.org/core";
 import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type {
@@ -46,11 +47,18 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	}
 
 	/**
+	 * Returns the class name of the component.
+	 * @returns The class name of the component.
+	 */
+	public className(): string {
+		return DataSpaceConnectorRestClient.CLASS_NAME;
+	}
+
+	/**
 	 * Get Data Asset entities. Allows to retrieve entities by their type or id.
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
-	 * @param dataConsumerIdentity The identity of the Data Consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -60,7 +68,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
-		dataConsumerIdentity: string,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {
@@ -78,11 +85,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 			DataSpaceConnectorRestClient.CLASS_NAME,
 			nameof(entitySet.entityType),
 			entitySet.entityType
-		);
-		Guards.stringValue(
-			DataSpaceConnectorRestClient.CLASS_NAME,
-			nameof(dataConsumerIdentity),
-			dataConsumerIdentity
 		);
 
 		// Data Consumer identity for the moment is not used in the request but it should be done in the future
@@ -104,6 +106,12 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 					limit: Coerce.string(limit),
 					cursor
 				}
+			},
+			{
+				authenticationGeneratorType: "verifiable-credential",
+				authenticationData: {
+					contextId: ContextIdKeys.Organization
+				}
 			}
 		);
 		return response.body;
@@ -113,7 +121,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
-	 * @param dataConsumerIdentity The identity of the data consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -121,7 +128,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
-		dataConsumerIdentity: string,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {
@@ -137,11 +143,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 			dataAsset.dataServiceId
 		);
 		Guards.object<IFilteringQuery>(DataSpaceConnectorRestClient.CLASS_NAME, nameof(query), query);
-		Guards.stringValue(
-			DataSpaceConnectorRestClient.CLASS_NAME,
-			nameof(dataConsumerIdentity),
-			dataConsumerIdentity
-		);
 
 		const response = await this.fetch<IDataAssetQueryRequest, IDataAssetEntitiesResponse>(
 			"/entities/query",
@@ -152,6 +153,12 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 					query,
 					cursor,
 					limit
+				}
+			},
+			{
+				authenticationGeneratorType: "verifiable-credential",
+				authenticationData: {
+					contextId: ContextIdKeys.Organization
 				}
 			}
 		);

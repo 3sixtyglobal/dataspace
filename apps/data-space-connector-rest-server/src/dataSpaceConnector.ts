@@ -1,15 +1,16 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IBaseRestClientConfig, IRestRoute } from "@twin.org/api-models";
+import { ContextIdKeys } from "@twin.org/context";
 import { ComponentFactory, type IComponent } from "@twin.org/core";
 import type { IDataSpaceConnector } from "@twin.org/data-space-connector-models";
 import { DataSpaceConnectorRestClient } from "@twin.org/data-space-connector-rest-client";
 import {
 	type ActivityLogDetails,
 	type ActivityTask,
-	type IDataSpaceConnectorServiceConstructorOptions,
 	DataSpaceConnectorService,
 	generateRestRoutesDataSpaceConnector,
+	type IDataSpaceConnectorServiceConstructorOptions,
 	initSchema as initSchemaDataSpaceConnector
 } from "@twin.org/data-space-connector-service";
 import {
@@ -116,13 +117,15 @@ export async function initialiseDataSpaceConnectorComponent(
 			engineCore,
 			context,
 			instanceConfig.options?.activityLogEntityStorageType,
-			nameof<ActivityLogDetails>()
+			nameof<ActivityLogDetails>(),
+			[ContextIdKeys.Node, ContextIdKeys.Organization]
 		);
 		initialiseEntityStorageConnector(
 			engineCore,
 			context,
 			instanceConfig.options?.activityTaskEntityStorageType,
-			nameof<ActivityTask>()
+			nameof<ActivityTask>(),
+			[ContextIdKeys.Node, ContextIdKeys.Organization]
 		);
 		component = new DataSpaceConnectorService({
 			loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),

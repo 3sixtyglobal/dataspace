@@ -1,5 +1,5 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-export * from "./dataSpaceConnectorSocketClient";
-export * from "./models/IDataSpaceConnectorSocketClientConfig";
-export * from "./models/IDataSpaceConnectorSocketClientConstructorOptions";
+export * from "./dataSpaceConnectorSocketClient.js";
+export * from "./models/IDataSpaceConnectorSocketClientConfig.js";
+export * from "./models/IDataSpaceConnectorSocketClientConstructorOptions.js";

@@ -1,11 +1,10 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
 import type { IError } from "@twin.org/core";
-import type { ActivityProcessingStatus } from "./activityProcessingStatus";
-import type { IActivityLogDates } from "./IActivityLogDates";
-import type { IActivityLogDetails } from "./IActivityLogDetails";
-import type { ITaskApp } from "./ITaskApp";
+import type { ActivityProcessingStatus } from "./activityProcessingStatus.js";
+import type { IActivityLogDates } from "./IActivityLogDates.js";
+import type { IActivityLogDetails } from "./IActivityLogDetails.js";
+import type { ITaskApp } from "./ITaskApp.js";
 
 /**
  * The details related to the processing of an Activity

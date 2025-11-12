@@ -44,6 +44,24 @@ Runtime name for the class.
 
 ## Methods
 
+### className()
+
+> **className**(): `string`
+
+Returns the class name of the component.
+
+#### Returns
+
+`string`
+
+The class name of the component.
+
+#### Implementation of
+
+`IDataSpaceConnectorApp.className`
+
+***
+
 ### dataServicesHandled()
 
 > **dataServicesHandled**(): `IDataAssetQuery`[]
@@ -82,17 +100,11 @@ Types.
 
 ### start()
 
-> **start**(`nodeIdentity?`, `nodeLoggingComponentType?`): `Promise`\<`void`\>
+> **start**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
 
 Start method.
 
 #### Parameters
-
-##### nodeIdentity?
-
-`string`
-
-the identity of the node where this application lives.
 
 ##### nodeLoggingComponentType?
 

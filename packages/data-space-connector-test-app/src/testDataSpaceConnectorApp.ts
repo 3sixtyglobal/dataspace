@@ -1,19 +1,20 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory } from "@twin.org/core";
 import { DataTypeHandlerFactory } from "@twin.org/data-core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import type {
 	IActivityQuery,
-	IDataRequest,
 	IDataAssetQuery,
+	IDataRequest,
 	IDataSpaceConnector,
 	IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions";
+import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
 // Dummy Data
 const id = "urn:ucr:24PLP051219453I002610799053311";
@@ -65,7 +66,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	 * Node Identity
 	 * @internal
 	 */
-	private _nodeIdentity?: string;
+	private _nodeId?: string;
 
 	/**
 	 * Create a new instance of TestDataSpaceConnectorApp.
@@ -78,6 +79,14 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		this._loggingService = ComponentFactory.getIfExists<ILoggingComponent>(
 			options?.loggingComponentType ?? "logging"
 		);
+	}
+
+	/**
+	 * Returns the class name of the component.
+	 * @returns The class name of the component.
+	 */
+	public className(): string {
+		return TestDataSpaceConnectorApp.CLASS_NAME;
 	}
 
 	/**
@@ -98,11 +107,12 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 
 	/**
 	 * Start method.
-	 * @param nodeIdentity the identity of the node where this application lives.
 	 * @param nodeLoggingComponentType the logging component type of such a node.
 	 */
-	public async start(nodeIdentity?: string, nodeLoggingComponentType?: string): Promise<void> {
-		this._nodeIdentity = nodeIdentity;
+	public async start(nodeLoggingComponentType?: string): Promise<void> {
+		const contextIds = await ContextIdStore.getContextIds();
+		ContextIdHelper.guard(contextIds, ContextIdKeys.Node);
+		this._nodeId = contextIds[ContextIdKeys.Node];
 
 		await this._dataSpaceConnectorComponent.registerApp(TestDataSpaceConnectorApp.APP_ID, this);
 
@@ -148,7 +158,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		await this._loggingService?.log({
 			level: "info",
 			source: TestDataSpaceConnectorApp.CLASS_NAME,
-			message: `Node Identity: ${this._nodeIdentity ?? ""}`
+			message: `Node Identity: ${this._nodeId ?? ""}`
 		});
 
 		await new Promise(resolve => setTimeout(resolve, 500));

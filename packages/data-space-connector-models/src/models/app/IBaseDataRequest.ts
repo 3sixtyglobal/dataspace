@@ -1,11 +1,10 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
 import type {
 	IDataResourceEntry,
 	IServiceOfferingEntry
 } from "@twin.org/federated-catalogue-models";
-import type { DataRequestType } from "./dataRequestType";
+import type { DataRequestType } from "./dataRequestType.js";
 
 /**
  * Base Data Request interface to represent a data request to a Data Space Connector App

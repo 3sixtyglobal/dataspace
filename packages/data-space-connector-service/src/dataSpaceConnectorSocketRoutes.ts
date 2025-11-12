@@ -1,4 +1,4 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { ISocketRequestContext, ISocketRoute } from "@twin.org/api-models";
 import { ComponentFactory, Guards } from "@twin.org/core";
@@ -9,7 +9,7 @@ import type {
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingConnector } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
-import { ACTIVITY_LOG_ROUTE } from "./dataSpaceConnectorRoutes";
+import { ACTIVITY_LOG_ROUTE } from "./dataSpaceConnectorRoutes.js";
 
 /**
  * The source used when communicating about these routes.
@@ -68,14 +68,14 @@ export async function activityLogStatusUpdate(
 
 	switch (request.body.operation) {
 		case "subscribe":
-			component.subscribeToActivityLog(async event => {
+			await component.subscribeToActivityLog(async event => {
 				await emitter("publish", {
 					body: event
 				});
 			}, request.body.subscriptionId);
 			break;
 		case "unsubscribe":
-			component.unSubscribeToActivityLog(request.body.subscriptionId);
+			await component.unSubscribeToActivityLog(request.body.subscriptionId);
 			break;
 	}
 }
@@ -85,16 +85,16 @@ export async function activityLogStatusUpdate(
  * @param socketRequestContext Socket Request Context
  * @param componentName Component name.
  */
-export function activityLogStatusDisconnected(
+export async function activityLogStatusDisconnected(
 	socketRequestContext: ISocketRequestContext,
 	componentName: string
-): void {
+): Promise<void> {
 	const logger = ComponentFactory.getIfExists<ILoggingConnector>(
 		socketRequestContext.loggingComponentType
 	);
 	const component = ComponentFactory.get<IDataSpaceConnector>(componentName);
 
-	logger?.log({
+	await logger?.log({
 		source: ROUTES_SOURCE,
 		level: "debug",
 		message: "activityLogStatusDisconnected",
@@ -103,19 +103,21 @@ export function activityLogStatusDisconnected(
 		}
 	});
 
-	component.unSubscribeToActivityLog(socketRequestContext.socketId);
+	await component.unSubscribeToActivityLog(socketRequestContext.socketId);
 }
 
 /**
  * Executes when there is a disconnection.
  * @param socketRequestContext Socket Request Context
  */
-export function activityLogStatusConnected(socketRequestContext: ISocketRequestContext): void {
+export async function activityLogStatusConnected(
+	socketRequestContext: ISocketRequestContext
+): Promise<void> {
 	const logger = ComponentFactory.getIfExists<ILoggingConnector>(
 		socketRequestContext.loggingComponentType
 	);
 
-	logger?.log({
+	await logger?.log({
 		source: ROUTES_SOURCE,
 		level: "debug",
 		message: "activityLogStatusConnected",

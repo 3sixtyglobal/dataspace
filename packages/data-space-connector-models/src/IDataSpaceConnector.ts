@@ -1,16 +1,15 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IDataSpaceConnectorApp } from "./models/app/IDataSpaceConnectorApp";
-import type { IActivityLogEntry } from "./models/IActivityLogEntry";
-import type { IActivityLogStatusNotification } from "./models/IActivityLogStatusNotification";
-import type { IDataAssetDescription } from "./models/IDataAssetDescription";
-import type { IDataAssetItemList } from "./models/IDataAssetItemList";
-import type { IEntitySet } from "./models/IEntitySet";
-import type { IFilteringQuery } from "./models/IFilteringQuery";
+import type { IDataSpaceConnectorApp } from "./models/app/IDataSpaceConnectorApp.js";
+import type { IActivityLogEntry } from "./models/IActivityLogEntry.js";
+import type { IActivityLogStatusNotification } from "./models/IActivityLogStatusNotification.js";
+import type { IDataAssetDescription } from "./models/IDataAssetDescription.js";
+import type { IDataAssetItemList } from "./models/IDataAssetItemList.js";
+import type { IEntitySet } from "./models/IEntitySet.js";
+import type { IFilteringQuery } from "./models/IFilteringQuery.js";
 
 /**
  * Data Space Connector service interface.
@@ -69,7 +68,6 @@ export interface IDataSpaceConnector extends IComponent {
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
-	 * @param dataConsumerIdentity The identity of the Data Consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -79,16 +77,14 @@ export interface IDataSpaceConnector extends IComponent {
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
-		dataConsumerIdentity: string,
-		cursor?: string,
-		limit?: number
+		cursor: string | undefined,
+		limit: number | undefined
 	): Promise<IDataAssetItemList>;
 
 	/**
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
-	 * @param dataConsumerIdentity The identity of the data consumer.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -96,8 +92,7 @@ export interface IDataSpaceConnector extends IComponent {
 	queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
-		dataConsumerIdentity: string,
-		cursor?: string,
-		limit?: number
+		cursor: string | undefined,
+		limit: number | undefined
 	): Promise<IDataAssetItemList>;
 }

@@ -1,7 +1,6 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
-import type { ITaskApp } from "./ITaskApp";
+import type { ITaskApp } from "./ITaskApp.js";
 
 /**
  * Denotes a task associated with an Activity

@@ -6,14 +6,6 @@ Data Space Connector service interface.
 
 - `IComponent`
 
-## Indexable
-
-\[`key`: `string`\]: `any`
-
-All methods are optional, so we introduce an index signature to allow
-any additional properties or methods, which removes the TypeScript error where
-the class has no properties in common with the type.
-
 ## Methods
 
 ### notifyActivity()
@@ -166,7 +158,7 @@ Nothing.
 
 ### getDataAssetEntities()
 
-> **getDataAssetEntities**(`dataAsset`, `entitySet`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor`, `limit`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
 
 Get Data Asset entities. Allows to retrieve entities by their type or id
 
@@ -184,23 +176,17 @@ The data asset being referred. It can be left empty and let the system to locate
 
 The set of entities to be retrieved.
 
-##### dataConsumerIdentity
-
-`string`
-
-The identity of the Data Consumer.
-
-##### cursor?
-
-`string`
+##### cursor
 
 Pagination details - cursor.
 
-##### limit?
+`string` | `undefined`
 
-`number`
+##### limit
 
 Pagination details - max number of entities.
+
+`number` | `undefined`
 
 #### Returns
 
@@ -212,7 +198,7 @@ The entities requested as a JSON-LD Document.
 
 ### queryDataAsset()
 
-> **queryDataAsset**(`dataAsset`, `query`, `dataConsumerIdentity`, `cursor?`, `limit?`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+> **queryDataAsset**(`dataAsset`, `query`, `cursor`, `limit`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
 
 Queries a data asset controlled by this DS Connector App.
 
@@ -230,23 +216,17 @@ The data asset being referred.
 
 The filtering query.
 
-##### dataConsumerIdentity
-
-`string`
-
-The identity of the data consumer.
-
-##### cursor?
-
-`string`
+##### cursor
 
 Pagination details - cursor.
 
-##### limit?
+`string` | `undefined`
 
-`number`
+##### limit
 
 Pagination details - max number of entities.
+
+`number` | `undefined`
 
 #### Returns
 

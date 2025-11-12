@@ -1,6 +1,6 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IDataSpaceConnectorServiceConfig } from "./IDataSpaceConnectorServiceConfig";
+import type { IDataSpaceConnectorServiceConfig } from "./IDataSpaceConnectorServiceConfig.js";
 
 /**
  * Data Space Connector service options
@@ -41,6 +41,11 @@ export interface IDataSpaceConnectorServiceConstructorOptions {
 	 * @default activity-task
 	 */
 	activityTaskEntityStorageType?: string;
+
+	/**
+	 * The keys to use from the context ids to cleanup partitions.
+	 */
+	partitionContextIds?: string[];
 
 	/**
 	 * The configuration of the Data Space Connector Service.

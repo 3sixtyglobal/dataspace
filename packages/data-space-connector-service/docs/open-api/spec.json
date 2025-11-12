@@ -324,11 +324,6 @@
 						}
 					}
 				],
-				"security": [
-					{
-						"jwtBearerAuthScheme": []
-					}
-				],
 				"responses": {
 					"200": {
 						"description": "Service Offering response",
@@ -377,24 +372,6 @@
 							}
 						}
 					},
-					"401": {
-						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Error"
-								},
-								"examples": {
-									"exampleResponse": {
-										"value": {
-											"name": "UnauthorizedError",
-											"message": "errorMessage"
-										}
-									}
-								}
-							}
-						}
-					},
 					"500": {
 						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
 						"content": {
@@ -422,11 +399,6 @@
 				"summary": "Query Data Asset",
 				"tags": [
 					"Data Space Connector"
-				],
-				"security": [
-					{
-						"jwtBearerAuthScheme": []
-					}
 				],
 				"requestBody": {
 					"description": "Get Request Data Asset Entities",
@@ -494,24 +466,6 @@
 											"properties": {
 												"foo": "bar"
 											}
-										}
-									}
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Error"
-								},
-								"examples": {
-									"exampleResponse": {
-										"value": {
-											"name": "UnauthorizedError",
-											"message": "errorMessage"
 										}
 									}
 								}
@@ -834,28 +788,25 @@
 							},
 							{
 								"type": "array",
-								"items": false,
+								"items": {
+									"type": "string",
+									"const": "https://www.w3.org/ns/activitystreams"
+								},
 								"minItems": 1,
-								"maxItems": 1,
-								"prefixItems": [
-									{
-										"type": "string",
-										"const": "https://www.w3.org/ns/activitystreams"
-									}
-								]
+								"maxItems": 1
 							},
 							{
 								"type": "array",
 								"minItems": 1,
-								"items": {
-									"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-								},
 								"prefixItems": [
 									{
 										"type": "string",
 										"const": "https://www.w3.org/ns/activitystreams"
 									}
-								]
+								],
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+								}
 							}
 						]
 					},
@@ -866,12 +817,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -885,12 +833,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -901,12 +846,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -917,12 +859,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -946,19 +885,16 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
-											},
-											{
-												"type": "string"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
+										},
+										{
+											"type": "string"
+										}
+									]
+								}
 							}
 						]
 					},
@@ -969,12 +905,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							},
 							{
 								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
@@ -989,12 +922,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							},
 							{
 								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
@@ -1029,12 +959,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							},
 							{
 								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
@@ -1108,115 +1035,103 @@
 					},
 					"pendingTasks": {
 						"type": "array",
-						"items": false,
-						"description": "The pending tasks that have to be run to process the Activity.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/TaskApp"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/TaskApp"
+						},
+						"description": "The pending tasks that have to be run to process the Activity."
 					},
 					"runningTasks": {
 						"type": "array",
-						"items": false,
-						"description": "The running tasks that are processing the Activity.",
-						"prefixItems": [
-							{
-								"type": "object",
-								"additionalProperties": false,
-								"properties": {
-									"startDate": {
-										"type": "string",
-										"description": "Task processing start timestamp"
-									},
-									"endDate": {
-										"type": "string",
-										"description": "Task processing end timestamp"
-									},
-									"taskId": {
-										"type": "string",
-										"description": "Task Id."
-									},
-									"dataSpaceConnectorAppId": {
-										"type": "string",
-										"description": "Data Space Connector App Id."
-									}
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"startDate": {
+									"type": "string",
+									"description": "Task processing start timestamp"
 								},
-								"required": [
-									"dataSpaceConnectorAppId",
-									"startDate",
-									"taskId"
-								]
-							}
-						]
+								"endDate": {
+									"type": "string",
+									"description": "Task processing end timestamp"
+								},
+								"taskId": {
+									"type": "string",
+									"description": "Task Id."
+								},
+								"dataSpaceConnectorAppId": {
+									"type": "string",
+									"description": "Data Space Connector App Id."
+								}
+							},
+							"required": [
+								"dataSpaceConnectorAppId",
+								"startDate",
+								"taskId"
+							]
+						},
+						"description": "The running tasks that are processing the Activity."
 					},
 					"finalizedTasks": {
 						"type": "array",
-						"items": false,
-						"description": "The tasks that have already finalized.",
-						"prefixItems": [
-							{
-								"type": "object",
-								"additionalProperties": false,
-								"properties": {
-									"result": {
-										"type": "string",
-										"description": "The task result."
-									},
-									"startDate": {
-										"type": "string",
-										"description": "Task processing start timestamp"
-									},
-									"endDate": {
-										"type": "string",
-										"description": "Task processing end timestamp"
-									},
-									"taskId": {
-										"type": "string",
-										"description": "Task Id."
-									},
-									"dataSpaceConnectorAppId": {
-										"type": "string",
-										"description": "Data Space Connector App Id."
-									}
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"result": {
+									"type": "string",
+									"description": "The task result."
 								},
-								"required": [
-									"dataSpaceConnectorAppId",
-									"result",
-									"startDate",
-									"taskId"
-								]
-							}
-						]
+								"startDate": {
+									"type": "string",
+									"description": "Task processing start timestamp"
+								},
+								"endDate": {
+									"type": "string",
+									"description": "Task processing end timestamp"
+								},
+								"taskId": {
+									"type": "string",
+									"description": "Task Id."
+								},
+								"dataSpaceConnectorAppId": {
+									"type": "string",
+									"description": "Data Space Connector App Id."
+								}
+							},
+							"required": [
+								"dataSpaceConnectorAppId",
+								"result",
+								"startDate",
+								"taskId"
+							]
+						},
+						"description": "The tasks that have already finalized."
 					},
 					"inErrorTasks": {
 						"type": "array",
-						"items": false,
-						"description": "The tasks that are in error.",
-						"prefixItems": [
-							{
-								"type": "object",
-								"additionalProperties": false,
-								"properties": {
-									"error": {
-										"$ref": "#/components/schemas/Error"
-									},
-									"taskId": {
-										"type": "string",
-										"description": "Task Id."
-									},
-									"dataSpaceConnectorAppId": {
-										"type": "string",
-										"description": "Data Space Connector App Id."
-									}
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"error": {
+									"$ref": "#/components/schemas/Error"
 								},
-								"required": [
-									"dataSpaceConnectorAppId",
-									"error",
-									"taskId"
-								]
-							}
-						]
+								"taskId": {
+									"type": "string",
+									"description": "Task Id."
+								},
+								"dataSpaceConnectorAppId": {
+									"type": "string",
+									"description": "Data Space Connector App Id."
+								}
+							},
+							"required": [
+								"dataSpaceConnectorAppId",
+								"error",
+								"taskId"
+							]
+						},
+						"description": "The tasks that are in error."
 					}
 				},
 				"required": [
@@ -1288,13 +1203,10 @@
 					},
 					"dataSetId": {
 						"type": "array",
-						"items": false,
-						"description": "The concerned datasets.",
-						"prefixItems": [
-							{
-								"type": "string"
-							}
-						]
+						"items": {
+							"type": "string"
+						},
+						"description": "The concerned datasets."
 					}
 				},
 				"additionalProperties": false,
@@ -1315,13 +1227,10 @@
 					},
 					"itemListElement": {
 						"type": "array",
-						"items": false,
-						"description": "The components of the Collection",
-						"prefixItems": [
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							}
-						]
+						"items": {
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+						},
+						"description": "The components of the Collection"
 					},
 					"nextItem": {
 						"type": "string",
@@ -1408,13 +1317,10 @@
 					},
 					"jsonLdContext": {
 						"type": "array",
-						"items": false,
-						"description": "The JSON-LD context to be applied over the query terms.",
-						"prefixItems": [
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-							}
-						]
+						"items": {
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+						},
+						"description": "The JSON-LD context to be applied over the query terms."
 					}
 				},
 				"required": [
@@ -1609,12 +1515,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -1625,12 +1528,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -1641,12 +1541,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -1682,19 +1579,16 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"$ref": "#/components/schemas/OdrlConstraint"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlLogicalConstraint"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/OdrlConstraint"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlLogicalConstraint"
+										}
+									]
+								}
 							}
 						],
 						"description": "Refinements applied to the action."
@@ -1712,20 +1606,17 @@
 					},
 					"implies": {
 						"type": "array",
-						"items": false,
-						"description": "References to actions this action implies.",
-						"prefixItems": [
-							{
-								"anyOf": [
-									{
-										"$ref": "#/components/schemas/ActionType"
-									},
-									{
-										"type": "string"
-									}
-								]
-							}
-						]
+						"items": {
+							"anyOf": [
+								{
+									"$ref": "#/components/schemas/ActionType"
+								},
+								{
+									"type": "string"
+								}
+							]
+						},
+						"description": "References to actions this action implies."
 					}
 				},
 				"additionalProperties": {
@@ -1768,12 +1659,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -1787,12 +1675,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -1803,12 +1688,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -1885,12 +1767,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -1904,12 +1783,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -1920,12 +1796,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -1967,13 +1840,10 @@
 					},
 					"refinement": {
 						"type": "array",
-						"items": false,
-						"description": "Refinements applied to the asset collection. Used to specify the refinement context under which to identify individual Asset(s) of the complete collection. The refinement applies to the characteristics of each member of the collection (not the resource as a whole).",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlConstraint"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlConstraint"
+						},
+						"description": "Refinements applied to the asset collection. Used to specify the refinement context under which to identify individual Asset(s) of the complete collection. The refinement applies to the characteristics of each member of the collection (not the resource as a whole)."
 					}
 				},
 				"required": [
@@ -2019,12 +1889,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2038,12 +1905,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -2054,12 +1918,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -2070,12 +1931,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2197,9 +2055,6 @@
 					{
 						"type": "array",
 						"minItems": 2,
-						"items": {
-							"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-						},
 						"prefixItems": [
 							{
 								"type": "string",
@@ -2208,14 +2063,14 @@
 							{
 								"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
 							}
-						]
+						],
+						"items": {
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+						}
 					},
 					{
 						"type": "array",
 						"minItems": 2,
-						"items": {
-							"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-						},
 						"prefixItems": [
 							{
 								"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
@@ -2224,7 +2079,10 @@
 								"type": "string",
 								"const": "https://www.w3.org/ns/odrl/2/"
 							}
-						]
+						],
+						"items": {
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+						}
 					}
 				],
 				"description": "The ODRL JSON-LD context type."
@@ -2242,12 +2100,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2261,12 +2116,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -2277,12 +2129,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -2293,12 +2142,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2328,22 +2174,19 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"$ref": "#/components/schemas/ActionType"
-											},
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAction"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/ActionType"
+										},
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAction"
+										}
+									]
+								}
 							}
 						],
 						"description": "The action associated with the rule."
@@ -2358,19 +2201,16 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAsset"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAsset"
+										}
+									]
+								}
 							}
 						],
 						"description": "The target asset for the rule."
@@ -2399,13 +2239,10 @@
 					},
 					"constraint": {
 						"type": "array",
-						"items": false,
-						"description": "Constraints applied to the rule.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlConstraint"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlConstraint"
+						},
+						"description": "Constraints applied to the rule."
 					},
 					"summary": {
 						"type": "string",
@@ -2421,23 +2258,17 @@
 					},
 					"consequence": {
 						"type": "array",
-						"items": false,
-						"description": "The consequences if the duty is not fulfilled. Only applicable when the Duty is referenced by a Rule with duty or obligation properties.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlDuty"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlDuty"
+						},
+						"description": "The consequences if the duty is not fulfilled. Only applicable when the Duty is referenced by a Rule with duty or obligation properties."
 					},
 					"remedy": {
 						"type": "array",
-						"items": false,
-						"description": "The remedies that may be fulfilled to cure the violation.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlDuty"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlDuty"
+						},
+						"description": "The remedies that may be fulfilled to cure the violation."
 					},
 					"compensatedParty": {
 						"type": "string",
@@ -2484,12 +2315,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2503,12 +2331,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -2519,12 +2344,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -2535,12 +2357,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2562,21 +2381,18 @@
 						"properties": {
 							"@list": {
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "object",
-										"properties": {
-											"@id": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"@id"
-										],
-										"additionalProperties": false
-									}
-								]
+								"items": {
+									"type": "object",
+									"properties": {
+										"@id": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"@id"
+									],
+									"additionalProperties": false
+								}
 							}
 						},
 						"required": [
@@ -2590,21 +2406,18 @@
 						"properties": {
 							"@list": {
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "object",
-										"properties": {
-											"@id": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"@id"
-										],
-										"additionalProperties": false
-									}
-								]
+								"items": {
+									"type": "object",
+									"properties": {
+										"@id": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"@id"
+									],
+									"additionalProperties": false
+								}
 							}
 						},
 						"required": [
@@ -2618,21 +2431,18 @@
 						"properties": {
 							"@list": {
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "object",
-										"properties": {
-											"@id": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"@id"
-										],
-										"additionalProperties": false
-									}
-								]
+								"items": {
+									"type": "object",
+									"properties": {
+										"@id": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"@id"
+									],
+									"additionalProperties": false
+								}
 							}
 						},
 						"required": [
@@ -2646,21 +2456,18 @@
 						"properties": {
 							"@list": {
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "object",
-										"properties": {
-											"@id": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"@id"
-										],
-										"additionalProperties": false
-									}
-								]
+								"items": {
+									"type": "object",
+									"properties": {
+										"@id": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"@id"
+									],
+									"additionalProperties": false
+								}
 							}
 						},
 						"required": [
@@ -2710,12 +2517,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2729,12 +2533,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -2745,12 +2546,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -2761,12 +2559,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						],
 						"description": "The type of the party. Can be used to specify additional type information (e.g., \"Party\", \"vcard:Organization\", \"vcard:Individual\")."
@@ -2844,12 +2639,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -2863,12 +2655,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -2879,12 +2668,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -2895,12 +2681,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						],
 						"description": "The type of the party. Can be used to specify additional type information (e.g., \"Party\", \"vcard:Organization\", \"vcard:Individual\")."
@@ -2943,13 +2726,10 @@
 					},
 					"refinement": {
 						"type": "array",
-						"items": false,
-						"description": "Refinements applied to the party collection. Used to specify constraints that apply to all members of the collection.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlConstraint"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlConstraint"
+						},
+						"description": "Refinements applied to the party collection. Used to specify constraints that apply to all members of the collection."
 					}
 				},
 				"required": [
@@ -2995,12 +2775,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -3014,12 +2791,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -3030,12 +2804,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -3046,12 +2817,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -3081,22 +2849,19 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"$ref": "#/components/schemas/ActionType"
-											},
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAction"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/ActionType"
+										},
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAction"
+										}
+									]
+								}
 							}
 						],
 						"description": "The action associated with the rule."
@@ -3111,19 +2876,16 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAsset"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAsset"
+										}
+									]
+								}
 							}
 						],
 						"description": "The target asset for the rule."
@@ -3152,13 +2914,10 @@
 					},
 					"constraint": {
 						"type": "array",
-						"items": false,
-						"description": "Constraints applied to the rule.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlConstraint"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlConstraint"
+						},
+						"description": "Constraints applied to the rule."
 					},
 					"summary": {
 						"type": "string",
@@ -3166,13 +2925,10 @@
 					},
 					"duty": {
 						"type": "array",
-						"items": false,
-						"description": "The duties that must be fulfilled before the permission can be exercised. A Permission MAY have none, one, or more duty property values.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlDuty"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlDuty"
+						},
+						"description": "The duties that must be fulfilled before the permission can be exercised. A Permission MAY have none, one, or more duty property values."
 					}
 				},
 				"additionalProperties": {
@@ -3215,12 +2971,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -3234,12 +2987,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -3250,12 +3000,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -3282,12 +3029,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						],
 						"description": "The profile(s) this policy conforms to. IRIs identifying the ODRL Profile(s)."
@@ -3324,19 +3068,16 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAsset"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAsset"
+										}
+									]
+								}
 							}
 						],
 						"description": "The target asset for the rule."
@@ -3354,22 +3095,19 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"$ref": "#/components/schemas/ActionType"
-											},
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAction"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/ActionType"
+										},
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAction"
+										}
+									]
+								}
 							}
 						],
 						"description": "The action associated with the rule."
@@ -3381,12 +3119,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						],
 						"description": "The parent policy(ies) this policy inherits from. IRIs identifying the parent Policy(ies)."
@@ -3396,33 +3131,24 @@
 					},
 					"permission": {
 						"type": "array",
-						"items": false,
-						"description": "The permissions in the policy. At least one of permission, prohibition, or obligation must be present.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlPermission"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlPermission"
+						},
+						"description": "The permissions in the policy. At least one of permission, prohibition, or obligation must be present."
 					},
 					"prohibition": {
 						"type": "array",
-						"items": false,
-						"description": "The prohibitions in the policy. At least one of permission, prohibition, or obligation must be present.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlProhibition"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlProhibition"
+						},
+						"description": "The prohibitions in the policy. At least one of permission, prohibition, or obligation must be present."
 					},
 					"obligation": {
 						"type": "array",
-						"items": false,
-						"description": "The obligations in the policy. At least one of permission, prohibition, or obligation must be present.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlDuty"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlDuty"
+						},
+						"description": "The obligations in the policy. At least one of permission, prohibition, or obligation must be present."
 					}
 				},
 				"required": [
@@ -3470,12 +3196,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -3489,12 +3212,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
 							}
 						]
 					},
@@ -3505,12 +3225,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
-									}
-								]
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
 							}
 						]
 					},
@@ -3521,12 +3238,9 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"type": "string"
-									}
-								]
+								"items": {
+									"type": "string"
+								}
 							}
 						]
 					},
@@ -3556,22 +3270,19 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"$ref": "#/components/schemas/ActionType"
-											},
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAction"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/ActionType"
+										},
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAction"
+										}
+									]
+								}
 							}
 						],
 						"description": "The action associated with the rule."
@@ -3586,19 +3297,16 @@
 							},
 							{
 								"type": "array",
-								"items": false,
-								"prefixItems": [
-									{
-										"anyOf": [
-											{
-												"type": "string"
-											},
-											{
-												"$ref": "#/components/schemas/OdrlAsset"
-											}
-										]
-									}
-								]
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAsset"
+										}
+									]
+								}
 							}
 						],
 						"description": "The target asset for the rule."
@@ -3627,13 +3335,10 @@
 					},
 					"constraint": {
 						"type": "array",
-						"items": false,
-						"description": "Constraints applied to the rule.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlConstraint"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlConstraint"
+						},
+						"description": "Constraints applied to the rule."
 					},
 					"summary": {
 						"type": "string",
@@ -3641,13 +3346,10 @@
 					},
 					"remedy": {
 						"type": "array",
-						"items": false,
-						"description": "The remedies that must be fulfilled if prohibition is violated.",
-						"prefixItems": [
-							{
-								"$ref": "#/components/schemas/OdrlDuty"
-							}
-						]
+						"items": {
+							"$ref": "#/components/schemas/OdrlDuty"
+						},
+						"description": "The remedies that must be fulfilled if prohibition is violated."
 					}
 				},
 				"additionalProperties": {

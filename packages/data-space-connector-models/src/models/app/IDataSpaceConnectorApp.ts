@@ -1,11 +1,11 @@
-// Copyright 2024 IOTA Stiftung.
+// Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IActivityQuery } from "./IActivityQuery";
-import type { IDataAssetQuery } from "./IDataAssetQuery";
-import type { IDataRequest } from "./IDataRequest";
+import type { IActivityQuery } from "./IActivityQuery.js";
+import type { IDataAssetQuery } from "./IDataAssetQuery.js";
+import type { IDataRequest } from "./IDataRequest.js";
 
 /**
  * Interface describes a Data Space Connector App.
