@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/data-space-connector-rest-server",
-	"version": "0.0.3-next.0",
+	"version": "0.0.3-next.1",
 	"description": "Data Space Connector REST Service",
 	"repository": {
 		"type": "git",
@@ -33,10 +33,10 @@
 	"dependencies": {
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
-		"@twin.org/data-space-connector-models": "0.0.3-next.0",
-		"@twin.org/data-space-connector-rest-client": "0.0.3-next.0",
-		"@twin.org/data-space-connector-socket-client": "0.0.3-next.0",
-		"@twin.org/data-space-connector-service": "0.0.3-next.0",
+		"@twin.org/data-space-connector-models": "0.0.3-next.1",
+		"@twin.org/data-space-connector-rest-client": "0.0.3-next.1",
+		"@twin.org/data-space-connector-socket-client": "0.0.3-next.1",
+		"@twin.org/data-space-connector-service": "0.0.3-next.1",
 		"@twin.org/engine-types": "next",
 		"@twin.org/engine-models": "next",
 		"@twin.org/entity": "next",
