@@ -192,7 +192,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * Create a new instance of DataSpaceConnector.
 	 * @param options The options for the connector.
 	 */
-	constructor(options: IDataSpaceConnectorServiceConstructorOptions) {
+	constructor(options?: IDataSpaceConnectorServiceConstructorOptions) {
 		this._loggingComponentType = options?.loggingComponentType ?? "logging";
 		this._loggingService = ComponentFactory.getIfExists<ILoggingComponent>(
 			this._loggingComponentType
@@ -200,11 +200,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		this._entityStorageActivityLogs = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<ActivityLogDetails>
-		>(options.activityLogEntityStorageType ?? nameofKebabCase<ActivityLogDetails>());
+		>(options?.activityLogEntityStorageType ?? nameofKebabCase<ActivityLogDetails>());
 
 		this._entityStorageActivityTasks = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<ActivityTask>
-		>(options.activityTaskEntityStorageType ?? nameofKebabCase<ActivityTask>());
+		>(options?.activityTaskEntityStorageType ?? nameofKebabCase<ActivityTask>());
 
 		this._backgroundTaskConnector = BackgroundTaskConnectorFactory.get(
 			options?.backgroundTaskConnectorType ?? "background-task"
