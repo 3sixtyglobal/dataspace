@@ -10,13 +10,13 @@ Data Space Connector Service.
 
 ### Constructor
 
-> **new DataSpaceConnectorService**(`options`): `DataSpaceConnectorService`
+> **new DataSpaceConnectorService**(`options?`): `DataSpaceConnectorService`
 
 Create a new instance of DataSpaceConnector.
 
 #### Parameters
 
-##### options
+##### options?
 
 [`IDataSpaceConnectorServiceConstructorOptions`](../interfaces/IDataSpaceConnectorServiceConstructorOptions.md)
 
