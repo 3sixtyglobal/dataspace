@@ -210,7 +210,9 @@ export class DataSpaceConnectorSocketClient
 	 */
 	public async getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry> {
 		// This method is in the REST client
-		throw new NotImplementedError(DataSpaceConnectorSocketClient.CLASS_NAME, "getActivityLogEntry");
+		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "getActivityLogEntry"
+		});
 	}
 
 	/**
@@ -221,7 +223,9 @@ export class DataSpaceConnectorSocketClient
 	 */
 	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
 		// Don't want client to be able to register apps remotely
-		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, nameof("registerApp"));
+		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "registerApp"
+		});
 	}
 
 	/**
@@ -231,7 +235,9 @@ export class DataSpaceConnectorSocketClient
 	 */
 	public async unregisterApp(appId: string): Promise<void> {
 		// Don't want client to be able to unregister apps remotely
-		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, nameof("unregisterApp"));
+		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "unregisterApp"
+		});
 	}
 
 	/**
@@ -251,10 +257,9 @@ export class DataSpaceConnectorSocketClient
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {
-		throw new NotSupportedError(
-			DataSpaceConnectorSocketClient.CLASS_NAME,
-			nameof("getDataAssetEntities")
-		);
+		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "getDataAssetEntities"
+		});
 	}
 
 	/**
@@ -271,10 +276,9 @@ export class DataSpaceConnectorSocketClient
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemList> {
-		throw new NotSupportedError(
-			DataSpaceConnectorSocketClient.CLASS_NAME,
-			nameof("queryDataAsset")
-		);
+		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "queryDataAsset"
+		});
 	}
 
 	/**

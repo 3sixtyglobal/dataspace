@@ -193,10 +193,9 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 		subscriptionId?: string
 	): Promise<string> {
 		// This is in the socket client
-		throw new NotSupportedError(
-			DataSpaceConnectorRestClient.CLASS_NAME,
-			nameof("subscribeToActivityLog")
-		);
+		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "subscribeToActivityLog"
+		});
 	}
 
 	/**
@@ -206,10 +205,9 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 */
 	public async unSubscribeToActivityLog(subscriptionId: string): Promise<void> {
 		// This is in the socket client
-		throw new NotSupportedError(
-			DataSpaceConnectorRestClient.CLASS_NAME,
-			nameof("unSubscribeToActivityLog")
-		);
+		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "unSubscribeToActivityLog"
+		});
 	}
 
 	/**
@@ -239,7 +237,9 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 */
 	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
 		// Don't want client to be able to register apps remotely
-		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, nameof("registerApp"));
+		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "registerApp"
+		});
 	}
 
 	/**
@@ -249,6 +249,8 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 */
 	public async unregisterApp(appId: string): Promise<void> {
 		// Don't want client to be able to unregister apps remotely
-		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, nameof("unregisterApp"));
+		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "unregisterApp"
+		});
 	}
 }
