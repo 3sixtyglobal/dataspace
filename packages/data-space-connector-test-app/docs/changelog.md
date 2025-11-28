@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.2](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-test-app-v0.0.3-next.1...data-space-connector-test-app-v0.0.3-next.2) (2025-11-28)
+
+
+### Miscellaneous Chores
+
+* **data-space-connector-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.1 to 0.0.3-next.2
+
 ## [0.0.3-next.1](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-test-app-v0.0.3-next.0...data-space-connector-test-app-v0.0.3-next.1) (2025-11-12)
 
 

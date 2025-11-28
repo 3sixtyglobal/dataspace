@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.2](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-client-v0.0.3-next.1...data-space-connector-rest-client-v0.0.3-next.2) (2025-11-28)
+
+
+### Bug Fixes
+
+* not supported error handling ([b946505](https://github.com/twinfoundation/data-space-connector/commit/b9465059f2b4bdce1d79fbca596b3abd7eadc918))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.1 to 0.0.3-next.2
+
 ## [0.0.3-next.1](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-client-v0.0.3-next.0...data-space-connector-rest-client-v0.0.3-next.1) (2025-11-12)
 
 
