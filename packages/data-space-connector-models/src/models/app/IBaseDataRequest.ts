@@ -1,9 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type {
-	IDataResourceEntry,
-	IServiceOfferingEntry
-} from "@twin.org/federated-catalogue-models";
+import type { IDataset } from "@twin.org/standards-w3c-dcat";
 import type { DataRequestType } from "./dataRequestType.js";
 
 /**
@@ -14,19 +11,11 @@ export interface IBaseDataRequest {
 	 * Type of Data Request.
 	 */
 	type: DataRequestType;
+
 	/**
 	 * The data asset we are referring to.
 	 */
-	dataAsset: {
-		/**
-		 * The data service component of the data asset.
-		 */
-		dataService: IServiceOfferingEntry;
-		/**
-		 * The dataset components of the data asset.
-		 */
-		dataset: IDataResourceEntry[];
-	};
+	dataAsset: IDataset;
 
 	/**
 	 * Cursor that points to the next item in the result set.

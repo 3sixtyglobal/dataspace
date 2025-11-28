@@ -6,11 +6,6 @@
  */
 export interface IDataAssetDescription {
 	/**
-	 * The data Service Id
-	 */
-	dataServiceId?: string;
-
-	/**
 	 * The concerned datasets.
 	 */
 	dataSetId?: string[];

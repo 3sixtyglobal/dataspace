@@ -34,9 +34,10 @@
 		"@twin.org/data-core": "next",
 		"@twin.org/data-json-ld": "next",
 		"@twin.org/entity": "next",
-		"@twin.org/federated-catalogue-models": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/standards-w3c-activity-streams": "next"
+		"@twin.org/standards-schema-org": "next",
+		"@twin.org/standards-w3c-activity-streams": "next",
+		"@twin.org/standards-w3c-dcat": "next"
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",

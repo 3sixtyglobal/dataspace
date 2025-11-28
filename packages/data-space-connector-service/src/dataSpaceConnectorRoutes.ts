@@ -243,7 +243,7 @@ export function generateRestRoutesDataSpaceConnector(
 					id: "dataAssetQuery",
 					request: {
 						body: {
-							dataAsset: { dataServiceId: "https://twin.examples.org/data-service-1" },
+							dataAsset: {},
 							query: {
 								type: "Example",
 								q: "example query"
@@ -360,7 +360,6 @@ export async function getDataAssetEntities(
 
 	const result = await service.getDataAssetEntities(
 		{
-			dataServiceId: request.query.dataServiceId,
 			dataSetId: HttpParameterHelper.arrayFromString(request.query.datasetId)
 		},
 		{
@@ -397,11 +396,6 @@ export async function queryDataAsset(
 		request.body.dataAsset
 	);
 
-	Guards.stringValue(
-		ROUTES_SOURCE,
-		nameof(request.body.dataAsset.dataServiceId),
-		request.body.dataAsset.dataServiceId
-	);
 	Guards.object<IFilteringQuery>(ROUTES_SOURCE, nameof(request.body.query), request.body.query);
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.type), request.body.query.type);
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.q), request.body.query.q);

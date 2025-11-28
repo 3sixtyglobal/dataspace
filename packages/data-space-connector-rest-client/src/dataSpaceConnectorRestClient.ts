@@ -97,9 +97,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 						? (HttpParameterHelper.arrayToString(entitySet.entityId) as string)
 						: undefined,
 					type: entitySet.entityType,
-					dataServiceId: Is.stringValue(dataAsset.dataServiceId)
-						? dataAsset.dataServiceId
-						: undefined,
 					datasetId: Is.arrayValue<string>(dataAsset.dataSetId)
 						? (HttpParameterHelper.arrayToString(dataAsset.dataSetId) as string)
 						: undefined,
@@ -136,11 +133,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 			DataSpaceConnectorRestClient.CLASS_NAME,
 			nameof(dataAsset),
 			dataAsset
-		);
-		Guards.stringValue(
-			DataSpaceConnectorRestClient.CLASS_NAME,
-			nameof(dataAsset.dataServiceId),
-			dataAsset.dataServiceId
 		);
 		Guards.object<IFilteringQuery>(DataSpaceConnectorRestClient.CLASS_NAME, nameof(query), query);
 

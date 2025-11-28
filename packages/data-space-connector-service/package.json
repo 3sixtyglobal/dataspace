@@ -46,6 +46,7 @@
 		"@twin.org/nameof": "next",
 		"@twin.org/standards-schema-org": "next",
 		"@twin.org/standards-w3c-activity-streams": "next",
+		"@twin.org/standards-w3c-dcat": "next",
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {

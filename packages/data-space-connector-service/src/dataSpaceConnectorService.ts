@@ -9,7 +9,6 @@ import {
 } from "@twin.org/background-task-models";
 import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
-	BaseError,
 	ComponentFactory,
 	ConflictError,
 	Converter,
@@ -19,37 +18,33 @@ import {
 	Is,
 	NotFoundError,
 	RandomHelper,
-	UnprocessableError,
-	Url,
 	Validation,
 	type IError,
 	type IValidationFailure
 } from "@twin.org/core";
 import { Blake2b } from "@twin.org/crypto";
 import {
-	type IJsonLdContextDefinitionElement,
 	JsonLdDataTypes,
 	JsonLdHelper,
 	JsonLdProcessor,
+	type IJsonLdContextDefinitionElement,
 	type IJsonLdNodeObject
 } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
-	type IFilteringQuery,
 	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IActivityQuery,
+	type IDataAssetDescription,
+	type IDataAssetItemList,
+	type IDataAssetQuery,
 	type IDataSpaceConnector,
 	type IDataSpaceConnectorApp,
-	type IExecutionPayload,
-	type ITaskApp,
-	type IDataAssetQuery,
-	DataSpaceConnectorAppFactory,
-	type IDataRequest,
-	type IDataAssetItemList,
 	type IEntitySet,
-	type IDataAssetDescription
+	type IExecutionPayload,
+	type IFilteringQuery,
+	type ITaskApp
 } from "@twin.org/data-space-connector-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
@@ -57,11 +52,6 @@ import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
 } from "@twin.org/entity-storage-models";
-import type {
-	IFederatedCatalogueComponent,
-	IParticipantEntry,
-	IServiceOfferingEntry
-} from "@twin.org/federated-catalogue-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
@@ -170,12 +160,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	private readonly _taskScheduler: ITaskSchedulerComponent;
 
 	/**
-	 * The Federated Catalogue Component.
-	 * @internal
-	 */
-	private readonly _federatedCatalogueComponent: IFederatedCatalogueComponent;
-
-	/**
 	 * The keys to use from the context ids to create partitions.
 	 * @internal
 	 */
@@ -211,10 +195,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		this._taskScheduler = ComponentFactory.get<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
-		);
-
-		this._federatedCatalogueComponent = ComponentFactory.get<IFederatedCatalogueComponent>(
-			options?.federatedCatalogueComponentType ?? "federated-catalogue"
 		);
 
 		this._apps = [];
@@ -606,90 +586,84 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const contextIds = await ContextIdStore.getContextIds();
 		ContextIdHelper.guard(contextIds, ContextIdKeys.Organization);
-		await this.checkParticipantExists(contextIds[ContextIdKeys.Organization]);
 
 		// Now getting the Data Space Connector App that can serve
-		if (!Is.undefined(dataAsset.dataServiceId)) {
-			const dataServiceEntry = await this.checkDataServiceExists(dataAsset.dataServiceId);
+		// if (!Is.undefined(dataAsset.dataServiceId)) {
+		// 	let finalType: string | undefined = entitySet.entityType;
+		// 	if (!Is.undefined(entitySet.jsonLdContext)) {
+		// 		// Let's expand the entity type
+		// 		const auxiliaryObj = {
+		// 			"@context": entitySet.jsonLdContext,
+		// 			"@type": entitySet.entityType
+		// 		};
+		// 		const expanded = (await JsonLdProcessor.expand(auxiliaryObj))[0];
+		// 		finalType = expanded["@type"]?.[0];
+		// 	}
+		// 	if (Is.undefined(finalType)) {
+		// 		await this._loggingService?.log({
+		// 			source: DataSpaceConnectorService.CLASS_NAME,
+		// 			level: "error",
+		// 			message: "notExpandableType",
+		// 			data: {
+		// 				type: entitySet.entityType
+		// 			}
+		// 		});
+		// 		throw new GuardError(
+		// 			DataSpaceConnectorService.CLASS_NAME,
+		// 			"notExpandableType",
+		// 			nameof(entitySet.entityType),
+		// 			entitySet.entityType
+		// 		);
+		// 	}
+		// 	// Check needed if no LD Context is provided and a non fully qualified name appears
+		// 	Url.guard(DataSpaceConnectorService.CLASS_NAME, nameof(entitySet.entityType), finalType);
 
-			let finalType: string | undefined = entitySet.entityType;
-			if (!Is.undefined(entitySet.jsonLdContext)) {
-				// Let's expand the entity type
-				const auxiliaryObj = {
-					"@context": entitySet.jsonLdContext,
-					"@type": entitySet.entityType
-				};
-				const expanded = (await JsonLdProcessor.expand(auxiliaryObj))[0];
-				finalType = expanded["@type"]?.[0];
-			}
-			if (Is.undefined(finalType)) {
-				await this._loggingService?.log({
-					source: DataSpaceConnectorService.CLASS_NAME,
-					level: "error",
-					message: "notExpandableType",
-					data: {
-						type: entitySet.entityType
-					}
-				});
-				throw new GuardError(
-					DataSpaceConnectorService.CLASS_NAME,
-					"notExpandableType",
-					nameof(entitySet.entityType),
-					entitySet.entityType
-				);
-			}
-			// Check needed if no LD Context is provided and a non fully qualified name appears
-			Url.guard(DataSpaceConnectorService.CLASS_NAME, nameof(entitySet.entityType), finalType);
+		// 	const dsConnectorApp = await this.getAppForDataAssetQuery({
+		// 		serviceId: dataAsset.dataServiceId
+		// 	});
 
-			const dsConnectorApp = await this.getAppForDataAssetQuery({
-				serviceId: dataAsset.dataServiceId
-			});
+		// 	// Now get the Data from the App
+		// 	const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
+		// 	const handleDataRequest = theApp?.handleDataRequest?.bind(theApp);
+		// 	Guards.function(
+		// 		DataSpaceConnectorService.CLASS_NAME,
+		// 		nameof(handleDataRequest),
+		// 		handleDataRequest
+		// 	);
 
-			// Now get the Data from the App
-			const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
-			const handleDataRequest = theApp?.handleDataRequest?.bind(theApp);
-			Guards.function(
-				DataSpaceConnectorService.CLASS_NAME,
-				nameof(handleDataRequest),
-				handleDataRequest
-			);
+		// 	const dataRequest: IDataRequest = {
+		// 		type: "DataAssetEntities",
+		// 		dataAsset: {} as unknown as IDataset,
+		// 		entitySet: {
+		// 			entityType: finalType,
+		// 			entityId: entitySet.entityId
+		// 		},
+		// 		cursor,
+		// 		limit
+		// 	};
+		// 	const { data, cursor: cursorResult } = await handleDataRequest(dataRequest);
 
-			const dataRequest: IDataRequest = {
-				type: "DataAssetEntities",
-				dataAsset: {
-					dataService: dataServiceEntry,
-					dataset: []
-				},
-				entitySet: {
-					entityType: finalType,
-					entityId: entitySet.entityId
-				},
-				cursor,
-				limit
-			};
-			const { data, cursor: cursorResult } = await handleDataRequest(dataRequest);
+		// 	// We allow the DS Connector App to return just one item
+		// 	let finalData: IJsonLdNodeObject[];
+		// 	if (Is.array(data)) {
+		// 		finalData = data;
+		// 	} else {
+		// 		finalData = [data as IJsonLdNodeObject];
+		// 	}
 
-			// We allow the DS Connector App to return just one item
-			let finalData: IJsonLdNodeObject[];
-			if (Is.array(data)) {
-				finalData = data;
-			} else {
-				finalData = [data as IJsonLdNodeObject];
-			}
+		// 	// Consider here in the future combine LD Contexts of the items for efficiency reasons
+		// 	// in further data processing by the Data Consumer
 
-			// Consider here in the future combine LD Contexts of the items for efficiency reasons
-			// in further data processing by the Data Consumer
+		// 	// Now with the data it is constructed the final JSON-LD
+		// 	const finalResult = {
+		// 		"@context": SchemaOrgContexts.ContextRoot,
+		// 		type: SchemaOrgTypes.ItemList,
+		// 		itemListElement: finalData,
+		// 		nextItem: cursorResult
+		// 	};
 
-			// Now with the data it is constructed the final JSON-LD
-			const finalResult = {
-				"@context": SchemaOrgContexts.ContextRoot,
-				type: SchemaOrgTypes.ItemList,
-				itemListElement: finalData,
-				nextItem: cursorResult
-			};
-
-			return JsonLdProcessor.compact(finalResult, finalResult["@context"]);
-		}
+		// 	return JsonLdProcessor.compact(finalResult, finalResult["@context"]);
+		// }
 
 		// Otherwise we query the Catalogue until finding a Service Offering that can satisfy the query
 		return {} as IDataAssetItemList;
@@ -714,65 +688,65 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			nameof(dataAsset),
 			dataAsset
 		);
-		Guards.string(
-			DataSpaceConnectorService.CLASS_NAME,
-			nameof(dataAsset.dataServiceId),
-			dataAsset.dataServiceId
-		);
-		Guards.object(DataSpaceConnectorService.CLASS_NAME, nameof(query), query);
-		Guards.string(DataSpaceConnectorService.CLASS_NAME, nameof(query.type), query.type);
+		// Guards.string(
+		// 	DataSpaceConnectorService.CLASS_NAME,
+		// 	nameof(dataAsset.dataServiceId),
+		// 	dataAsset.dataServiceId
+		// );
+		// Guards.object(DataSpaceConnectorService.CLASS_NAME, nameof(query), query);
+		// Guards.string(DataSpaceConnectorService.CLASS_NAME, nameof(query.type), query.type);
 
-		const dataServiceEntry = await this.checkDataServiceExists(dataAsset.dataServiceId);
+		// const dataServiceEntry = await this.checkDataServiceExists(dataAsset.dataServiceId);
 
-		const dsConnectorApp = await this.getAppForDataAssetQuery({
-			serviceId: dataAsset.dataServiceId
-		});
+		// const dsConnectorApp = await this.getAppForDataAssetQuery({
+		// 	serviceId: dataAsset.dataServiceId
+		// });
 
-		// Now get the Data from the App
-		const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
+		// // Now get the Data from the App
+		// const theApp = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(dsConnectorApp);
 
-		if (!theApp.supportedQueryTypes().includes(query.type)) {
-			throw new UnprocessableError(DataSpaceConnectorService.CLASS_NAME, "queryTypeNotSupported", {
-				queryType: query.type
-			});
-		}
+		// if (!theApp.supportedQueryTypes().includes(query.type)) {
+		// 	throw new UnprocessableError(DataSpaceConnectorService.CLASS_NAME, "queryTypeNotSupported", {
+		// 		queryType: query.type
+		// 	});
+		// }
 
-		const dataRequestApp: IDataRequest = {
-			type: "QueryDataAsset",
-			dataAsset: {
-				dataService: dataServiceEntry,
-				dataset: []
-			},
-			query,
-			cursor,
-			limit
-		};
-		const handleDataRequest = theApp?.handleDataRequest?.bind(theApp);
-		Guards.function(
-			DataSpaceConnectorService.CLASS_NAME,
-			nameof(handleDataRequest),
-			handleDataRequest
-		);
+		// const dataRequestApp: IDataRequest = {
+		// 	type: "QueryDataAsset",
+		// 	dataAsset: {
+		// 		dataService: dataServiceEntry,
+		// 		dataset: []
+		// 	},
+		// 	query,
+		// 	cursor,
+		// 	limit
+		// };
+		// const handleDataRequest = theApp?.handleDataRequest?.bind(theApp);
+		// Guards.function(
+		// 	DataSpaceConnectorService.CLASS_NAME,
+		// 	nameof(handleDataRequest),
+		// 	handleDataRequest
+		// );
 
-		const { data, cursor: cursorResult } = await handleDataRequest(dataRequestApp);
+		// const { data, cursor: cursorResult } = await handleDataRequest(dataRequestApp);
 
-		// We allow the DS Connector App to return just one item
-		let finalData: IJsonLdNodeObject[];
-		if (Is.array(data)) {
-			finalData = data;
-		} else {
-			finalData = [data as IJsonLdNodeObject];
-		}
+		// // We allow the DS Connector App to return just one item
+		// let finalData: IJsonLdNodeObject[];
+		// if (Is.array(data)) {
+		// 	finalData = data;
+		// } else {
+		// 	finalData = [data as IJsonLdNodeObject];
+		// }
 
-		// Consider here in the future combine LD Contexts of the items for efficiency reasons
-		// in further data processing by the Data Consumer
+		// // Consider here in the future combine LD Contexts of the items for efficiency reasons
+		// // in further data processing by the Data Consumer
 
 		// Now with the data it is constructed the final JSON-LD
 		const finalResult = {
 			"@context": SchemaOrgContexts.ContextRoot,
 			type: SchemaOrgTypes.ItemList,
-			itemListElement: finalData,
-			nextItem: cursorResult
+			itemListElement: [],
+			nextItem: ""
 		};
 
 		return JsonLdProcessor.compact(finalResult, finalResult["@context"]);
@@ -850,61 +824,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				appId
 			}
 		});
-	}
-
-	/**
-	 * Check that a Participant exists in the Catalogue and returns its entry if found.
-	 * @param participantId The participant Id to be checked.
-	 * @returns the Participant Entry.
-	 */
-	private async checkParticipantExists(participantId: string): Promise<IParticipantEntry> {
-		let entry;
-
-		try {
-			entry = await this._federatedCatalogueComponent.getEntry("LegalPerson", participantId);
-		} catch (error) {
-			if (BaseError.isErrorName(error, NotFoundError.CLASS_NAME)) {
-				await this._loggingService?.log({
-					source: DataSpaceConnectorService.CLASS_NAME,
-					level: "error",
-					message: "participantNotFound",
-					error,
-					data: {
-						notFoundId: error.properties?.notFoundId
-					}
-				});
-			}
-			throw error;
-		}
-
-		return entry as IParticipantEntry;
-	}
-
-	/**
-	 * Checks that a Data Service exists and returns its entry if found.
-	 * @param dataServiceId The Data Service Id to be checked.
-	 * @returns The Data SErvice entry
-	 */
-	private async checkDataServiceExists(dataServiceId: string): Promise<IServiceOfferingEntry> {
-		let entry;
-		try {
-			entry = await this._federatedCatalogueComponent.getEntry("ServiceOffering", dataServiceId);
-		} catch (error) {
-			if (BaseError.isErrorName(error, NotFoundError.CLASS_NAME)) {
-				await this._loggingService?.log({
-					source: DataSpaceConnectorService.CLASS_NAME,
-					level: "error",
-					message: "dataServiceNotFound",
-					error,
-					data: {
-						notFoundId: error.properties?.notFoundId
-					}
-				});
-			}
-			throw error;
-		}
-
-		return entry as IServiceOfferingEntry;
 	}
 
 	/**

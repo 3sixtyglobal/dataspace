@@ -14,21 +14,9 @@ Type of Data Request.
 
 ### dataAsset
 
-> **dataAsset**: `object`
+> **dataAsset**: `IDataset`
 
 The data asset we are referring to.
-
-#### dataService
-
-> **dataService**: `IServiceOfferingEntry`
-
-The data service component of the data asset.
-
-#### dataset
-
-> **dataset**: `IDataResourceEntry`[]
-
-The dataset components of the data asset.
 
 ***
 
