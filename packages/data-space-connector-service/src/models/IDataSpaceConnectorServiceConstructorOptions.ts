@@ -13,10 +13,10 @@ export interface IDataSpaceConnectorServiceConstructorOptions {
 	loggingComponentType?: string;
 
 	/**
-	 * Background task connector.
+	 * Background task component.
 	 * @default background-task
 	 */
-	backgroundTaskConnectorType?: string;
+	backgroundTaskComponentType?: string;
 
 	/**
 	 * Task Scheduler Component Type.

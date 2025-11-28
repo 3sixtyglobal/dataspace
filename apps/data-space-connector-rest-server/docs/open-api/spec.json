@@ -2489,7 +2489,7 @@
 				"anyOf": [
 					{
 						"type": "string",
-						"const": "https://www.w3.org/ns/odrl/2/"
+						"const": "http://www.w3.org/ns/odrl/2/"
 					},
 					{
 						"type": "array",
@@ -2497,7 +2497,7 @@
 						"prefixItems": [
 							{
 								"type": "string",
-								"const": "https://www.w3.org/ns/odrl/2/"
+								"const": "http://www.w3.org/ns/odrl/2/"
 							},
 							{
 								"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
@@ -2516,7 +2516,7 @@
 							},
 							{
 								"type": "string",
-								"const": "https://www.w3.org/ns/odrl/2/"
+								"const": "http://www.w3.org/ns/odrl/2/"
 							}
 						],
 						"items": {

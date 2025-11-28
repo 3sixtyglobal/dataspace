@@ -49,7 +49,7 @@
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {
-		"@twin.org/background-task-connector-entity-storage": "next",
+		"@twin.org/background-task-service": "next",
 		"@twin.org/background-task-scheduler": "next",
 		"@twin.org/data-space-connector-test-app": "0.0.3-next.1",
 		"@twin.org/context": "next",

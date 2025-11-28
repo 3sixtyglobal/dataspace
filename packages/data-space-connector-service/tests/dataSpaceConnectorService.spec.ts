@@ -1,17 +1,14 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import path from "node:path";
+import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
+import { TaskSchedulerService } from "@twin.org/background-task-scheduler";
 import {
-	EntityStorageBackgroundTaskConnector,
+	BackgroundTaskService,
 	initSchema as initSchemaBackgroundTask,
 	type BackgroundTask
-} from "@twin.org/background-task-connector-entity-storage";
-import {
-	BackgroundTaskConnectorFactory,
-	type ITaskSchedulerComponent
-} from "@twin.org/background-task-models";
-import { TaskSchedulerService } from "@twin.org/background-task-scheduler";
-import { ContextIdStore } from "@twin.org/context";
+} from "@twin.org/background-task-service";
+import { ContextIdStore, type IContextIds } from "@twin.org/context";
 import { ComponentFactory, Is, NotFoundError, ObjectHelper } from "@twin.org/core";
 import {
 	ActivityProcessingStatus,
@@ -40,7 +37,7 @@ let activityTasksStore: FileEntityStorageConnector<ActivityTask>;
 let options: IDataSpaceConnectorServiceConstructorOptions;
 
 let backgroundTaskStorage: FileEntityStorageConnector<BackgroundTask>;
-let backgroundTaskConnectorEntityStorage: EntityStorageBackgroundTaskConnector;
+let backgroundTaskService: BackgroundTaskService;
 let taskScheduler: ITaskSchedulerComponent;
 
 const BASE_STORE_DIR = "./tests/.tmp";
@@ -85,12 +82,15 @@ describe("data-space-connector-tests", () => {
 	beforeAll(async () => {
 		await setupTestEnv();
 
-		// Mock the module helper to execute the method in the same thread
-		ModuleHelper.execModuleMethodThread = vi
+		// Mock the module helper to execute the method in the same thread, so we don't have to create an engine
+		ModuleHelper.execModuleMethodThreadMessage = vi
 			.fn()
-			.mockImplementation(async (module, method, args) =>
-				ModuleHelper.execModuleMethod(module, method, args)
-			);
+			.mockImplementation((module, completed) => ({
+				executeMethod: async (method: string, args?: unknown, contextIds?: IContextIds) => {
+					const res = await ModuleHelper.execModuleMethod(module, method, args as unknown[]);
+					completed(method, res);
+				}
+			}));
 
 		await addAllContextsToDocumentCache();
 
@@ -99,7 +99,7 @@ describe("data-space-connector-tests", () => {
 
 		options = {
 			loggingComponentType: "logging",
-			backgroundTaskConnectorType: "background-task",
+			backgroundTaskComponentType: "background-task",
 			config: {}
 		};
 
@@ -145,13 +145,10 @@ describe("data-space-connector-tests", () => {
 		});
 		await backgroundTaskStorage.bootstrap();
 		EntityStorageConnectorFactory.register("background-task", () => backgroundTaskStorage);
-		backgroundTaskConnectorEntityStorage = new EntityStorageBackgroundTaskConnector({
+		backgroundTaskService = new BackgroundTaskService({
 			backgroundTaskEntityStorageType: "background-task"
 		});
-		BackgroundTaskConnectorFactory.register(
-			"background-task",
-			() => backgroundTaskConnectorEntityStorage
-		);
+		ComponentFactory.register("background-task", () => backgroundTaskService);
 		taskScheduler = new TaskSchedulerService();
 		ComponentFactory.register("task-scheduler", () => taskScheduler);
 
@@ -171,7 +168,7 @@ describe("data-space-connector-tests", () => {
 	});
 
 	test("It should receive an Activity in the Activity Stream - canonical", async () => {
-		await backgroundTaskConnectorEntityStorage.start("");
+		await backgroundTaskService.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
@@ -181,14 +178,14 @@ describe("data-space-connector-tests", () => {
 		await testApp.start();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(canonicalActivity);
-		await sleep(1000);
+		await sleep(2000);
 
 		const entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
 		assertActivityLog(entry);
 	});
 
 	test("It should receive an Activity in the Activity Stream - canonical LD Context Array", async () => {
-		await backgroundTaskConnectorEntityStorage.start("");
+		await backgroundTaskService.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
@@ -209,7 +206,7 @@ describe("data-space-connector-tests", () => {
 	});
 
 	test.skip("It should receive an Activity in the Activity Stream - type extension", async () => {
-		await backgroundTaskConnectorEntityStorage.start("");
+		await backgroundTaskService.start("");
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);

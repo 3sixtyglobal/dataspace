@@ -1,10 +1,9 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import {
-	BackgroundTaskConnectorFactory,
 	TaskStatus,
 	type IBackgroundTask,
-	type IBackgroundTaskConnector,
+	type IBackgroundTaskComponent,
 	type IScheduledTaskTime,
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
@@ -127,10 +126,10 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	private readonly _apps: { appId: string; app: IDataSpaceConnectorApp }[];
 
 	/**
-	 * Background Task Connector.
+	 * Background Task Component.
 	 * @internal
 	 */
-	private readonly _backgroundTaskConnector: IBackgroundTaskConnector;
+	private readonly _backgroundTaskComponent: IBackgroundTaskComponent;
 
 	/**
 	 * Activity Log Status callbacks.
@@ -206,8 +205,8 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			IEntityStorageConnector<ActivityTask>
 		>(options?.activityTaskEntityStorageType ?? nameofKebabCase<ActivityTask>());
 
-		this._backgroundTaskConnector = BackgroundTaskConnectorFactory.get(
-			options?.backgroundTaskConnectorType ?? "background-task"
+		this._backgroundTaskComponent = ComponentFactory.get(
+			options?.backgroundTaskComponentType ?? "background-task"
 		);
 
 		this._taskScheduler = ComponentFactory.get<ITaskSchedulerComponent>(
@@ -409,7 +408,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				// This is needed because the Background Task component does not support multiple tasks of
 				// the same type executing at the same time
 				const taskType = Converter.bytesToHex(RandomHelper.generate(16));
-				const taskId = await this._backgroundTaskConnector.create<IExecutionPayload>(
+				const taskId = await this._backgroundTaskComponent.create<IExecutionPayload>(
 					taskType,
 					payload,
 					{
@@ -417,12 +416,16 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 					}
 				);
 
-				await this._backgroundTaskConnector.registerHandler<IExecutionPayload, unknown>(
+				await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
 					taskType,
 					"@twin.org/data-space-connector-app-runner",
 					"appRunner",
 					async task => {
 						await this.finaliseTask(task);
+					},
+					{
+						initialiseMethod: "appRunnerStart",
+						shutdownMethod: "appRunnerEnd"
 					}
 				);
 
@@ -523,7 +526,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			inErrorTasks = [];
 
 			for (const entity of activityTasks.associatedTasks) {
-				const taskDetails = await this._backgroundTaskConnector.get<IExecutionPayload, unknown>(
+				const taskDetails = await this._backgroundTaskComponent.get<IExecutionPayload, unknown>(
 					entity.taskId
 				);
 

@@ -134,7 +134,7 @@ export async function initialiseDataSpaceConnectorComponent(
 		);
 		component = new DataSpaceConnectorService({
 			loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
-			backgroundTaskConnectorType: engineCore.getRegisteredInstanceType("backgroundTaskConnector"),
+			backgroundTaskComponentType: engineCore.getRegisteredInstanceType("backgroundTaskConnector"),
 			taskSchedulerComponentType: engineCore.getRegisteredInstanceType("taskSchedulerComponent"),
 			federatedCatalogueComponentType: engineCore.getRegisteredInstanceType(
 				"federatedCatalogueComponent"

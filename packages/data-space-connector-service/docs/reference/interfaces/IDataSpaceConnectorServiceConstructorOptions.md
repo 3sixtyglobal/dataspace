@@ -18,11 +18,11 @@ logging
 
 ***
 
-### backgroundTaskConnectorType?
+### backgroundTaskComponentType?
 
-> `optional` **backgroundTaskConnectorType**: `string`
+> `optional` **backgroundTaskComponentType**: `string`
 
-Background task connector.
+Background task component.
 
 #### Default
 

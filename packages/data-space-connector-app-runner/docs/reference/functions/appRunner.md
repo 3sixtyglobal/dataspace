@@ -1,14 +1,8 @@
 # Function: appRunner()
 
-> **appRunner**\<`T`\>(`engineCloneData`, `contextIds`, `payload`): `Promise`\<`T`\>
+> **appRunner**(`engineCloneData`, `payload`): `Promise`\<`unknown`\>
 
 Data Space Connector Task.
-
-## Type Parameters
-
-### T
-
-`T`
 
 ## Parameters
 
@@ -18,12 +12,6 @@ Data Space Connector Task.
 
 The Engine.
 
-### contextIds
-
-`IContextIds`
-
-The context IDs.
-
 ### payload
 
 `IExecutionPayload`
@@ -32,6 +20,6 @@ The payload
 
 ## Returns
 
-`Promise`\<`T`\>
+`Promise`\<`unknown`\>
 
 The execution result.
