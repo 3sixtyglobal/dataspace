@@ -1,9 +1,9 @@
 {
-	"packages/data-space-connector-models": "0.0.3-next.1",
-	"packages/data-space-connector-app-runner": "0.0.3-next.1",
-	"packages/data-space-connector-test-app": "0.0.3-next.1",
-	"packages/data-space-connector-service": "0.0.3-next.1",
-	"packages/data-space-connector-rest-client": "0.0.3-next.1",
-	"packages/data-space-connector-socket-client": "0.0.3-next.1",
-	"apps/data-space-connector-rest-server": "0.0.3-next.1"
+	"packages/data-space-connector-models": "0.0.3-next.2",
+	"packages/data-space-connector-app-runner": "0.0.3-next.2",
+	"packages/data-space-connector-test-app": "0.0.3-next.2",
+	"packages/data-space-connector-service": "0.0.3-next.2",
+	"packages/data-space-connector-rest-client": "0.0.3-next.2",
+	"packages/data-space-connector-socket-client": "0.0.3-next.2",
+	"apps/data-space-connector-rest-server": "0.0.3-next.2"
 }

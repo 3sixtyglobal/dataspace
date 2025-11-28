@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.3-next.2](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.1...data-space-connector-rest-server-v0.0.3-next.2) (2025-11-28)
+
+
+### Features
+
+* update background task service ([72b2856](https://github.com/twinfoundation/data-space-connector/commit/72b2856c74196913ad514519f825a0f5b11b6d92))
+* update context id usage ([a727a34](https://github.com/twinfoundation/data-space-connector/commit/a727a34487e9533867fa21aee37bb22240f39adf))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.1 to 0.0.3-next.2
+    * @twin.org/data-space-connector-rest-client bumped from 0.0.3-next.1 to 0.0.3-next.2
+    * @twin.org/data-space-connector-socket-client bumped from 0.0.3-next.1 to 0.0.3-next.2
+    * @twin.org/data-space-connector-service bumped from 0.0.3-next.1 to 0.0.3-next.2
+
 ## [0.0.3-next.1](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.0...data-space-connector-rest-server-v0.0.3-next.1) (2025-11-12)
 
 
