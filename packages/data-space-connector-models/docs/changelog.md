@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.3](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.2...data-space-connector-models-v0.0.3-next.3) (2025-12-01)
+
+
+### Features
+
+* update background task service ([c907578](https://github.com/twinfoundation/data-space-connector/commit/c907578c4ff5906c62b37d788a078d99fe8a59dc))
+
 ## [0.0.3-next.2](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.1...data-space-connector-models-v0.0.3-next.2) (2025-11-28)
 
 

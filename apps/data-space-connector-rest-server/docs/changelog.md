@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.3-next.3](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.2...data-space-connector-rest-server-v0.0.3-next.3) (2025-12-01)
+
+
+### Features
+
+* update background task service ([c907578](https://github.com/twinfoundation/data-space-connector/commit/c907578c4ff5906c62b37d788a078d99fe8a59dc))
+* updating the vocabulary and usage of the federated catalogue ([#32](https://github.com/twinfoundation/data-space-connector/issues/32)) ([9203ca2](https://github.com/twinfoundation/data-space-connector/commit/9203ca28837ef270285a058cf4294bb0c203337a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.2 to 0.0.3-next.3
+    * @twin.org/data-space-connector-rest-client bumped from 0.0.3-next.2 to 0.0.3-next.3
+    * @twin.org/data-space-connector-socket-client bumped from 0.0.3-next.2 to 0.0.3-next.3
+    * @twin.org/data-space-connector-service bumped from 0.0.3-next.2 to 0.0.3-next.3
+
 ## [0.0.3-next.2](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.1...data-space-connector-rest-server-v0.0.3-next.2) (2025-11-28)
 
 
