@@ -20,17 +20,18 @@
 		"changelog.md"
 	],
 	"words": [
-		"bech",
 		"abbrev",
 		"autorelease",
+		"bech",
+		"buildx",
+		"dcat",
 		"Jsonld",
 		"nameof",
 		"openapi",
 		"Stiftung",
-		"Unrevoke",
 		"twinfoundation",
-		"buildx",
-		"unece"
+		"unece",
+		"Unrevoke"
 	],
 	"ignoreRegExpList": [
 		"/from\\s+(['\"]).*\\1/",

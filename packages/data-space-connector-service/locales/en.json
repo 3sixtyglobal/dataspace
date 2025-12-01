@@ -8,7 +8,11 @@
 			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
 			"tooManyAppsRegistered": "There are several DS Connector Apps registered for Data Service \"{dataServiceId}\"",
 			"noAppRegistered": "There are no DS Connector Apps registered for Data Service \"{dataServiceId}\"",
-			"invalidDataSpaceConnectorApp": "The Data Space Connector App \"{appId}\" is invalid. It does not implement required interfaces"
+			"invalidDataSpaceConnectorApp": "The Data Space Connector App \"{appId}\" is invalid. It does not implement required interfaces",
+			"federatedCatalogueNotAvailable": "Federated Catalogue component is not available",
+			"datasetIdRequired": "Dataset ID is required for query operations",
+			"notExpandableType": "Entity type \"{type}\" cannot be expanded",
+			"queryTypeNotSupported": "Query type \"{queryType}\" is not supported by the DS Connector App"
 		}
 	},
 	"info": {
@@ -30,6 +34,11 @@
 		"dataSpaceConnectorSocketRoutes": {
 			"activityLogStatusConnected": "Web Socket Connected: Socket Id: \"{socketId}\"",
 			"activityLogStatusDisconnected": "Web Socket disconnected: Socket Id: \"{socketId}\""
+		}
+	},
+	"warn": {
+		"dataSpaceConnectorService": {
+			"federatedCatalogueNotAvailable": "Federated Catalogue component is not available"
 		}
 	}
 }
