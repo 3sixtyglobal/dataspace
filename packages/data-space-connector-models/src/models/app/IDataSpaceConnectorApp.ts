@@ -3,8 +3,8 @@
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IDsProtocolDataset } from "../IDsProtocolDataset.js";
 import type { IActivityQuery } from "./IActivityQuery.js";
-import type { IDataAssetQuery } from "./IDataAssetQuery.js";
 import type { IDataRequest } from "./IDataRequest.js";
 
 /**
@@ -18,10 +18,10 @@ export interface IDataSpaceConnectorApp extends IComponent {
 	activitiesHandled(): IActivityQuery[];
 
 	/**
-	 * The data services handled by the App.
-	 * @returns A query that describes the set of Data Services handled by the App.
+	 * The datasets handled by the App.
+	 * @returns The DS Protocol compliant datasets handled by the App.
 	 */
-	dataServicesHandled(): IDataAssetQuery[];
+	datasetsHandled(): IDsProtocolDataset[];
 
 	/**
 	 * The types of queries supported.

@@ -62,21 +62,21 @@ The class name of the component.
 
 ***
 
-### dataServicesHandled()
+### datasetsHandled()
 
-> **dataServicesHandled**(): `IDataAssetQuery`[]
+> **datasetsHandled**(): `IDsProtocolDataset`[]
 
-Data Services handled.
+Datasets handled by the App.
 
 #### Returns
 
-`IDataAssetQuery`[]
+`IDsProtocolDataset`[]
 
-Ids.
+DS Protocol compliant datasets
 
 #### Implementation of
 
-`IDataSpaceConnectorApp.dataServicesHandled`
+`IDataSpaceConnectorApp.datasetsHandled`
 
 ***
 

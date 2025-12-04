@@ -6,14 +6,15 @@ import { DataTypeHandlerFactory } from "@twin.org/data-core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import type {
 	IActivityQuery,
-	IDataAssetQuery,
 	IDataRequest,
 	IDataSpaceConnector,
-	IDataSpaceConnectorApp
+	IDataSpaceConnectorApp,
+	IDsProtocolDataset
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import { DcatClasses } from "@twin.org/standards-w3c-dcat";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
 // Dummy Data
@@ -90,11 +91,33 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	}
 
 	/**
-	 * Data Services handled.
-	 * @returns Ids.
+	 * Datasets handled by the App.
+	 * @returns DS Protocol compliant datasets
 	 */
-	public dataServicesHandled(): IDataAssetQuery[] {
-		return [{ serviceId: "https://twin.example.org/data-service-1" }];
+	public datasetsHandled(): IDsProtocolDataset[] {
+		return [
+			{
+				"@id": "https://twin.example.org/data-service-1",
+				"@type": DcatClasses.Dataset,
+				"odrl:hasPolicy": [
+					{
+						"@context": "http://www.w3.org/ns/odrl/2/",
+						"@type": "Offer",
+						"@id": "urn:uuid:test-policy-offer-1",
+						uid: "urn:uuid:test-policy-offer-1",
+						assigner: "https://twin.example.org",
+						permission: []
+					}
+				],
+				"dcat:distribution": {
+					"@id": "https://twin.example.org/distribution-1",
+					"@type": "Distribution",
+					"dcat:accessService": "https://twin.example.org/data-service-1",
+					"dcterms:format": "Http-Pull-Query-Format"
+				},
+				"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
+			}
+		];
 	}
 
 	/**

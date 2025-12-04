@@ -6,13 +6,17 @@
 			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
 			"invalidActivity": "Invalid Activity. Expected fields not specified",
 			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
-			"tooManyAppsRegistered": "There are several DS Connector Apps registered for Data Service \"{dataServiceId}\"",
-			"noAppRegistered": "There are no DS Connector Apps registered for Data Service \"{dataServiceId}\"",
+			"tooManyAppsRegistered": "There are several DS Connector Apps registered for Dataset \"{datasetId}\"",
+			"noAppRegistered": "There are no DS Connector Apps registered for Dataset \"{datasetId}\"",
 			"invalidDataSpaceConnectorApp": "The Data Space Connector App \"{appId}\" is invalid. It does not implement required interfaces",
-			"federatedCatalogueNotAvailable": "Federated Catalogue component is not available",
 			"datasetIdRequired": "Dataset ID is required for query operations",
 			"notExpandableType": "Entity type \"{type}\" cannot be expanded",
-			"queryTypeNotSupported": "Query type \"{queryType}\" is not supported by the DS Connector App"
+			"queryTypeNotSupported": "Query type \"{queryType}\" is not supported by the DS Connector App",
+			"datasetMissingPolicy": "Dataset must have an ODRL policy (odrl:hasPolicy) per Data Space Protocol requirements. App: \"{appId}\", Dataset: \"{datasetId}\"",
+			"policyArrayEmpty": "Dataset odrl:hasPolicy array must contain at least one Offer. App: \"{appId}\", Dataset: \"{datasetId}\"",
+			"policyInvalidType": "ODRL Policy @type must be 'Offer', found: \"{foundType}\". App: \"{appId}\", Dataset: \"{datasetId}\"",
+			"datasetSchemaValidationFailed": "Dataset failed JSON Schema validation. App: \"{appId}\", Dataset: \"{datasetId}\", Error: \"{schemaError}\"",
+			"schemaNotRegistered": "JSON Schema \"{schemaId}\" is not registered in DataTypeHandlerFactory"
 		}
 	},
 	"info": {
@@ -34,11 +38,6 @@
 		"dataSpaceConnectorSocketRoutes": {
 			"activityLogStatusConnected": "Web Socket Connected: Socket Id: \"{socketId}\"",
 			"activityLogStatusDisconnected": "Web Socket disconnected: Socket Id: \"{socketId}\""
-		}
-	},
-	"warn": {
-		"dataSpaceConnectorService": {
-			"federatedCatalogueNotAvailable": "Federated Catalogue component is not available"
 		}
 	}
 }

@@ -25,12 +25,6 @@ export interface IDataSpaceConnectorServiceConstructorOptions {
 	taskSchedulerComponentType?: string;
 
 	/**
-	 * The Federated Catalogue Component type.
-	 * @default federated-catalogue
-	 */
-	federatedCatalogueComponentType?: string;
-
-	/**
 	 * The entity storage for activity log details.
 	 * @default activity-log-details
 	 */

@@ -13,23 +13,20 @@ import {
 	ActivityProcessingStatus,
 	DataSpaceConnectorAppFactory,
 	type IActivityLogDates,
-	type IActivityLogEntry
+	type IActivityLogEntry,
+	type IDataRequest,
+	type IDataSpaceConnectorApp,
+	type IDsProtocolDataset
 } from "@twin.org/data-space-connector-models";
 import { TestDataSpaceConnectorApp } from "@twin.org/data-space-connector-test-app";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { FederatedCatalogueFilterFactory } from "@twin.org/federated-catalogue-models";
-import {
-	FederatedCatalogueService,
-	initSchema as initSchemaFederatedCatalogue,
-	type Dataset
-} from "@twin.org/federated-catalogue-service";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import { DublinCoreContexts } from "@twin.org/standards-dublin-core";
 import { addAllContextsToDocumentCache, LD_CONTEXTS } from "@twin.org/standards-ld-contexts";
 import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
-import { DcatClasses, DcatContexts, type IDataset } from "@twin.org/standards-w3c-dcat";
+import { DcatClasses } from "@twin.org/standards-w3c-dcat";
+import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { canonicalActivity, activityLdContextArray, extendedActivity } from "./testData.js";
 import { DataSpaceConnectorService } from "../src/dataSpaceConnectorService.js";
@@ -40,7 +37,6 @@ import { initSchema } from "../src/schema.js";
 
 const TEST_NODE_IDENTITY = "did:iota:testnet:7654321";
 const DATA_CONSUMER_IDENTITY = "did:iota:testnet:1234567";
-const PARTICIPANT_DATASET_ID = "did:iota:testnet:1234567";
 const SERVICE_DATASET_ID = "https://twin.example.org/data-service-1";
 
 /**
@@ -79,17 +75,14 @@ describe("data-space-connector-tests", () => {
 	let activityLogStorage: MemoryEntityStorageConnector<ActivityLogDetails>;
 	let activityTaskStorage: MemoryEntityStorageConnector<ActivityTask>;
 	let backgroundTaskStorage: MemoryEntityStorageConnector<BackgroundTask>;
-	let datasetEntityStorage: MemoryEntityStorageConnector<Dataset>;
 	let backgroundTaskService: BackgroundTaskService;
 	let taskScheduler: TaskSchedulerService;
-	let federatedCatalogueService: FederatedCatalogueService;
 	let options: IDataSpaceConnectorServiceConstructorOptions;
 
 	beforeAll(async () => {
 		// Initialize schemas
 		initSchema();
 		initSchemaBackgroundTask();
-		initSchemaFederatedCatalogue();
 
 		// Load all JSON-LD contexts
 		await addAllContextsToDocumentCache();
@@ -160,11 +153,6 @@ describe("data-space-connector-tests", () => {
 		});
 		EntityStorageConnectorFactory.register("background-task", () => backgroundTaskStorage);
 
-		datasetEntityStorage = new MemoryEntityStorageConnector<Dataset>({
-			entitySchema: nameof<Dataset>()
-		});
-		EntityStorageConnectorFactory.register("dataset", () => datasetEntityStorage);
-
 		// Mock context IDs
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
@@ -173,9 +161,6 @@ describe("data-space-connector-tests", () => {
 	});
 
 	beforeEach(async () => {
-		// Clear factory before each test
-		FederatedCatalogueFilterFactory.clear();
-
 		// Clear all entity storage
 		const allActivityLogs = await activityLogStorage.query();
 		for (const log of allActivityLogs.entities) {
@@ -198,33 +183,7 @@ describe("data-space-connector-tests", () => {
 			}
 		}
 
-		const allDatasets = await datasetEntityStorage.query();
-		for (const dataset of allDatasets.entities) {
-			if (dataset["@id"]) {
-				await datasetEntityStorage.remove(dataset["@id"]);
-			}
-		}
-
-		// Register FilterByExample for federated catalogue
-		FederatedCatalogueFilterFactory.register("FilterByExample", () => ({
-			className: () => "FilterByExample",
-			query: async filter => {
-				// Simple filter implementation - return all datasets if no specific filter
-				const queryResult = await datasetEntityStorage.query();
-				return {
-					datasets: queryResult.entities as IDataset[],
-					cursor: undefined
-				};
-			},
-			createIndex: async dataSet => ({})
-		}));
-
 		// Create fresh service instances
-		federatedCatalogueService = new FederatedCatalogueService({
-			datasetStorageConnectorType: "dataset"
-		});
-		ComponentFactory.register("federated-catalogue", () => federatedCatalogueService);
-
 		backgroundTaskService = new BackgroundTaskService({
 			backgroundTaskEntityStorageType: "background-task"
 		});
@@ -233,103 +192,16 @@ describe("data-space-connector-tests", () => {
 		taskScheduler = new TaskSchedulerService();
 		ComponentFactory.register("task-scheduler", () => taskScheduler);
 
-		// Set up test datasets in federated catalogue
-		const participantDataset: IDataset = {
-			"@context": {
-				dcat: DcatContexts.ContextRoot,
-				dcterms: DublinCoreContexts.ContextTerms
-			},
-			"@id": PARTICIPANT_DATASET_ID,
-			"@type": DcatClasses.Dataset,
-			"dcterms:title": "Participant Dataset"
-		};
-
-		const serviceDataset: IDataset = {
-			"@context": {
-				dcat: DcatContexts.ContextRoot,
-				dcterms: DublinCoreContexts.ContextTerms
-			},
-			"@id": SERVICE_DATASET_ID,
-			"@type": DcatClasses.Dataset,
-			"dcterms:title": "Service Dataset"
-		};
-
-		await federatedCatalogueService.set(participantDataset);
-		await federatedCatalogueService.set(serviceDataset);
-
 		options = {
 			loggingComponentType: "logging",
-			federatedCatalogueComponentType: "federated-catalogue",
 			backgroundTaskComponentType: "background-task",
 			taskSchedulerComponentType: "task-scheduler"
 		};
 	});
 
 	afterAll(() => {
-		FederatedCatalogueFilterFactory.clear();
 		ComponentFactory.clear();
 		EntityStorageConnectorFactory.clear();
-	});
-
-	test("Federated catalogue component is integrated and accessible", async () => {
-		const service = new DataSpaceConnectorService(options);
-		expect(service).toBeDefined();
-
-		// Verify federated catalogue is registered
-		const catalogue =
-			ComponentFactory.getIfExists<FederatedCatalogueService>("federated-catalogue");
-		expect(catalogue).toBeDefined();
-		expect(catalogue?.className()).toBe("FederatedCatalogueService");
-	});
-
-	test("getDatasetById retrieves dataset by ID using get()", async () => {
-		const service = new DataSpaceConnectorService(options);
-
-		// Add a dataset that will be retrieved via get()
-		const testDataset: IDataset = {
-			"@context": {
-				dcat: DcatContexts.ContextRoot,
-				dcterms: DublinCoreContexts.ContextTerms
-			},
-			"@id": "test-dataset-id",
-			"@type": DcatClasses.Dataset,
-			"dcterms:title": "Test Dataset"
-		};
-		await federatedCatalogueService.set(testDataset);
-
-		// Test getDatasetById directly
-		const foundDataset = await (
-			service as unknown as {
-				getDatasetById: (id: string) => Promise<IDataset>;
-			}
-		).getDatasetById("test-dataset-id");
-
-		expect(foundDataset).toBeDefined();
-		expect(foundDataset["@id"]).toBe("test-dataset-id");
-		expect(foundDataset["dcterms:title"]).toBe("Test Dataset");
-	});
-
-	test("Participant validation only validates ID format (catalogue validation deferred to RFC005)", async () => {
-		const service = new DataSpaceConnectorService(options);
-
-		const serviceWithPrivate = service as unknown as {
-			validateParticipantExists: (id: string) => Promise<void>;
-		};
-
-		// Valid participant ID format should succeed (no catalogue validation yet)
-		await expect(
-			serviceWithPrivate.validateParticipantExists(DATA_CONSUMER_IDENTITY)
-		).resolves.not.toThrow();
-
-		// Any valid string ID should succeed (catalogue validation not implemented)
-		await expect(
-			serviceWithPrivate.validateParticipantExists("any-valid-id")
-		).resolves.not.toThrow();
-
-		// Empty string should throw GuardError
-		await expect(serviceWithPrivate.validateParticipantExists("")).rejects.toMatchObject({
-			name: "GuardError"
-		});
 	});
 
 	test("getDataAssetEntities() uses new DCAT dataset vocabulary", async () => {
@@ -807,5 +679,460 @@ describe("data-space-connector-tests", () => {
 
 		// App returns empty result for unknown type
 		expect(result.itemListElement.length).toBe(0);
+	});
+
+	// ============================================
+	// RFC-004 Specific Tests
+	// ============================================
+
+	test("Apps declare datasetsHandled() returning IDsProtocolDataset[]", async () => {
+		// Verify test app implements the RFC-004 interface correctly
+		const testApp = new TestDataSpaceConnectorApp();
+		const datasets = testApp.datasetsHandled();
+
+		expect(datasets).toBeDefined();
+		expect(Is.array(datasets)).toBe(true);
+		expect(datasets.length).toBeGreaterThan(0);
+
+		// Verify each dataset has required DCAT properties
+		const dataset = datasets[0];
+		expect(dataset["@id"]).toBeDefined();
+		expect(dataset["@type"]).toBe(DcatClasses.Dataset);
+
+		// DS Protocol requires hasPolicy as array
+		const policies = dataset["odrl:hasPolicy"] as IOdrlOffer[] | undefined;
+		expect(policies).toBeDefined();
+		expect(Is.array(policies)).toBe(true);
+		expect(policies?.length).toBeGreaterThan(0);
+
+		if (policies && policies.length > 0) {
+			const policy = policies[0];
+			// Verify policy has required ODRL Offer properties
+			expect(policy["@type"]).toBeDefined();
+			expect(policy["@type"]).toBe("Offer");
+			expect(policy["@id"] ?? policy.uid).toBeDefined();
+		}
+	});
+
+	test("Service matches app by dataset @id", async () => {
+		// Ensure context IDs are set
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		// The test app declares it handles SERVICE_DATASET_ID
+		// Call getDataAssetEntities with that dataset ID
+		const result = await dataSpaceConnectorService.getDataAssetEntities(
+			{ dataSetId: [SERVICE_DATASET_ID] },
+			{
+				entityType: "https://vocabulary.uncefact.org/Consignment"
+			}
+		);
+
+		// Should successfully match and delegate to app
+		expect(result).toBeDefined();
+		expect(result.itemListElement).toBeDefined();
+	});
+
+	test("Service throws ConflictError when multiple apps handle same dataset", async () => {
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Register first app
+		const testApp1 = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp1);
+		await testApp1.start();
+
+		// Register the SAME app instance with a different ID (simulating two apps handling same dataset)
+		const testApp2 = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register("https://twin.example.org/app2", () => testApp2);
+		await dataSpaceConnectorService.registerApp("https://twin.example.org/app2", testApp2);
+
+		// Try to get entities - should throw ConflictError because both apps handle SERVICE_DATASET_ID
+		await expect(
+			dataSpaceConnectorService.getDataAssetEntities(
+				{ dataSetId: [SERVICE_DATASET_ID] },
+				{
+					entityType: "https://vocabulary.uncefact.org/Consignment"
+				}
+			)
+		).rejects.toMatchObject({
+			name: "ConflictError"
+		});
+	});
+
+	test("Dataset-centric data requests use IDataset", async () => {
+		// Ensure context IDs are set
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Track handleDataRequest calls
+		let capturedDataRequest: unknown = null;
+		const testApp = new TestDataSpaceConnectorApp();
+		const originalHandler = testApp.handleDataRequest;
+		if (!originalHandler) {
+			throw new Error("Test app must have handleDataRequest");
+		}
+		testApp.handleDataRequest = async dataRequest => {
+			capturedDataRequest = dataRequest;
+			return originalHandler.call(testApp, dataRequest);
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		// Call getDataAssetEntities
+		await dataSpaceConnectorService.getDataAssetEntities(
+			{ dataSetId: [SERVICE_DATASET_ID] },
+			{
+				entityType: "https://vocabulary.uncefact.org/Consignment"
+			}
+		);
+
+		// Verify dataRequest contains IDataset
+		expect(capturedDataRequest).toBeDefined();
+		const dataRequest = capturedDataRequest as IDataRequest;
+		expect(dataRequest.dataAsset).toBeDefined();
+		expect(dataRequest.dataAsset["@id"]).toBe(SERVICE_DATASET_ID);
+		expect(dataRequest.dataAsset["@type"]).toBe(DcatClasses.Dataset);
+	});
+
+	test("Query type validation against app's supportedQueryTypes()", async () => {
+		// Ensure context IDs are set
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		// testApp.supportedQueryTypes() returns ["TestQueryType"]
+		// Try with supported type - should succeed
+		const resultSupported = await dataSpaceConnectorService.queryDataAsset(
+			{ dataSetId: [SERVICE_DATASET_ID] },
+			{ type: "TestQueryType", q: "test" }
+		);
+		expect(resultSupported).toBeDefined();
+
+		// Try with unsupported type - should throw UnprocessableError
+		await expect(
+			dataSpaceConnectorService.queryDataAsset(
+				{ dataSetId: [SERVICE_DATASET_ID] },
+				{ type: "UnsupportedQueryType", q: "test" }
+			)
+		).rejects.toMatchObject({
+			name: "UnprocessableError"
+		});
+	});
+
+	test("Pagination cursor is passed through to app", async () => {
+		// Ensure context IDs are set
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Track handleDataRequest calls to verify cursor is passed
+		let capturedPagination: { cursor?: string; limit?: number } | undefined;
+		const testApp = new TestDataSpaceConnectorApp();
+		const originalHandler = testApp.handleDataRequest;
+		if (!originalHandler) {
+			throw new Error("Test app must have handleDataRequest");
+		}
+		testApp.handleDataRequest = async dataRequest => {
+			capturedPagination = {
+				cursor: dataRequest.cursor,
+				limit: dataRequest.limit
+			};
+			return originalHandler.call(testApp, dataRequest);
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		// Call with pagination
+		await dataSpaceConnectorService.getDataAssetEntities(
+			{ dataSetId: [SERVICE_DATASET_ID] },
+			{
+				entityType: "https://vocabulary.uncefact.org/Consignment"
+			},
+			"test-cursor",
+			50
+		);
+
+		// Verify pagination was passed to app
+		expect(capturedPagination).toBeDefined();
+		expect(capturedPagination?.cursor).toBe("test-cursor");
+		expect(capturedPagination?.limit).toBe(50);
+	});
+
+	test("App validation requires at least one handler method", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Create an app that declares datasets but has no handleDataRequest method
+		// This should be rejected because it can't handle the datasets it declares
+		const invalidApp: IDataSpaceConnectorApp = {
+			className: () => "InvalidApp",
+			activitiesHandled: () => [],
+			datasetsHandled: (): IDsProtocolDataset[] => [
+				{
+					"@id": "https://example.org/dataset",
+					"@type": DcatClasses.Dataset,
+					"odrl:hasPolicy": [
+						{
+							"@context": "http://www.w3.org/ns/odrl/2/",
+							"@type": "Offer",
+							"@id": "urn:uuid:policy-1",
+							uid: "urn:uuid:policy-1",
+							assigner: "https://twin.example.org",
+							permission: []
+						}
+					],
+					"dcat:distribution": {
+						"@id": "https://example.org/distribution-1",
+						"dcterms:format": "Http-Pull-Query-Format",
+						"@type": "Distribution"
+					},
+					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
+				}
+			],
+			supportedQueryTypes: () => ["TestQuery"],
+			start: async () => {}
+			// Note: Missing handleDataRequest - this is the violation
+		};
+
+		// Trying to register app that declares datasets but has no handler should throw
+		await expect(
+			dataSpaceConnectorService.registerApp("https://twin.example.org/invalid-app", invalidApp)
+		).rejects.toMatchObject({
+			name: "GeneralError"
+		});
+	});
+
+	// ============================================
+	// DS Protocol Compliance Tests
+	// ============================================
+
+	test("registerApp rejects datasets without hasPolicy", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const invalidApp: IDataSpaceConnectorApp = {
+			className: () => "InvalidAppNoPolicy",
+			activitiesHandled: () => [],
+			datasetsHandled: (): IDsProtocolDataset[] => [
+				{
+					"@id": "https://example.org/invalid-dataset",
+					"@type": DcatClasses.Dataset,
+					"dcat:distribution": {
+						"@id": "https://example.org/distribution-1",
+						"@type": "Distribution",
+						"dcterms:format": "Http-Pull-Query-Format"
+					},
+					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
+					// Missing odrl:hasPolicy!
+				} as unknown as IDsProtocolDataset
+			],
+			supportedQueryTypes: () => ["EntityFilter"],
+			handleDataRequest: vi.fn(),
+			start: async () => {}
+		};
+
+		await expect(
+			dataSpaceConnectorService.registerApp(
+				"https://twin.example.org/invalid-app-no-policy",
+				invalidApp
+			)
+		).rejects.toMatchObject({
+			name: "GuardError"
+		});
+	});
+
+	test("registerApp rejects policies without @type", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const invalidApp: IDataSpaceConnectorApp = {
+			className: () => "InvalidAppPolicyNoType",
+			activitiesHandled: () => [],
+			datasetsHandled: (): IDsProtocolDataset[] => [
+				{
+					"@id": "https://example.org/invalid-dataset",
+					"@type": DcatClasses.Dataset,
+					"odrl:hasPolicy": [
+						{
+							"@id": "urn:uuid:policy-1",
+							"odrl:permission": []
+							// Missing @type!
+						}
+					],
+					"dcat:distribution": {
+						"@id": "https://example.org/distribution-1",
+						"@type": "Distribution",
+						"dcterms:format": "Http-Pull-Query-Format"
+					},
+					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
+				} as unknown as IDsProtocolDataset
+			],
+			supportedQueryTypes: () => ["EntityFilter"],
+			handleDataRequest: vi.fn(),
+			start: async () => {}
+		};
+
+		await expect(
+			dataSpaceConnectorService.registerApp(
+				"https://twin.example.org/invalid-app-policy-no-type",
+				invalidApp
+			)
+		).rejects.toMatchObject({
+			name: "GuardError"
+		});
+	});
+
+	test("registerApp rejects policies with invalid @type", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const invalidApp: IDataSpaceConnectorApp = {
+			className: () => "InvalidAppPolicyWrongType",
+			activitiesHandled: () => [],
+			datasetsHandled: (): IDsProtocolDataset[] => [
+				{
+					"@id": "https://example.org/invalid-dataset",
+					"@type": DcatClasses.Dataset,
+					"odrl:hasPolicy": [
+						{
+							"@type": "odrl:Agreement", // Wrong type! Should be "Offer"
+							"@id": "urn:uuid:policy-1",
+							"odrl:permission": []
+						}
+					],
+					"dcat:distribution": {
+						"@id": "https://example.org/distribution-1",
+						"@type": "Distribution"
+					},
+					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
+				} as unknown as IDsProtocolDataset
+			],
+			supportedQueryTypes: () => ["EntityFilter"],
+			handleDataRequest: vi.fn(),
+			start: async () => {}
+		};
+
+		await expect(
+			dataSpaceConnectorService.registerApp(
+				"https://twin.example.org/invalid-app-policy-wrong-type",
+				invalidApp
+			)
+		).rejects.toMatchObject({
+			name: "GuardError"
+		});
+	});
+
+	test("registerApp rejects policies without @id", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const invalidApp: IDataSpaceConnectorApp = {
+			className: () => "InvalidAppPolicyNoId",
+			activitiesHandled: () => [],
+			datasetsHandled: (): IDsProtocolDataset[] => [
+				{
+					"@id": "https://example.org/invalid-dataset",
+					"@type": DcatClasses.Dataset,
+					"odrl:hasPolicy": [
+						{
+							"@type": "odrl:Offer",
+							"odrl:permission": []
+							// Missing @id! (and uid)
+						}
+					],
+					"dcat:distribution": {
+						"@id": "https://example.org/distribution-1",
+						"@type": "Distribution"
+					},
+					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
+				} as unknown as IDsProtocolDataset
+			],
+			supportedQueryTypes: () => ["EntityFilter"],
+			handleDataRequest: vi.fn(),
+			start: async () => {}
+		};
+
+		await expect(
+			dataSpaceConnectorService.registerApp(
+				"https://twin.example.org/invalid-app-policy-no-id",
+				invalidApp
+			)
+		).rejects.toMatchObject({
+			name: "GuardError"
+		});
+	});
+
+	test("registerApp rejects datasets without distribution format", async () => {
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const invalidApp: IDataSpaceConnectorApp = {
+			className: () => "InvalidAppNoDistributionFormat",
+			activitiesHandled: () => [],
+			datasetsHandled: (): IDsProtocolDataset[] => [
+				{
+					"@id": "https://example.org/invalid-dataset",
+					"@type": DcatClasses.Dataset,
+					"dcat:distribution": {
+						"@id": "https://example.org/distribution-1",
+						"@type": "Distribution"
+					},
+					"dcterms:type": "https://vocabulary.uncefact.org/Consignment",
+					"odrl:hasPolicy": {
+						"@context": "http://www.w3.org/ns/odrl/2/",
+						"@type": "Offer",
+						"@id": "urn:uuid:policy-1",
+						assigner: "https://twin.example.org",
+						permission: []
+					}
+				} as unknown as IDsProtocolDataset
+			],
+			supportedQueryTypes: () => ["EntityFilter"],
+			handleDataRequest: vi.fn(),
+			start: async () => {}
+		};
+
+		await expect(
+			dataSpaceConnectorService.registerApp(
+				"https://twin.example.org/invalid-app-no-distribution-format",
+				invalidApp
+			)
+		).rejects.toMatchObject({
+			name: "GuardError"
+		});
 	});
 });

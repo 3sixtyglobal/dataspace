@@ -15,8 +15,9 @@
 	},
 	"scripts": {
 		"clean": "rimraf dist coverage docs/reference src/schemas",
+		"build:schema": "ts-to-schema ./ts-to-schema.json ./src/schemas",
 		"build:compile": "tspc",
-		"build": "npm run build:compile",
+		"build": "npm run build:schema && npm run build:compile",
 		"dev": "nodemon --watch src --ext ts --exec \"npm run build\"",
 		"test": "vitest --run --config ./vitest.config.ts --no-cache",
 		"test:build": "tspc -p ./tests/tsconfig.json --noEmit",
@@ -35,9 +36,11 @@
 		"@twin.org/data-json-ld": "next",
 		"@twin.org/entity": "next",
 		"@twin.org/nameof": "next",
+		"@twin.org/standards-dataspace-protocol": "next",
 		"@twin.org/standards-schema-org": "next",
 		"@twin.org/standards-w3c-activity-streams": "next",
-		"@twin.org/standards-w3c-dcat": "next"
+		"@twin.org/standards-w3c-dcat": "next",
+		"@twin.org/standards-w3c-odrl": "next"
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",

@@ -4770,6 +4770,234 @@
 				},
 				"description": "Interface for ODRL Logical Constraints. A Logical Constraint compares two or more existing Constraints by one logical operator. If the comparison returns a logical match, then the Logical Constraint is satisfied. https://www.w3.org/TR/odrl-model/#constraint-logical"
 			},
+			"OdrlOffer": {
+				"type": "object",
+				"properties": {
+					"@context": {
+						"$ref": "#/components/schemas/OdrlContextType"
+					},
+					"@id": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						]
+					},
+					"@included": {
+						"$ref": "https://schema.twindev.org/json-ld/JsonLdIncludedBlock"
+					},
+					"@graph": {
+						"anyOf": [
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+								}
+							}
+						]
+					},
+					"@nest": {
+						"anyOf": [
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdJsonObject"
+								}
+							}
+						]
+					},
+					"@type": {
+						"type": "string",
+						"const": "Offer",
+						"description": "The type must be \"Offer\"."
+					},
+					"@reverse": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "string"
+						}
+					},
+					"@index": {
+						"type": "string"
+					},
+					"uid": {
+						"type": "string",
+						"description": "The unique identifier for the policy. Must be an IRI."
+					},
+					"profile": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						],
+						"description": "The profile(s) this policy conforms to. IRIs identifying the ODRL Profile(s)."
+					},
+					"assigner": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/components/schemas/OdrlParty"
+							}
+						],
+						"description": "The assigner of the offer. Required for Offer policies."
+					},
+					"assignee": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/components/schemas/OdrlParty"
+							}
+						],
+						"description": "The assignee of the policy. Applies to all rules unless overridden at rule level."
+					},
+					"target": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/components/schemas/OdrlAsset"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAsset"
+										}
+									]
+								}
+							}
+						],
+						"description": "The target asset for the rule."
+					},
+					"action": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/ActionType"
+							},
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "#/components/schemas/OdrlAction"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/ActionType"
+										},
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "#/components/schemas/OdrlAction"
+										}
+									]
+								}
+							}
+						],
+						"description": "The action associated with the rule."
+					},
+					"inheritFrom": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						],
+						"description": "The parent policy(ies) this policy inherits from. IRIs identifying the parent Policy(ies)."
+					},
+					"conflict": {
+						"$ref": "#/components/schemas/ConflictStrategyType"
+					},
+					"permission": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OdrlPermission"
+						},
+						"description": "The permissions in the policy. At least one of permission, prohibition, or obligation must be present."
+					},
+					"prohibition": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OdrlProhibition"
+						},
+						"description": "The prohibitions in the policy. At least one of permission, prohibition, or obligation must be present."
+					},
+					"obligation": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/OdrlDuty"
+						},
+						"description": "The obligations in the policy. At least one of permission, prohibition, or obligation must be present."
+					}
+				},
+				"required": [
+					"@context",
+					"@type",
+					"assigner",
+					"uid"
+				],
+				"additionalProperties": {
+					"anyOf": [
+						{
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdNodePrimitive"
+						},
+						{
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
+						},
+						{
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdIndexMap"
+						},
+						{
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdIncludedBlock"
+						},
+						{
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdIdMap"
+						},
+						{
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdTypeMap"
+						},
+						{
+							"type": "array"
+						}
+					]
+				},
+				"description": "Interface representing an ODRL Offer. An Offer requires an assigner (the party making the offer). https://www.w3.org/TR/odrl-model/#policy-offer"
+			},
 			"OdrlParty": {
 				"type": "object",
 				"properties": {

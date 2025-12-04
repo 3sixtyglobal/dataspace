@@ -24,6 +24,7 @@ import {
 	type IValidationFailure
 } from "@twin.org/core";
 import { Blake2b } from "@twin.org/crypto";
+import { DataTypeHandlerFactory, JsonSchemaHelper } from "@twin.org/data-core";
 import {
 	JsonLdDataTypes,
 	JsonLdHelper,
@@ -33,6 +34,7 @@ import {
 } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
+	DsProtocolDataTypes,
 	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
@@ -43,6 +45,7 @@ import {
 	type IDataRequest,
 	type IDataSpaceConnector,
 	type IDataSpaceConnectorApp,
+	type IDsProtocolDataset,
 	type IEntitySet,
 	type IExecutionPayload,
 	type IFilteringQuery,
@@ -54,7 +57,6 @@ import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
 } from "@twin.org/entity-storage-models";
-import type { IFederatedCatalogueComponent } from "@twin.org/federated-catalogue-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
@@ -124,12 +126,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @internal
 	 */
 	private readonly _backgroundTaskComponent: IBackgroundTaskComponent;
-
-	/**
-	 * The federated catalogue component.
-	 * @internal
-	 */
-	private readonly _federatedCatalogueComponent?: IFederatedCatalogueComponent;
 
 	/**
 	 * Activity Log Status callbacks.
@@ -207,27 +203,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			options?.taskSchedulerComponentType ?? "task-scheduler"
 		);
 
-		this._federatedCatalogueComponent = ComponentFactory.getIfExists<IFederatedCatalogueComponent>(
-			options?.federatedCatalogueComponentType ?? "federated-catalogue"
-		);
-
-		if (!this._federatedCatalogueComponent) {
-			this._loggingService
-				?.log({
-					level: "warn",
-					source: DataSpaceConnectorService.CLASS_NAME,
-					message: "federatedCatalogueNotAvailable"
-				})
-				.catch(() => {
-					// Ignore logging errors
-				});
-		}
-
 		this._apps = [];
 
 		JsonLdDataTypes.registerTypes();
 		ActivityStreamsDataTypes.registerTypes();
 		SchemaOrgDataTypes.registerRedirects();
+		DsProtocolDataTypes.registerTypes();
 
 		this._activityLogStatusCallbacks = {};
 		this._activeTenants = [];
@@ -613,16 +594,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const contextIds = await ContextIdStore.getContextIds();
 		ContextIdHelper.guard(contextIds, ContextIdKeys.Organization);
 
-		// Get participant identity from context for validation
 		const dataConsumerIdentity = contextIds[ContextIdKeys.Organization];
 		Guards.stringValue(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(dataConsumerIdentity),
 			dataConsumerIdentity
 		);
-
-		// Validate participant exists
-		await this.validateParticipantExists(dataConsumerIdentity);
 
 		// Require dataset ID to be provided
 		if (!Is.array(dataAsset.dataSetId) || dataAsset.dataSetId.length === 0) {
@@ -634,13 +611,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			);
 		}
 
-		// Get the dataset (service) - use first dataset ID if multiple provided
-		const serviceDataset = await this.getDatasetById(dataAsset.dataSetId[0]);
+		const serviceDataset = this.getDatasetFromApps(dataAsset.dataSetId[0]);
 
 		// Expand entity type if LD context provided
 		let finalType: string | undefined = entitySet.entityType;
 		if (!Is.undefined(entitySet.jsonLdContext)) {
-			// Let's expand the entity type
 			const auxiliaryObj = {
 				"@context": entitySet.jsonLdContext,
 				"@type": entitySet.entityType
@@ -658,31 +633,28 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			);
 		}
 
-		// Find app that handles this dataset/service
-		// Use serviceId from dataset @id
-		const serviceId = serviceDataset["@id"];
-		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(serviceId), serviceId);
-		const dsConnectorApp = await this.getAppForDataAssetQuery({ serviceId });
+		const datasetId = serviceDataset["@id"];
+		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(datasetId), datasetId);
+		const appId = await this.getAppForDataAssetQuery({ datasetId });
 
-		// Get the app instance (getAppForDataAssetQuery already validates app exists)
-		const theApp = this._apps.find(a => a.appId === dsConnectorApp)?.app;
-		if (!theApp) {
-			throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", serviceId, {
-				dataServiceId: serviceId
+		// getAppForDataAssetQuery already validates app exists
+		const appEntry = this._apps.find(a => a.appId === appId);
+		if (!appEntry) {
+			throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", datasetId, {
+				datasetId
 			});
 		}
 
-		const handleDataRequest = theApp.handleDataRequest?.bind(theApp);
+		const handleDataRequest = appEntry.app.handleDataRequest?.bind(appEntry.app);
 		Guards.function(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(handleDataRequest),
 			handleDataRequest
 		);
 
-		// Build data request
 		const dataRequest: IDataRequest = {
 			type: "DataAssetEntities",
-			dataAsset: serviceDataset,
+			dataAsset: serviceDataset as unknown as IDataset,
 			entitySet: {
 				entityType: finalType,
 				entityId: entitySet.entityId
@@ -693,7 +665,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const { data, cursor: cursorResult } = await handleDataRequest(dataRequest);
 
-		// Normalize data to array
 		let finalData: IJsonLdNodeObject[];
 		if (Is.array(data)) {
 			finalData = data;
@@ -701,7 +672,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			finalData = [data as IJsonLdNodeObject];
 		}
 
-		// Build result
 		const finalResult = {
 			"@context": SchemaOrgContexts.ContextRoot,
 			type: SchemaOrgTypes.ItemList,
@@ -737,16 +707,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const contextIds = await ContextIdStore.getContextIds();
 		ContextIdHelper.guard(contextIds, ContextIdKeys.Organization);
 
-		// Get participant identity from context for validation
 		const dataConsumerIdentity = contextIds[ContextIdKeys.Organization];
 		Guards.stringValue(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(dataConsumerIdentity),
 			dataConsumerIdentity
 		);
-
-		// Validate participant
-		await this.validateParticipantExists(dataConsumerIdentity);
 
 		// Require dataset ID to be provided
 		if (!Is.array(dataAsset.dataSetId) || dataAsset.dataSetId.length === 0) {
@@ -758,37 +724,34 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			);
 		}
 
-		const serviceDataset = await this.getDatasetById(dataAsset.dataSetId[0]);
+		const serviceDataset = this.getDatasetFromApps(dataAsset.dataSetId[0]);
 
-		// Find app
-		const serviceId = serviceDataset["@id"];
-		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(serviceId), serviceId);
-		const dsConnectorApp = await this.getAppForDataAssetQuery({ serviceId });
+		const datasetId = serviceDataset["@id"];
+		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(datasetId), datasetId);
+		const appId = await this.getAppForDataAssetQuery({ datasetId });
 
-		const theApp = this._apps.find(a => a.appId === dsConnectorApp)?.app;
-		if (!theApp) {
-			throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", serviceId, {
-				dataServiceId: serviceId
+		const appEntry = this._apps.find(a => a.appId === appId);
+		if (!appEntry) {
+			throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", datasetId, {
+				datasetId
 			});
 		}
 
-		// Validate query type
-		if (!theApp.supportedQueryTypes().includes(query.type)) {
+		if (!appEntry.app.supportedQueryTypes().includes(query.type)) {
 			throw new UnprocessableError(DataSpaceConnectorService.CLASS_NAME, "queryTypeNotSupported", {
 				queryType: query.type
 			});
 		}
 
-		// Build data request
 		const dataRequest: IDataRequest = {
 			type: "QueryDataAsset",
-			dataAsset: serviceDataset,
+			dataAsset: serviceDataset as unknown as IDataset,
 			query,
 			cursor,
 			limit
 		};
 
-		const handleDataRequest = theApp.handleDataRequest?.bind(theApp);
+		const handleDataRequest = appEntry.app.handleDataRequest?.bind(appEntry.app);
 		Guards.function(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(handleDataRequest),
@@ -797,7 +760,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const { data, cursor: cursorResult } = await handleDataRequest(dataRequest);
 
-		// Normalize data
 		let finalData: IJsonLdNodeObject[];
 		if (Is.array(data)) {
 			finalData = data;
@@ -805,7 +767,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			finalData = [data as IJsonLdNodeObject];
 		}
 
-		// Build result
 		const finalResult = {
 			"@context": SchemaOrgContexts.ContextRoot,
 			type: SchemaOrgTypes.ItemList,
@@ -842,11 +803,16 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 		if (
 			(app.activitiesHandled().length > 0 && !handleActivityIsFunction) ||
-			(app.dataServicesHandled().length > 0 && !handleDataRequestIsFunction)
+			(app.datasetsHandled().length > 0 && !handleDataRequestIsFunction)
 		) {
 			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "invalidDataSpaceConnectorApp", {
 				appId
 			});
+		}
+
+		const datasets = app.datasetsHandled();
+		for (const dataset of datasets) {
+			await this.validateDatasetCompliance(dataset, appId);
 		}
 
 		const currentIndex = this._apps.findIndex(a => a.appId === appId);
@@ -1206,53 +1172,124 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	}
 
 	/**
-	 * Get a dataset by its ID.
-	 * @param datasetId The dataset identifier
+	 * Get a dataset from registered apps by its ID.
+	 * @param datasetId The dataset identifier (@id)
 	 * @returns The dataset
-	 * @throws NotFoundError if dataset not found
+	 * @throws NotFoundError if no app handles this dataset
 	 * @internal
 	 */
-	private async getDatasetById(datasetId: string): Promise<IDataset> {
+	private getDatasetFromApps(datasetId: string): IDsProtocolDataset {
 		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(datasetId), datasetId);
 
-		if (!this._federatedCatalogueComponent) {
-			throw new GeneralError(
-				DataSpaceConnectorService.CLASS_NAME,
-				"federatedCatalogueNotAvailable"
-			);
+		for (const appEntry of this._apps) {
+			const datasets = appEntry.app.datasetsHandled();
+			const dataset = datasets.find(d => d["@id"] === datasetId);
+			if (dataset) {
+				return dataset;
+			}
 		}
 
-		return this._federatedCatalogueComponent.get(datasetId);
+		throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", datasetId, {
+			datasetId
+		});
 	}
 
 	/**
-	 * Validate that a participant ID is provided.
-	 * Note: Validation against the catalogue (checking if participant exists) is not yet implemented
-	 * as this functionality is specified in RFC005 but not yet available in the new Catalogue.
-	 * This will be implemented in a future update.
-	 * @param participantId The participant identifier (DID)
-	 * @throws GuardError if participant ID is invalid
+	 * Validates that a dataset is compliant with Data Space Protocol requirements.
+	 * @param dataset The dataset to validate.
+	 * @param appId The app ID (for error context).
+	 * @throws GuardError if dataset is not compliant.
 	 * @internal
+	 * @see https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1-err1/#lower-level-types
 	 */
-	private async validateParticipantExists(participantId: string): Promise<void> {
-		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(participantId), participantId);
-		// TODO: Implement catalogue validation when RFC005 functionality is available
+	private async validateDatasetCompliance(
+		dataset: IDsProtocolDataset,
+		appId: string
+	): Promise<void> {
+		Guards.object(DataSpaceConnectorService.CLASS_NAME, nameof(dataset), dataset);
+		Guards.string(DataSpaceConnectorService.CLASS_NAME, "dataset['@id']", dataset["@id"]);
+
+		// Get the registered schema from DataTypeHandlerFactory
+		const schemaHandler = DataTypeHandlerFactory.getIfExists(
+			"https://schema.twindev.org/data-space-connector/DsProtocolDataset"
+		);
+
+		if (!schemaHandler?.jsonSchema) {
+			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "schemaNotRegistered", {
+				schemaId: "DsProtocolDataset"
+			});
+		}
+
+		const schema = await schemaHandler.jsonSchema();
+
+		if (!schema) {
+			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "schemaNotRegistered", {
+				schemaId: "DsProtocolDataset"
+			});
+		}
+
+		// Validate against JSON Schema for IDsProtocolDataset
+		const validationResult = await JsonSchemaHelper.validate(schema, dataset);
+
+		if (!validationResult.result) {
+			const errors = validationResult.error;
+			if (errors && errors.length > 0) {
+				const firstError = errors[0];
+				const instancePath = firstError.instancePath ?? "";
+				const message = firstError.message ?? "validation failed";
+
+				// Map JSON Schema errors to our locale keys
+				if (instancePath.includes("odrl:hasPolicy")) {
+					if (message.includes("required")) {
+						throw new GuardError(
+							DataSpaceConnectorService.CLASS_NAME,
+							"datasetMissingPolicy",
+							"dataset['odrl:hasPolicy']",
+							{ appId, datasetId: dataset["@id"], schemaError: message }
+						);
+					}
+					if (message.includes("minItems") || message.includes("array")) {
+						throw new GuardError(
+							DataSpaceConnectorService.CLASS_NAME,
+							"policyArrayEmpty",
+							"dataset['odrl:hasPolicy']",
+							{ appId, datasetId: dataset["@id"], schemaError: message }
+						);
+					}
+				}
+				if (instancePath.includes("@type") && instancePath.includes("odrl:hasPolicy")) {
+					throw new GuardError(
+						DataSpaceConnectorService.CLASS_NAME,
+						"policyInvalidType",
+						"policy['@type']",
+						{ appId, datasetId: dataset["@id"], schemaError: message }
+					);
+				}
+
+				throw new GuardError(
+					DataSpaceConnectorService.CLASS_NAME,
+					"datasetSchemaValidationFailed",
+					instancePath || "dataset",
+					{ appId, datasetId: dataset["@id"], schemaError: message }
+				);
+			}
+		}
 	}
 
 	/**
-	 * Returns an App for a Data Asset query (dataServiceId, ...).
+	 * Returns an App for a Data Asset query (datasetId, ...).
 	 * @param dataAssetQuery The data asset query.
-	 * @returns The Data Space Connector Apps or empty list if nothing is registered.
+	 * @returns The Data Space Connector App ID.
 	 * @internal
 	 */
 	private async getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): Promise<string> {
 		const matchingElements: string[] = [];
 
 		for (const appEntry of this._apps) {
-			const appQueries = appEntry.app.dataServicesHandled();
+			const datasets = appEntry.app.datasetsHandled();
 
-			for (const appQuery of appQueries) {
-				if (appQuery.serviceId === dataAssetQuery.serviceId) {
+			for (const dataset of datasets) {
+				if (dataset["@id"] === dataAssetQuery.datasetId) {
 					matchingElements.push(appEntry.appId);
 				}
 			}
@@ -1262,10 +1299,10 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			const error = new ConflictError(
 				DataSpaceConnectorService.CLASS_NAME,
 				"tooManyAppsRegistered",
-				dataAssetQuery.serviceId,
+				dataAssetQuery.datasetId,
 				matchingElements,
 				{
-					dataServiceId: dataAssetQuery.serviceId
+					datasetId: dataAssetQuery.datasetId
 				}
 			);
 			await this._loggingService?.log({
@@ -1274,7 +1311,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				message: "tooManyAppsRegistered",
 				error,
 				data: {
-					dataServiceId: dataAssetQuery.serviceId
+					datasetId: dataAssetQuery.datasetId
 				}
 			});
 			throw error;
@@ -1284,9 +1321,9 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			const error = new NotFoundError(
 				DataSpaceConnectorService.CLASS_NAME,
 				"noAppRegistered",
-				dataAssetQuery.serviceId,
+				dataAssetQuery.datasetId,
 				{
-					dataServiceId: dataAssetQuery.serviceId
+					datasetId: dataAssetQuery.datasetId
 				}
 			);
 			await this._loggingService?.log({
@@ -1295,7 +1332,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 				message: "noAppRegistered",
 				error,
 				data: {
-					dataServiceId: dataAssetQuery.serviceId
+					datasetId: dataAssetQuery.datasetId
 				}
 			});
 			throw error;

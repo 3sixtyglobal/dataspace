@@ -1,5 +1,9 @@
 # @twin.org/data-space-connector-models
 
+## Classes
+
+- [DsProtocolDataTypes](classes/DsProtocolDataTypes.md)
+
 ## Interfaces
 
 - [IDataSpaceConnector](interfaces/IDataSpaceConnector.md)
@@ -10,6 +14,7 @@
 - [IActivityTask](interfaces/IActivityTask.md)
 - [IDataAssetDescription](interfaces/IDataAssetDescription.md)
 - [IDataAssetItemList](interfaces/IDataAssetItemList.md)
+- [IDsProtocolDataset](interfaces/IDsProtocolDataset.md)
 - [IEntitySet](interfaces/IEntitySet.md)
 - [IExecutionPayload](interfaces/IExecutionPayload.md)
 - [IFilteringQuery](interfaces/IFilteringQuery.md)

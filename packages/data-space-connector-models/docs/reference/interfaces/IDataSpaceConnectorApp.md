@@ -22,17 +22,17 @@ A query that describes the set of activities handled by the App.
 
 ***
 
-### dataServicesHandled()
+### datasetsHandled()
 
-> **dataServicesHandled**(): [`IDataAssetQuery`](IDataAssetQuery.md)[]
+> **datasetsHandled**(): [`IDsProtocolDataset`](IDsProtocolDataset.md)[]
 
-The data services handled by the App.
+The datasets handled by the App.
 
 #### Returns
 
-[`IDataAssetQuery`](IDataAssetQuery.md)[]
+[`IDsProtocolDataset`](IDsProtocolDataset.md)[]
 
-A query that describes the set of Data Services handled by the App.
+The DS Protocol compliant datasets handled by the App.
 
 ***
 

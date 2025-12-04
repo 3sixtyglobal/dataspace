@@ -29,3 +29,6 @@ export * from "./models/api/IDataAssetGetEntitiesRequest.js";
 export * from "./models/api/IDataAssetEntitiesResponse.js";
 export * from "./models/api/IDataAssetQueryRequest.js";
 export * from "./models/IDataAssetDescription.js";
+export * from "./models/IDsProtocolDataset.js";
+
+export * from "./dataTypes/dsProtocolDataTypes.js";

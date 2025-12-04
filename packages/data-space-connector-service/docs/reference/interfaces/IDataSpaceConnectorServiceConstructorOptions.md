@@ -46,20 +46,6 @@ task-scheduler
 
 ***
 
-### federatedCatalogueComponentType?
-
-> `optional` **federatedCatalogueComponentType**: `string`
-
-The Federated Catalogue Component type.
-
-#### Default
-
-```ts
-federated-catalogue
-```
-
-***
-
 ### activityLogEntityStorageType?
 
 > `optional` **activityLogEntityStorageType**: `string`

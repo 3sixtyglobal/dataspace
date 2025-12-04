@@ -1,9 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import path from "node:path";
-import { Guards } from "@twin.org/core";
-import { FederatedCatalogueComponentType, type IEngineConfig } from "@twin.org/engine-types";
-import { nameof } from "@twin.org/nameof";
+import type { IEngineConfig } from "@twin.org/engine-types";
 import { type INodeEnvironmentVariables, run } from "@twin.org/node-core";
 
 await run({
@@ -21,20 +19,8 @@ await run({
  * @param engineConfig The engine configuration.
  */
 export async function extendConfig(
-	envVars: INodeEnvironmentVariables & { federatedCatalogueEndpoint?: string },
+	envVars: INodeEnvironmentVariables,
 	engineConfig: IEngineConfig
 ): Promise<void> {
-	Guards.string(
-		"data-space-connector-rest-server",
-		nameof(envVars.federatedCatalogueEndpoint),
-		envVars.federatedCatalogueEndpoint
-	);
-	engineConfig.types.federatedCatalogueComponent = [
-		{
-			type: FederatedCatalogueComponentType.RestClient,
-			options: {
-				endpoint: envVars.federatedCatalogueEndpoint
-			}
-		}
-	];
+	// No additional configuration needed for Data Space Connector
 }

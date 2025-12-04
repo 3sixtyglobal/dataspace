@@ -27,11 +27,13 @@
 		"dcat",
 		"Jsonld",
 		"nameof",
+		"odrl",
 		"openapi",
 		"Stiftung",
 		"twinfoundation",
 		"unece",
-		"Unrevoke"
+		"Unrevoke",
+		"dcterms"
 	],
 	"ignoreRegExpList": [
 		"/from\\s+(['\"]).*\\1/",
