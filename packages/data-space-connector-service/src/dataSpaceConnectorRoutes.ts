@@ -26,7 +26,10 @@ import type {
 	IFilteringQuery
 } from "@twin.org/data-space-connector-models";
 import { nameof } from "@twin.org/nameof";
-import { ActivityStreamsContexts, type IActivity } from "@twin.org/standards-w3c-activity-streams";
+import {
+	ActivityStreamsContexts,
+	type IActivityStreamsActivity
+} from "@twin.org/standards-w3c-activity-streams";
 import { HttpStatusCode, MimeTypes } from "@twin.org/web";
 
 /**
@@ -59,7 +62,7 @@ export const tagsDataSpaceConnector: ITag[] = [
 	}
 ];
 
-const activityExample: IActivity = {
+const activityExample: IActivityStreamsActivity = {
 	"@context": ActivityStreamsContexts.ContextRoot,
 	type: "Add",
 	actor: {
@@ -296,7 +299,7 @@ export async function activityStreamNotify(
 	request: IActivityStreamNotifyRequest
 ): Promise<ICreatedResponse> {
 	Guards.object<IActivityStreamNotifyRequest>(ROUTES_SOURCE, nameof(request), request);
-	Guards.object<IActivity>(ROUTES_SOURCE, nameof(request.body), request.body);
+	Guards.object<IActivityStreamsActivity>(ROUTES_SOURCE, nameof(request.body), request.body);
 
 	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 	const activityLogEntryId = await service.notifyActivity(request.body);

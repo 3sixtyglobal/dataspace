@@ -64,8 +64,11 @@ import {
 	SchemaOrgDataTypes,
 	SchemaOrgTypes
 } from "@twin.org/standards-schema-org";
-import { ActivityStreamsDataTypes, type IActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IDataset } from "@twin.org/standards-w3c-dcat";
+import {
+	ActivityStreamsDataTypes,
+	type IActivityStreamsActivity
+} from "@twin.org/standards-w3c-activity-streams";
+import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
 import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDataSpaceConnectorServiceConstructorOptions.js";
@@ -325,8 +328,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param activity The Activity notified.
 	 * @returns The Activity's Log Entry identifier.
 	 */
-	public async notifyActivity(activity: IActivity): Promise<string> {
-		Guards.object<IActivity>(DataSpaceConnectorService.CLASS_NAME, nameof(activity), activity);
+	public async notifyActivity(activity: IActivityStreamsActivity): Promise<string> {
+		Guards.object<IActivityStreamsActivity>(
+			DataSpaceConnectorService.CLASS_NAME,
+			nameof(activity),
+			activity
+		);
 
 		await this.updateActiveTenants();
 
@@ -654,7 +661,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const dataRequest: IDataRequest = {
 			type: "DataAssetEntities",
-			dataAsset: serviceDataset as unknown as IDataset,
+			dataAsset: serviceDataset as unknown as IDcatDataset,
 			entitySet: {
 				entityType: finalType,
 				entityId: entitySet.entityId
@@ -745,7 +752,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const dataRequest: IDataRequest = {
 			type: "QueryDataAsset",
-			dataAsset: serviceDataset as unknown as IDataset,
+			dataAsset: serviceDataset as unknown as IDcatDataset,
 			query,
 			cursor,
 			limit
@@ -863,7 +870,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @throws General Error if no identity is found.
 	 * @internal
 	 */
-	private calculateActivityGeneratorIdentity(activity: IActivity): string {
+	private calculateActivityGeneratorIdentity(activity: IActivityStreamsActivity): string {
 		if (Is.stringValue(activity.generator)) {
 			return activity.generator;
 		}
@@ -1059,7 +1066,9 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @returns the (Activity, Object, Target) query set.
 	 * @internal
 	 */
-	private async calculateActivityQuerySet(compactedObj: IActivity): Promise<IActivityQuery[]> {
+	private async calculateActivityQuerySet(
+		compactedObj: IActivityStreamsActivity
+	): Promise<IActivityQuery[]> {
 		const expanded = await JsonLdProcessor.expand({
 			"@context": compactedObj["@context"],
 			"@type": compactedObj.type

@@ -1,8 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ActivityStreamsContexts, type IActivity } from "@twin.org/standards-w3c-activity-streams";
+import {
+	ActivityStreamsContexts,
+	type IActivityStreamsActivity
+} from "@twin.org/standards-w3c-activity-streams";
 
-export const canonicalActivity: IActivity = {
+export const canonicalActivity: IActivityStreamsActivity = {
 	"@context": ActivityStreamsContexts.ContextRoot,
 	type: "Create",
 	actor: {
@@ -16,12 +19,12 @@ export const canonicalActivity: IActivity = {
 	updated: new Date().toISOString()
 };
 
-export const activityLdContextArray: IActivity = {
+export const activityLdContextArray: IActivityStreamsActivity = {
 	...canonicalActivity,
 	"@context": [ActivityStreamsContexts.ContextRoot]
 };
 
-export const extendedActivity: IActivity = {
+export const extendedActivity: IActivityStreamsActivity = {
 	"@context": [
 		{
 			MyCreate: "https://twin.example.org/MyCreate"

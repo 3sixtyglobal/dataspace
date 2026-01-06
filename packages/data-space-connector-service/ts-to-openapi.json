@@ -14,7 +14,20 @@
 	"externalReferences": {
 		"JsonLd(.*?)": "https://schema.twindev.org/json-ld/JsonLd$1",
 		"ActivityStreams": "https://schema.twindev.org/w3c-activity-streams/ActivityStreams",
-		"ActivityStreamsTypes": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
+		"ActivityStreamsTypes": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes",
+		"Odrl(.*)": "https://schema.twindev.org/w3c-odrl/Odrl$1",
+		"ActionType": "https://schema.twindev.org/w3c-odrl/ActionType",
+		"UriActionType": "https://schema.twindev.org/w3c-odrl/UriActionType",
+		"ConflictStrategyType": "https://schema.twindev.org/w3c-odrl/ConflictStrategyType",
+		"StatusType": "https://schema.twindev.org/w3c-odrl/StatusType",
+		"PolicyType": "https://schema.twindev.org/w3c-odrl/PolicyType",
+		"OperatorType": "https://schema.twindev.org/w3c-odrl/OperatorType",
+		"LeftOperandType": "https://schema.twindev.org/w3c-odrl/LeftOperandType",
+		"RightOperandType": "https://schema.twindev.org/w3c-odrl/RightOperandType",
+		"DataspaceProtocol(.*?)": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocol$1",
+		"Dcat(.*?)": "https://schema.twindev.org/dcat/Dcat$1",
+		"DublinCore(.*?)": "https://schema.twindev.org/dublin-core/DublinCore$1",
+		"Foaf(.*?)": "https://schema.twindev.org/foaf/Foaf$1"
 	},
 	"autoExpandTypes": ["ActivityStreamsContextType"]
 }

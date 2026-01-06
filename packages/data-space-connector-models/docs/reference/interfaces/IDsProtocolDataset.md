@@ -34,7 +34,7 @@ by overriding properties with more specific types and constraints.
 
 ## Extends
 
-- `Omit`\<`IDataset`, `"odrl:hasPolicy"` \| `"dcat:distribution"` \| `"@type"`\>
+- `Omit`\<`IDcatDataset`, `"odrl:hasPolicy"` \| `"dcat:distribution"` \| `"@type"`\>
 
 ## Indexable
 
@@ -77,7 +77,7 @@ allows for future multi-offer support.
 
 ### dcat:distribution
 
-> **dcat:distribution**: `ObjectOrArray`\<`IDistribution`\>
+> **dcat:distribution**: `ObjectOrArray`\<`IDcatDistribution`\>
 
 Distribution of the dataset.
 REQUIRED per Eclipse Data Space Protocol.

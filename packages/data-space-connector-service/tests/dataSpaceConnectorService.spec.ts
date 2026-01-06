@@ -24,7 +24,7 @@ import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { addAllContextsToDocumentCache, LD_CONTEXTS } from "@twin.org/standards-ld-contexts";
-import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import { DcatClasses } from "@twin.org/standards-w3c-dcat";
 import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
@@ -357,7 +357,7 @@ describe("data-space-connector-tests", () => {
 		await testApp.start();
 
 		// Avoid duplication check
-		const activityCopy = ObjectHelper.clone<IActivity>(activityLdContextArray);
+		const activityCopy = ObjectHelper.clone<IActivityStreamsActivity>(activityLdContextArray);
 		activityCopy.updated = new Date().toISOString();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(activityCopy);
@@ -392,7 +392,7 @@ describe("data-space-connector-tests", () => {
 
 	test("It should not start any task if there is no registered DS Connector App", async () => {
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		const activityCopy = ObjectHelper.clone<IActivity>(activityLdContextArray);
+		const activityCopy = ObjectHelper.clone<IActivityStreamsActivity>(activityLdContextArray);
 		activityCopy.updated = new Date().toISOString();
 
 		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(activityCopy);
@@ -422,7 +422,7 @@ describe("data-space-connector-tests", () => {
 	test("It should report an error if Activity does not contain generator nor actor", async () => {
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 
-		const activity = ObjectHelper.clone<IActivity>(canonicalActivity);
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		delete activity.generator;
 		delete activity.actor;
 
@@ -907,7 +907,7 @@ describe("data-space-connector-tests", () => {
 					"@type": DcatClasses.Dataset,
 					"odrl:hasPolicy": [
 						{
-							"@context": "http://www.w3.org/ns/odrl/2/",
+							"@context": "http://www.w3.org/ns/odrl.jsonld",
 							"@type": "Offer",
 							"@id": "urn:uuid:policy-1",
 							uid: "urn:uuid:policy-1",

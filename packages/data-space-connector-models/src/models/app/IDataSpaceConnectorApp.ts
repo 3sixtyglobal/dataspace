@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
-import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { IDsProtocolDataset } from "../IDsProtocolDataset.js";
 import type { IActivityQuery } from "./IActivityQuery.js";
 import type { IDataRequest } from "./IDataRequest.js";
@@ -34,7 +34,7 @@ export interface IDataSpaceConnectorApp extends IComponent {
 	 * @param activity The Activity to be handled
 	 * @returns The result of executing the Activity.
 	 */
-	handleActivity?<T>(activity: IActivity): Promise<T>;
+	handleActivity?<T>(activity: IActivityStreamsActivity): Promise<T>;
 
 	/**
 	 * Handles a Data Request.

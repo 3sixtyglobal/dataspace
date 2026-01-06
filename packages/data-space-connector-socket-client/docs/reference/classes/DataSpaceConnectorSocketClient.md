@@ -72,7 +72,7 @@ Notify an Activity to the DS Connector Activity Stream - implemented in REST Cli
 
 ##### activity
 
-`IActivity`
+`IActivityStreamsActivity`
 
 The Activity notified.
 

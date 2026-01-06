@@ -13,7 +13,7 @@ import type {
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
-import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import { DcatClasses } from "@twin.org/standards-w3c-dcat";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
@@ -101,7 +101,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 				"@type": DcatClasses.Dataset,
 				"odrl:hasPolicy": [
 					{
-						"@context": "http://www.w3.org/ns/odrl/2/",
+						"@context": "http://www.w3.org/ns/odrl.jsonld",
 						"@type": "Offer",
 						"@id": "urn:uuid:test-policy-offer-1",
 						uid: "urn:uuid:test-policy-offer-1",
@@ -171,7 +171,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	 * @param activity Activity
 	 * @returns Activity processing result
 	 */
-	public async handleActivity<T>(activity: IActivity): Promise<T> {
+	public async handleActivity<T>(activity: IActivityStreamsActivity): Promise<T> {
 		await this._loggingService?.log({
 			level: "info",
 			source: TestDataSpaceConnectorApp.CLASS_NAME,

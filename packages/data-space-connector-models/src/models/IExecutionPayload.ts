@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 
 /**
  * Execution payload.
@@ -14,7 +14,7 @@ export interface IExecutionPayload {
 	/**
 	 * The activity
 	 */
-	activity: IActivity;
+	activity: IActivityStreamsActivity;
 
 	/**
 	 * The executor App.

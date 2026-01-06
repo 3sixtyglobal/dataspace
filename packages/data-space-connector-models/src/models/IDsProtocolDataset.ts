@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { ObjectOrArray } from "@twin.org/core";
-import type { IDataset, IDistribution } from "@twin.org/standards-w3c-dcat";
+import type { IDcatDataset, IDcatDistribution } from "@twin.org/standards-w3c-dcat";
 import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
 
 /**
@@ -36,7 +36,7 @@ import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
  * @see IResource.odrl:hasPolicy from @twin.org/standards-w3c-dcat
  */
 export interface IDsProtocolDataset
-	extends Omit<IDataset, "odrl:hasPolicy" | "dcat:distribution" | "@type"> {
+	extends Omit<IDcatDataset, "odrl:hasPolicy" | "dcat:distribution" | "@type"> {
 	/**
 	 * The type identifier for the dataset.
 	 * REQUIRED per Eclipse Data Space Protocol.
@@ -63,7 +63,7 @@ export interface IDsProtocolDataset
 	 * Distribution of the dataset.
 	 * REQUIRED per Eclipse Data Space Protocol.
 	 */
-	"dcat:distribution": ObjectOrArray<IDistribution>;
+	"dcat:distribution": ObjectOrArray<IDcatDistribution>;
 
 	/**
 	 * Entity type.

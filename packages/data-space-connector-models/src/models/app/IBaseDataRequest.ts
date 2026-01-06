@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IDataset } from "@twin.org/standards-w3c-dcat";
+import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
 import type { DataRequestType } from "./dataRequestType.js";
 
 /**
@@ -15,7 +15,7 @@ export interface IBaseDataRequest {
 	/**
 	 * The data asset we are referring to.
 	 */
-	dataAsset: IDataset;
+	dataAsset: IDcatDataset;
 
 	/**
 	 * Cursor that points to the next item in the result set.

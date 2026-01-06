@@ -14,7 +14,7 @@ Type of Data Request.
 
 ### dataAsset
 
-> **dataAsset**: `IDataset`
+> **dataAsset**: `IDcatDataset`
 
 The data asset we are referring to.
 

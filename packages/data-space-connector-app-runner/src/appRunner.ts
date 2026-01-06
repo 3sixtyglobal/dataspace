@@ -9,7 +9,7 @@ import {
 import { EngineCore } from "@twin.org/engine-core";
 import type { IEngineCore, IEngineCoreClone } from "@twin.org/engine-models";
 import { nameof } from "@twin.org/nameof";
-import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 
 const CLASS_NAME = "DataSpaceAppRunner";
 
@@ -54,7 +54,7 @@ export async function appRunner(
 	Guards.objectValue<IExecutionPayload>(CLASS_NAME, nameof(payload), payload);
 	Guards.stringValue(CLASS_NAME, nameof(payload.executorApp), payload.executorApp);
 	Guards.stringValue(CLASS_NAME, nameof(payload.activityLogEntryId), payload.activityLogEntryId);
-	Guards.object<IActivity>(CLASS_NAME, nameof(payload.activity), payload.activity);
+	Guards.object<IActivityStreamsActivity>(CLASS_NAME, nameof(payload.activity), payload.activity);
 
 	const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(payload.executorApp);
 

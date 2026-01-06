@@ -88,7 +88,7 @@ Notify an Activity.
 
 ##### activity
 
-`IActivity`
+`IActivityStreamsActivity`
 
 The Activity notified.
 

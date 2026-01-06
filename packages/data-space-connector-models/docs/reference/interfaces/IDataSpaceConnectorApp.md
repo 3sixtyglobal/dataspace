@@ -66,7 +66,7 @@ Handles an Activity and report about results through the Data Space Connector Ca
 
 ##### activity
 
-`IActivity`
+`IActivityStreamsActivity`
 
 The Activity to be handled
 

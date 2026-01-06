@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
-import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { IDataSpaceConnectorApp } from "./models/app/IDataSpaceConnectorApp.js";
 import type { IActivityLogEntry } from "./models/IActivityLogEntry.js";
 import type { IActivityLogStatusNotification } from "./models/IActivityLogStatusNotification.js";
@@ -20,7 +20,7 @@ export interface IDataSpaceConnector extends IComponent {
 	 * @param activity The Activity notified.
 	 * @returns The Activity's identifier.
 	 */
-	notifyActivity(activity: IActivity): Promise<string>;
+	notifyActivity(activity: IActivityStreamsActivity): Promise<string>;
 
 	/**
 	 * Subscribes to the activity log.

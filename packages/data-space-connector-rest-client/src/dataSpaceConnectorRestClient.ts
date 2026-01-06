@@ -26,7 +26,7 @@ import type {
 	IDataAssetDescription
 } from "@twin.org/data-space-connector-models";
 import { nameof } from "@twin.org/nameof";
-import type { IActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import { HeaderTypes } from "@twin.org/web";
 
 /**
@@ -162,7 +162,7 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 * @param activity The Activity notified.
 	 * @returns The Activity's identifier.
 	 */
-	public async notifyActivity(activity: IActivity): Promise<string> {
+	public async notifyActivity(activity: IActivityStreamsActivity): Promise<string> {
 		const response = await this.fetch<IActivityStreamNotifyRequest, ICreatedResponse>(
 			"/notify",
 			"POST",

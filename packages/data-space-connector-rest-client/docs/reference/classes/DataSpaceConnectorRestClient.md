@@ -160,7 +160,7 @@ Notify an Activity to the DS Connector Activity Stream.
 
 ##### activity
 
-`IActivity`
+`IActivityStreamsActivity`
 
 The Activity notified.
 

@@ -6,6 +6,6 @@ Activity Stream Notify Request.
 
 ### body
 
-> **body**: `IActivity`
+> **body**: `IActivityStreamsActivity`
 
 The Activity sent to the Stream.

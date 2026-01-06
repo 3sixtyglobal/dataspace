@@ -156,7 +156,7 @@ Handle Activity.
 
 ##### activity
 
-`IActivity`
+`IActivityStreamsActivity`
 
 Activity
 
