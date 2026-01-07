@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.5](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-app-runner-v0.0.3-next.4...data-space-connector-app-runner-v0.0.3-next.5) (2026-01-07)
+
+
+### Bug Fixes
+
+* populate engine factory in app runner ([#39](https://github.com/twinfoundation/data-space-connector/issues/39)) ([5757087](https://github.com/twinfoundation/data-space-connector/commit/57570871a1b28fd518e3b6df7aed000077718855))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.4 to 0.0.3-next.5
+
 ## [0.0.3-next.4](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-app-runner-v0.0.3-next.3...data-space-connector-app-runner-v0.0.3-next.4) (2026-01-06)
 
 
