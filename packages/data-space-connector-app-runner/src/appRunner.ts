@@ -7,7 +7,11 @@ import {
 	type IExecutionPayload
 } from "@twin.org/data-space-connector-models";
 import { EngineCore } from "@twin.org/engine-core";
-import type { IEngineCore, IEngineCoreClone } from "@twin.org/engine-models";
+import {
+	EngineCoreFactory,
+	type IEngineCore,
+	type IEngineCoreClone
+} from "@twin.org/engine-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 
@@ -24,9 +28,15 @@ export async function appRunnerStart(engineCloneData: IEngineCoreClone): Promise
 	if (!Is.empty(engineCloneData)) {
 		// If the clone data is not empty we use it to create a new engine as it's a new thread
 		// otherwise we assume the factories are already populated.
-		engine = new EngineCore();
-		engine.populateClone(engineCloneData, true);
-		await engine.start();
+		// We also must return a fixed instance of the engine from the factory in case another
+		// background task is started in the same process, otherwise if the app runner ends
+		// and removes the engine the factory would have a reference undefined.
+		const newEngine = new EngineCore();
+		EngineCoreFactory.register("engine", () => newEngine);
+
+		newEngine.populateClone(engineCloneData, true);
+		await newEngine.start();
+		engine = newEngine;
 	}
 }
 
