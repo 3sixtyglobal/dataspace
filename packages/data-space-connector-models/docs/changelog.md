@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.6](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.5...data-space-connector-models-v0.0.3-next.6) (2026-01-15)
+
+
+### Features
+
+* update contexts and namespaces ([#41](https://github.com/twinfoundation/data-space-connector/issues/41)) ([cad79f9](https://github.com/twinfoundation/data-space-connector/commit/cad79f9f18c0b1bc4a4604a951c28db1d1068f5e))
+
 ## [0.0.3-next.5](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.4...data-space-connector-models-v0.0.3-next.5) (2026-01-07)
 
 

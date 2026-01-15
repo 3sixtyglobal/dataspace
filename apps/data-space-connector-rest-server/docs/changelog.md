@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.6](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.5...data-space-connector-rest-server-v0.0.3-next.6) (2026-01-15)
+
+
+### Features
+
+* update contexts and namespaces ([#41](https://github.com/twinfoundation/data-space-connector/issues/41)) ([cad79f9](https://github.com/twinfoundation/data-space-connector/commit/cad79f9f18c0b1bc4a4604a951c28db1d1068f5e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.5 to 0.0.3-next.6
+    * @twin.org/data-space-connector-rest-client bumped from 0.0.3-next.5 to 0.0.3-next.6
+    * @twin.org/data-space-connector-socket-client bumped from 0.0.3-next.5 to 0.0.3-next.6
+    * @twin.org/data-space-connector-service bumped from 0.0.3-next.5 to 0.0.3-next.6
+
 ## [0.0.3-next.5](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.4...data-space-connector-rest-server-v0.0.3-next.5) (2026-01-07)
 
 
