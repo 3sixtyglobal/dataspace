@@ -6,7 +6,7 @@ import {
 } from "@twin.org/standards-w3c-activity-streams";
 
 export const canonicalActivity: IActivityStreamsActivity = {
-	"@context": ActivityStreamsContexts.ContextRoot,
+	"@context": ActivityStreamsContexts.Namespace,
 	type: "Create",
 	actor: {
 		id: "did:iota:testnet:0x123456"
@@ -21,7 +21,7 @@ export const canonicalActivity: IActivityStreamsActivity = {
 
 export const activityLdContextArray: IActivityStreamsActivity = {
 	...canonicalActivity,
-	"@context": [ActivityStreamsContexts.ContextRoot]
+	"@context": [ActivityStreamsContexts.Namespace]
 };
 
 export const extendedActivity: IActivityStreamsActivity = {
@@ -29,7 +29,7 @@ export const extendedActivity: IActivityStreamsActivity = {
 		{
 			MyCreate: "https://twin.example.org/MyCreate"
 		},
-		ActivityStreamsContexts.ContextRoot
+		ActivityStreamsContexts.Namespace
 	],
 	type: ["Create", "MyCreate"],
 	actor: {

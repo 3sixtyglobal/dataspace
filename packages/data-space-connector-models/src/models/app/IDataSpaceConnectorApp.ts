@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
+import type { IDataspaceProtocolDataset } from "@twin.org/standards-dataspace-protocol";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IDsProtocolDataset } from "../IDsProtocolDataset.js";
 import type { IActivityQuery } from "./IActivityQuery.js";
 import type { IDataRequest } from "./IDataRequest.js";
 
@@ -21,7 +21,7 @@ export interface IDataSpaceConnectorApp extends IComponent {
 	 * The datasets handled by the App.
 	 * @returns The DS Protocol compliant datasets handled by the App.
 	 */
-	datasetsHandled(): IDsProtocolDataset[];
+	datasetsHandled(): IDataspaceProtocolDataset[];
 
 	/**
 	 * The types of queries supported.

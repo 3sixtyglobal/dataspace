@@ -24,7 +24,9 @@
 		"autorelease",
 		"bech",
 		"buildx",
+		"Dataspace",
 		"dcat",
+		"dcterms",
 		"Jsonld",
 		"nameof",
 		"odrl",
@@ -32,8 +34,7 @@
 		"Stiftung",
 		"twinfoundation",
 		"unece",
-		"Unrevoke",
-		"dcterms"
+		"Unrevoke"
 	],
 	"ignoreRegExpList": [
 		"/from\\s+(['\"]).*\\1/",

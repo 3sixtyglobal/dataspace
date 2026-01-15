@@ -8,13 +8,15 @@ import type {
 	IActivityQuery,
 	IDataRequest,
 	IDataSpaceConnector,
-	IDataSpaceConnectorApp,
-	IDsProtocolDataset
+	IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
+import {
+	DataspaceProtocolContexts,
+	type IDataspaceProtocolDataset
+} from "@twin.org/standards-dataspace-protocol";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { DcatClasses } from "@twin.org/standards-w3c-dcat";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
 // Dummy Data
@@ -94,26 +96,30 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	 * Datasets handled by the App.
 	 * @returns DS Protocol compliant datasets
 	 */
-	public datasetsHandled(): IDsProtocolDataset[] {
+	public datasetsHandled(): IDataspaceProtocolDataset[] {
 		return [
 			{
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
 				"@id": "https://twin.example.org/data-service-1",
-				"@type": DcatClasses.Dataset,
-				"odrl:hasPolicy": [
+				"@type": "Dataset",
+				hasPolicy: [
 					{
-						"@context": "http://www.w3.org/ns/odrl.jsonld",
 						"@type": "Offer",
 						"@id": "urn:uuid:test-policy-offer-1",
 						uid: "urn:uuid:test-policy-offer-1",
 						assigner: "https://twin.example.org",
-						permission: []
+						permission: [
+							{
+								action: "read"
+							}
+						]
 					}
 				],
-				"dcat:distribution": {
+				distribution: {
 					"@id": "https://twin.example.org/distribution-1",
 					"@type": "Distribution",
-					"dcat:accessService": "https://twin.example.org/data-service-1",
-					"dcterms:format": "Http-Pull-Query-Format"
+					accessService: "https://twin.example.org/data-service-1",
+					format: "Http-Pull-Query-Format"
 				},
 				"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
 			}
@@ -140,7 +146,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		await this._dataSpaceConnectorComponent.registerApp(TestDataSpaceConnectorApp.APP_ID, this);
 
 		DataTypeHandlerFactory.register("https://twin.example.org/MyCreate", () => ({
-			context: "https://twin.example.org/",
+			namespace: "https://twin.example.org/",
 			type: "MyCreate",
 			defaultValue: {},
 			jsonSchema: async () => ({
@@ -149,7 +155,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		}));
 
 		DataTypeHandlerFactory.register("https://vocabulary.uncefact.org/Consignment", () => ({
-			context: "https://vocabulary.uncefact.org/",
+			namespace: "https://vocabulary.uncefact.org/",
 			type: "Consignment",
 			defaultValue: {},
 			jsonSchema: async () => ({

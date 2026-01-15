@@ -15,9 +15,8 @@
 	},
 	"scripts": {
 		"clean": "rimraf dist coverage docs/reference src/schemas",
-		"build:schema": "ts-to-schema ./ts-to-schema.json ./src/schemas",
 		"build:compile": "tspc",
-		"build": "npm run build:schema && npm run build:compile",
+		"build": "npm run build:compile",
 		"dev": "nodemon --watch src --ext ts --exec \"npm run build\"",
 		"test": "vitest --run --config ./vitest.config.ts --no-cache",
 		"test:build": "tspc -p ./tests/tsconfig.json --noEmit",
@@ -46,7 +45,6 @@
 		"@twin.org/nameof-transformer": "next",
 		"@twin.org/nameof-vitest-plugin": "next",
 		"@twin.org/validate-locales": "next",
-		"@twin.org/ts-to-schema": "next",
 		"@vitest/coverage-v8": "4.0.8",
 		"copyfiles": "2.4.1",
 		"rimraf": "6.1.0",

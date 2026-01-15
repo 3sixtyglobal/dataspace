@@ -24,13 +24,13 @@ A query that describes the set of activities handled by the App.
 
 ### datasetsHandled()
 
-> **datasetsHandled**(): [`IDsProtocolDataset`](IDsProtocolDataset.md)[]
+> **datasetsHandled**(): `IDataspaceProtocolDataset`[]
 
 The datasets handled by the App.
 
 #### Returns
 
-[`IDsProtocolDataset`](IDsProtocolDataset.md)[]
+`IDataspaceProtocolDataset`[]
 
 The DS Protocol compliant datasets handled by the App.
 

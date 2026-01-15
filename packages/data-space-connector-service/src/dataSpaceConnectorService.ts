@@ -20,11 +20,11 @@ import {
 	RandomHelper,
 	UnprocessableError,
 	Validation,
+	ValidationError,
 	type IError,
 	type IValidationFailure
 } from "@twin.org/core";
 import { Blake2b } from "@twin.org/crypto";
-import { DataTypeHandlerFactory, JsonSchemaHelper } from "@twin.org/data-core";
 import {
 	JsonLdDataTypes,
 	JsonLdHelper,
@@ -34,7 +34,6 @@ import {
 } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
-	DsProtocolDataTypes,
 	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
@@ -45,7 +44,6 @@ import {
 	type IDataRequest,
 	type IDataSpaceConnector,
 	type IDataSpaceConnectorApp,
-	type IDsProtocolDataset,
 	type IEntitySet,
 	type IExecutionPayload,
 	type IFilteringQuery,
@@ -59,6 +57,11 @@ import {
 } from "@twin.org/entity-storage-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
+import {
+	DataspaceProtocolDataTypes,
+	DataspaceProtocolHelper,
+	type IDataspaceProtocolDataset
+} from "@twin.org/standards-dataspace-protocol";
 import {
 	SchemaOrgContexts,
 	SchemaOrgDataTypes,
@@ -211,7 +214,8 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		JsonLdDataTypes.registerTypes();
 		ActivityStreamsDataTypes.registerTypes();
 		SchemaOrgDataTypes.registerRedirects();
-		DsProtocolDataTypes.registerTypes();
+		DataspaceProtocolDataTypes.registerRedirects();
+		DataspaceProtocolDataTypes.registerTypes();
 
 		this._activityLogStatusCallbacks = {};
 		this._activeTenants = [];
@@ -680,7 +684,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		const finalResult = {
-			"@context": SchemaOrgContexts.ContextRoot,
+			"@context": SchemaOrgContexts.Namespace,
 			type: SchemaOrgTypes.ItemList,
 			itemListElement: finalData,
 			nextItem: cursorResult
@@ -775,7 +779,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		const finalResult = {
-			"@context": SchemaOrgContexts.ContextRoot,
+			"@context": SchemaOrgContexts.Namespace,
 			type: SchemaOrgTypes.ItemList,
 			itemListElement: finalData,
 			nextItem: cursorResult
@@ -819,7 +823,19 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		const datasets = app.datasetsHandled();
 		for (const dataset of datasets) {
-			await this.validateDatasetCompliance(dataset, appId);
+			const validationFailures: IValidationFailure[] = [];
+			const isConformant = await DataspaceProtocolHelper.checkConformance(
+				dataset,
+				validationFailures
+			);
+
+			if (!isConformant) {
+				throw new ValidationError(
+					DataSpaceConnectorService.CLASS_NAME,
+					nameof(dataset),
+					validationFailures
+				);
+			}
 		}
 
 		const currentIndex = this._apps.findIndex(a => a.appId === appId);
@@ -1187,7 +1203,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @throws NotFoundError if no app handles this dataset
 	 * @internal
 	 */
-	private getDatasetFromApps(datasetId: string): IDsProtocolDataset {
+	private getDatasetFromApps(datasetId: string): IDataspaceProtocolDataset {
 		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(datasetId), datasetId);
 
 		for (const appEntry of this._apps) {
@@ -1201,88 +1217,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", datasetId, {
 			datasetId
 		});
-	}
-
-	/**
-	 * Validates that a dataset is compliant with Data Space Protocol requirements.
-	 * @param dataset The dataset to validate.
-	 * @param appId The app ID (for error context).
-	 * @throws GuardError if dataset is not compliant.
-	 * @internal
-	 * @see https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1-err1/#lower-level-types
-	 */
-	private async validateDatasetCompliance(
-		dataset: IDsProtocolDataset,
-		appId: string
-	): Promise<void> {
-		Guards.object(DataSpaceConnectorService.CLASS_NAME, nameof(dataset), dataset);
-		Guards.string(DataSpaceConnectorService.CLASS_NAME, "dataset['@id']", dataset["@id"]);
-
-		// Get the registered schema from DataTypeHandlerFactory
-		const schemaHandler = DataTypeHandlerFactory.getIfExists(
-			"https://schema.twindev.org/data-space-connector/DsProtocolDataset"
-		);
-
-		if (!schemaHandler?.jsonSchema) {
-			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "schemaNotRegistered", {
-				schemaId: "DsProtocolDataset"
-			});
-		}
-
-		const schema = await schemaHandler.jsonSchema();
-
-		if (!schema) {
-			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "schemaNotRegistered", {
-				schemaId: "DsProtocolDataset"
-			});
-		}
-
-		// Validate against JSON Schema for IDsProtocolDataset
-		const validationResult = await JsonSchemaHelper.validate(schema, dataset);
-
-		if (!validationResult.result) {
-			const errors = validationResult.error;
-			if (errors && errors.length > 0) {
-				const firstError = errors[0];
-				const instancePath = firstError.instancePath ?? "";
-				const message = firstError.message ?? "validation failed";
-
-				// Map JSON Schema errors to our locale keys
-				if (instancePath.includes("odrl:hasPolicy")) {
-					if (message.includes("required")) {
-						throw new GuardError(
-							DataSpaceConnectorService.CLASS_NAME,
-							"datasetMissingPolicy",
-							"dataset['odrl:hasPolicy']",
-							{ appId, datasetId: dataset["@id"], schemaError: message }
-						);
-					}
-					if (message.includes("minItems") || message.includes("array")) {
-						throw new GuardError(
-							DataSpaceConnectorService.CLASS_NAME,
-							"policyArrayEmpty",
-							"dataset['odrl:hasPolicy']",
-							{ appId, datasetId: dataset["@id"], schemaError: message }
-						);
-					}
-				}
-				if (instancePath.includes("@type") && instancePath.includes("odrl:hasPolicy")) {
-					throw new GuardError(
-						DataSpaceConnectorService.CLASS_NAME,
-						"policyInvalidType",
-						"policy['@type']",
-						{ appId, datasetId: dataset["@id"], schemaError: message }
-					);
-				}
-
-				throw new GuardError(
-					DataSpaceConnectorService.CLASS_NAME,
-					"datasetSchemaValidationFailed",
-					instancePath || "dataset",
-					{ appId, datasetId: dataset["@id"], schemaError: message }
-				);
-			}
-		}
 	}
 
 	/**

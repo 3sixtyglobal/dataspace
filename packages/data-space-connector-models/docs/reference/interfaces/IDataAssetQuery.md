@@ -16,4 +16,4 @@ IDataSpaceConnectorApp.datasetsHandled
 
 > **datasetId**: `string`
 
-Id of the dataset in the Federated Catalogue (dataset @id).
+Id of the dataset in the Catalogue (dataset @id).

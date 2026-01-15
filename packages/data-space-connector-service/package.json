@@ -45,6 +45,7 @@
 		"@twin.org/logging-models": "next",
 		"@twin.org/modules": "next",
 		"@twin.org/nameof": "next",
+		"@twin.org/standards-dataspace-protocol": "next",
 		"@twin.org/standards-schema-org": "next",
 		"@twin.org/standards-w3c-activity-streams": "next",
 		"@twin.org/standards-w3c-dcat": "next",

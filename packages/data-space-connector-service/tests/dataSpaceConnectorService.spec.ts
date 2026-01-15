@@ -8,27 +8,29 @@ import {
 } from "@twin.org/background-task-service";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Is, ObjectHelper } from "@twin.org/core";
-import { JsonLdProcessor } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
 	DataSpaceConnectorAppFactory,
 	type IActivityLogDates,
 	type IActivityLogEntry,
 	type IDataRequest,
-	type IDataSpaceConnectorApp,
-	type IDsProtocolDataset
+	type IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
 import { TestDataSpaceConnectorApp } from "@twin.org/data-space-connector-test-app";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import { addAllContextsToDocumentCache, LD_CONTEXTS } from "@twin.org/standards-ld-contexts";
+import {
+	DataspaceProtocolCatalogTypes,
+	DataspaceProtocolContexts,
+	type IDataspaceProtocolDataset
+} from "@twin.org/standards-dataspace-protocol";
+import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { DcatClasses } from "@twin.org/standards-w3c-dcat";
 import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
-import { canonicalActivity, activityLdContextArray, extendedActivity } from "./testData.js";
+import { activityLdContextArray, canonicalActivity, extendedActivity } from "./testData.js";
 import { DataSpaceConnectorService } from "../src/dataSpaceConnectorService.js";
 import type { ActivityLogDetails } from "../src/entities/activityLogDetails.js";
 import type { ActivityTask } from "../src/entities/activityTask.js";
@@ -86,15 +88,6 @@ describe("data-space-connector-tests", () => {
 
 		// Load all JSON-LD contexts
 		await addAllContextsToDocumentCache();
-
-		// Add ActivityStreams context without # to cache (ContextRoot uses URL without #)
-		const activityStreamsContext = LD_CONTEXTS["https://www.w3.org/ns/activitystreams#"];
-		if (activityStreamsContext) {
-			await JsonLdProcessor.documentCacheAdd(
-				"https://www.w3.org/ns/activitystreams",
-				activityStreamsContext
-			);
-		}
 
 		// Mock the module helper to execute the method in the same thread, so we don't have to create an engine
 		// and the background tasks will run in this thread
@@ -685,7 +678,7 @@ describe("data-space-connector-tests", () => {
 	// RFC-004 Specific Tests
 	// ============================================
 
-	test("Apps declare datasetsHandled() returning IDsProtocolDataset[]", async () => {
+	test("Apps declare datasetsHandled() returning IDataspaceProtocolDataset[]", async () => {
 		// Verify test app implements the RFC-004 interface correctly
 		const testApp = new TestDataSpaceConnectorApp();
 		const datasets = testApp.datasetsHandled();
@@ -697,10 +690,10 @@ describe("data-space-connector-tests", () => {
 		// Verify each dataset has required DCAT properties
 		const dataset = datasets[0];
 		expect(dataset["@id"]).toBeDefined();
-		expect(dataset["@type"]).toBe(DcatClasses.Dataset);
+		expect(dataset["@type"]).toBe(DataspaceProtocolCatalogTypes.Dataset);
 
 		// DS Protocol requires hasPolicy as array
-		const policies = dataset["odrl:hasPolicy"] as IOdrlOffer[] | undefined;
+		const policies = dataset.hasPolicy as IOdrlOffer[] | undefined;
 		expect(policies).toBeDefined();
 		expect(Is.array(policies)).toBe(true);
 		expect(policies?.length).toBeGreaterThan(0);
@@ -812,7 +805,7 @@ describe("data-space-connector-tests", () => {
 		const dataRequest = capturedDataRequest as IDataRequest;
 		expect(dataRequest.dataAsset).toBeDefined();
 		expect(dataRequest.dataAsset["@id"]).toBe(SERVICE_DATASET_ID);
-		expect(dataRequest.dataAsset["@type"]).toBe(DcatClasses.Dataset);
+		expect(dataRequest.dataAsset["@type"]).toBe(DataspaceProtocolCatalogTypes.Dataset);
 	});
 
 	test("Query type validation against app's supportedQueryTypes()", async () => {
@@ -901,28 +894,34 @@ describe("data-space-connector-tests", () => {
 		const invalidApp: IDataSpaceConnectorApp = {
 			className: () => "InvalidApp",
 			activitiesHandled: () => [],
-			datasetsHandled: (): IDsProtocolDataset[] => [
-				{
-					"@id": "https://example.org/dataset",
-					"@type": DcatClasses.Dataset,
-					"odrl:hasPolicy": [
-						{
-							"@context": "http://www.w3.org/ns/odrl.jsonld",
-							"@type": "Offer",
-							"@id": "urn:uuid:policy-1",
-							uid: "urn:uuid:policy-1",
-							assigner: "https://twin.example.org",
-							permission: []
-						}
-					],
-					"dcat:distribution": {
-						"@id": "https://example.org/distribution-1",
-						"dcterms:format": "Http-Pull-Query-Format",
-						"@type": "Distribution"
-					},
-					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-				}
-			],
+			datasetsHandled: (): IDataspaceProtocolDataset[] =>
+				[
+					{
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@id": "https://example.org/dataset",
+						"@type": "Dataset",
+						hasPolicy: [
+							{
+								"@type": "Offer",
+								"@id": "urn:uuid:policy-1",
+								uid: "urn:uuid:policy-1",
+								assigner: "https://twin.example.org",
+								permission: [
+									{
+										action: "read"
+									}
+								]
+							}
+						],
+						distribution: {
+							"@id": "https://example.org/distribution-1",
+							format: "Http-Pull-Query-Format",
+							accessService: "https://twin.example.org/data-service-1",
+							"@type": "Distribution"
+						},
+						"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
+					}
+				] as unknown as IDataspaceProtocolDataset[],
 			supportedQueryTypes: () => ["TestQuery"],
 			start: async () => {}
 			// Note: Missing handleDataRequest - this is the violation
@@ -947,18 +946,20 @@ describe("data-space-connector-tests", () => {
 		const invalidApp: IDataSpaceConnectorApp = {
 			className: () => "InvalidAppNoPolicy",
 			activitiesHandled: () => [],
-			datasetsHandled: (): IDsProtocolDataset[] => [
+			datasetsHandled: (): IDataspaceProtocolDataset[] => [
 				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
 					"@id": "https://example.org/invalid-dataset",
-					"@type": DcatClasses.Dataset,
-					"dcat:distribution": {
+					"@type": DataspaceProtocolCatalogTypes.Dataset,
+					distribution: {
 						"@id": "https://example.org/distribution-1",
 						"@type": "Distribution",
-						"dcterms:format": "Http-Pull-Query-Format"
+						format: "Http-Pull-Query-Format",
+						accessService: "https://twin.example.org/data-service-1"
 					},
 					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
 					// Missing odrl:hasPolicy!
-				} as unknown as IDsProtocolDataset
+				} as unknown as IDataspaceProtocolDataset
 			],
 			supportedQueryTypes: () => ["EntityFilter"],
 			handleDataRequest: vi.fn(),
@@ -971,48 +972,12 @@ describe("data-space-connector-tests", () => {
 				invalidApp
 			)
 		).rejects.toMatchObject({
-			name: "GuardError"
-		});
-	});
-
-	test("registerApp rejects policies without @type", async () => {
-		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
-
-		const invalidApp: IDataSpaceConnectorApp = {
-			className: () => "InvalidAppPolicyNoType",
-			activitiesHandled: () => [],
-			datasetsHandled: (): IDsProtocolDataset[] => [
-				{
-					"@id": "https://example.org/invalid-dataset",
-					"@type": DcatClasses.Dataset,
-					"odrl:hasPolicy": [
-						{
-							"@id": "urn:uuid:policy-1",
-							"odrl:permission": []
-							// Missing @type!
-						}
-					],
-					"dcat:distribution": {
-						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution",
-						"dcterms:format": "Http-Pull-Query-Format"
-					},
-					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-				} as unknown as IDsProtocolDataset
-			],
-			supportedQueryTypes: () => ["EntityFilter"],
-			handleDataRequest: vi.fn(),
-			start: async () => {}
-		};
-
-		await expect(
-			dataSpaceConnectorService.registerApp(
-				"https://twin.example.org/invalid-app-policy-no-type",
-				invalidApp
-			)
-		).rejects.toMatchObject({
-			name: "GuardError"
+			source: "DataSpaceConnectorService",
+			properties: {
+				validationObject: "dataset",
+				validationFailures: [{ property: "", reason: "must have required property 'hasPolicy'" }]
+			},
+			name: "ValidationError"
 		});
 	});
 
@@ -1023,23 +988,30 @@ describe("data-space-connector-tests", () => {
 		const invalidApp: IDataSpaceConnectorApp = {
 			className: () => "InvalidAppPolicyWrongType",
 			activitiesHandled: () => [],
-			datasetsHandled: (): IDsProtocolDataset[] => [
+			datasetsHandled: (): IDataspaceProtocolDataset[] => [
 				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
 					"@id": "https://example.org/invalid-dataset",
-					"@type": DcatClasses.Dataset,
+					"@type": DataspaceProtocolCatalogTypes.Dataset,
 					"odrl:hasPolicy": [
 						{
 							"@type": "odrl:Agreement", // Wrong type! Should be "Offer"
 							"@id": "urn:uuid:policy-1",
-							"odrl:permission": []
+							"odrl:permission": [
+								{
+									action: "read"
+								}
+							]
 						}
 					],
-					"dcat:distribution": {
+					distribution: {
 						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution"
+						"@type": "Distribution",
+						format: "Http-Pull-Query-Format",
+						accessService: "https://twin.example.org/data-service-1"
 					},
 					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-				} as unknown as IDsProtocolDataset
+				} as unknown as IDataspaceProtocolDataset
 			],
 			supportedQueryTypes: () => ["EntityFilter"],
 			handleDataRequest: vi.fn(),
@@ -1052,7 +1024,14 @@ describe("data-space-connector-tests", () => {
 				invalidApp
 			)
 		).rejects.toMatchObject({
-			name: "GuardError"
+			source: "DataSpaceConnectorService",
+			properties: {
+				validationObject: "dataset",
+				validationFailures: [
+					{ property: "/hasPolicy/0/@type", reason: "must be equal to constant" }
+				]
+			},
+			name: "ValidationError"
 		});
 	});
 
@@ -1063,23 +1042,30 @@ describe("data-space-connector-tests", () => {
 		const invalidApp: IDataSpaceConnectorApp = {
 			className: () => "InvalidAppPolicyNoId",
 			activitiesHandled: () => [],
-			datasetsHandled: (): IDsProtocolDataset[] => [
+			datasetsHandled: (): IDataspaceProtocolDataset[] => [
 				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
 					"@id": "https://example.org/invalid-dataset",
-					"@type": DcatClasses.Dataset,
+					"@type": DataspaceProtocolCatalogTypes.Dataset,
 					"odrl:hasPolicy": [
 						{
 							"@type": "odrl:Offer",
-							"odrl:permission": []
+							"odrl:permission": [
+								{
+									action: "read"
+								}
+							]
 							// Missing @id! (and uid)
 						}
 					],
-					"dcat:distribution": {
+					distribution: {
 						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution"
+						"@type": "Distribution",
+						format: "Http-Pull-Query-Format",
+						accessService: "https://twin.example.org/data-service-1"
 					},
 					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-				} as unknown as IDsProtocolDataset
+				} as unknown as IDataspaceProtocolDataset
 			],
 			supportedQueryTypes: () => ["EntityFilter"],
 			handleDataRequest: vi.fn(),
@@ -1092,7 +1078,14 @@ describe("data-space-connector-tests", () => {
 				invalidApp
 			)
 		).rejects.toMatchObject({
-			name: "GuardError"
+			source: "DataSpaceConnectorService",
+			properties: {
+				validationObject: "dataset",
+				validationFailures: [
+					{ property: "/hasPolicy/0", reason: "must have required property '@id'" }
+				]
+			},
+			name: "ValidationError"
 		});
 	});
 
@@ -1103,23 +1096,28 @@ describe("data-space-connector-tests", () => {
 		const invalidApp: IDataSpaceConnectorApp = {
 			className: () => "InvalidAppNoDistributionFormat",
 			activitiesHandled: () => [],
-			datasetsHandled: (): IDsProtocolDataset[] => [
+			datasetsHandled: (): IDataspaceProtocolDataset[] => [
 				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
 					"@id": "https://example.org/invalid-dataset",
-					"@type": DcatClasses.Dataset,
-					"dcat:distribution": {
+					"@type": DataspaceProtocolCatalogTypes.Dataset,
+					distribution: {
 						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution"
+						"@type": "Distribution",
+						accessService: "https://twin.example.org/data-service-1"
 					},
 					"dcterms:type": "https://vocabulary.uncefact.org/Consignment",
-					"odrl:hasPolicy": {
-						"@context": "http://www.w3.org/ns/odrl/2/",
+					hasPolicy: {
 						"@type": "Offer",
 						"@id": "urn:uuid:policy-1",
 						assigner: "https://twin.example.org",
-						permission: []
+						permission: [
+							{
+								action: "read"
+							}
+						]
 					}
-				} as unknown as IDsProtocolDataset
+				} as unknown as IDataspaceProtocolDataset
 			],
 			supportedQueryTypes: () => ["EntityFilter"],
 			handleDataRequest: vi.fn(),
@@ -1132,7 +1130,14 @@ describe("data-space-connector-tests", () => {
 				invalidApp
 			)
 		).rejects.toMatchObject({
-			name: "GuardError"
+			source: "DataSpaceConnectorService",
+			properties: {
+				validationObject: "dataset",
+				validationFailures: [
+					{ property: "/distribution/0", reason: "must have required property 'format'" }
+				]
+			},
+			name: "ValidationError"
 		});
 	});
 });

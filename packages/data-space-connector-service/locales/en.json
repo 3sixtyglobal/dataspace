@@ -11,12 +11,7 @@
 			"invalidDataSpaceConnectorApp": "The Data Space Connector App \"{appId}\" is invalid. It does not implement required interfaces",
 			"datasetIdRequired": "Dataset ID is required for query operations",
 			"notExpandableType": "Entity type \"{type}\" cannot be expanded",
-			"queryTypeNotSupported": "Query type \"{queryType}\" is not supported by the DS Connector App",
-			"datasetMissingPolicy": "Dataset must have an ODRL policy (odrl:hasPolicy) per Data Space Protocol requirements. App: \"{appId}\", Dataset: \"{datasetId}\"",
-			"policyArrayEmpty": "Dataset odrl:hasPolicy array must contain at least one Offer. App: \"{appId}\", Dataset: \"{datasetId}\"",
-			"policyInvalidType": "ODRL Policy @type must be 'Offer', found: \"{foundType}\". App: \"{appId}\", Dataset: \"{datasetId}\"",
-			"datasetSchemaValidationFailed": "Dataset failed JSON Schema validation. App: \"{appId}\", Dataset: \"{datasetId}\", Error: \"{schemaError}\"",
-			"schemaNotRegistered": "JSON Schema \"{schemaId}\" is not registered in DataTypeHandlerFactory"
+			"queryTypeNotSupported": "Query type \"{queryType}\" is not supported by the DS Connector App"
 		}
 	},
 	"info": {

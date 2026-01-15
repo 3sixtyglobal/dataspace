@@ -64,13 +64,13 @@ The class name of the component.
 
 ### datasetsHandled()
 
-> **datasetsHandled**(): `IDsProtocolDataset`[]
+> **datasetsHandled**(): `IDataspaceProtocolDataset`[]
 
 Datasets handled by the App.
 
 #### Returns
 
-`IDsProtocolDataset`[]
+`IDataspaceProtocolDataset`[]
 
 DS Protocol compliant datasets
 

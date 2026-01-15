@@ -12,7 +12,7 @@
  */
 export interface IDataAssetQuery {
 	/**
-	 * Id of the dataset in the Federated Catalogue (dataset @id).
+	 * Id of the dataset in the Catalogue (dataset @id).
 	 */
 	datasetId: string;
 }
