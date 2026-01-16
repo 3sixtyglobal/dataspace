@@ -33,10 +33,12 @@
 		"@twin.org/core": "next",
 		"@twin.org/data-space-connector-models": "0.0.3-next.7",
 		"@twin.org/engine-models": "next",
-		"@twin.org/engine-core": "next",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
 		"@twin.org/standards-w3c-activity-streams": "next"
+	},
+	"peerDependencies": {
+		"@twin.org/engine-core": "next"
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",
