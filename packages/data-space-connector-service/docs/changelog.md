@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.8](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.7...data-space-connector-service-v0.0.3-next.8) (2026-01-16)
+
+
+### Miscellaneous Chores
+
+* **data-space-connector-service:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-app-runner bumped from 0.0.3-next.7 to 0.0.3-next.8
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.7 to 0.0.3-next.8
+  * devDependencies
+    * @twin.org/data-space-connector-test-app bumped from 0.0.3-next.7 to 0.0.3-next.8
+
 ## [0.0.3-next.7](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.6...data-space-connector-service-v0.0.3-next.7) (2026-01-16)
 
 

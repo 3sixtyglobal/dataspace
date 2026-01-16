@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.8](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-app-runner-v0.0.3-next.7...data-space-connector-app-runner-v0.0.3-next.8) (2026-01-16)
+
+
+### Bug Fixes
+
+* engine-core moved to peer-dependency ([e9fd9c0](https://github.com/twinfoundation/data-space-connector/commit/e9fd9c0c77c7b0a99d0ffd1883cd9f9847bbd35c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.7 to 0.0.3-next.8
+
 ## [0.0.3-next.7](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-app-runner-v0.0.3-next.6...data-space-connector-app-runner-v0.0.3-next.7) (2026-01-16)
 
 
