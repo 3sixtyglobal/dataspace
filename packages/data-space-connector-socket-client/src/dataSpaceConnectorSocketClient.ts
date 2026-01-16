@@ -19,7 +19,7 @@ import type {
 	IActivityLogStatusNotification,
 	IActivityLogStatusRequest,
 	IDataAssetDescription,
-	IDataAssetItemList,
+	IDataAssetItemListResult,
 	IDataSpaceConnector,
 	IDataSpaceConnectorApp,
 	IEntitySet,
@@ -247,7 +247,7 @@ export class DataSpaceConnectorSocketClient
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
-	 * @returns The entities requested as a JSON-LD Document.
+	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	public async getDataAssetEntities(
 		dataAsset: IDataAssetDescription,
@@ -256,7 +256,7 @@ export class DataSpaceConnectorSocketClient
 		},
 		cursor?: string,
 		limit?: number
-	): Promise<IDataAssetItemList> {
+	): Promise<IDataAssetItemListResult> {
 		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
 			methodName: "getDataAssetEntities"
 		});
@@ -268,14 +268,14 @@ export class DataSpaceConnectorSocketClient
 	 * @param query The filtering query.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
-	 * @returns The entities requested as a JSON-LD Document.
+	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
 		cursor?: string,
 		limit?: number
-	): Promise<IDataAssetItemList> {
+	): Promise<IDataAssetItemListResult> {
 		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
 			methodName: "queryDataAsset"
 		});

@@ -80,7 +80,7 @@ The result of executing the Activity.
 
 ### handleDataRequest()?
 
-> `optional` **handleDataRequest**(`dataRequest`): `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
+> `optional` **handleDataRequest**(`dataRequest`, `cursor?`, `limit?`): `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
 
 Handles a Data Request.
 
@@ -90,7 +90,19 @@ Handles a Data Request.
 
 [`IDataRequest`](../type-aliases/IDataRequest.md)
 
-The data Request.
+The data request.
+
+##### cursor?
+
+`string`
+
+Cursor that points to the next item in the result set.
+
+##### limit?
+
+`number`
+
+Maximum number of entries retrieved or to be retrieved.
 
 #### Returns
 

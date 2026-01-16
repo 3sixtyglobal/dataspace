@@ -4,28 +4,37 @@ import type { IDataAssetDescription } from "../IDataAssetDescription.js";
 import type { IFilteringQuery } from "../IFilteringQuery.js";
 
 /**
- * Get Request Data Asset Entities
+ * Request to query data asset entities.
  */
 export interface IDataAssetQueryRequest {
 	/**
-	 * Request body
+	 * Request body containing the data asset and query criteria.
 	 */
 	body: {
+		/**
+		 * The data asset being queried.
+		 */
 		dataAsset: IDataAssetDescription;
 
 		/**
-		 * The query
+		 * The filtering query.
 		 */
 		query: IFilteringQuery;
+	};
 
+	/**
+	 * Optional query parameters for pagination.
+	 * Used when following Link header URLs.
+	 */
+	query?: {
 		/**
-		 * Pagination details. Cursor
+		 * Opaque cursor token for pagination.
 		 */
 		cursor?: string;
 
 		/**
-		 * Pagination details. limit.
+		 * Maximum number of items to return.
 		 */
-		limit?: number;
+		limit?: string;
 	};
 }

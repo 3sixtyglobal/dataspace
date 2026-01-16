@@ -1,6 +1,6 @@
 # Interface: IDataSpaceConnector
 
-Data Space Connector service interface.
+Data Space component interface.
 
 ## Extends
 
@@ -158,9 +158,9 @@ Nothing.
 
 ### getDataAssetEntities()
 
-> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor`, `limit`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor?`, `limit?`): `Promise`\<[`IDataAssetItemListResult`](IDataAssetItemListResult.md)\>
 
-Get Data Asset entities. Allows to retrieve entities by their type or id
+Get Data Asset entities. Allows to retrieve entities by their type or id.
 
 #### Parameters
 
@@ -176,29 +176,29 @@ The data asset being referred. It can be left empty and let the system to locate
 
 The set of entities to be retrieved.
 
-##### cursor
+##### cursor?
+
+`string`
 
 Pagination details - cursor.
 
-`string` | `undefined`
+##### limit?
 
-##### limit
+`number`
 
 Pagination details - max number of entities.
 
-`number` | `undefined`
-
 #### Returns
 
-`Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+`Promise`\<[`IDataAssetItemListResult`](IDataAssetItemListResult.md)\>
 
-The entities requested as a JSON-LD Document.
+The item list and optional cursor for pagination via Link headers.
 
 ***
 
 ### queryDataAsset()
 
-> **queryDataAsset**(`dataAsset`, `query`, `cursor`, `limit`): `Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+> **queryDataAsset**(`dataAsset`, `query`, `cursor?`, `limit?`): `Promise`\<[`IDataAssetItemListResult`](IDataAssetItemListResult.md)\>
 
 Queries a data asset controlled by this DS Connector App.
 
@@ -216,20 +216,20 @@ The data asset being referred.
 
 The filtering query.
 
-##### cursor
+##### cursor?
+
+`string`
 
 Pagination details - cursor.
 
-`string` | `undefined`
+##### limit?
 
-##### limit
+`number`
 
 Pagination details - max number of entities.
 
-`number` | `undefined`
-
 #### Returns
 
-`Promise`\<[`IDataAssetItemList`](IDataAssetItemList.md)\>
+`Promise`\<[`IDataAssetItemListResult`](IDataAssetItemListResult.md)\>
 
-The entities requested as a JSON-LD Document.
+The item list and optional cursor for pagination via Link headers.

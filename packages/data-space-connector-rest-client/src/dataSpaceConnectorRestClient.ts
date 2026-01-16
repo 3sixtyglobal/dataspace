@@ -16,7 +16,7 @@ import type {
 	IActivityLogStatusNotification,
 	IActivityStreamNotifyRequest,
 	IDataAssetGetEntitiesRequest,
-	IDataAssetItemList,
+	IDataAssetItemListResult,
 	IDataSpaceConnector,
 	IDataSpaceConnectorApp,
 	IDataAssetEntitiesResponse,
@@ -27,7 +27,7 @@ import type {
 } from "@twin.org/data-space-connector-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { HeaderTypes } from "@twin.org/web";
+import { HeaderHelper, HeaderTypes } from "@twin.org/web";
 
 /**
  * The client to connect to the data space connector service.
@@ -61,7 +61,7 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
-	 * @returns The entities requested as a JSON-LD Document.
+	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	public async getDataAssetEntities(
 		dataAsset: IDataAssetDescription,
@@ -70,7 +70,7 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 		},
 		cursor?: string,
 		limit?: number
-	): Promise<IDataAssetItemList> {
+	): Promise<IDataAssetItemListResult> {
 		Guards.object<IDataAssetDescription>(
 			DataSpaceConnectorRestClient.CLASS_NAME,
 			nameof(dataAsset),
@@ -111,7 +111,12 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 				}
 			}
 		);
-		return response.body;
+
+		return {
+			itemList: response.body,
+			cursor: HeaderHelper.extractLinkHeaderRelation(response.headers?.[HeaderTypes.Link], "next")
+				?.urlQueryParams?.cursor
+		};
 	}
 
 	/**
@@ -120,14 +125,14 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 * @param query The filtering query.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
-	 * @returns The entities requested as a JSON-LD Document.
+	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
 		cursor?: string,
 		limit?: number
-	): Promise<IDataAssetItemList> {
+	): Promise<IDataAssetItemListResult> {
 		// The identity of the data consumer would need to be attested through a JWT
 		Guards.object<IDataAssetDescription>(
 			DataSpaceConnectorRestClient.CLASS_NAME,
@@ -140,11 +145,13 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 			"/entities/query",
 			"POST",
 			{
+				query: {
+					cursor,
+					limit: Coerce.string(limit)
+				},
 				body: {
 					dataAsset,
-					query,
-					cursor,
-					limit
+					query
 				}
 			},
 			{
@@ -154,7 +161,12 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 				}
 			}
 		);
-		return response.body;
+
+		return {
+			itemList: response.body,
+			cursor: HeaderHelper.extractLinkHeaderRelation(response.headers?.[HeaderTypes.Link], "next")
+				?.urlQueryParams?.cursor
+		};
 	}
 
 	/**

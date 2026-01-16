@@ -7,12 +7,12 @@ import type { IDataSpaceConnectorApp } from "./models/app/IDataSpaceConnectorApp
 import type { IActivityLogEntry } from "./models/IActivityLogEntry.js";
 import type { IActivityLogStatusNotification } from "./models/IActivityLogStatusNotification.js";
 import type { IDataAssetDescription } from "./models/IDataAssetDescription.js";
-import type { IDataAssetItemList } from "./models/IDataAssetItemList.js";
+import type { IDataAssetItemListResult } from "./models/IDataAssetItemListResult.js";
 import type { IEntitySet } from "./models/IEntitySet.js";
 import type { IFilteringQuery } from "./models/IFilteringQuery.js";
 
 /**
- * Data Space Connector service interface.
+ * Data Space component interface.
  */
 export interface IDataSpaceConnector extends IComponent {
 	/**
@@ -64,22 +64,22 @@ export interface IDataSpaceConnector extends IComponent {
 	unregisterApp(appId: string): Promise<void>;
 
 	/**
-	 * Get Data Asset entities. Allows to retrieve entities by their type or id
+	 * Get Data Asset entities. Allows to retrieve entities by their type or id.
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
-	 * @returns The entities requested as a JSON-LD Document.
+	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	getDataAssetEntities(
 		dataAsset: IDataAssetDescription,
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
-		cursor: string | undefined,
-		limit: number | undefined
-	): Promise<IDataAssetItemList>;
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemListResult>;
 
 	/**
 	 * Queries a data asset controlled by this DS Connector App.
@@ -87,12 +87,12 @@ export interface IDataSpaceConnector extends IComponent {
 	 * @param query The filtering query.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
-	 * @returns The entities requested as a JSON-LD Document.
+	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
-		cursor: string | undefined,
-		limit: number | undefined
-	): Promise<IDataAssetItemList>;
+		cursor?: string,
+		limit?: number
+	): Promise<IDataAssetItemListResult>;
 }

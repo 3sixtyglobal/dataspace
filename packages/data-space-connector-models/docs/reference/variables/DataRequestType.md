@@ -8,12 +8,12 @@ Data Request Types.
 
 ### DataAssetEntities
 
-> **DataAssetEntities**: `string` = `"DataAssetEntities"`
+> `readonly` **DataAssetEntities**: `"DataAssetEntities"` = `"DataAssetEntities"`
 
 Data Asset Entities
 
 ### QueryDataAsset
 
-> **QueryDataAsset**: `string` = `"QueryDataAsset"`
+> `readonly` **QueryDataAsset**: `"QueryDataAsset"` = `"QueryDataAsset"`
 
 Query over a data asset

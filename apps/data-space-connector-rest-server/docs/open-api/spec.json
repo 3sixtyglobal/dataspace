@@ -793,7 +793,7 @@
 				],
 				"responses": {
 					"200": {
-						"description": "Service Offering response",
+						"description": "Response containing data asset entities with optional pagination Link header.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -810,8 +810,7 @@
 													"type": "Consignment",
 													"id": "urn:ucr:PL527288386100000"
 												}
-											],
-											"nextItem": "xx1234aaa"
+											]
 										}
 									}
 								}
@@ -867,8 +866,28 @@
 				"tags": [
 					"Data Space Connector"
 				],
+				"parameters": [
+					{
+						"name": "cursor",
+						"description": "Opaque cursor token for pagination.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "limit",
+						"description": "Maximum number of items to return.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
 				"requestBody": {
-					"description": "Get Request Data Asset Entities",
+					"description": "Request to query data asset entities.",
 					"required": true,
 					"content": {
 						"application/json": {
@@ -891,7 +910,7 @@
 				},
 				"responses": {
 					"200": {
-						"description": "Service Offering response",
+						"description": "Response containing data asset entities with optional pagination Link header.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -908,8 +927,7 @@
 													"type": "Consignment",
 													"id": "urn:ucr:PL527288386100000"
 												}
-											],
-											"nextItem": "xx1234aaa"
+											]
 										}
 									}
 								}
@@ -1623,10 +1641,6 @@
 							"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
 						},
 						"description": "The components of the Collection"
-					},
-					"nextItem": {
-						"type": "string",
-						"description": "Next item cursor."
 					}
 				},
 				"required": [
@@ -1635,7 +1649,7 @@
 					"itemListElement"
 				],
 				"additionalProperties": false,
-				"description": "Interface describing a list of entities that are within a Data Asset"
+				"description": "Interface describing a list of entities that are within a Data Asset. Pagination is handled via HTTP Link headers."
 			},
 			"DataAssetQueryRequest": {
 				"type": "object",
@@ -1645,14 +1659,6 @@
 					},
 					"query": {
 						"$ref": "#/components/schemas/FilteringQuery"
-					},
-					"cursor": {
-						"type": "string",
-						"description": "Pagination details. Cursor"
-					},
-					"limit": {
-						"type": "number",
-						"description": "Pagination details. limit."
 					}
 				},
 				"required": [
@@ -1660,7 +1666,7 @@
 					"query"
 				],
 				"additionalProperties": false,
-				"description": "Request body"
+				"description": "Request body containing the data asset and query criteria."
 			},
 			"DataServiceOptionalContext": {
 				"type": "object",

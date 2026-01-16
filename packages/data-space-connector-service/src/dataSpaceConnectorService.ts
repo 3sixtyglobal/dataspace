@@ -34,12 +34,13 @@ import {
 } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
+	DataRequestType,
 	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IActivityQuery,
 	type IDataAssetDescription,
-	type IDataAssetItemList,
+	type IDataAssetItemListResult,
 	type IDataAssetQuery,
 	type IDataRequest,
 	type IDataSpaceConnector,
@@ -71,7 +72,6 @@ import {
 	ActivityStreamsDataTypes,
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
-import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
 import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDataSpaceConnectorServiceConstructorOptions.js";
@@ -589,7 +589,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		},
 		cursor?: string,
 		limit?: number
-	): Promise<IDataAssetItemList> {
+	): Promise<IDataAssetItemListResult> {
 		Guards.object<IDataAssetDescription>(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(dataAsset),
@@ -664,17 +664,15 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		);
 
 		const dataRequest: IDataRequest = {
-			type: "DataAssetEntities",
-			dataAsset: serviceDataset as unknown as IDcatDataset,
+			type: DataRequestType.DataAssetEntities,
+			dataAsset: serviceDataset,
 			entitySet: {
 				entityType: finalType,
 				entityId: entitySet.entityId
-			},
-			cursor,
-			limit
+			}
 		};
 
-		const { data, cursor: cursorResult } = await handleDataRequest(dataRequest);
+		const { data, cursor: cursorResult } = await handleDataRequest(dataRequest, cursor, limit);
 
 		let finalData: IJsonLdNodeObject[];
 		if (Is.array(data)) {
@@ -683,14 +681,16 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			finalData = [data as IJsonLdNodeObject];
 		}
 
-		const finalResult = {
+		const itemList = {
 			"@context": SchemaOrgContexts.Namespace,
 			type: SchemaOrgTypes.ItemList,
-			itemListElement: finalData,
-			nextItem: cursorResult
+			itemListElement: finalData
 		};
 
-		return JsonLdProcessor.compact(finalResult, finalResult["@context"]);
+		return {
+			itemList: await JsonLdProcessor.compact(itemList, itemList["@context"]),
+			cursor: cursorResult
+		};
 	}
 
 	/**
@@ -699,14 +699,14 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param query The filtering query.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
-	 * @returns The entities requested as a JSON-LD Document.
+	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
 		cursor?: string,
 		limit?: number
-	): Promise<IDataAssetItemList> {
+	): Promise<IDataAssetItemListResult> {
 		Guards.object<IDataAssetDescription>(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(dataAsset),
@@ -755,11 +755,9 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		const dataRequest: IDataRequest = {
-			type: "QueryDataAsset",
-			dataAsset: serviceDataset as unknown as IDcatDataset,
-			query,
-			cursor,
-			limit
+			type: DataRequestType.QueryDataAsset,
+			dataAsset: serviceDataset,
+			query
 		};
 
 		const handleDataRequest = appEntry.app.handleDataRequest?.bind(appEntry.app);
@@ -769,7 +767,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			handleDataRequest
 		);
 
-		const { data, cursor: cursorResult } = await handleDataRequest(dataRequest);
+		const { data, cursor: cursorResult } = await handleDataRequest(dataRequest, cursor, limit);
 
 		let finalData: IJsonLdNodeObject[];
 		if (Is.array(data)) {
@@ -778,14 +776,16 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			finalData = [data as IJsonLdNodeObject];
 		}
 
-		const finalResult = {
+		const itemList = {
 			"@context": SchemaOrgContexts.Namespace,
 			type: SchemaOrgTypes.ItemList,
-			itemListElement: finalData,
-			nextItem: cursorResult
+			itemListElement: finalData
 		};
 
-		return JsonLdProcessor.compact(finalResult, finalResult["@context"]);
+		return {
+			itemList: await JsonLdProcessor.compact(itemList, itemList["@context"]),
+			cursor: cursorResult
+		};
 	}
 
 	/**

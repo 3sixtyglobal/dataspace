@@ -11,7 +11,7 @@ import {
 	type IUnprocessableEntityResponse
 } from "@twin.org/api-models";
 import { ContextIdKeys } from "@twin.org/context";
-import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
+import { Coerce, ComponentFactory, Guards, Is } from "@twin.org/core";
 import type {
 	IActivityLogEntry,
 	IActivityLogEntryGetRequest,
@@ -30,7 +30,7 @@ import {
 	ActivityStreamsContexts,
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
-import { HttpStatusCode, MimeTypes } from "@twin.org/web";
+import { HeaderHelper, HeaderTypes, HttpStatusCode, MimeTypes } from "@twin.org/web";
 
 /**
  * The source used when communicating about these routes.
@@ -102,8 +102,7 @@ const dataSpaceConnectorQueryResultExample: IDataAssetItemList = {
 			type: "Consignment",
 			id: "urn:ucr:PL527288386100000"
 		}
-	],
-	nextItem: "xx1234aaa"
+	]
 };
 
 /**
@@ -370,12 +369,21 @@ export async function getDataAssetEntities(
 			entityId: HttpParameterHelper.arrayFromString(request.query.id)
 		},
 		request.query.cursor,
-		Coerce.number(request.query.limit)
+		Coerce.integer(request.query.limit)
 	);
 
-	// It is still needed to process the pagination header parameters
 	return {
-		body: result
+		body: result.itemList,
+		headers:
+			Is.stringValue(result.cursor) && Is.stringValue(httpRequestContext.serverRequest?.url)
+				? {
+						[HeaderTypes.Link]: HeaderHelper.createLinkHeader(
+							httpRequestContext.serverRequest.url,
+							{ cursor: result.cursor },
+							"next"
+						)
+					}
+				: undefined
 	};
 }
 
@@ -405,13 +413,24 @@ export async function queryDataAsset(
 
 	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
-	// It is still needed to process the pagination header parameters
+	const result = await service.queryDataAsset(
+		request.body.dataAsset,
+		request.body.query,
+		request.query?.cursor,
+		Coerce.integer(request.query?.limit)
+	);
+
 	return {
-		body: await service.queryDataAsset(
-			request.body.dataAsset,
-			request.body.query,
-			request.body.cursor,
-			request.body.limit
-		)
+		body: result.itemList,
+		headers:
+			Is.stringValue(result.cursor) && Is.stringValue(httpRequestContext.serverRequest?.url)
+				? {
+						[HeaderTypes.Link]: HeaderHelper.createLinkHeader(
+							httpRequestContext.serverRequest.url,
+							{ cursor: result.cursor },
+							"next"
+						)
+					}
+				: undefined
 	};
 }

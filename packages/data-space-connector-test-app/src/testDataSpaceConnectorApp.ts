@@ -4,11 +4,12 @@ import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/contex
 import { ComponentFactory } from "@twin.org/core";
 import { DataTypeHandlerFactory } from "@twin.org/data-core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
-import type {
-	IActivityQuery,
-	IDataRequest,
-	IDataSpaceConnector,
-	IDataSpaceConnectorApp
+import {
+	DataRequestType,
+	type IActivityQuery,
+	type IDataRequest,
+	type IDataSpaceConnector,
+	type IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
@@ -197,13 +198,17 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	/**
 	 * Handles the Data Request.
 	 * @param dataRequest The data request
+	 * @param cursor Cursor that points to the next item in the result set.
+	 * @param limit Maximum number of entries retrieved or to be retrieved.
 	 * @returns the Data.
 	 */
 	public async handleDataRequest(
-		dataRequest: IDataRequest
+		dataRequest: IDataRequest,
+		cursor?: string,
+		limit?: number
 	): Promise<{ data: IJsonLdDocument; cursor?: string }> {
 		switch (dataRequest.type) {
-			case "DataAssetEntities": {
+			case DataRequestType.DataAssetEntities: {
 				if (dataRequest.entitySet.entityType === "https://vocabulary.uncefact.org/Consignment") {
 					return {
 						data: [entities[0]]
@@ -218,7 +223,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 				return { data: [] };
 			}
 
-			case "QueryDataAsset":
+			case DataRequestType.QueryDataAsset:
 				return { data: entities };
 		}
 	}

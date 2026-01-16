@@ -38,10 +38,14 @@ export interface IDataSpaceConnectorApp extends IComponent {
 
 	/**
 	 * Handles a Data Request.
-	 * @param dataRequest The data Request.
+	 * @param dataRequest The data request.
+	 * @param cursor Cursor that points to the next item in the result set.
+	 * @param limit Maximum number of entries retrieved or to be retrieved.
 	 * @returns Data as JSON-Ld.
 	 */
 	handleDataRequest?(
-		dataRequest: IDataRequest
+		dataRequest: IDataRequest,
+		cursor?: string,
+		limit?: number
 	): Promise<{ data: IJsonLdDocument; cursor?: string }>;
 }

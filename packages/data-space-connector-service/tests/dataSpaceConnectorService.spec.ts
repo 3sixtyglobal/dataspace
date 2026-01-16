@@ -1,5 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import type { IHttpRequestContext } from "@twin.org/api-models";
 import { TaskSchedulerService } from "@twin.org/background-task-scheduler";
 import {
 	BackgroundTaskService,
@@ -13,6 +14,7 @@ import {
 	DataSpaceConnectorAppFactory,
 	type IActivityLogDates,
 	type IActivityLogEntry,
+	type IDataAssetEntitiesResponse,
 	type IDataRequest,
 	type IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
@@ -29,8 +31,13 @@ import {
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
+import { HeaderHelper, HeaderTypes } from "@twin.org/web";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { activityLdContextArray, canonicalActivity, extendedActivity } from "./testData.js";
+import {
+	getDataAssetEntities as getDataAssetEntitiesRoute,
+	queryDataAsset as queryDataAssetRoute
+} from "../src/dataSpaceConnectorRoutes.js";
 import { DataSpaceConnectorService } from "../src/dataSpaceConnectorService.js";
 import type { ActivityLogDetails } from "../src/entities/activityLogDetails.js";
 import type { ActivityTask } from "../src/entities/activityTask.js";
@@ -220,8 +227,9 @@ describe("data-space-connector-tests", () => {
 		);
 
 		expect(result).toBeDefined();
-		expect(result.itemListElement).toBeDefined();
-		expect(result.itemListElement.length).toBeGreaterThanOrEqual(0);
+		expect(result.itemList).toBeDefined();
+		expect(result.itemList.itemListElement).toBeDefined();
+		expect(result.itemList.itemListElement.length).toBeGreaterThanOrEqual(0);
 	});
 
 	test("queryDataAsset() uses new DCAT dataset vocabulary", async () => {
@@ -245,8 +253,9 @@ describe("data-space-connector-tests", () => {
 		);
 
 		expect(result).toBeDefined();
-		expect(result.itemListElement).toBeDefined();
-		expect(result.itemListElement.length).toBeGreaterThanOrEqual(0);
+		expect(result.itemList).toBeDefined();
+		expect(result.itemList.itemListElement).toBeDefined();
+		expect(result.itemList.itemListElement.length).toBeGreaterThanOrEqual(0);
 	});
 
 	test("Identity validation does not accept empty string fallback", async () => {
@@ -442,14 +451,14 @@ describe("data-space-connector-tests", () => {
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
 		await testApp.start();
 
-		const data = await dataSpaceConnectorService.getDataAssetEntities(
+		const result = await dataSpaceConnectorService.getDataAssetEntities(
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
 			}
 		);
 
-		expect(data.itemListElement.length).toBe(1);
+		expect(result.itemList.itemListElement.length).toBe(1);
 	});
 
 	test("It should get data asset entities by entity type with LD Context", async () => {
@@ -466,7 +475,7 @@ describe("data-space-connector-tests", () => {
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
 		await testApp.start();
 
-		const data = await dataSpaceConnectorService.getDataAssetEntities(
+		const result = await dataSpaceConnectorService.getDataAssetEntities(
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "Consignment",
@@ -474,7 +483,7 @@ describe("data-space-connector-tests", () => {
 			}
 		);
 
-		expect(data.itemListElement.length).toBe(1);
+		expect(result.itemList.itemListElement.length).toBe(1);
 	});
 
 	test("It should get data asset entities by entity type - no entities", async () => {
@@ -491,7 +500,7 @@ describe("data-space-connector-tests", () => {
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
 		await testApp.start();
 
-		const data = await dataSpaceConnectorService.getDataAssetEntities(
+		const result = await dataSpaceConnectorService.getDataAssetEntities(
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "Document",
@@ -499,7 +508,7 @@ describe("data-space-connector-tests", () => {
 			}
 		);
 
-		expect(data.itemListElement.length).toBe(0);
+		expect(result.itemList.itemListElement.length).toBe(0);
 	});
 
 	test("It should get data asset entities by entity id", async () => {
@@ -516,7 +525,7 @@ describe("data-space-connector-tests", () => {
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
 		await testApp.start();
 
-		const data = await dataSpaceConnectorService.getDataAssetEntities(
+		const result = await dataSpaceConnectorService.getDataAssetEntities(
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment",
@@ -524,7 +533,7 @@ describe("data-space-connector-tests", () => {
 			}
 		);
 
-		expect(data.itemListElement.length).toBe(1);
+		expect(result.itemList.itemListElement.length).toBe(1);
 	});
 
 	// ============================================
@@ -545,12 +554,12 @@ describe("data-space-connector-tests", () => {
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
 		await testApp.start();
 
-		const data = await dataSpaceConnectorService.queryDataAsset(
+		const result = await dataSpaceConnectorService.queryDataAsset(
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{ type: "TestQueryType", q: "test-query" }
 		);
 
-		expect(data.itemListElement.length).toBe(2);
+		expect(result.itemList.itemListElement.length).toBe(2);
 	});
 
 	test("It should throw unprocessable if query type is not supported", async () => {
@@ -671,7 +680,7 @@ describe("data-space-connector-tests", () => {
 		);
 
 		// App returns empty result for unknown type
-		expect(result.itemListElement.length).toBe(0);
+		expect(result.itemList.itemListElement.length).toBe(0);
 	});
 
 	// ============================================
@@ -732,7 +741,7 @@ describe("data-space-connector-tests", () => {
 
 		// Should successfully match and delegate to app
 		expect(result).toBeDefined();
-		expect(result.itemListElement).toBeDefined();
+		expect(result.itemList.itemListElement).toBeDefined();
 	});
 
 	test("Service throws ConflictError when multiple apps handle same dataset", async () => {
@@ -858,10 +867,10 @@ describe("data-space-connector-tests", () => {
 		if (!originalHandler) {
 			throw new Error("Test app must have handleDataRequest");
 		}
-		testApp.handleDataRequest = async dataRequest => {
+		testApp.handleDataRequest = async (dataRequest, cursor, limit) => {
 			capturedPagination = {
-				cursor: dataRequest.cursor,
-				limit: dataRequest.limit
+				cursor,
+				limit
 			};
 			return originalHandler.call(testApp, dataRequest);
 		};
@@ -883,6 +892,275 @@ describe("data-space-connector-tests", () => {
 		expect(capturedPagination).toBeDefined();
 		expect(capturedPagination?.cursor).toBe("test-cursor");
 		expect(capturedPagination?.limit).toBe(50);
+	});
+
+	// ============================================
+	// Link Header Pagination Tests
+	// ============================================
+
+	test("No Link header when cursor is undefined", async () => {
+		// Ensure context IDs are set for test app
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const mockContext = {
+			serverRequest: { url: "https://provider.com/data-space-connector/entities" }
+		} as IHttpRequestContext;
+
+		const request = {
+			query: {
+				type: "https://vocabulary.uncefact.org/Consignment",
+				datasetId: SERVICE_DATASET_ID
+			}
+		};
+
+		const response = (await getDataAssetEntitiesRoute(
+			mockContext,
+			"data-space-connector",
+			request
+		)) as IDataAssetEntitiesResponse;
+
+		// Verify no Link header when no cursor
+		expect(response.headers).toBeUndefined();
+	});
+
+	test("Link header present when cursor exists", async () => {
+		// Ensure context IDs are set for test app
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Create a test app that returns a cursor
+		const testApp = new TestDataSpaceConnectorApp();
+		const originalHandler = testApp.handleDataRequest;
+		if (!originalHandler) {
+			throw new Error("Test app must have handleDataRequest");
+		}
+		testApp.handleDataRequest = async dataRequest => {
+			const result = await originalHandler.call(testApp, dataRequest);
+			return {
+				...result,
+				cursor: "test-pagination-cursor"
+			};
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const mockContext = {
+			serverRequest: { url: "https://provider.com/data-space-connector/entities" }
+		} as IHttpRequestContext;
+
+		const request = {
+			query: {
+				type: "https://vocabulary.uncefact.org/Consignment",
+				datasetId: SERVICE_DATASET_ID
+			}
+		};
+
+		const response = (await getDataAssetEntitiesRoute(
+			mockContext,
+			"data-space-connector",
+			request
+		)) as IDataAssetEntitiesResponse;
+
+		// Verify Link header is present
+		expect(response.headers).toBeDefined();
+		expect(response.headers?.[HeaderTypes.Link]).toBeDefined();
+	});
+
+	test("Link header format is RFC 8288 compliant", async () => {
+		// Ensure context IDs are set for test app
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Create a test app that returns a cursor
+		const testApp = new TestDataSpaceConnectorApp();
+		const originalHandler = testApp.handleDataRequest;
+		if (!originalHandler) {
+			throw new Error("Test app must have handleDataRequest");
+		}
+		testApp.handleDataRequest = async dataRequest => {
+			const result = await originalHandler.call(testApp, dataRequest);
+			return {
+				...result,
+				cursor: "rfc-test-cursor-abc123"
+			};
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const mockContext = {
+			serverRequest: { url: "https://provider.com/data-space-connector/entities" }
+		} as IHttpRequestContext;
+
+		const request = {
+			query: {
+				type: "https://vocabulary.uncefact.org/Consignment",
+				datasetId: SERVICE_DATASET_ID
+			}
+		};
+
+		const response = (await getDataAssetEntitiesRoute(
+			mockContext,
+			"data-space-connector",
+			request
+		)) as IDataAssetEntitiesResponse;
+
+		// Verify Link header format: <url?cursor=...>; rel="next"
+		const linkHeader = response.headers?.[HeaderTypes.Link];
+		expect(linkHeader).toBe(
+			'<https://provider.com/data-space-connector/entities?cursor=rfc-test-cursor-abc123>; rel="next"'
+		);
+	});
+
+	test("Cursor NOT in response body", async () => {
+		// Ensure context IDs are set for test app
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Create a test app that returns a cursor
+		const testApp = new TestDataSpaceConnectorApp();
+		const originalHandler = testApp.handleDataRequest;
+		if (!originalHandler) {
+			throw new Error("Test app must have handleDataRequest");
+		}
+		testApp.handleDataRequest = async dataRequest => {
+			const result = await originalHandler.call(testApp, dataRequest);
+			return {
+				...result,
+				cursor: "body-test-cursor"
+			};
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const mockContext = {
+			serverRequest: { url: "https://provider.com/data-space-connector/entities" }
+		} as IHttpRequestContext;
+
+		const request = {
+			query: {
+				type: "https://vocabulary.uncefact.org/Consignment",
+				datasetId: SERVICE_DATASET_ID
+			}
+		};
+
+		const response = (await getDataAssetEntitiesRoute(
+			mockContext,
+			"data-space-connector",
+			request
+		)) as IDataAssetEntitiesResponse;
+
+		// Verify cursor is NOT in response body (pagination via Link header only)
+		expect((response.body as { cursor?: string }).cursor).toBeUndefined();
+		expect((response.body as { nextItem?: string }).nextItem).toBeUndefined();
+
+		// Verify cursor IS in Link header
+		expect(response.headers?.[HeaderTypes.Link]).toContain("cursor=body-test-cursor");
+	});
+
+	test("Pagination flow with Link header for queryDataAsset", async () => {
+		// Ensure context IDs are set for test app
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Create a test app that returns different results based on cursor
+		let requestCount = 0;
+		const testApp = new TestDataSpaceConnectorApp();
+		const originalHandler = testApp.handleDataRequest;
+		if (!originalHandler) {
+			throw new Error("Test app must have handleDataRequest");
+		}
+		testApp.handleDataRequest = async (dataRequest, cursor, limit) => {
+			requestCount++;
+			const result = await originalHandler.call(testApp, dataRequest, cursor, limit);
+			// First request returns cursor, second request (with cursor) returns no cursor
+			return {
+				...result,
+				cursor: cursor === "page2-cursor" ? undefined : "page2-cursor"
+			};
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const mockContext = {
+			serverRequest: { url: "https://provider.com/data-space-connector/entities/query" }
+		} as IHttpRequestContext;
+
+		// First request - should get Link header with cursor
+		const firstRequest = {
+			body: {
+				dataAsset: { dataSetId: [SERVICE_DATASET_ID] },
+				query: { type: "TestQueryType", q: "test-query" }
+			}
+		};
+
+		const firstResponse = (await queryDataAssetRoute(
+			mockContext,
+			"data-space-connector",
+			firstRequest
+		)) as IDataAssetEntitiesResponse;
+
+		// Verify first response has Link header
+		expect(firstResponse.headers?.[HeaderTypes.Link]).toBeDefined();
+
+		// Extract cursor from Link header using HeaderHelper
+		const linkHeaderValue = firstResponse.headers?.[HeaderTypes.Link];
+		const nextLink = HeaderHelper.extractLinkHeaderRelation(linkHeaderValue, "next");
+		expect(nextLink?.urlQueryParams?.cursor).toBe("page2-cursor");
+
+		// Second request using cursor from Link header
+		const secondRequest = {
+			body: {
+				dataAsset: { dataSetId: [SERVICE_DATASET_ID] },
+				query: { type: "TestQueryType", q: "test-query" }
+			},
+			query: {
+				cursor: nextLink?.urlQueryParams?.cursor
+			}
+		};
+
+		const secondResponse = (await queryDataAssetRoute(
+			mockContext,
+			"data-space-connector",
+			secondRequest
+		)) as IDataAssetEntitiesResponse;
+
+		// Verify second response has no Link header (last page)
+		expect(secondResponse.headers).toBeUndefined();
+		expect(requestCount).toBe(2);
 	});
 
 	test("App validation requires at least one handler method", async () => {

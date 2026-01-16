@@ -10,6 +10,7 @@
 - [IActivityTask](interfaces/IActivityTask.md)
 - [IDataAssetDescription](interfaces/IDataAssetDescription.md)
 - [IDataAssetItemList](interfaces/IDataAssetItemList.md)
+- [IDataAssetItemListResult](interfaces/IDataAssetItemListResult.md)
 - [IEntitySet](interfaces/IEntitySet.md)
 - [IExecutionPayload](interfaces/IExecutionPayload.md)
 - [IFilteringQuery](interfaces/IFilteringQuery.md)
@@ -23,9 +24,10 @@
 - [IDataAssetGetEntitiesRequest](interfaces/IDataAssetGetEntitiesRequest.md)
 - [IDataAssetQueryRequest](interfaces/IDataAssetQueryRequest.md)
 - [IActivityQuery](interfaces/IActivityQuery.md)
-- [IBaseDataRequest](interfaces/IBaseDataRequest.md)
+- [IDataAssetEntitiesRequest](interfaces/IDataAssetEntitiesRequest.md)
 - [IDataAssetQuery](interfaces/IDataAssetQuery.md)
 - [IDataSpaceConnectorApp](interfaces/IDataSpaceConnectorApp.md)
+- [IQueryDataAssetRequest](interfaces/IQueryDataAssetRequest.md)
 
 ## Type Aliases
 

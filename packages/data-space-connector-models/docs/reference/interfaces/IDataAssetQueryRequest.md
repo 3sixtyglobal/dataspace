@@ -1,6 +1,6 @@
 # Interface: IDataAssetQueryRequest
 
-Get Request Data Asset Entities
+Request to query data asset entities.
 
 ## Properties
 
@@ -8,26 +8,37 @@ Get Request Data Asset Entities
 
 > **body**: `object`
 
-Request body
+Request body containing the data asset and query criteria.
 
 #### dataAsset
 
 > **dataAsset**: [`IDataAssetDescription`](IDataAssetDescription.md)
 
+The data asset being queried.
+
 #### query
 
 > **query**: [`IFilteringQuery`](IFilteringQuery.md)
 
-The query
+The filtering query.
+
+***
+
+### query?
+
+> `optional` **query**: `object`
+
+Optional query parameters for pagination.
+Used when following Link header URLs.
 
 #### cursor?
 
 > `optional` **cursor**: `string`
 
-Pagination details. Cursor
+Opaque cursor token for pagination.
 
 #### limit?
 
-> `optional` **limit**: `number`
+> `optional` **limit**: `string`
 
-Pagination details. limit.
+Maximum number of items to return.

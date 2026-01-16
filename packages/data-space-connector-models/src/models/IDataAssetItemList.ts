@@ -4,7 +4,8 @@ import type { IJsonLdNodeObject } from "@twin.org/data-json-ld";
 import type { SchemaOrgContexts, SchemaOrgTypes } from "@twin.org/standards-schema-org";
 
 /**
- * Interface describing a list of entities that are within a Data Asset
+ * Interface describing a list of entities that are within a Data Asset.
+ * Pagination is handled via HTTP Link headers.
  */
 export interface IDataAssetItemList {
 	/**
@@ -22,9 +23,4 @@ export interface IDataAssetItemList {
 	 *
 	 */
 	[SchemaOrgTypes.ItemListElement]: IJsonLdNodeObject[];
-
-	/**
-	 * Next item cursor.
-	 */
-	[SchemaOrgTypes.NextItem]?: string;
 }

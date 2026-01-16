@@ -64,7 +64,7 @@ The class name of the component.
 
 ### getDataAssetEntities()
 
-> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
 
 Get Data Asset entities. Allows to retrieve entities by their type or id.
 
@@ -96,9 +96,9 @@ Pagination details - max number of entities.
 
 #### Returns
 
-`Promise`\<`IDataAssetItemList`\>
+`Promise`\<`IDataAssetItemListResult`\>
 
-The entities requested as a JSON-LD Document.
+The item list and optional cursor for pagination via Link headers.
 
 #### Implementation of
 
@@ -108,7 +108,7 @@ The entities requested as a JSON-LD Document.
 
 ### queryDataAsset()
 
-> **queryDataAsset**(`dataAsset`, `query`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemList`\>
+> **queryDataAsset**(`dataAsset`, `query`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
 
 Queries a data asset controlled by this DS Connector App.
 
@@ -140,9 +140,9 @@ Pagination details - max number of entities.
 
 #### Returns
 
-`Promise`\<`IDataAssetItemList`\>
+`Promise`\<`IDataAssetItemListResult`\>
 
-The entities requested as a JSON-LD Document.
+The item list and optional cursor for pagination via Link headers.
 
 #### Implementation of
 

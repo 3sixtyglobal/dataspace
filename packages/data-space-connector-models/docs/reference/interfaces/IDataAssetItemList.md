@@ -1,6 +1,7 @@
 # Interface: IDataAssetItemList
 
-Interface describing a list of entities that are within a Data Asset
+Interface describing a list of entities that are within a Data Asset.
+Pagination is handled via HTTP Link headers.
 
 ## Properties
 
@@ -25,11 +26,3 @@ The type
 > **itemListElement**: `IJsonLdNodeObject`[]
 
 The components of the Collection
-
-***
-
-### nextItem?
-
-> `optional` **nextItem**: `string`
-
-Next item cursor.

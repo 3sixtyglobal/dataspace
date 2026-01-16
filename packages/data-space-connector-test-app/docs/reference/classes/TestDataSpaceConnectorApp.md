@@ -174,7 +174,7 @@ Activity processing result
 
 ### handleDataRequest()
 
-> **handleDataRequest**(`dataRequest`): `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
+> **handleDataRequest**(`dataRequest`, `cursor?`, `limit?`): `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
 
 Handles the Data Request.
 
@@ -185,6 +185,18 @@ Handles the Data Request.
 `IDataRequest`
 
 The data request
+
+##### cursor?
+
+`string`
+
+Cursor that points to the next item in the result set.
+
+##### limit?
+
+`number`
+
+Maximum number of entries retrieved or to be retrieved.
 
 #### Returns
 

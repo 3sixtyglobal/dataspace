@@ -14,9 +14,9 @@ export const DataRequestType = {
 	 * Query over a data asset
 	 */
 	QueryDataAsset: "QueryDataAsset"
-};
+} as const;
 
 /**
- * The types.
+ * Data Request Types.
  */
 export type DataRequestType = (typeof DataRequestType)[keyof typeof DataRequestType];
