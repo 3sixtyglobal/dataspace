@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.7](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.6...data-space-connector-rest-server-v0.0.3-next.7) (2026-01-16)
+
+
+### Features
+
+* implement Link headers for pagination ([#43](https://github.com/twinfoundation/data-space-connector/issues/43)) ([ce2a31f](https://github.com/twinfoundation/data-space-connector/commit/ce2a31fab1b5a1338d34b8514e96a203705c68d1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.6 to 0.0.3-next.7
+    * @twin.org/data-space-connector-rest-client bumped from 0.0.3-next.6 to 0.0.3-next.7
+    * @twin.org/data-space-connector-socket-client bumped from 0.0.3-next.6 to 0.0.3-next.7
+    * @twin.org/data-space-connector-service bumped from 0.0.3-next.6 to 0.0.3-next.7
+
 ## [0.0.3-next.6](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.5...data-space-connector-rest-server-v0.0.3-next.6) (2026-01-15)
 
 

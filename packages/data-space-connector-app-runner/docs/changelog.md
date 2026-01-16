@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.7](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-app-runner-v0.0.3-next.6...data-space-connector-app-runner-v0.0.3-next.7) (2026-01-16)
+
+
+### Miscellaneous Chores
+
+* **data-space-connector-app-runner:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.6 to 0.0.3-next.7
+
 ## [0.0.3-next.6](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-app-runner-v0.0.3-next.5...data-space-connector-app-runner-v0.0.3-next.6) (2026-01-15)
 
 
