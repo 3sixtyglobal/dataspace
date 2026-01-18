@@ -136,6 +136,7 @@ export async function initialiseDataSpaceConnectorComponent(
 			loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
 			backgroundTaskComponentType: engineCore.getRegisteredInstanceType("backgroundTaskComponent"),
 			taskSchedulerComponentType: engineCore.getRegisteredInstanceType("taskSchedulerComponent"),
+			trustComponentType: engineCore.getRegisteredInstanceType("trustComponent"),
 			...instanceConfig.options
 		});
 		instanceType = nameofKebabCase(DataSpaceConnectorService);

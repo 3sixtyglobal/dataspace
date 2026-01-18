@@ -82,6 +82,20 @@ The keys to use from the context ids to cleanup partitions.
 
 ***
 
+### trustComponentType?
+
+> `optional` **trustComponentType**: `string`
+
+Trust component type.
+
+#### Default
+
+```ts
+trust
+```
+
+***
+
 ### config?
 
 > `optional` **config**: [`IDataSpaceConnectorServiceConfig`](IDataSpaceConnectorServiceConfig.md)

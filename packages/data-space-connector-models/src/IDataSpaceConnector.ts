@@ -68,6 +68,7 @@ export interface IDataSpaceConnector extends IComponent {
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The item list and optional cursor for pagination via Link headers.
@@ -77,6 +78,7 @@ export interface IDataSpaceConnector extends IComponent {
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
+		trustPayload: unknown,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemListResult>;
@@ -85,6 +87,7 @@ export interface IDataSpaceConnector extends IComponent {
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The item list and optional cursor for pagination via Link headers.
@@ -92,6 +95,7 @@ export interface IDataSpaceConnector extends IComponent {
 	queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
+		trustPayload: unknown,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemListResult>;

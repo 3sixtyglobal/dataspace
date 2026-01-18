@@ -64,7 +64,7 @@ The class name of the component.
 
 ### getDataAssetEntities()
 
-> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `trustPayload`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
 
 Get Data Asset entities. Allows to retrieve entities by their type or id.
 
@@ -81,6 +81,12 @@ The data asset being referred. It can be left empty and let the system to locate
 `IEntitySet` & `object`
 
 The set of entities to be retrieved.
+
+##### trustPayload
+
+`unknown`
+
+Trust payload to verify the requesters identity.
 
 ##### cursor?
 
@@ -108,7 +114,7 @@ The item list and optional cursor for pagination via Link headers.
 
 ### queryDataAsset()
 
-> **queryDataAsset**(`dataAsset`, `query`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
+> **queryDataAsset**(`dataAsset`, `query`, `trustPayload`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
 
 Queries a data asset controlled by this DS Connector App.
 
@@ -125,6 +131,12 @@ The data asset being referred.
 `IFilteringQuery`
 
 The filtering query.
+
+##### trustPayload
+
+`unknown`
+
+Trust payload to verify the requesters identity.
 
 ##### cursor?
 

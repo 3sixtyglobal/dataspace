@@ -31,6 +31,7 @@ import {
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
+import type { ITrustComponent, ITrustVerificationInfo } from "@twin.org/trust-models";
 import { HeaderHelper, HeaderTypes } from "@twin.org/web";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { activityLdContextArray, canonicalActivity, extendedActivity } from "./testData.js";
@@ -47,6 +48,7 @@ import { initSchema } from "../src/schema.js";
 const TEST_NODE_IDENTITY = "did:iota:testnet:7654321";
 const DATA_CONSUMER_IDENTITY = "did:iota:testnet:1234567";
 const SERVICE_DATASET_ID = "https://twin.example.org/data-service-1";
+const MOCK_TRUST_PAYLOAD = "mock-trust-token";
 
 /**
  * Waits.
@@ -153,11 +155,23 @@ describe("data-space-connector-tests", () => {
 		});
 		EntityStorageConnectorFactory.register("background-task", () => backgroundTaskStorage);
 
-		// Mock context IDs
+		// Mock context IDs (only Node is needed for TestDataSpaceConnectorApp.start())
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
+
+		// Create mock trust component
+		const mockTrustComponent: ITrustComponent = {
+			className: () => "MockTrustComponent",
+			verify: vi.fn().mockResolvedValue({
+				verified: true,
+				info: {
+					identity: DATA_CONSUMER_IDENTITY
+				} as ITrustVerificationInfo
+			}),
+			generate: vi.fn()
+		};
+		ComponentFactory.register("trust", () => mockTrustComponent);
 	});
 
 	beforeEach(async () => {
@@ -207,8 +221,7 @@ describe("data-space-connector-tests", () => {
 	test("getDataAssetEntities() uses new DCAT dataset vocabulary", async () => {
 		// Mock context to provide both Node and Organization identity (needed for test app)
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const service = new DataSpaceConnectorService(options);
@@ -223,7 +236,8 @@ describe("data-space-connector-tests", () => {
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		expect(result).toBeDefined();
@@ -235,8 +249,7 @@ describe("data-space-connector-tests", () => {
 	test("queryDataAsset() uses new DCAT dataset vocabulary", async () => {
 		// Mock context to provide both Node and Organization identity (needed for test app)
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const service = new DataSpaceConnectorService(options);
@@ -249,7 +262,8 @@ describe("data-space-connector-tests", () => {
 		// Call queryDataAsset - it should use dataset vocabulary
 		const result = await service.queryDataAsset(
 			{ dataSetId: [SERVICE_DATASET_ID] },
-			{ type: "TestQueryType", q: "test-query" }
+			{ type: "TestQueryType", q: "test-query" },
+			MOCK_TRUST_PAYLOAD
 		);
 
 		expect(result).toBeDefined();
@@ -259,34 +273,58 @@ describe("data-space-connector-tests", () => {
 	});
 
 	test("Identity validation does not accept empty string fallback", async () => {
+		// Override the trust component to return empty identity for this test
+		const emptyIdentityTrustComponent: ITrustComponent = {
+			className: () => "EmptyIdentityTrustComponent",
+			verify: vi.fn().mockResolvedValue({
+				verified: true,
+				info: {
+					identity: ""
+				} as ITrustVerificationInfo
+			}),
+			generate: vi.fn()
+		};
+		ComponentFactory.register("trust", () => emptyIdentityTrustComponent);
+
 		const service = new DataSpaceConnectorService(options);
 
-		// Mock context to return empty string (simulating missing identity)
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Organization]: ""
-		});
-
-		// getDataAssetEntities should throw GuardError for empty identity
+		// getDataAssetEntities should throw UnauthorizedError for empty identity
+		// TrustHelper.verifyTrust() throws UnauthorizedError when identity is empty
 		await expect(
 			service.getDataAssetEntities(
 				{ dataSetId: [SERVICE_DATASET_ID] },
 				{
 					entityType: "https://vocabulary.uncefact.org/Consignment"
-				}
+				},
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
-			name: "GuardError"
+			name: "UnauthorizedError"
 		});
 
-		// queryDataAsset should also throw GuardError for empty identity
+		// queryDataAsset should also throw UnauthorizedError for empty identity
 		await expect(
 			service.queryDataAsset(
 				{ dataSetId: [SERVICE_DATASET_ID] },
-				{ type: "TestQueryType", q: "test-query" }
+				{ type: "TestQueryType", q: "test-query" },
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
-			name: "GuardError"
+			name: "UnauthorizedError"
 		});
+
+		// Restore the default mock trust component
+		const mockTrustComponent: ITrustComponent = {
+			className: () => "MockTrustComponent",
+			verify: vi.fn().mockResolvedValue({
+				verified: true,
+				info: {
+					identity: DATA_CONSUMER_IDENTITY
+				} as ITrustVerificationInfo
+			}),
+			generate: vi.fn()
+		};
+		ComponentFactory.register("trust", () => mockTrustComponent);
 	});
 
 	// ============================================
@@ -298,8 +336,7 @@ describe("data-space-connector-tests", () => {
 
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -347,8 +384,7 @@ describe("data-space-connector-tests", () => {
 
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -374,8 +410,7 @@ describe("data-space-connector-tests", () => {
 
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -440,8 +475,7 @@ describe("data-space-connector-tests", () => {
 	test("It should get data asset entities by entity type", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -455,7 +489,8 @@ describe("data-space-connector-tests", () => {
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		expect(result.itemList.itemListElement.length).toBe(1);
@@ -464,8 +499,7 @@ describe("data-space-connector-tests", () => {
 	test("It should get data asset entities by entity type with LD Context", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -480,7 +514,8 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "Consignment",
 				jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		expect(result.itemList.itemListElement.length).toBe(1);
@@ -489,8 +524,7 @@ describe("data-space-connector-tests", () => {
 	test("It should get data asset entities by entity type - no entities", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -505,7 +539,8 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "Document",
 				jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		expect(result.itemList.itemListElement.length).toBe(0);
@@ -514,8 +549,7 @@ describe("data-space-connector-tests", () => {
 	test("It should get data asset entities by entity id", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -530,7 +564,8 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment",
 				entityId: ["urn:ucr:24PLP051219453I002610799053311"]
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		expect(result.itemList.itemListElement.length).toBe(1);
@@ -543,8 +578,7 @@ describe("data-space-connector-tests", () => {
 	test("It should query data asset if query type is supported", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -556,7 +590,8 @@ describe("data-space-connector-tests", () => {
 
 		const result = await dataSpaceConnectorService.queryDataAsset(
 			{ dataSetId: [SERVICE_DATASET_ID] },
-			{ type: "TestQueryType", q: "test-query" }
+			{ type: "TestQueryType", q: "test-query" },
+			MOCK_TRUST_PAYLOAD
 		);
 
 		expect(result.itemList.itemListElement.length).toBe(2);
@@ -565,8 +600,7 @@ describe("data-space-connector-tests", () => {
 	test("It should throw unprocessable if query type is not supported", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -579,7 +613,8 @@ describe("data-space-connector-tests", () => {
 		await expect(
 			dataSpaceConnectorService.queryDataAsset(
 				{ dataSetId: [SERVICE_DATASET_ID] },
-				{ type: "UnsupportedQueryType", q: "test-query" }
+				{ type: "UnsupportedQueryType", q: "test-query" },
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
 			name: "UnprocessableError"
@@ -596,10 +631,9 @@ describe("data-space-connector-tests", () => {
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
 
-		// Mock context with invalid participant (using valid DID format that doesn't exist)
+		// Mock context (Node only needed for test app)
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: "did:iota:testnet:9999999"
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		await expect(
@@ -607,7 +641,8 @@ describe("data-space-connector-tests", () => {
 				{},
 				{
 					entityType: "https://vocabulary.uncefact.org/Consignment"
-				}
+				},
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
 			name: "GuardError"
@@ -623,7 +658,8 @@ describe("data-space-connector-tests", () => {
 				{ dataSetId: ["https://nonexistent.service.org"] },
 				{
 					entityType: "https://vocabulary.uncefact.org/Consignment"
-				}
+				},
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
 			name: "NotFoundError"
@@ -633,8 +669,7 @@ describe("data-space-connector-tests", () => {
 	test("It should throw error if non qualified type is provided", async () => {
 		// Ensure context IDs are set
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -647,7 +682,8 @@ describe("data-space-connector-tests", () => {
 				{ dataSetId: [SERVICE_DATASET_ID] },
 				{
 					entityType: "Consignment"
-				}
+				},
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
 			name: "NotFoundError"
@@ -657,8 +693,7 @@ describe("data-space-connector-tests", () => {
 	test("It should throw error if unexpandable type is provided", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -676,7 +711,8 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "Consignment33333",
 				jsonLdContext: ["https://vocabulary.uncefact.org/unece-context-D23B.jsonld"]
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		// App returns empty result for unknown type
@@ -719,8 +755,7 @@ describe("data-space-connector-tests", () => {
 	test("Service matches app by dataset @id", async () => {
 		// Ensure context IDs are set
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -736,7 +771,8 @@ describe("data-space-connector-tests", () => {
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		// Should successfully match and delegate to app
@@ -746,8 +782,7 @@ describe("data-space-connector-tests", () => {
 
 	test("Service throws ConflictError when multiple apps handle same dataset", async () => {
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -769,7 +804,8 @@ describe("data-space-connector-tests", () => {
 				{ dataSetId: [SERVICE_DATASET_ID] },
 				{
 					entityType: "https://vocabulary.uncefact.org/Consignment"
-				}
+				},
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
 			name: "ConflictError"
@@ -779,8 +815,7 @@ describe("data-space-connector-tests", () => {
 	test("Dataset-centric data requests use IDataset", async () => {
 		// Ensure context IDs are set
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -793,9 +828,13 @@ describe("data-space-connector-tests", () => {
 		if (!originalHandler) {
 			throw new Error("Test app must have handleDataRequest");
 		}
-		testApp.handleDataRequest = async dataRequest => {
+		testApp.handleDataRequest = async (
+			dataRequest: IDataRequest,
+			cursor?: string,
+			limit?: number
+		) => {
 			capturedDataRequest = dataRequest;
-			return originalHandler.call(testApp, dataRequest);
+			return originalHandler.call(testApp, dataRequest, cursor, limit);
 		};
 
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
@@ -806,7 +845,8 @@ describe("data-space-connector-tests", () => {
 			{ dataSetId: [SERVICE_DATASET_ID] },
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
-			}
+			},
+			MOCK_TRUST_PAYLOAD
 		);
 
 		// Verify dataRequest contains IDataset
@@ -820,8 +860,7 @@ describe("data-space-connector-tests", () => {
 	test("Query type validation against app's supportedQueryTypes()", async () => {
 		// Ensure context IDs are set
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -835,7 +874,8 @@ describe("data-space-connector-tests", () => {
 		// Try with supported type - should succeed
 		const resultSupported = await dataSpaceConnectorService.queryDataAsset(
 			{ dataSetId: [SERVICE_DATASET_ID] },
-			{ type: "TestQueryType", q: "test" }
+			{ type: "TestQueryType", q: "test" },
+			MOCK_TRUST_PAYLOAD
 		);
 		expect(resultSupported).toBeDefined();
 
@@ -843,7 +883,8 @@ describe("data-space-connector-tests", () => {
 		await expect(
 			dataSpaceConnectorService.queryDataAsset(
 				{ dataSetId: [SERVICE_DATASET_ID] },
-				{ type: "UnsupportedQueryType", q: "test" }
+				{ type: "UnsupportedQueryType", q: "test" },
+				MOCK_TRUST_PAYLOAD
 			)
 		).rejects.toMatchObject({
 			name: "UnprocessableError"
@@ -853,8 +894,7 @@ describe("data-space-connector-tests", () => {
 	test("Pagination cursor is passed through to app", async () => {
 		// Ensure context IDs are set
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -867,12 +907,16 @@ describe("data-space-connector-tests", () => {
 		if (!originalHandler) {
 			throw new Error("Test app must have handleDataRequest");
 		}
-		testApp.handleDataRequest = async (dataRequest, cursor, limit) => {
+		testApp.handleDataRequest = async (
+			dataRequest: IDataRequest,
+			cursor?: string,
+			limit?: number
+		) => {
 			capturedPagination = {
 				cursor,
 				limit
 			};
-			return originalHandler.call(testApp, dataRequest);
+			return originalHandler.call(testApp, dataRequest, cursor, limit);
 		};
 
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
@@ -884,6 +928,7 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
 			},
+			MOCK_TRUST_PAYLOAD,
 			"test-cursor",
 			50
 		);
@@ -901,8 +946,7 @@ describe("data-space-connector-tests", () => {
 	test("No Link header when cursor is undefined", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -917,6 +961,9 @@ describe("data-space-connector-tests", () => {
 		} as IHttpRequestContext;
 
 		const request = {
+			headers: {
+				[HeaderTypes.Authorization]: HeaderHelper.createBearer(MOCK_TRUST_PAYLOAD)
+			},
 			query: {
 				type: "https://vocabulary.uncefact.org/Consignment",
 				datasetId: SERVICE_DATASET_ID
@@ -936,8 +983,7 @@ describe("data-space-connector-tests", () => {
 	test("Link header present when cursor exists", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -949,8 +995,12 @@ describe("data-space-connector-tests", () => {
 		if (!originalHandler) {
 			throw new Error("Test app must have handleDataRequest");
 		}
-		testApp.handleDataRequest = async dataRequest => {
-			const result = await originalHandler.call(testApp, dataRequest);
+		testApp.handleDataRequest = async (
+			dataRequest: IDataRequest,
+			cursor?: string,
+			limit?: number
+		) => {
+			const result = await originalHandler.call(testApp, dataRequest, cursor, limit);
 			return {
 				...result,
 				cursor: "test-pagination-cursor"
@@ -965,6 +1015,9 @@ describe("data-space-connector-tests", () => {
 		} as IHttpRequestContext;
 
 		const request = {
+			headers: {
+				[HeaderTypes.Authorization]: HeaderHelper.createBearer(MOCK_TRUST_PAYLOAD)
+			},
 			query: {
 				type: "https://vocabulary.uncefact.org/Consignment",
 				datasetId: SERVICE_DATASET_ID
@@ -985,8 +1038,7 @@ describe("data-space-connector-tests", () => {
 	test("Link header format is RFC 8288 compliant", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -998,8 +1050,12 @@ describe("data-space-connector-tests", () => {
 		if (!originalHandler) {
 			throw new Error("Test app must have handleDataRequest");
 		}
-		testApp.handleDataRequest = async dataRequest => {
-			const result = await originalHandler.call(testApp, dataRequest);
+		testApp.handleDataRequest = async (
+			dataRequest: IDataRequest,
+			cursor?: string,
+			limit?: number
+		) => {
+			const result = await originalHandler.call(testApp, dataRequest, cursor, limit);
 			return {
 				...result,
 				cursor: "rfc-test-cursor-abc123"
@@ -1014,6 +1070,9 @@ describe("data-space-connector-tests", () => {
 		} as IHttpRequestContext;
 
 		const request = {
+			headers: {
+				[HeaderTypes.Authorization]: HeaderHelper.createBearer(MOCK_TRUST_PAYLOAD)
+			},
 			query: {
 				type: "https://vocabulary.uncefact.org/Consignment",
 				datasetId: SERVICE_DATASET_ID
@@ -1036,8 +1095,7 @@ describe("data-space-connector-tests", () => {
 	test("Cursor NOT in response body", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -1049,8 +1107,12 @@ describe("data-space-connector-tests", () => {
 		if (!originalHandler) {
 			throw new Error("Test app must have handleDataRequest");
 		}
-		testApp.handleDataRequest = async dataRequest => {
-			const result = await originalHandler.call(testApp, dataRequest);
+		testApp.handleDataRequest = async (
+			dataRequest: IDataRequest,
+			cursor?: string,
+			limit?: number
+		) => {
+			const result = await originalHandler.call(testApp, dataRequest, cursor, limit);
 			return {
 				...result,
 				cursor: "body-test-cursor"
@@ -1065,6 +1127,9 @@ describe("data-space-connector-tests", () => {
 		} as IHttpRequestContext;
 
 		const request = {
+			headers: {
+				[HeaderTypes.Authorization]: HeaderHelper.createBearer(MOCK_TRUST_PAYLOAD)
+			},
 			query: {
 				type: "https://vocabulary.uncefact.org/Consignment",
 				datasetId: SERVICE_DATASET_ID
@@ -1088,8 +1153,7 @@ describe("data-space-connector-tests", () => {
 	test("Pagination flow with Link header for queryDataAsset", async () => {
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
-			[ContextIdKeys.Organization]: DATA_CONSUMER_IDENTITY
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
@@ -1102,7 +1166,11 @@ describe("data-space-connector-tests", () => {
 		if (!originalHandler) {
 			throw new Error("Test app must have handleDataRequest");
 		}
-		testApp.handleDataRequest = async (dataRequest, cursor, limit) => {
+		testApp.handleDataRequest = async (
+			dataRequest: IDataRequest,
+			cursor?: string,
+			limit?: number
+		) => {
 			requestCount++;
 			const result = await originalHandler.call(testApp, dataRequest, cursor, limit);
 			// First request returns cursor, second request (with cursor) returns no cursor
@@ -1121,6 +1189,9 @@ describe("data-space-connector-tests", () => {
 
 		// First request - should get Link header with cursor
 		const firstRequest = {
+			headers: {
+				[HeaderTypes.Authorization]: HeaderHelper.createBearer(MOCK_TRUST_PAYLOAD)
+			},
 			body: {
 				dataAsset: { dataSetId: [SERVICE_DATASET_ID] },
 				query: { type: "TestQueryType", q: "test-query" }
@@ -1143,6 +1214,9 @@ describe("data-space-connector-tests", () => {
 
 		// Second request using cursor from Link header
 		const secondRequest = {
+			headers: {
+				[HeaderTypes.Authorization]: HeaderHelper.createBearer(MOCK_TRUST_PAYLOAD)
+			},
 			body: {
 				dataAsset: { dataSetId: [SERVICE_DATASET_ID] },
 				query: { type: "TestQueryType", q: "test-query" }

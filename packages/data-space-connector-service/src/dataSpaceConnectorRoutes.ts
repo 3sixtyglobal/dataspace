@@ -10,7 +10,6 @@ import {
 	type ITag,
 	type IUnprocessableEntityResponse
 } from "@twin.org/api-models";
-import { ContextIdKeys } from "@twin.org/context";
 import { Coerce, ComponentFactory, Guards, Is } from "@twin.org/core";
 import type {
 	IActivityLogEntry,
@@ -220,11 +219,7 @@ export function generateRestRoutesDataSpaceConnector(
 				]
 			}
 		],
-		skipAuth: true,
-		processorFeatures: ["verifiableCredential"],
-		processorData: {
-			verifiableCredential: { contextId: ContextIdKeys.Organization }
-		}
+		skipAuth: true
 	};
 
 	const queryDataAssetRoute: IRestRoute<
@@ -268,11 +263,7 @@ export function generateRestRoutesDataSpaceConnector(
 				]
 			}
 		],
-		skipAuth: true,
-		processorFeatures: ["verifiableCredential"],
-		processorData: {
-			verifiableCredential: { contextId: ContextIdKeys.Organization }
-		}
+		skipAuth: true
 	};
 
 	return [
@@ -358,6 +349,8 @@ export async function getDataAssetEntities(
 	);
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.query.type), request.query.type);
 
+	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
+
 	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
 	const result = await service.getDataAssetEntities(
@@ -368,6 +361,7 @@ export async function getDataAssetEntities(
 			entityType: request.query.type,
 			entityId: HttpParameterHelper.arrayFromString(request.query.id)
 		},
+		trustPayload,
 		request.query.cursor,
 		Coerce.integer(request.query.limit)
 	);
@@ -411,11 +405,14 @@ export async function queryDataAsset(
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.type), request.body.query.type);
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.q), request.body.query.q);
 
+	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
+
 	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
 	const result = await service.queryDataAsset(
 		request.body.dataAsset,
 		request.body.query,
+		trustPayload,
 		request.query?.cursor,
 		Coerce.integer(request.query?.limit)
 	);

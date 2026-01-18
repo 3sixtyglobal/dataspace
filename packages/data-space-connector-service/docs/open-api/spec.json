@@ -322,6 +322,15 @@
 						"schema": {
 							"type": "string"
 						}
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple"
 					}
 				],
 				"responses": {
@@ -417,6 +426,15 @@
 						"schema": {
 							"type": "string"
 						}
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple"
 					}
 				],
 				"requestBody": {

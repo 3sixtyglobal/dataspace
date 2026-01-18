@@ -1,10 +1,18 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import type { HeaderTypes } from "@twin.org/web";
 
 /**
  * Get Request Data Asset Entities
  */
 export interface IDataAssetGetEntitiesRequest {
+	/**
+	 * The headers which can be used to determine the response data type.
+	 */
+	headers?: {
+		[HeaderTypes.Authorization]?: string;
+	};
+
 	/**
 	 * The parameters from the query.
 	 */

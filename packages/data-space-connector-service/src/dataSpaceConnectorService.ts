@@ -7,7 +7,7 @@ import {
 	type IScheduledTaskTime,
 	type ITaskSchedulerComponent
 } from "@twin.org/background-task-models";
-import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/context";
+import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	ComponentFactory,
 	ConflictError,
@@ -72,6 +72,7 @@ import {
 	ActivityStreamsDataTypes,
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
+import { type ITrustComponent, TrustHelper } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
 import type { IDataSpaceConnectorServiceConstructorOptions } from "./models/IDataSpaceConnectorServiceConstructorOptions.js";
@@ -178,6 +179,12 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	private readonly _partitionContextIds?: string[];
 
 	/**
+	 * The trust component.
+	 * @internal
+	 */
+	private readonly _trustComponent: ITrustComponent;
+
+	/**
 	 * The list of active tenants required for task cleanup.
 	 * @internal
 	 */
@@ -207,6 +214,10 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 
 		this._taskScheduler = ComponentFactory.get<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
+		);
+
+		this._trustComponent = ComponentFactory.get<ITrustComponent>(
+			options?.trustComponentType ?? "trust"
 		);
 
 		this._apps = [];
@@ -578,6 +589,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The entities requested as a JSON-LD Document.
@@ -587,6 +599,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
+		trustPayload: unknown,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemListResult> {
@@ -602,10 +615,13 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			entitySet.entityType
 		);
 
-		const contextIds = await ContextIdStore.getContextIds();
-		ContextIdHelper.guard(contextIds, ContextIdKeys.Organization);
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"getDataAssetEntities"
+		);
 
-		const dataConsumerIdentity = contextIds[ContextIdKeys.Organization];
+		const dataConsumerIdentity = trustInfo.identity;
 		Guards.stringValue(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(dataConsumerIdentity),
@@ -697,6 +713,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The item list and optional cursor for pagination via Link headers.
@@ -704,6 +721,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
+		trustPayload: unknown,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemListResult> {
@@ -715,10 +733,13 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		Guards.object(DataSpaceConnectorService.CLASS_NAME, nameof(query), query);
 		Guards.string(DataSpaceConnectorService.CLASS_NAME, nameof(query.type), query.type);
 
-		const contextIds = await ContextIdStore.getContextIds();
-		ContextIdHelper.guard(contextIds, ContextIdKeys.Organization);
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"queryDataAsset"
+		);
 
-		const dataConsumerIdentity = contextIds[ContextIdKeys.Organization];
+		const dataConsumerIdentity = trustInfo.identity;
 		Guards.stringValue(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(dataConsumerIdentity),

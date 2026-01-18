@@ -6,7 +6,6 @@ import {
 	type IBaseRestClientConfig,
 	type ICreatedResponse
 } from "@twin.org/api-models";
-import { ContextIdKeys } from "@twin.org/context";
 import { Guards, Is, NotSupportedError, Coerce } from "@twin.org/core";
 import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type {
@@ -59,6 +58,7 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The item list and optional cursor for pagination via Link headers.
@@ -68,6 +68,7 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
+		trustPayload: unknown,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemListResult> {
@@ -86,12 +87,15 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 			nameof(entitySet.entityType),
 			entitySet.entityType
 		);
+		Guards.stringValue(DataSpaceConnectorRestClient.CLASS_NAME, nameof(trustPayload), trustPayload);
 
-		// Data Consumer identity for the moment is not used in the request but it should be done in the future
 		const response = await this.fetch<IDataAssetGetEntitiesRequest, IDataAssetEntitiesResponse>(
 			"/entities",
 			"GET",
 			{
+				headers: {
+					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+				},
 				query: {
 					id: Is.arrayValue<string>(entitySet.entityId)
 						? (HttpParameterHelper.arrayToString(entitySet.entityId) as string)
@@ -102,12 +106,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 						: undefined,
 					limit: Coerce.string(limit),
 					cursor
-				}
-			},
-			{
-				authenticationGeneratorType: "verifiable-credential",
-				authenticationData: {
-					contextId: ContextIdKeys.Organization
 				}
 			}
 		);
@@ -123,6 +121,7 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
 	 * @returns The item list and optional cursor for pagination via Link headers.
@@ -130,21 +129,25 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
+		trustPayload: unknown,
 		cursor?: string,
 		limit?: number
 	): Promise<IDataAssetItemListResult> {
-		// The identity of the data consumer would need to be attested through a JWT
 		Guards.object<IDataAssetDescription>(
 			DataSpaceConnectorRestClient.CLASS_NAME,
 			nameof(dataAsset),
 			dataAsset
 		);
 		Guards.object<IFilteringQuery>(DataSpaceConnectorRestClient.CLASS_NAME, nameof(query), query);
+		Guards.stringValue(DataSpaceConnectorRestClient.CLASS_NAME, nameof(trustPayload), trustPayload);
 
 		const response = await this.fetch<IDataAssetQueryRequest, IDataAssetEntitiesResponse>(
 			"/entities/query",
 			"POST",
 			{
+				headers: {
+					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+				},
 				query: {
 					cursor,
 					limit: Coerce.string(limit)
@@ -152,12 +155,6 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 				body: {
 					dataAsset,
 					query
-				}
-			},
-			{
-				authenticationGeneratorType: "verifiable-credential",
-				authenticationData: {
-					contextId: ContextIdKeys.Organization
 				}
 			}
 		);

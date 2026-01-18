@@ -42,6 +42,12 @@ export interface IDataSpaceConnectorServiceConstructorOptions {
 	partitionContextIds?: string[];
 
 	/**
+	 * Trust component type.
+	 * @default trust
+	 */
+	trustComponentType?: string;
+
+	/**
 	 * The configuration of the Data Space Connector Service.
 	 */
 	config?: IDataSpaceConnectorServiceConfig;

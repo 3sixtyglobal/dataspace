@@ -4,6 +4,18 @@ Get Request Data Asset Entities
 
 ## Properties
 
+### headers?
+
+> `optional` **headers**: `object`
+
+The headers which can be used to determine the response data type.
+
+#### authorization?
+
+> `optional` **authorization**: `string`
+
+***
+
 ### query
 
 > **query**: `object`

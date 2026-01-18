@@ -4,6 +4,18 @@ Request to query data asset entities.
 
 ## Properties
 
+### headers?
+
+> `optional` **headers**: `object`
+
+The headers which can be used to determine the response data type.
+
+#### authorization?
+
+> `optional` **authorization**: `string`
+
+***
+
 ### body
 
 > **body**: `object`
