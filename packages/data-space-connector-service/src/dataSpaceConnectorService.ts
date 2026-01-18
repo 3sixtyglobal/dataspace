@@ -688,7 +688,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		};
 
 		return {
-			itemList: await JsonLdProcessor.compact(itemList, itemList["@context"]),
+			itemList,
 			cursor: cursorResult
 		};
 	}
@@ -783,7 +783,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		};
 
 		return {
-			itemList: await JsonLdProcessor.compact(itemList, itemList["@context"]),
+			itemList,
 			cursor: cursorResult
 		};
 	}
