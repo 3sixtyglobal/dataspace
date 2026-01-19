@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.10](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.9...data-space-connector-rest-server-v0.0.3-next.10) (2026-01-19)
+
+
+### Miscellaneous Chores
+
+* **data-space-connector-rest-server:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.9 to 0.0.3-next.10
+    * @twin.org/data-space-connector-rest-client bumped from 0.0.3-next.9 to 0.0.3-next.10
+    * @twin.org/data-space-connector-socket-client bumped from 0.0.3-next.9 to 0.0.3-next.10
+    * @twin.org/data-space-connector-service bumped from 0.0.3-next.9 to 0.0.3-next.10
+
 ## [0.0.3-next.9](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.8...data-space-connector-rest-server-v0.0.3-next.9) (2026-01-19)
 
 

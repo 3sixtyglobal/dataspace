@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.10](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-socket-client-v0.0.3-next.9...data-space-connector-socket-client-v0.0.3-next.10) (2026-01-19)
+
+
+### Features
+
+* replace registerApp with factory pattern ([#51](https://github.com/twinfoundation/data-space-connector/issues/51)) ([a7ef328](https://github.com/twinfoundation/data-space-connector/commit/a7ef32873f5781f7b1f8aa3670f5fb612dd17018))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.9 to 0.0.3-next.10
+
 ## [0.0.3-next.9](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-socket-client-v0.0.3-next.8...data-space-connector-socket-client-v0.0.3-next.9) (2026-01-19)
 
 
