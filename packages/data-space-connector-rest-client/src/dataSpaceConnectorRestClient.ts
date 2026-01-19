@@ -17,7 +17,6 @@ import type {
 	IDataAssetGetEntitiesRequest,
 	IDataAssetItemListResult,
 	IDataSpaceConnector,
-	IDataSpaceConnectorApp,
 	IDataAssetEntitiesResponse,
 	IEntitySet,
 	IFilteringQuery,
@@ -228,30 +227,5 @@ export class DataSpaceConnectorRestClient extends BaseRestClient implements IDat
 			}
 		);
 		return response.body;
-	}
-
-	/**
-	 * Registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @param app The app to be registered.
-	 * @returns nothing.
-	 */
-	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
-		// Don't want client to be able to register apps remotely
-		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, "notSupportedOnClient", {
-			methodName: "registerApp"
-		});
-	}
-
-	/**
-	 * Un-registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @returns Nothing.
-	 */
-	public async unregisterApp(appId: string): Promise<void> {
-		// Don't want client to be able to unregister apps remotely
-		throw new NotSupportedError(DataSpaceConnectorRestClient.CLASS_NAME, "notSupportedOnClient", {
-			methodName: "unregisterApp"
-		});
 	}
 }

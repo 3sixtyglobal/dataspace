@@ -8,7 +8,6 @@ import {
 	DataRequestType,
 	type IActivityQuery,
 	type IDataRequest,
-	type IDataSpaceConnector,
 	type IDataSpaceConnectorApp
 } from "@twin.org/data-space-connector-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
@@ -55,12 +54,6 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	public static readonly CLASS_NAME: string = nameof<TestDataSpaceConnectorApp>();
 
 	/**
-	 * Data space connector component.
-	 * @internal
-	 */
-	private readonly _dataSpaceConnectorComponent: IDataSpaceConnector;
-
-	/**
 	 * Logging service.
 	 * @internal
 	 */
@@ -77,9 +70,6 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	 * @param options The constructor options.
 	 */
 	constructor(options?: ITestAppConstructorOptions) {
-		this._dataSpaceConnectorComponent = ComponentFactory.get<IDataSpaceConnector>(
-			options?.dataSpaceConnectorComponentType ?? "data-space-connector"
-		);
 		this._loggingService = ComponentFactory.getIfExists<ILoggingComponent>(
 			options?.loggingComponentType ?? "logging"
 		);
@@ -143,8 +133,6 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 		const contextIds = await ContextIdStore.getContextIds();
 		ContextIdHelper.guard(contextIds, ContextIdKeys.Node);
 		this._nodeId = contextIds[ContextIdKeys.Node];
-
-		await this._dataSpaceConnectorComponent.registerApp(TestDataSpaceConnectorApp.APP_ID, this);
 
 		DataTypeHandlerFactory.register("https://twin.example.org/MyCreate", () => ({
 			namespace: "https://twin.example.org/",

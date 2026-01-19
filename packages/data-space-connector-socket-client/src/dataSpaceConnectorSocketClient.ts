@@ -21,7 +21,6 @@ import type {
 	IDataAssetDescription,
 	IDataAssetItemListResult,
 	IDataSpaceConnector,
-	IDataSpaceConnectorApp,
 	IEntitySet,
 	IFilteringQuery
 } from "@twin.org/data-space-connector-models";
@@ -212,31 +211,6 @@ export class DataSpaceConnectorSocketClient
 		// This method is in the REST client
 		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
 			methodName: "getActivityLogEntry"
-		});
-	}
-
-	/**
-	 * Registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @param app The app to be registered.
-	 * @returns nothing.
-	 */
-	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
-		// Don't want client to be able to register apps remotely
-		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
-			methodName: "registerApp"
-		});
-	}
-
-	/**
-	 * Un-registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @returns Nothing.
-	 */
-	public async unregisterApp(appId: string): Promise<void> {
-		// Don't want client to be able to unregister apps remotely
-		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
-			methodName: "unregisterApp"
 		});
 	}
 

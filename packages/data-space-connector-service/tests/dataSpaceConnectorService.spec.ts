@@ -15,19 +15,14 @@ import {
 	type IActivityLogDates,
 	type IActivityLogEntry,
 	type IDataAssetEntitiesResponse,
-	type IDataRequest,
-	type IDataSpaceConnectorApp
+	type IDataRequest
 } from "@twin.org/data-space-connector-models";
 import { TestDataSpaceConnectorApp } from "@twin.org/data-space-connector-test-app";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import {
-	DataspaceProtocolCatalogTypes,
-	DataspaceProtocolContexts,
-	type IDataspaceProtocolDataset
-} from "@twin.org/standards-dataspace-protocol";
+import { DataspaceProtocolCatalogTypes } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
@@ -195,6 +190,11 @@ describe("data-space-connector-tests", () => {
 			if (task.id) {
 				await backgroundTaskStorage.remove(task.id);
 			}
+		}
+
+		// Clear factory between tests to ensure clean state
+		for (const name of DataSpaceConnectorAppFactory.names()) {
+			DataSpaceConnectorAppFactory.unregister(name);
 		}
 
 		// Create fresh service instances
@@ -788,15 +788,15 @@ describe("data-space-connector-tests", () => {
 		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
 		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
 
-		// Register first app
+		// Register first app via factory
 		const testApp1 = new TestDataSpaceConnectorApp();
 		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp1);
 		await testApp1.start();
 
-		// Register the SAME app instance with a different ID (simulating two apps handling same dataset)
+		// Register a second app via factory that handles the same dataset
 		const testApp2 = new TestDataSpaceConnectorApp();
 		DataSpaceConnectorAppFactory.register("https://twin.example.org/app2", () => testApp2);
-		await dataSpaceConnectorService.registerApp("https://twin.example.org/app2", testApp2);
+		await testApp2.start();
 
 		// Try to get entities - should throw ConflictError because both apps handle SERVICE_DATASET_ID
 		await expect(
@@ -1235,261 +1235,5 @@ describe("data-space-connector-tests", () => {
 		// Verify second response has no Link header (last page)
 		expect(secondResponse.headers).toBeUndefined();
 		expect(requestCount).toBe(2);
-	});
-
-	test("App validation requires at least one handler method", async () => {
-		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
-
-		// Create an app that declares datasets but has no handleDataRequest method
-		// This should be rejected because it can't handle the datasets it declares
-		const invalidApp: IDataSpaceConnectorApp = {
-			className: () => "InvalidApp",
-			activitiesHandled: () => [],
-			datasetsHandled: (): IDataspaceProtocolDataset[] =>
-				[
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@id": "https://example.org/dataset",
-						"@type": "Dataset",
-						hasPolicy: [
-							{
-								"@type": "Offer",
-								"@id": "urn:uuid:policy-1",
-								uid: "urn:uuid:policy-1",
-								assigner: "https://twin.example.org",
-								permission: [
-									{
-										action: "read"
-									}
-								]
-							}
-						],
-						distribution: {
-							"@id": "https://example.org/distribution-1",
-							format: "Http-Pull-Query-Format",
-							accessService: "https://twin.example.org/data-service-1",
-							"@type": "Distribution"
-						},
-						"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-					}
-				] as unknown as IDataspaceProtocolDataset[],
-			supportedQueryTypes: () => ["TestQuery"],
-			start: async () => {}
-			// Note: Missing handleDataRequest - this is the violation
-		};
-
-		// Trying to register app that declares datasets but has no handler should throw
-		await expect(
-			dataSpaceConnectorService.registerApp("https://twin.example.org/invalid-app", invalidApp)
-		).rejects.toMatchObject({
-			name: "GeneralError"
-		});
-	});
-
-	// ============================================
-	// DS Protocol Compliance Tests
-	// ============================================
-
-	test("registerApp rejects datasets without hasPolicy", async () => {
-		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
-
-		const invalidApp: IDataSpaceConnectorApp = {
-			className: () => "InvalidAppNoPolicy",
-			activitiesHandled: () => [],
-			datasetsHandled: (): IDataspaceProtocolDataset[] => [
-				{
-					"@context": [DataspaceProtocolContexts.JsonLdContext],
-					"@id": "https://example.org/invalid-dataset",
-					"@type": DataspaceProtocolCatalogTypes.Dataset,
-					distribution: {
-						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution",
-						format: "Http-Pull-Query-Format",
-						accessService: "https://twin.example.org/data-service-1"
-					},
-					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-					// Missing odrl:hasPolicy!
-				} as unknown as IDataspaceProtocolDataset
-			],
-			supportedQueryTypes: () => ["EntityFilter"],
-			handleDataRequest: vi.fn(),
-			start: async () => {}
-		};
-
-		await expect(
-			dataSpaceConnectorService.registerApp(
-				"https://twin.example.org/invalid-app-no-policy",
-				invalidApp
-			)
-		).rejects.toMatchObject({
-			source: "DataSpaceConnectorService",
-			properties: {
-				validationObject: "dataset",
-				validationFailures: [{ property: "", reason: "must have required property 'hasPolicy'" }]
-			},
-			name: "ValidationError"
-		});
-	});
-
-	test("registerApp rejects policies with invalid @type", async () => {
-		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
-
-		const invalidApp: IDataSpaceConnectorApp = {
-			className: () => "InvalidAppPolicyWrongType",
-			activitiesHandled: () => [],
-			datasetsHandled: (): IDataspaceProtocolDataset[] => [
-				{
-					"@context": [DataspaceProtocolContexts.JsonLdContext],
-					"@id": "https://example.org/invalid-dataset",
-					"@type": DataspaceProtocolCatalogTypes.Dataset,
-					"odrl:hasPolicy": [
-						{
-							"@type": "odrl:Agreement", // Wrong type! Should be "Offer"
-							"@id": "urn:uuid:policy-1",
-							"odrl:permission": [
-								{
-									action: "read"
-								}
-							]
-						}
-					],
-					distribution: {
-						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution",
-						format: "Http-Pull-Query-Format",
-						accessService: "https://twin.example.org/data-service-1"
-					},
-					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-				} as unknown as IDataspaceProtocolDataset
-			],
-			supportedQueryTypes: () => ["EntityFilter"],
-			handleDataRequest: vi.fn(),
-			start: async () => {}
-		};
-
-		await expect(
-			dataSpaceConnectorService.registerApp(
-				"https://twin.example.org/invalid-app-policy-wrong-type",
-				invalidApp
-			)
-		).rejects.toMatchObject({
-			source: "DataSpaceConnectorService",
-			properties: {
-				validationObject: "dataset",
-				validationFailures: [
-					{ property: "/hasPolicy/0/@type", reason: "must be equal to constant" }
-				]
-			},
-			name: "ValidationError"
-		});
-	});
-
-	test("registerApp rejects policies without @id", async () => {
-		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
-
-		const invalidApp: IDataSpaceConnectorApp = {
-			className: () => "InvalidAppPolicyNoId",
-			activitiesHandled: () => [],
-			datasetsHandled: (): IDataspaceProtocolDataset[] => [
-				{
-					"@context": [DataspaceProtocolContexts.JsonLdContext],
-					"@id": "https://example.org/invalid-dataset",
-					"@type": DataspaceProtocolCatalogTypes.Dataset,
-					"odrl:hasPolicy": [
-						{
-							"@type": "odrl:Offer",
-							"odrl:permission": [
-								{
-									action: "read"
-								}
-							]
-							// Missing @id! (and uid)
-						}
-					],
-					distribution: {
-						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution",
-						format: "Http-Pull-Query-Format",
-						accessService: "https://twin.example.org/data-service-1"
-					},
-					"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-				} as unknown as IDataspaceProtocolDataset
-			],
-			supportedQueryTypes: () => ["EntityFilter"],
-			handleDataRequest: vi.fn(),
-			start: async () => {}
-		};
-
-		await expect(
-			dataSpaceConnectorService.registerApp(
-				"https://twin.example.org/invalid-app-policy-no-id",
-				invalidApp
-			)
-		).rejects.toMatchObject({
-			source: "DataSpaceConnectorService",
-			properties: {
-				validationObject: "dataset",
-				validationFailures: [
-					{ property: "/hasPolicy/0", reason: "must have required property '@id'" }
-				]
-			},
-			name: "ValidationError"
-		});
-	});
-
-	test("registerApp rejects datasets without distribution format", async () => {
-		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
-		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
-
-		const invalidApp: IDataSpaceConnectorApp = {
-			className: () => "InvalidAppNoDistributionFormat",
-			activitiesHandled: () => [],
-			datasetsHandled: (): IDataspaceProtocolDataset[] => [
-				{
-					"@context": [DataspaceProtocolContexts.JsonLdContext],
-					"@id": "https://example.org/invalid-dataset",
-					"@type": DataspaceProtocolCatalogTypes.Dataset,
-					distribution: {
-						"@id": "https://example.org/distribution-1",
-						"@type": "Distribution",
-						accessService: "https://twin.example.org/data-service-1"
-					},
-					"dcterms:type": "https://vocabulary.uncefact.org/Consignment",
-					hasPolicy: {
-						"@type": "Offer",
-						"@id": "urn:uuid:policy-1",
-						assigner: "https://twin.example.org",
-						permission: [
-							{
-								action: "read"
-							}
-						]
-					}
-				} as unknown as IDataspaceProtocolDataset
-			],
-			supportedQueryTypes: () => ["EntityFilter"],
-			handleDataRequest: vi.fn(),
-			start: async () => {}
-		};
-
-		await expect(
-			dataSpaceConnectorService.registerApp(
-				"https://twin.example.org/invalid-app-no-distribution-format",
-				invalidApp
-			)
-		).rejects.toMatchObject({
-			source: "DataSpaceConnectorService",
-			properties: {
-				validationObject: "dataset",
-				validationFailures: [
-					{ property: "/distribution/0", reason: "must have required property 'format'" }
-				]
-			},
-			name: "ValidationError"
-		});
 	});
 });

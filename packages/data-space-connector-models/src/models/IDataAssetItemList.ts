@@ -11,7 +11,7 @@ export interface IDataAssetItemList {
 	/**
 	 * The LD Context.
 	 */
-	"@context": typeof SchemaOrgContexts.Namespace;
+	"@context": typeof SchemaOrgContexts.Context;
 
 	/**
 	 * The type

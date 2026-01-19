@@ -12,7 +12,6 @@ import {
 	ComponentFactory,
 	ConflictError,
 	Converter,
-	GeneralError,
 	GuardError,
 	Guards,
 	Is,
@@ -20,7 +19,6 @@ import {
 	RandomHelper,
 	UnprocessableError,
 	Validation,
-	ValidationError,
 	type IError,
 	type IValidationFailure
 } from "@twin.org/core";
@@ -35,6 +33,7 @@ import {
 import {
 	ActivityProcessingStatus,
 	DataRequestType,
+	DataSpaceConnectorAppFactory,
 	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
@@ -60,7 +59,6 @@ import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolDataTypes,
-	DataspaceProtocolHelper,
 	type IDataspaceProtocolDataset
 } from "@twin.org/standards-dataspace-protocol";
 import {
@@ -121,12 +119,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 * @internal
 	 */
 	private readonly _entityStorageActivityTasks: IEntityStorageConnector<ActivityTask>;
-
-	/**
-	 * Handler registry of Data Space Connector Apps.
-	 * @internal
-	 */
-	private readonly _apps: { appId: string; app: IDataSpaceConnectorApp }[];
 
 	/**
 	 * Background Task Component.
@@ -219,8 +211,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		this._trustComponent = ComponentFactory.get<ITrustComponent>(
 			options?.trustComponentType ?? "trust"
 		);
-
-		this._apps = [];
 
 		JsonLdDataTypes.registerTypes();
 		ActivityStreamsDataTypes.registerTypes();
@@ -665,14 +655,9 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const appId = await this.getAppForDataAssetQuery({ datasetId });
 
 		// getAppForDataAssetQuery already validates app exists
-		const appEntry = this._apps.find(a => a.appId === appId);
-		if (!appEntry) {
-			throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", datasetId, {
-				datasetId
-			});
-		}
+		const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(appId);
 
-		const handleDataRequest = appEntry.app.handleDataRequest?.bind(appEntry.app);
+		const handleDataRequest = app.handleDataRequest?.bind(app);
 		Guards.function(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(handleDataRequest),
@@ -698,7 +683,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		const itemList = {
-			"@context": SchemaOrgContexts.Namespace,
+			"@context": SchemaOrgContexts.Context,
 			type: SchemaOrgTypes.ItemList,
 			itemListElement: finalData
 		};
@@ -762,14 +747,9 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(datasetId), datasetId);
 		const appId = await this.getAppForDataAssetQuery({ datasetId });
 
-		const appEntry = this._apps.find(a => a.appId === appId);
-		if (!appEntry) {
-			throw new NotFoundError(DataSpaceConnectorService.CLASS_NAME, "noAppRegistered", datasetId, {
-				datasetId
-			});
-		}
+		const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(appId);
 
-		if (!appEntry.app.supportedQueryTypes().includes(query.type)) {
+		if (!app.supportedQueryTypes().includes(query.type)) {
 			throw new UnprocessableError(DataSpaceConnectorService.CLASS_NAME, "queryTypeNotSupported", {
 				queryType: query.type
 			});
@@ -781,7 +761,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			query
 		};
 
-		const handleDataRequest = appEntry.app.handleDataRequest?.bind(appEntry.app);
+		const handleDataRequest = app.handleDataRequest?.bind(app);
 		Guards.function(
 			DataSpaceConnectorService.CLASS_NAME,
 			nameof(handleDataRequest),
@@ -798,7 +778,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		const itemList = {
-			"@context": SchemaOrgContexts.Namespace,
+			"@context": SchemaOrgContexts.Context,
 			type: SchemaOrgTypes.ItemList,
 			itemListElement: finalData
 		};
@@ -807,97 +787,6 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			itemList,
 			cursor: cursorResult
 		};
-	}
-
-	/**
-	 * Registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @param app The App to be registered.
-	 */
-	public async registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void> {
-		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(appId), appId);
-		Guards.objectValue<IDataSpaceConnectorApp>(
-			DataSpaceConnectorService.CLASS_NAME,
-			nameof(app),
-			app
-		);
-
-		const handleActivity = app?.handleActivity?.bind(app);
-		const handleDataRequest = app?.handleDataRequest?.bind(app);
-
-		const handleActivityIsFunction = Is.function(handleActivity);
-		const handleDataRequestIsFunction = Is.function(handleDataRequest);
-
-		if (!handleActivityIsFunction && !handleDataRequestIsFunction) {
-			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "invalidDataSpaceConnectorApp", {
-				appId
-			});
-		}
-		if (
-			(app.activitiesHandled().length > 0 && !handleActivityIsFunction) ||
-			(app.datasetsHandled().length > 0 && !handleDataRequestIsFunction)
-		) {
-			throw new GeneralError(DataSpaceConnectorService.CLASS_NAME, "invalidDataSpaceConnectorApp", {
-				appId
-			});
-		}
-
-		const datasets = app.datasetsHandled();
-		for (const dataset of datasets) {
-			const validationFailures: IValidationFailure[] = [];
-			const isConformant = await DataspaceProtocolHelper.checkConformance(
-				dataset,
-				validationFailures
-			);
-
-			if (!isConformant) {
-				throw new ValidationError(
-					DataSpaceConnectorService.CLASS_NAME,
-					nameof(dataset),
-					validationFailures
-				);
-			}
-		}
-
-		const currentIndex = this._apps.findIndex(a => a.appId === appId);
-		if (currentIndex !== -1) {
-			this._apps[currentIndex].app = app;
-		} else {
-			this._apps.push({ appId, app });
-		}
-
-		await this._loggingService?.log({
-			level: "info",
-			source: DataSpaceConnectorService.CLASS_NAME,
-			message: "registeredApp",
-			data: {
-				appId
-			}
-		});
-	}
-
-	/**
-	 * Un-registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @returns Nothing.
-	 */
-	public async unregisterApp(appId: string): Promise<void> {
-		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(appId), appId);
-
-		const currentIndex = this._apps.findIndex(a => a.appId === appId);
-		if (currentIndex !== -1) {
-			this._apps.splice(currentIndex, 1);
-		}
-
-		await this._loggingService?.log({
-			level: "info",
-			source: DataSpaceConnectorService.CLASS_NAME,
-			ts: Date.now(),
-			message: "unregisteredApp",
-			data: {
-				appId
-			}
-		});
 	}
 
 	/**
@@ -1198,9 +1087,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 */
 	private getAppForActivityQuery(activityQuery: IActivityQuery): string[] {
 		const matchingElements: string[] = [];
+		const appNames = DataSpaceConnectorAppFactory.names();
 
-		for (const appEntry of this._apps) {
-			const appQueries = appEntry.app.activitiesHandled();
+		for (const appId of appNames) {
+			const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(appId);
+			const appQueries = app.activitiesHandled();
 
 			for (const appQuery of appQueries) {
 				if (
@@ -1209,7 +1100,7 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 						appQuery.activityType === activityQuery.activityType) &&
 					(Is.undefined(appQuery.targetType) || appQuery.targetType === activityQuery.targetType)
 				) {
-					matchingElements.push(appEntry.appId);
+					matchingElements.push(appId);
 				}
 			}
 		}
@@ -1226,9 +1117,11 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 */
 	private getDatasetFromApps(datasetId: string): IDataspaceProtocolDataset {
 		Guards.stringValue(DataSpaceConnectorService.CLASS_NAME, nameof(datasetId), datasetId);
+		const appNames = DataSpaceConnectorAppFactory.names();
 
-		for (const appEntry of this._apps) {
-			const datasets = appEntry.app.datasetsHandled();
+		for (const appId of appNames) {
+			const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(appId);
+			const datasets = app.datasetsHandled();
 			const dataset = datasets.find(d => d["@id"] === datasetId);
 			if (dataset) {
 				return dataset;
@@ -1248,13 +1141,15 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 	 */
 	private async getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): Promise<string> {
 		const matchingElements: string[] = [];
+		const appNames = DataSpaceConnectorAppFactory.names();
 
-		for (const appEntry of this._apps) {
-			const datasets = appEntry.app.datasetsHandled();
+		for (const appId of appNames) {
+			const app = DataSpaceConnectorAppFactory.get<IDataSpaceConnectorApp>(appId);
+			const datasets = app.datasetsHandled();
 
 			for (const dataset of datasets) {
 				if (dataset["@id"] === dataAssetQuery.datasetId) {
-					matchingElements.push(appEntry.appId);
+					matchingElements.push(appId);
 				}
 			}
 		}

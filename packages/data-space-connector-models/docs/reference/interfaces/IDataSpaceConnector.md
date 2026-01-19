@@ -106,56 +106,6 @@ NotFoundError if activity log entry is not known.
 
 ***
 
-### registerApp()
-
-> **registerApp**(`appId`, `app`): `Promise`\<`void`\>
-
-Registers a Data Space Connector App.
-
-#### Parameters
-
-##### appId
-
-`string`
-
-The Id of the App to be registered.
-
-##### app
-
-[`IDataSpaceConnectorApp`](IDataSpaceConnectorApp.md)
-
-The app to be registered.
-
-#### Returns
-
-`Promise`\<`void`\>
-
-Nothing.
-
-***
-
-### unregisterApp()
-
-> **unregisterApp**(`appId`): `Promise`\<`void`\>
-
-Un-registers a Data Space Connector App.
-
-#### Parameters
-
-##### appId
-
-`string`
-
-The Id of the App to be registered.
-
-#### Returns
-
-`Promise`\<`void`\>
-
-Nothing.
-
-***
-
 ### getDataAssetEntities()
 
 > **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<[`IDataAssetItemListResult`](IDataAssetItemListResult.md)\>

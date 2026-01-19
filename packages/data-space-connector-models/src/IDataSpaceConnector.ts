@@ -3,7 +3,6 @@
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IDataSpaceConnectorApp } from "./models/app/IDataSpaceConnectorApp.js";
 import type { IActivityLogEntry } from "./models/IActivityLogEntry.js";
 import type { IActivityLogStatusNotification } from "./models/IActivityLogStatusNotification.js";
 import type { IDataAssetDescription } from "./models/IDataAssetDescription.js";
@@ -47,21 +46,6 @@ export interface IDataSpaceConnector extends IComponent {
 	 * @throws NotFoundError if activity log entry is not known.
 	 */
 	getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry>;
-
-	/**
-	 * Registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @param app The app to be registered.
-	 * @returns Nothing.
-	 */
-	registerApp(appId: string, app: IDataSpaceConnectorApp): Promise<void>;
-
-	/**
-	 * Un-registers a Data Space Connector App.
-	 * @param appId The Id of the App to be registered.
-	 * @returns Nothing.
-	 */
-	unregisterApp(appId: string): Promise<void>;
 
 	/**
 	 * Get Data Asset entities. Allows to retrieve entities by their type or id.

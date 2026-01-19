@@ -8,7 +8,6 @@
 			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
 			"tooManyAppsRegistered": "There are several DS Connector Apps registered for Dataset \"{datasetId}\"",
 			"noAppRegistered": "There are no DS Connector Apps registered for Dataset \"{datasetId}\"",
-			"invalidDataSpaceConnectorApp": "The Data Space Connector App \"{appId}\" is invalid. It does not implement required interfaces",
 			"datasetIdRequired": "Dataset ID is required for query operations",
 			"notExpandableType": "Entity type \"{type}\" cannot be expanded",
 			"queryTypeNotSupported": "Query type \"{queryType}\" is not supported by the DS Connector App"
@@ -16,9 +15,7 @@
 	},
 	"info": {
 		"dataSpaceConnectorService": {
-			"scheduledTask": "\"{taskId}\": Task scheduled for Data Space Connector App \"{dataSpaceConnectorAppId}\"",
-			"registeredApp": "App with Id \"{appId}\" has been registered",
-			"unregisteredApp": "App with Id \"{appId}\" has been unregistered"
+			"scheduledTask": "\"{taskId}\": Task scheduled for Data Space Connector App \"{dataSpaceConnectorAppId}\""
 		}
 	},
 	"debug": {

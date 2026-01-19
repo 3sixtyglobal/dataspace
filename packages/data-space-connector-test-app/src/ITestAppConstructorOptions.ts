@@ -6,12 +6,6 @@
  */
 export interface ITestAppConstructorOptions {
 	/**
-	 * Data space connector component type.
-	 * @default data-space-connector
-	 */
-	dataSpaceConnectorComponentType?: string;
-
-	/**
 	 * Logging component type.
 	 * @default logging
 	 */

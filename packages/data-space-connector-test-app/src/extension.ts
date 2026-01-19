@@ -83,9 +83,6 @@ export async function testAppInitialiser(
 
 	if (instanceConfig.type === "service") {
 		component = new TestDataSpaceConnectorApp({
-			dataSpaceConnectorComponentType: engineCore.getRegisteredInstanceType(
-				"dataSpaceConnectorComponent"
-			),
 			loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
 			...instanceConfig.options
 		});
