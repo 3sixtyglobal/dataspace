@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.9](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.8...data-space-connector-rest-server-v0.0.3-next.9) (2026-01-19)
+
+
+### Features
+
+* update data space connector to use trust service ([#47](https://github.com/twinfoundation/data-space-connector/issues/47)) ([41c5113](https://github.com/twinfoundation/data-space-connector/commit/41c5113512cdc477c2f9508b27dfaff84529d841))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.8 to 0.0.3-next.9
+    * @twin.org/data-space-connector-rest-client bumped from 0.0.3-next.8 to 0.0.3-next.9
+    * @twin.org/data-space-connector-socket-client bumped from 0.0.3-next.8 to 0.0.3-next.9
+    * @twin.org/data-space-connector-service bumped from 0.0.3-next.8 to 0.0.3-next.9
+
 ## [0.0.3-next.8](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-rest-server-v0.0.3-next.7...data-space-connector-rest-server-v0.0.3-next.8) (2026-01-16)
 
 

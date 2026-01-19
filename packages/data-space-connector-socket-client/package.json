@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/data-space-connector-socket-client",
-	"version": "0.0.3-next.8",
+	"version": "0.0.3-next.9",
 	"description": "Data space connector component implementation which can connect to socket endpoints",
 	"repository": {
 		"type": "git",
@@ -31,7 +31,7 @@
 		"@twin.org/api-core": "next",
 		"@twin.org/api-models": "next",
 		"@twin.org/core": "next",
-		"@twin.org/data-space-connector-models": "0.0.3-next.8",
+		"@twin.org/data-space-connector-models": "0.0.3-next.9",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
 		"@twin.org/data-json-ld": "next"

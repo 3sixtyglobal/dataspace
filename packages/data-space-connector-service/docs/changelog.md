@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.0.3-next.9](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.8...data-space-connector-service-v0.0.3-next.9) (2026-01-19)
+
+
+### Features
+
+* update data space connector to use trust service ([#47](https://github.com/twinfoundation/data-space-connector/issues/47)) ([41c5113](https://github.com/twinfoundation/data-space-connector/commit/41c5113512cdc477c2f9508b27dfaff84529d841))
+* update order of trustPayload parameter ([0656ddd](https://github.com/twinfoundation/data-space-connector/commit/0656ddd328accda0370d979a6cb5f947071e700b))
+
+
+### Bug Fixes
+
+* remove unneeded compaction when returning data coming from the DS Connector App ([#48](https://github.com/twinfoundation/data-space-connector/issues/48)) ([7fef177](https://github.com/twinfoundation/data-space-connector/commit/7fef177c7e74b1ab438af789e644a700cf90cd71))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-app-runner bumped from 0.0.3-next.8 to 0.0.3-next.9
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.8 to 0.0.3-next.9
+  * devDependencies
+    * @twin.org/data-space-connector-test-app bumped from 0.0.3-next.8 to 0.0.3-next.9
+
 ## [0.0.3-next.8](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.7...data-space-connector-service-v0.0.3-next.8) (2026-01-16)
 
 
