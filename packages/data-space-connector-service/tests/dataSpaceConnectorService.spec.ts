@@ -928,9 +928,9 @@ describe("data-space-connector-tests", () => {
 			{
 				entityType: "https://vocabulary.uncefact.org/Consignment"
 			},
-			MOCK_TRUST_PAYLOAD,
 			"test-cursor",
-			50
+			50,
+			MOCK_TRUST_PAYLOAD
 		);
 
 		// Verify pagination was passed to app

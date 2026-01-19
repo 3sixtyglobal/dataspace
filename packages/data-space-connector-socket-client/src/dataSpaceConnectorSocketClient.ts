@@ -245,9 +245,9 @@ export class DataSpaceConnectorSocketClient
 	 * @param dataAsset The data asset being referred. It can be left empty and let the system to locate a proper one.
 	 * @param entitySet The set of entities to be retrieved.
 	 * @param entitySet.jsonLdContext The JSON-LD Context to be used to expand the referred entityType.
-	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	public async getDataAssetEntities(
@@ -255,9 +255,9 @@ export class DataSpaceConnectorSocketClient
 		entitySet: IEntitySet & {
 			jsonLdContext?: IJsonLdContextDefinitionElement[];
 		},
-		trustPayload: unknown,
 		cursor?: string,
-		limit?: number
+		limit?: number,
+		trustPayload?: unknown
 	): Promise<IDataAssetItemListResult> {
 		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
 			methodName: "getDataAssetEntities"
@@ -268,17 +268,17 @@ export class DataSpaceConnectorSocketClient
 	 * Queries a data asset controlled by this DS Connector App.
 	 * @param dataAsset The data asset being referred.
 	 * @param query The filtering query.
-	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @param cursor Pagination details - cursor.
 	 * @param limit Pagination details - max number of entities.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @returns The item list and optional cursor for pagination via Link headers.
 	 */
 	public async queryDataAsset(
 		dataAsset: IDataAssetDescription,
 		query: IFilteringQuery,
-		trustPayload: unknown,
 		cursor?: string,
-		limit?: number
+		limit?: number,
+		trustPayload?: unknown
 	): Promise<IDataAssetItemListResult> {
 		throw new NotSupportedError(DataSpaceConnectorSocketClient.CLASS_NAME, "notSupportedOnClient", {
 			methodName: "queryDataAsset"

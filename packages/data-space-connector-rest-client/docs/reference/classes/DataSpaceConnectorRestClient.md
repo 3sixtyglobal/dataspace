@@ -64,7 +64,7 @@ The class name of the component.
 
 ### getDataAssetEntities()
 
-> **getDataAssetEntities**(`dataAsset`, `entitySet`, `trustPayload`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
+> **getDataAssetEntities**(`dataAsset`, `entitySet`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<`IDataAssetItemListResult`\>
 
 Get Data Asset entities. Allows to retrieve entities by their type or id.
 
@@ -82,12 +82,6 @@ The data asset being referred. It can be left empty and let the system to locate
 
 The set of entities to be retrieved.
 
-##### trustPayload
-
-`unknown`
-
-Trust payload to verify the requesters identity.
-
 ##### cursor?
 
 `string`
@@ -99,6 +93,12 @@ Pagination details - cursor.
 `number`
 
 Pagination details - max number of entities.
+
+##### trustPayload?
+
+`unknown`
+
+Trust payload to verify the requesters identity.
 
 #### Returns
 
@@ -114,7 +114,7 @@ The item list and optional cursor for pagination via Link headers.
 
 ### queryDataAsset()
 
-> **queryDataAsset**(`dataAsset`, `query`, `trustPayload`, `cursor?`, `limit?`): `Promise`\<`IDataAssetItemListResult`\>
+> **queryDataAsset**(`dataAsset`, `query`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<`IDataAssetItemListResult`\>
 
 Queries a data asset controlled by this DS Connector App.
 
@@ -132,12 +132,6 @@ The data asset being referred.
 
 The filtering query.
 
-##### trustPayload
-
-`unknown`
-
-Trust payload to verify the requesters identity.
-
 ##### cursor?
 
 `string`
@@ -149,6 +143,12 @@ Pagination details - cursor.
 `number`
 
 Pagination details - max number of entities.
+
+##### trustPayload?
+
+`unknown`
+
+Trust payload to verify the requesters identity.
 
 #### Returns
 

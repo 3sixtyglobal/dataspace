@@ -361,9 +361,9 @@ export async function getDataAssetEntities(
 			entityType: request.query.type,
 			entityId: HttpParameterHelper.arrayFromString(request.query.id)
 		},
-		trustPayload,
 		request.query.cursor,
-		Coerce.integer(request.query.limit)
+		Coerce.integer(request.query.limit),
+		trustPayload
 	);
 
 	return {
@@ -412,9 +412,9 @@ export async function queryDataAsset(
 	const result = await service.queryDataAsset(
 		request.body.dataAsset,
 		request.body.query,
-		trustPayload,
 		request.query?.cursor,
-		Coerce.integer(request.query?.limit)
+		Coerce.integer(request.query?.limit),
+		trustPayload
 	);
 
 	return {
