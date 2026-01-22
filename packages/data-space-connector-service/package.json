@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/data-space-connector-service",
-	"version": "0.0.3-next.11",
+	"version": "0.0.3-next.12",
 	"description": "Data Space Connector contract implementation and REST endpoint definitions",
 	"repository": {
 		"type": "git",
@@ -36,8 +36,8 @@
 		"@twin.org/crypto": "next",
 		"@twin.org/data-core": "next",
 		"@twin.org/data-json-ld": "next",
-		"@twin.org/data-space-connector-app-runner": "0.0.3-next.11",
-		"@twin.org/data-space-connector-models": "0.0.3-next.11",
+		"@twin.org/data-space-connector-app-runner": "0.0.3-next.12",
+		"@twin.org/data-space-connector-models": "0.0.3-next.12",
 		"@twin.org/engine-models": "next",
 		"@twin.org/entity": "next",
 		"@twin.org/entity-storage-models": "next",
@@ -54,7 +54,7 @@
 	"devDependencies": {
 		"@twin.org/background-task-service": "next",
 		"@twin.org/background-task-scheduler": "next",
-		"@twin.org/data-space-connector-test-app": "0.0.3-next.11",
+		"@twin.org/data-space-connector-test-app": "0.0.3-next.12",
 		"@twin.org/context": "next",
 		"@twin.org/federated-catalogue-service": "next",
 		"@twin.org/modules": "next",

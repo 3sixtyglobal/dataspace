@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.12](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.11...data-space-connector-service-v0.0.3-next.12) (2026-01-22)
+
+
+### Features
+
+* allow retry of failed activities instead of treating as duplicates ([#53](https://github.com/twinfoundation/data-space-connector/issues/53)) ([363dddc](https://github.com/twinfoundation/data-space-connector/commit/363dddc0ba14a50cf1d6f233d17f19c6110fbd47))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-app-runner bumped from 0.0.3-next.11 to 0.0.3-next.12
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.11 to 0.0.3-next.12
+  * devDependencies
+    * @twin.org/data-space-connector-test-app bumped from 0.0.3-next.11 to 0.0.3-next.12
+
 ## [0.0.3-next.11](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.10...data-space-connector-service-v0.0.3-next.11) (2026-01-22)
 
 

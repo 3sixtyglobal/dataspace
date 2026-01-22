@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.12](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.11...data-space-connector-models-v0.0.3-next.12) (2026-01-22)
+
+
+### Features
+
+* allow retry of failed activities instead of treating as duplicates ([#53](https://github.com/twinfoundation/data-space-connector/issues/53)) ([363dddc](https://github.com/twinfoundation/data-space-connector/commit/363dddc0ba14a50cf1d6f233d17f19c6110fbd47))
+
 ## [0.0.3-next.11](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.10...data-space-connector-models-v0.0.3-next.11) (2026-01-22)
 
 
