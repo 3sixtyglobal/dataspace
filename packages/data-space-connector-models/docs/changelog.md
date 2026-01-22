@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.11](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.10...data-space-connector-models-v0.0.3-next.11) (2026-01-22)
+
+
+### Miscellaneous Chores
+
+* **data-space-connector-models:** Synchronize repo versions
+
 ## [0.0.3-next.10](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-models-v0.0.3-next.9...data-space-connector-models-v0.0.3-next.10) (2026-01-19)
 
 
