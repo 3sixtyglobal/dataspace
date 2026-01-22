@@ -1020,6 +1020,10 @@
 						"type": "string",
 						"description": "The last update date of this object."
 					},
+					"retryCount": {
+						"type": "number",
+						"description": "Number of times this activity has been retried."
+					},
 					"status": {
 						"$ref": "#/components/schemas/ActivityProcessingStatus"
 					},

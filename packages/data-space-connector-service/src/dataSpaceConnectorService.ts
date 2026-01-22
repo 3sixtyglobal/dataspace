@@ -370,27 +370,50 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		const activityLogId = Converter.bytesToHex(Blake2b.sum256(canonicalBytes));
 		const activityLogEntryId = `urn:x-activity-log:${activityLogId}`;
 
-		// Avoid duplicates
-		const entryExists = !Is.undefined(
-			await this._entityStorageActivityLogs.get(activityLogEntryId)
-		);
-		if (entryExists) {
-			throw new ConflictError(
-				DataSpaceConnectorService.CLASS_NAME,
-				"activityAlreadyNotified",
-				activityLogEntryId
-			);
-		}
+		// Check if entry already exists
+		const existingLogEntry = await this._entityStorageActivityLogs.get(activityLogEntryId);
+		let existingSuccessfulApps: string[] = [];
+		let isRetry = false;
 
-		// First of all Activity Log Entry is created
-		const logEntry: IActivityLogDetails = {
-			id: activityLogEntryId,
-			activityId: Is.string(activity.id) ? activity.id : undefined,
-			generator: this.calculateActivityGeneratorIdentity(activity),
-			dateCreated: new Date().toISOString(),
-			dateModified: new Date().toISOString()
-		};
-		await this._entityStorageActivityLogs.set(logEntry);
+		if (!Is.undefined(existingLogEntry)) {
+			// Check if there are failed tasks that can be retried
+			const existingEntry = await this.getActivityLogEntry(activityLogEntryId);
+
+			// If all tasks completed successfully, this is a duplicate
+			if (existingEntry.status === ActivityProcessingStatus.Completed) {
+				throw new ConflictError(
+					DataSpaceConnectorService.CLASS_NAME,
+					"activityAlreadyNotified",
+					activityLogEntryId
+				);
+			}
+
+			// If still processing then reject to avoid race conditions
+			if (
+				existingEntry.status === ActivityProcessingStatus.Pending ||
+				existingEntry.status === ActivityProcessingStatus.Running ||
+				existingEntry.status === ActivityProcessingStatus.Registering
+			) {
+				throw new ConflictError(
+					DataSpaceConnectorService.CLASS_NAME,
+					"activityStillProcessing",
+					activityLogEntryId
+				);
+			}
+
+			// Status is Error - prepare for retry
+			existingSuccessfulApps = await this.prepareForRetry(activityLogEntryId, existingEntry);
+			isRetry = true;
+		} else {
+			const logEntry: IActivityLogDetails = {
+				id: activityLogEntryId,
+				activityId: Is.string(activity.id) ? activity.id : undefined,
+				generator: this.calculateActivityGeneratorIdentity(activity),
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await this._entityStorageActivityLogs.set(logEntry);
+		}
 
 		const activityQuerySet = await this.calculateActivityQuerySet(compactedObj);
 
@@ -399,57 +422,66 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			const dataSpaceConnectorAppIds = this.getAppForActivityQuery(query);
 
 			for (const dataSpaceConnectorAppId of dataSpaceConnectorAppIds) {
-				const payload: IExecutionPayload = {
-					activityLogEntryId,
-					activity: compactedObj,
-					executorApp: dataSpaceConnectorAppId
-				};
-				// This is needed because the Background Task component does not support multiple tasks of
-				// the same type executing at the same time
-				const taskType = Converter.bytesToHex(RandomHelper.generate(16));
-				const taskId = await this._backgroundTaskComponent.create<IExecutionPayload>(
-					taskType,
-					payload,
-					{
-						retainFor: this._retainTasksFor
-					}
-				);
+				// Only process apps that haven't already completed successfully
+				if (!existingSuccessfulApps.includes(dataSpaceConnectorAppId)) {
+					const payload: IExecutionPayload = {
+						activityLogEntryId,
+						activity: compactedObj,
+						executorApp: dataSpaceConnectorAppId
+					};
 
-				await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
-					taskType,
-					"@twin.org/data-space-connector-app-runner",
-					"appRunner",
-					async task => {
-						await this.finaliseTask(task);
-					},
-					{
-						initialiseMethod: "appRunnerStart",
-						shutdownMethod: "appRunnerEnd"
-					}
-				);
+					const taskType = Converter.bytesToHex(RandomHelper.generate(16));
+					const taskId = await this._backgroundTaskComponent.create<IExecutionPayload>(
+						taskType,
+						payload,
+						{
+							retainFor: this._retainTasksFor
+						}
+					);
 
-				tasksScheduled.push({
-					taskId,
-					dataSpaceConnectorAppId
-				});
+					await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
+						taskType,
+						"@twin.org/data-space-connector-app-runner",
+						"appRunner",
+						async task => {
+							await this.finaliseTask(task);
+						},
+						{
+							initialiseMethod: "appRunnerStart",
+							shutdownMethod: "appRunnerEnd"
+						}
+					);
 
-				await this._loggingService?.log({
-					level: "info",
-					source: DataSpaceConnectorService.CLASS_NAME,
-					message: "scheduledTask",
-					data: {
+					tasksScheduled.push({
 						taskId,
 						dataSpaceConnectorAppId
-					}
-				});
+					});
+
+					await this._loggingService?.log({
+						level: "info",
+						source: DataSpaceConnectorService.CLASS_NAME,
+						message: "scheduledTask",
+						data: {
+							taskId,
+							dataSpaceConnectorAppId,
+							isRetry
+						}
+					});
+				}
 			}
 		}
 
-		// This might happen after the tasks have been scheduled and actually finalized so there can be temporary
-		// inconsistencies in the data that will be eventually solved
+		const existingActivityTasks = isRetry
+			? await this._entityStorageActivityTasks.get(activityLogEntryId)
+			: undefined;
+		const existingTasksToKeep =
+			existingActivityTasks?.associatedTasks.filter(t =>
+				existingSuccessfulApps.includes(t.dataSpaceConnectorAppId)
+			) ?? [];
+
 		await this._entityStorageActivityTasks.set({
 			activityLogEntryId,
-			associatedTasks: tasksScheduled
+			associatedTasks: [...existingTasksToKeep, ...tasksScheduled]
 		});
 
 		return activityLogEntryId;
@@ -875,7 +907,8 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 						generator: entry.generator,
 						dateCreated: entry.dateCreated,
 						dateModified: entry.dateModified,
-						retainUntil
+						retainUntil,
+						retryCount: entry.retryCount
 					});
 				}
 			}
@@ -1198,5 +1231,54 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 		}
 
 		return matchingElements[0];
+	}
+
+	/**
+	 * Prepare an activity for retry by updating metadata and returning apps to skip.
+	 * @param activityLogEntryId The activity log entry ID.
+	 * @param existingEntry The existing activity log entry with error status.
+	 * @returns Array of app IDs that already succeeded and should be skipped.
+	 * @internal
+	 */
+	private async prepareForRetry(
+		activityLogEntryId: string,
+		existingEntry: IActivityLogEntry
+	): Promise<string[]> {
+		const appsToRetry = existingEntry.inErrorTasks?.map(t => t.dataSpaceConnectorAppId) ?? [];
+
+		if (appsToRetry.length === 0) {
+			throw new NotFoundError(
+				DataSpaceConnectorService.CLASS_NAME,
+				"noFailedTasksToRetry",
+				activityLogEntryId
+			);
+		}
+
+		const successfulApps = existingEntry.finalizedTasks?.map(t => t.dataSpaceConnectorAppId) ?? [];
+
+		await this._loggingService?.log({
+			level: "debug",
+			source: DataSpaceConnectorService.CLASS_NAME,
+			message: "replacingFailedTasks",
+			data: {
+				activityLogEntryId,
+				appsToRetry,
+				successfulApps
+			}
+		});
+
+		const logEntry = await this._entityStorageActivityLogs.get(activityLogEntryId);
+		if (logEntry) {
+			logEntry.dateModified = new Date().toISOString();
+			// Extend retention to allow retry to complete
+			if (this._retainActivityLogsFor !== -1) {
+				logEntry.retainUntil = Date.now() + this._retainActivityLogsFor;
+			}
+			// Monitoring purposes
+			logEntry.retryCount = (logEntry.retryCount ?? 0) + 1;
+			await this._entityStorageActivityLogs.set(logEntry);
+		}
+
+		return successfulApps;
 	}
 }

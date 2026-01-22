@@ -68,6 +68,18 @@ The last update date of this object.
 
 ***
 
+### retryCount?
+
+> `optional` **retryCount**: `number`
+
+Number of times this activity has been retried.
+
+#### Inherited from
+
+[`IActivityLogDetails`](IActivityLogDetails.md).[`retryCount`](IActivityLogDetails.md#retrycount)
+
+***
+
 ### status
 
 > **status**: [`ActivityProcessingStatus`](../type-aliases/ActivityProcessingStatus.md)

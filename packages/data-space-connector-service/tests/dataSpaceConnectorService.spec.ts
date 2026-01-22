@@ -1236,4 +1236,178 @@ describe("data-space-connector-tests", () => {
 		expect(secondResponse.headers).toBeUndefined();
 		expect(requestCount).toBe(2);
 	});
+
+	test("It should allow resubmission of activity that previously resulted in error", async () => {
+		await backgroundTaskService.start("");
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Create a test app that will fail on first attempt
+		let shouldFail = true;
+		const testApp = new TestDataSpaceConnectorApp();
+		const originalHandleActivity = testApp.handleActivity;
+		if (!originalHandleActivity) {
+			throw new Error("Test app must have handleActivity");
+		}
+		testApp.handleActivity = async <T>(activity: IActivityStreamsActivity): Promise<T> => {
+			if (shouldFail) {
+				throw new Error("Simulated processing failure");
+			}
+			return originalHandleActivity.call(testApp, activity) as Promise<T>;
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		// Create a unique activity for this test
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		// First submission - will fail
+		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(activity);
+
+		// Wait for task to fail
+		let entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
+		let attempts = 0;
+		while (
+			entry.status === ActivityProcessingStatus.Pending ||
+			entry.status === ActivityProcessingStatus.Running ||
+			entry.status === ActivityProcessingStatus.Registering
+		) {
+			attempts++;
+			if (attempts > 50) {
+				break;
+			}
+			await sleep(100);
+			entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
+		}
+
+		// Verify activity is in error state
+		expect(entry.status).toBe(ActivityProcessingStatus.Error);
+		expect(entry.inErrorTasks?.length).toBeGreaterThan(0);
+
+		// Fix the app so it succeeds on retry
+		shouldFail = false;
+
+		// Resubmit the SAME activity
+		// Should succeed and reprocess
+		const retryLogEntryId = await dataSpaceConnectorService.notifyActivity(activity);
+
+		// Should return the same activity log entry ID
+		expect(retryLogEntryId).toBe(activityLogEntryId);
+
+		// Wait for retry to complete
+		entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
+		attempts = 0;
+		while (
+			entry.status === ActivityProcessingStatus.Pending ||
+			entry.status === ActivityProcessingStatus.Running ||
+			entry.status === ActivityProcessingStatus.Registering
+		) {
+			attempts++;
+			if (attempts > 50) {
+				break;
+			}
+			await sleep(100);
+			entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
+		}
+
+		// Verify activity is now completed and retry was tracked
+		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
+		expect(entry.retryCount).toBe(1);
+	});
+
+	test("It should reject resubmission if activity is still processing", async () => {
+		await backgroundTaskService.start("");
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		// Create a test app that takes a long time to process
+		let resolvePromise: (() => void) | undefined;
+		const processingPromise = new Promise<void>(resolve => {
+			resolvePromise = resolve;
+		});
+		const testApp = new TestDataSpaceConnectorApp();
+		testApp.handleActivity = async <T>(): Promise<T> => {
+			await processingPromise;
+			return "1234" as T;
+		};
+
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		// Create a unique activity for this test
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		// First submission
+		await dataSpaceConnectorService.notifyActivity(activity);
+
+		// Wait a bit for task to start processing
+		await sleep(200);
+
+		// Try to resubmit while still processing - should fail
+		await expect(dataSpaceConnectorService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "ConflictError"
+		});
+
+		// Allow the task to complete
+		resolvePromise?.();
+	});
+
+	test("It should reject resubmission if all tasks completed successfully", async () => {
+		await backgroundTaskService.start("");
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const dataSpaceConnectorService = new DataSpaceConnectorService(options);
+		ComponentFactory.register("data-space-connector", () => dataSpaceConnectorService);
+
+		const testApp = new TestDataSpaceConnectorApp();
+		DataSpaceConnectorAppFactory.register(TestDataSpaceConnectorApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		// Create a unique activity
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		// First submission
+		const activityLogEntryId = await dataSpaceConnectorService.notifyActivity(activity);
+
+		// Wait for completion
+		let entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
+		let attempts = 0;
+		while (
+			entry.status === ActivityProcessingStatus.Pending ||
+			entry.status === ActivityProcessingStatus.Running ||
+			entry.status === ActivityProcessingStatus.Registering
+		) {
+			attempts++;
+			if (attempts > 50) {
+				break;
+			}
+			await sleep(100);
+			entry = await dataSpaceConnectorService.getActivityLogEntry(activityLogEntryId);
+		}
+
+		// Verify completed
+		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
+
+		// Try to resubmit after successful completion - should fail as true duplicate
+		await expect(dataSpaceConnectorService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "ConflictError"
+		});
+	});
 });

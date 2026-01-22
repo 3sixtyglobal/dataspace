@@ -3,6 +3,8 @@
 		"dataSpaceConnectorService": {
 			"activityLogEntryNotFound": "Not found activity Log Entry: \"{notFoundId}\"",
 			"activityAlreadyNotified": "Activity has already been notified",
+			"activityStillProcessing": "Activity is still being processed",
+			"noFailedTasksToRetry": "Activity has error status but no failed tasks to retry",
 			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
 			"invalidActivity": "Invalid Activity. Expected fields not specified",
 			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
@@ -15,7 +17,7 @@
 	},
 	"info": {
 		"dataSpaceConnectorService": {
-			"scheduledTask": "\"{taskId}\": Task scheduled for Data Space Connector App \"{dataSpaceConnectorAppId}\""
+			"scheduledTask": "\"{taskId}\": Task scheduled for Data Space Connector App \"{dataSpaceConnectorAppId}\" (isRetry: {isRetry})"
 		}
 	},
 	"debug": {
@@ -25,7 +27,8 @@
 			"scheduledCleanUpTask": "Activity Log clean up task scheduled",
 			"engineCloneStart": "'start' method has been called from an engine clone. No task scheduler created",
 			"cleanUpOngoing": "There is an ongoing clean up of activity logs. Skipping",
-			"activityLogCleanedUp": "Activity Log has been cleaned up. \"{numRecordsDeleted}\" records deleted"
+			"activityLogCleanedUp": "Activity Log has been cleaned up. \"{numRecordsDeleted}\" records deleted",
+			"replacingFailedTasks": "Retrying apps \"{appsToRetry}\" (successful: \"{successfulApps}\") for activity \"{activityLogEntryId}\""
 		},
 		"dataSpaceConnectorSocketRoutes": {
 			"activityLogStatusConnected": "Web Socket Connected: Socket Id: \"{socketId}\"",

@@ -29,4 +29,9 @@ export interface IActivityLogDetails {
 	 * The last update date of this object.
 	 */
 	dateModified: string;
+
+	/**
+	 * Number of times this activity has been retried.
+	 */
+	retryCount?: number;
 }

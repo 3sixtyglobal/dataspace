@@ -42,4 +42,10 @@ export class ActivityLogDetails {
 	 */
 	@property({ type: "integer", optional: true, format: "uint64" })
 	public retainUntil?: number;
+
+	/**
+	 * Number of times this activity has been retried.
+	 */
+	@property({ type: "integer", optional: true, format: "uint32" })
+	public retryCount?: number;
 }
