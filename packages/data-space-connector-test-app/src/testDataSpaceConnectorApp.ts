@@ -90,7 +90,7 @@ export class TestDataSpaceConnectorApp implements IDataSpaceConnectorApp {
 	public datasetsHandled(): IDataspaceProtocolDataset[] {
 		return [
 			{
-				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@context": [DataspaceProtocolContexts.Context],
 				"@id": "https://twin.example.org/data-service-1",
 				"@type": "Dataset",
 				hasPolicy: [

@@ -62,7 +62,7 @@ export const tagsDataSpaceConnector: ITag[] = [
 ];
 
 const activityExample: IActivityStreamsActivity = {
-	"@context": ActivityStreamsContexts.Namespace,
+	"@context": ActivityStreamsContexts.Context,
 	type: "Add",
 	actor: {
 		id: "did:iota:testnet:0x123456"
