@@ -167,6 +167,11 @@ describe("data-space-connector-tests", () => {
 			generate: vi.fn()
 		};
 		ComponentFactory.register("trust", () => mockTrustComponent);
+
+		ComponentFactory.register("hosting", () => ({
+			className: () => "HostingComponent",
+			buildPublicUrl: async (url: string) => url
+		}));
 	});
 
 	beforeEach(async () => {
@@ -977,7 +982,7 @@ describe("data-space-connector-tests", () => {
 		)) as IDataAssetEntitiesResponse;
 
 		// Verify no Link header when no cursor
-		expect(response.headers).toBeUndefined();
+		expect(response.headers).toEqual({});
 	});
 
 	test("Link header present when cursor exists", async () => {
@@ -1233,7 +1238,7 @@ describe("data-space-connector-tests", () => {
 		)) as IDataAssetEntitiesResponse;
 
 		// Verify second response has no Link header (last page)
-		expect(secondResponse.headers).toBeUndefined();
+		expect(secondResponse.headers).toEqual({});
 		expect(requestCount).toBe(2);
 	});
 

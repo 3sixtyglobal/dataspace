@@ -9,6 +9,7 @@ import {
 } from "@twin.org/background-task-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
+	ArrayHelper,
 	ComponentFactory,
 	ConflictError,
 	Converter,
@@ -1043,17 +1044,23 @@ export class DataSpaceConnectorService implements IDataSpaceConnector {
 			);
 		}
 
-		if (Is.undefined(compactedObj.object["@context"])) {
-			compactedObj.object["@context"] = compactedObj["@context"];
+		const objects = ArrayHelper.fromObjectOrArray(compactedObj?.object);
+		if (Is.arrayValue(objects)) {
+			for (const obj of objects) {
+				if (Is.object(obj) && Is.empty(obj["@context"])) {
+					obj["@context"] = compactedObj["@context"];
+				}
+			}
 		}
+
 		const objectExpanded = await JsonLdProcessor.expand(compactedObj.object);
 		const objectTypes = objectExpanded[0]["@type"];
 		if (!Is.arrayValue<string[]>(objectTypes)) {
 			throw new GuardError(
 				DataSpaceConnectorService.CLASS_NAME,
 				"invalidActivity",
-				nameof(compactedObj.object.type),
-				compactedObj.object.type
+				nameof(objectTypes),
+				objectTypes
 			);
 		}
 

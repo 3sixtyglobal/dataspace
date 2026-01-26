@@ -4,6 +4,7 @@ import {
 	HttpParameterHelper,
 	type IConflictResponse,
 	type ICreatedResponse,
+	type IHostingComponent,
 	type IHttpRequestContext,
 	type INotFoundResponse,
 	type IRestRoute,
@@ -291,8 +292,8 @@ export async function activityStreamNotify(
 	Guards.object<IActivityStreamNotifyRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object<IActivityStreamsActivity>(ROUTES_SOURCE, nameof(request.body), request.body);
 
-	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
-	const activityLogEntryId = await service.notifyActivity(request.body);
+	const component = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
+	const activityLogEntryId = await component.notifyActivity(request.body);
 
 	return {
 		headers: {
@@ -322,10 +323,10 @@ export async function activityLogEntryGet(
 	);
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.pathParams.id), request.pathParams.id);
 
-	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
+	const component = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
 	return {
-		body: await service.getActivityLogEntry(request.pathParams.id)
+		body: await component.getActivityLogEntry(request.pathParams.id)
 	};
 }
 
@@ -349,11 +350,15 @@ export async function getDataAssetEntities(
 	);
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.query.type), request.query.type);
 
+	const hostingComponent = ComponentFactory.get<IHostingComponent>(
+		httpRequestContext.hostingComponentType ?? "hosting"
+	);
+
 	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
 
-	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
+	const component = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
-	const result = await service.getDataAssetEntities(
+	const result = await component.getDataAssetEntities(
 		{
 			dataSetId: HttpParameterHelper.arrayFromString(request.query.datasetId)
 		},
@@ -366,18 +371,19 @@ export async function getDataAssetEntities(
 		trustPayload
 	);
 
+	const headers: IDataAssetEntitiesResponse["headers"] = {};
+
+	if (Is.stringValue(result.cursor)) {
+		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
+			await hostingComponent.buildPublicUrl(httpRequestContext.serverRequest.url),
+			{ cursor: result.cursor },
+			"next"
+		);
+	}
+
 	return {
 		body: result.itemList,
-		headers:
-			Is.stringValue(result.cursor) && Is.stringValue(httpRequestContext.serverRequest?.url)
-				? {
-						[HeaderTypes.Link]: HeaderHelper.createLinkHeader(
-							httpRequestContext.serverRequest.url,
-							{ cursor: result.cursor },
-							"next"
-						)
-					}
-				: undefined
+		headers
 	};
 }
 
@@ -405,11 +411,15 @@ export async function queryDataAsset(
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.type), request.body.query.type);
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.q), request.body.query.q);
 
+	const hostingComponent = ComponentFactory.get<IHostingComponent>(
+		httpRequestContext.hostingComponentType ?? "hosting"
+	);
+
 	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
 
-	const service = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
+	const component = ComponentFactory.get<IDataSpaceConnector>(factoryServiceName);
 
-	const result = await service.queryDataAsset(
+	const result = await component.queryDataAsset(
 		request.body.dataAsset,
 		request.body.query,
 		request.query?.cursor,
@@ -417,17 +427,18 @@ export async function queryDataAsset(
 		trustPayload
 	);
 
+	const headers: IDataAssetEntitiesResponse["headers"] = {};
+
+	if (Is.stringValue(result.cursor)) {
+		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
+			await hostingComponent.buildPublicUrl(httpRequestContext.serverRequest.url),
+			{ cursor: result.cursor },
+			"next"
+		);
+	}
+
 	return {
 		body: result.itemList,
-		headers:
-			Is.stringValue(result.cursor) && Is.stringValue(httpRequestContext.serverRequest?.url)
-				? {
-						[HeaderTypes.Link]: HeaderHelper.createLinkHeader(
-							httpRequestContext.serverRequest.url,
-							{ cursor: result.cursor },
-							"next"
-						)
-					}
-				: undefined
+		headers
 	};
 }
