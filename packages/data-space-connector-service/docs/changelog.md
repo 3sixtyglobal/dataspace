@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.13](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.12...data-space-connector-service-v0.0.3-next.13) (2026-01-26)
+
+
+### Features
+
+* use new hosting url for cursor links ([6892368](https://github.com/twinfoundation/data-space-connector/commit/68923686dbde764e4b2216488091c091ebab35f8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/data-space-connector-app-runner bumped from 0.0.3-next.12 to 0.0.3-next.13
+    * @twin.org/data-space-connector-models bumped from 0.0.3-next.12 to 0.0.3-next.13
+  * devDependencies
+    * @twin.org/data-space-connector-test-app bumped from 0.0.3-next.12 to 0.0.3-next.13
+
 ## [0.0.3-next.12](https://github.com/twinfoundation/data-space-connector/compare/data-space-connector-service-v0.0.3-next.11...data-space-connector-service-v0.0.3-next.12) (2026-01-22)
 
 
