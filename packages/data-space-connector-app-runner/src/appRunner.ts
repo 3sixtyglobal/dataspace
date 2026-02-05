@@ -1,5 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { ContextIdStore } from "@twin.org/context";
 import { Guards, Is } from "@twin.org/core";
 import {
 	DataSpaceConnectorAppFactory,
@@ -34,7 +35,7 @@ export async function appRunnerStart(engineCloneData: IEngineCoreClone): Promise
 		const newEngine = new EngineCore();
 		EngineCoreFactory.register("engine", () => newEngine);
 
-		newEngine.populateClone(engineCloneData, true);
+		newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), true);
 		await newEngine.start();
 		engine = newEngine;
 	}
