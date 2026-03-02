@@ -41,6 +41,7 @@ export class MockPolicyNegotiationAdminPointComponent
 			dateCreated: overrides.dateCreated ?? new Date().toISOString(),
 			offer: overrides.offer,
 			agreement: overrides.agreement,
+			organizationIdentity: overrides.organizationIdentity ?? "did:example:123456789",
 			policyId: overrides.policyId,
 			expires: overrides.expires,
 			callbackAddress: overrides.callbackAddress,
