@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.16](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.15...dataspace-models-v0.0.3-next.16) (2026-03-02)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
 ## [0.0.3-next.15](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.14...dataspace-models-v0.0.3-next.15) (2026-03-02)
 
 

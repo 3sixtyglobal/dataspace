@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.16](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.15...dataspace-control-plane-service-v0.0.3-next.16) (2026-03-02)
+
+
+### Bug Fixes
+
+* docs and component init ([8557233](https://github.com/twinfoundation/dataspace/commit/8557233fb3b8273c5c9a5b580fb43061f8efe47c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.15 to 0.0.3-next.16
+
 ## [0.0.3-next.15](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.14...dataspace-control-plane-service-v0.0.3-next.15) (2026-03-02)
 
 
