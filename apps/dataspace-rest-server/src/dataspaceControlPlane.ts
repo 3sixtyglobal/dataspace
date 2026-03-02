@@ -36,7 +36,7 @@ export async function extensionInitialise(
 ): Promise<void> {
 	nodeEngineConfig.types.dataspaceControlPlaneComponent ??= [
 		{
-			type: "Service",
+			type: "service",
 			options: {
 				config: {}
 			},

@@ -42,7 +42,7 @@ export async function extensionInitialise(
 ): Promise<void> {
 	nodeEngineConfig.types.dataspaceDataPlaneComponent ??= [
 		{
-			type: "Service",
+			type: "service",
 			options: {
 				config: {}
 			},
