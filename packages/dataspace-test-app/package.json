@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-test-app",
-	"version": "0.0.3-next.14",
+	"version": "0.0.3-next.15",
 	"description": "Dataspace Test App",
 	"repository": {
 		"type": "git",
@@ -33,7 +33,7 @@
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
 		"@twin.org/data-core": "next",
-		"@twin.org/dataspace-models": "0.0.3-next.14",
+		"@twin.org/dataspace-models": "0.0.3-next.15",
 		"@twin.org/engine-models": "next",
 		"@twin.org/engine-types": "next",
 		"@twin.org/logging-models": "next",

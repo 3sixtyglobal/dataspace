@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.15](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.14...dataspace-models-v0.0.3-next.15) (2026-03-02)
+
+
+### Features
+
+* unification of the data exchange and the data space connector ([#57](https://github.com/twinfoundation/dataspace/issues/57)) ([df2644d](https://github.com/twinfoundation/dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+
 ## [0.0.3-next.12](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.11...dataspace-models-v0.0.3-next.12) (2026-01-22)
 
 
