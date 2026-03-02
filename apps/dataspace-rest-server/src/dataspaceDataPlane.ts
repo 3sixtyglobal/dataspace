@@ -96,54 +96,54 @@ export function initialiseDataspaceDataPlaneComponent(
 	context: IEngineCoreContext<IEngineConfig>,
 	instanceConfig:
 		| {
-				type: "Service";
+				type: "service";
 				options?: IDataspaceDataPlaneServiceConstructorOptions;
 		  }
 		| {
-				type: "RestClient";
+				type: "rest-client";
 				options: IBaseRestClientConfig;
 		  }
 		| {
-				type: "SocketClient";
+				type: "socket-client";
 				options: IDataspaceDataPlaneSocketClientConstructorOptions;
 		  }
 ): EngineTypeInitialiserReturn<typeof instanceConfig, typeof ComponentFactory> {
 	let instanceTypeName: string | undefined;
 	let createComponent;
 
-	if (instanceConfig.type === "Service") {
-		initSchemaDataspaceDataPlane();
+	if (instanceConfig.type === "service") {
+		createComponent = (createConfig: typeof instanceConfig) => {
+			initSchemaDataspaceDataPlane();
 
-		const partitionContextIds = ContextIdHelper.pickKeysFromAvailable(
-			engineCore.getContextIdKeys(),
-			[ContextIdKeys.Node, ContextIdKeys.Tenant]
-		);
+			const partitionContextIds = ContextIdHelper.pickKeysFromAvailable(
+				engineCore.getContextIdKeys(),
+				[ContextIdKeys.Node, ContextIdKeys.Tenant]
+			);
 
-		const serviceOptions = instanceConfig.options;
-		initialiseEntityStorageConnector(
-			engineCore,
-			context,
-			serviceOptions?.activityLogEntityStorageType,
-			nameof<ActivityLogDetails>(),
-			partitionContextIds
-		);
-		initialiseEntityStorageConnector(
-			engineCore,
-			context,
-			serviceOptions?.activityTaskEntityStorageType,
-			nameof<ActivityTask>(),
-			partitionContextIds
-		);
-		initialiseEntityStorageConnector(
-			engineCore,
-			context,
-			serviceOptions?.transferProcessEntityStorageType,
-			nameof<TransferProcess>(),
-			partitionContextIds
-		);
+			const serviceOptions = instanceConfig.options;
+			initialiseEntityStorageConnector(
+				engineCore,
+				context,
+				serviceOptions?.activityLogEntityStorageType,
+				nameof<ActivityLogDetails>(),
+				partitionContextIds
+			);
+			initialiseEntityStorageConnector(
+				engineCore,
+				context,
+				serviceOptions?.activityTaskEntityStorageType,
+				nameof<ActivityTask>(),
+				partitionContextIds
+			);
+			initialiseEntityStorageConnector(
+				engineCore,
+				context,
+				serviceOptions?.transferProcessEntityStorageType,
+				nameof<TransferProcess>(),
+				partitionContextIds
+			);
 
-		createComponent = (createConfig: typeof instanceConfig) =>
-			new DataspaceDataPlaneService(
+			return new DataspaceDataPlaneService(
 				EngineTypeHelper.mergeConfig<IDataspaceDataPlaneServiceConstructorOptions>(
 					{
 						loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
@@ -159,13 +159,14 @@ export function initialiseDataspaceDataPlaneComponent(
 					createConfig.options
 				)
 			);
+		};
 
 		instanceTypeName = nameofKebabCase(DataspaceDataPlaneService);
-	} else if (instanceConfig.type === "RestClient") {
+	} else if (instanceConfig.type === "rest-client") {
 		createComponent = (createConfig: typeof instanceConfig) =>
 			new DataspaceDataPlaneRestClient(createConfig.options);
 		instanceTypeName = nameofKebabCase(DataspaceDataPlaneRestClient);
-	} else if (instanceConfig.type === "SocketClient") {
+	} else if (instanceConfig.type === "socket-client") {
 		createComponent = (createConfig: typeof instanceConfig) =>
 			new DataspaceDataPlaneSocketClient(
 				EngineTypeHelper.mergeConfig<IDataspaceDataPlaneSocketClientConstructorOptions>(

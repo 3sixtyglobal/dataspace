@@ -3,10 +3,6 @@
 Client for performing dataspace control plane operations through REST endpoints.
 Implements Eclipse Dataspace Protocol (DSP) Transfer Process Protocol.
 
-Contract negotiation methods are not available via REST.
-Use ComponentFactory.get<IDataspaceControlPlaneComponent>() for programmatic access
-to negotiateAgreement() and other internal-only methods.
-
 ## Extends
 
 - `BaseRestClient`

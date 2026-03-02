@@ -91,32 +91,33 @@ export function initialiseDataspaceControlPlaneComponent(
 	engineCore: IEngineCore<IEngineConfig>,
 	context: IEngineCoreContext<IEngineConfig>,
 	instanceConfig: {
-		type: "Service";
+		type: "service";
 		options?: IDataspaceControlPlaneServiceConstructorOptions;
 	}
 ): EngineTypeInitialiserReturn<typeof instanceConfig, typeof ComponentFactory> {
 	let instanceTypeName: string | undefined;
 	let createComponent;
 
-	if (instanceConfig.type === "Service") {
-		initSchemaDataspaceControlPlane();
+	if (instanceConfig.type === "service") {
+		createComponent = (createConfig: typeof instanceConfig) => {
+			initSchemaDataspaceControlPlane();
 
-		const serviceOptions = instanceConfig.options;
+			const serviceOptions = instanceConfig.options;
 
-		const partitionContextIds = ContextIdHelper.pickKeysFromAvailable(
-			engineCore.getContextIdKeys(),
-			[ContextIdKeys.Node, ContextIdKeys.Tenant]
-		);
+			const partitionContextIds = ContextIdHelper.pickKeysFromAvailable(
+				engineCore.getContextIdKeys(),
+				[ContextIdKeys.Node, ContextIdKeys.Tenant]
+			);
 
-		initialiseEntityStorageConnector(
-			engineCore,
-			context,
-			serviceOptions?.transferProcessEntityStorageType,
-			nameof<TransferProcess>(),
-			partitionContextIds
-		);
-		createComponent = (createConfig: typeof instanceConfig) =>
-			new DataspaceControlPlaneService(
+			initialiseEntityStorageConnector(
+				engineCore,
+				context,
+				serviceOptions?.transferProcessEntityStorageType,
+				nameof<TransferProcess>(),
+				partitionContextIds
+			);
+
+			return new DataspaceControlPlaneService(
 				EngineTypeHelper.mergeConfig<IDataspaceControlPlaneServiceConstructorOptions>(
 					{
 						loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
@@ -131,6 +132,7 @@ export function initialiseDataspaceControlPlaneComponent(
 					createConfig.options
 				)
 			);
+		};
 		instanceTypeName = nameofKebabCase(DataspaceControlPlaneService);
 	}
 
