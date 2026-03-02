@@ -1,0 +1,41 @@
+{
+	"error": {
+		"dataspaceDataPlaneService": {
+			"activityLogEntryNotFound": "Not found activity Log Entry: \"{notFoundId}\"",
+			"activityAlreadyNotified": "Activity has already been notified",
+			"activityStillProcessing": "Activity is still being processed",
+			"noFailedTasksToRetry": "Activity has error status but no failed tasks to retry",
+			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
+			"invalidActivity": "Invalid Activity. Expected fields not specified",
+			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
+			"tooManyAppsRegistered": "There are several DS Apps registered for Dataset \"{datasetId}\"",
+			"noAppRegistered": "There are no DS Apps registered for Dataset \"{datasetId}\"",
+			"notExpandableType": "Entity type \"{type}\" cannot be expanded",
+			"queryTypeNotSupported": "Query type \"{queryType}\" is not supported by the DS App",
+			"transferProcessNotFound": "Transfer Process not found for consumerPid \"{notFoundId}\"",
+			"transferNotInStartedState": "Transfer Process is not in STARTED state. Current state: \"{currentState}\"",
+			"transferMissingDatasetId": "Transfer Process is missing datasetId"
+		}
+	},
+	"info": {
+		"dataspaceDataPlaneService": {
+			"scheduledTask": "\"{taskId}\": Task scheduled for Dataspace App \"{dataspaceAppId}\" (isRetry: {isRetry})",
+			"policyObligationTriggered": "Policy obligation triggered for agreement \"{agreementId}\": action=\"{action}\", target=\"{target}\""
+		}
+	},
+	"debug": {
+		"dataspaceDataPlaneService": {
+			"newActivity": "New Activity of type \"{activityType}\" notified by \"{generator}\"",
+			"taskSchedulerStarted": "Task Scheduler started with this config: \"{taskTime}\"",
+			"scheduledCleanUpTask": "Activity Log clean up task scheduled",
+			"engineCloneStart": "'start' method has been called from an engine clone. No task scheduler created",
+			"cleanUpOngoing": "There is an ongoing clean up of activity logs. Skipping",
+			"activityLogCleanedUp": "Activity Log has been cleaned up. \"{numRecordsDeleted}\" records deleted",
+			"replacingFailedTasks": "Retrying apps \"{appsToRetry}\" (successful: \"{successfulApps}\") for activity \"{activityLogEntryId}\""
+		},
+		"dataspaceDataPlaneSocketRoutes": {
+			"activityLogStatusConnected": "Web Socket Connected: Socket Id: \"{socketId}\"",
+			"activityLogStatusDisconnected": "Web Socket disconnected: Socket Id: \"{socketId}\""
+		}
+	}
+}

@@ -10,38 +10,40 @@
 	"prerelease": true,
 	"prerelease-type": "next",
 	"packages": {
-		"packages/data-space-connector-models": {
-			"package-name": "data-space-connector-models",
-			"changelog-path": "docs/changelog.md",
-			"extra-files": ["src/index.ts"]
+		"packages/dataspace-models": {
+			"package-name": "dataspace-models",
+			"changelog-path": "docs/changelog.md"
 		},
-		"packages/data-space-connector-app-runner": {
-			"package-name": "data-space-connector-app-runner",
-			"changelog-path": "docs/changelog.md",
-			"extra-files": ["src/index.ts"]
+		"packages/dataspace-control-plane-service": {
+			"package-name": "dataspace-control-plane-service",
+			"changelog-path": "docs/changelog.md"
 		},
-		"packages/data-space-connector-test-app": {
-			"package-name": "data-space-connector-test-app",
-			"changelog-path": "docs/changelog.md",
-			"extra-files": ["src/index.ts"]
+		"packages/dataspace-control-plane-rest-client": {
+			"package-name": "dataspace-control-plane-rest-client",
+			"changelog-path": "docs/changelog.md"
 		},
-		"packages/data-space-connector-service": {
-			"package-name": "data-space-connector-service",
-			"changelog-path": "docs/changelog.md",
-			"extra-files": ["src/index.ts"]
+		"packages/dataspace-data-plane-rest-client": {
+			"package-name": "dataspace-data-plane-rest-client",
+			"changelog-path": "docs/changelog.md"
 		},
-		"packages/data-space-connector-rest-client": {
-			"package-name": "data-space-connector-rest-client",
-			"changelog-path": "docs/changelog.md",
-			"extra-files": ["src/index.ts"]
+		"packages/dataspace-data-plane-socket-client": {
+			"package-name": "dataspace-data-plane-socket-client",
+			"changelog-path": "docs/changelog.md"
 		},
-		"packages/data-space-connector-socket-client": {
-			"package-name": "data-space-connector-socket-client",
-			"changelog-path": "docs/changelog.md",
-			"extra-files": ["src/index.ts"]
+		"packages/dataspace-test-app": {
+			"package-name": "dataspace-test-app",
+			"changelog-path": "docs/changelog.md"
 		},
-		"apps/data-space-connector-rest-server": {
-			"package-name": "data-space-connector-rest-server",
+		"packages/dataspace-data-plane-service": {
+			"package-name": "dataspace-data-plane-service",
+			"changelog-path": "docs/changelog.md"
+		},
+		"packages/dataspace-app-runner": {
+			"package-name": "dataspace-app-runner",
+			"changelog-path": "docs/changelog.md"
+		},
+		"apps/dataspace-rest-server": {
+			"package-name": "dataspace-rest-server",
 			"changelog-path": "docs/changelog.md",
 			"extra-files": ["src/index.ts"]
 		}
@@ -52,13 +54,15 @@
 			"type": "linked-versions",
 			"groupName": "repo",
 			"components": [
-				"data-space-connector-models",
-				"data-space-connector-app-runner",
-				"data-space-connector-test-app",
-				"data-space-connector-service",
-				"data-space-connector-rest-client",
-				"data-space-connector-socket-client",
-				"data-space-connector-rest-server"
+				"dataspace-models",
+				"dataspace-control-plane-service",
+				"dataspace-control-plane-rest-client",
+				"dataspace-data-plane-rest-client",
+				"dataspace-data-plane-socket-client",
+				"dataspace-test-app",
+				"dataspace-data-plane-service",
+				"dataspace-app-runner",
+				"dataspace-rest-server"
 			]
 		}
 	]

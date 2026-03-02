@@ -1,0 +1,15 @@
+{
+	"error": {
+		"dataspaceDataPlaneSocketClient": {
+			"socketConnect": "Failure during socket connect",
+			"callback": "Error when calling local callback",
+			"notSupportedOnClient": "The method \"{methodName}\" is not supported on the socket client, it can only be used on a server side component"
+		}
+	},
+	"info": {
+		"dataspaceDataPlaneSocketClient": {
+			"subscribeActivityLogs": "Subscription created for topic activity logs with id \"{subscriptionId}\"",
+			"unsubscribeActivityLogs": "Subscription removed for topic activity logs with id \"{subscriptionId}\""
+		}
+	}
+}

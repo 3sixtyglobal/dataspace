@@ -1,20 +1,31 @@
-# Data Space Connector
+# TWIN Dataspace
 
-This mono-repository contains the TWIN Data Space Connector.
+This mono-repository contains the packages to use with dataspace operations in TWIN applications.
 
-## Apps
-
-- [data-space-connector-rest-server](apps/data-space-connector-rest-server/README.md) - A REST server implementation support the routes.
+This repository implements the Eclipse Dataspace Protocol (DSP) Transfer Process Protocol and Activity Stream processing for decentralized dataspaces, with both **Control Plane** and **Data Plane** components.
 
 ## Packages
 
-- [data-space-connector-models](packages/data-space-connector-models/README.md) - Data Space Connector data models.
-- [data-space-connector-service](packages/data-space-connector-service/README.md) - Data Space Connector business logic.
-- [data-space-connector-app-runner](packages/data-space-connector-app-runner/README.md) - Data Space Connector App Runner.
-- [data-space-connector-test-app](packages/data-space-connector-test-app/README.md) - Data Space Connector Test App.
-- [data-space-connector-rest-client](packages/data-space-connector-rest-client/README.md) - Data Space Connector REST Client.
-- [data-space-connector-socket-client](packages/data-space-connector-socket-client/README.md) - Data Space Connector Socket Client.
+### Control Plane
+
+- [dataspace-control-plane-service](packages/dataspace-control-plane-service/README.md) - Control Plane service implementing DSP Transfer Process Protocol for data transfer negotiation and state management.
+
+### Data Plane
+
+- [dataspace-data-plane-service](packages/dataspace-data-plane-service/README.md) - Data Plane service for Activity Stream processing and dataspace app execution.
+- [dataspace-data-plane-rest-client](packages/dataspace-data-plane-rest-client/README.md) - Data Plane contract implementation which can connect to REST endpoints.
+- [dataspace-data-plane-socket-client](packages/dataspace-data-plane-socket-client/README.md) - Data Plane contract implementation which can connect to WebSocket endpoints.
+
+### Shared
+
+- [dataspace-models](packages/dataspace-models/README.md) - Models which define the structure of the dataspace contracts and connectors for both Control Plane and Data Plane.
+- [dataspace-app-runner](packages/dataspace-app-runner/README.md) - Dataspace app execution framework.
+- [dataspace-test-app](packages/dataspace-test-app/README.md) - Test application for development and testing.
+
+## Apps
+
+- [dataspace-rest-server](apps/dataspace-rest-server/README.md) - A REST server implementation for both the Data Plane and Control Plane.
 
 ## Contributing
 
-To contribute to this package see the guidelines for building and publishing in [CONTRIBUTING](./CONTRIBUTING.md).
+To contribute to this package see the guidelines for building and publishing in [CONTRIBUTING](./CONTRIBUTING.md)

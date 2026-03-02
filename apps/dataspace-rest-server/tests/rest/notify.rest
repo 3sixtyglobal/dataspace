@@ -1,0 +1,29 @@
+POST http://localhost:22222/dataspace/notify
+content-type: application/json
+
+{
+    "@context": [
+        "https://www.w3.org/ns/activitystreams",
+        "https://vocabulary.uncefact.org/unece-context-D23B.jsonld"
+    ],
+    "id": "https://tlip.example.org/act7",
+    "type": "Create",
+    "actor": {
+        "type": "Organization",
+        "id": "did:iota:testnet:0x1ee831611a9fe9877c82e05075d9670c4970b4fd0904c208082ee50e45817a9d"
+    },
+    "object": {
+        "type": "Consignment",
+        "globalId": "24PLP051219453I002610799053311",
+        "exporterParty": {
+            "identifier": "PL527288386100000",
+            "identificationType": "EORI"
+        },
+        "exportTypeCode": "09011101",
+        "destinationCountry": {
+            "type": "Country",
+            "countryId": "unece:CountryId#GB"
+        }
+    },
+    "updated": "2024-07-13T12:29:22Z"
+}

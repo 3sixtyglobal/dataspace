@@ -1,12 +1,17 @@
 {
-	"name": "@twin.org/data-space-connector",
+	"name": "@twin.org/dataspace",
 	"version": "0.0.0",
-	"description": "Data Space Connector",
+	"description": "Dataspace",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/twinfoundation/data-space-connector.git"
+		"url": "git+https://github.com/twinfoundation/dataspace.git"
 	},
 	"author": "jose.cantera@iota.org",
+	"contributors": [
+		"cornel.filip@iota.org",
+		"adrian.sanchez.sequeira@iota.org",
+		"martyn.janes@iota.org"
+	],
 	"license": "Apache-2.0",
 	"private": false,
 	"engines": {
@@ -52,13 +57,15 @@
 		"release-please": "17.1.3"
 	},
 	"workspaces": [
-		"packages/data-space-connector-models",
-		"packages/data-space-connector-app-runner",
-		"packages/data-space-connector-test-app",
-		"packages/data-space-connector-service",
-		"packages/data-space-connector-rest-client",
-		"packages/data-space-connector-socket-client",
-		"apps/data-space-connector-rest-server"
+		"packages/dataspace-models",
+		"packages/dataspace-test-app",
+		"packages/dataspace-control-plane-service",
+		"packages/dataspace-control-plane-rest-client",
+		"packages/dataspace-data-plane-rest-client",
+		"packages/dataspace-data-plane-socket-client",
+		"packages/dataspace-app-runner",
+		"packages/dataspace-data-plane-service",
+		"apps/dataspace-rest-server"
 	],
 	"type": "module",
 	"keywords": [
@@ -67,10 +74,10 @@
 		"iota",
 		"framework",
 		"blockchain",
-		"data-space-connector"
+		"dataspace"
 	],
 	"bugs": {
-		"url": "git+https://github.com/twinfoundation/data-space-connector/issues"
+		"url": "git+https://github.com/twinfoundation/dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }

@@ -1,0 +1,93 @@
+{
+	"info": {
+		"dataspaceControlPlaneService": {
+			"transferProcessInitiated": "Transfer Process initiated",
+			"transferProcessQueried": "Transfer Process queried (role: {role})",
+			"transferProcessStarted": "Transfer Process started",
+			"dataAccessTokenGenerated": "Data access token generated for PULL transfer",
+			"transferProcessCompleted": "Transfer Process completed",
+			"transferProcessSuspended": "Transfer Process suspended",
+			"transferProcessTerminated": "Transfer Process terminated",
+			"resolvedConsumerPid": "Resolved consumerPid to Transfer Context",
+			"resolvedProviderPid": "Resolved providerPid to Transfer Context",
+			"catalogDatasetFound": "Dataset validated in Federated Catalogue",
+			"agreementMatchedOffer": "Agreement matched Catalog Offer",
+			"populatingFederatedCatalogue": "Populating Federated Catalogue with datasets from registered apps",
+			"federatedCataloguePopulated": "Federated Catalogue population completed (registered: {registeredCount}, errors: {errorCount}, apps: {totalApps})",
+			"startingContractNegotiation": "Starting contract negotiation with provider",
+			"offerFoundInCatalog": "Offer found in Federated Catalogue and validated",
+			"negotiationInitiated": "Contract negotiation initiated successfully",
+			"getNegotiation": "Retrieving negotiation status",
+			"negotiationStateRetrieved": "Negotiation state retrieved successfully",
+			"getNegotiationHistory": "Retrieving negotiation history",
+			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
+			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})"
+		},
+		"dataspaceControlPlanePolicyRequester": {
+			"offerReceived": "Offer received from provider (negotiationId: {negotiationId}, offerId: {offerId})",
+			"agreementReceived": "Agreement received from provider (negotiationId: {negotiationId}, agreementId: {agreementId})",
+			"negotiationFinalized": "Negotiation finalized by provider (negotiationId: {negotiationId})",
+			"negotiationCompleted": "Negotiation completed successfully (negotiationId: {negotiationId}, agreementId: {agreementId}, duration: {durationMs}ms)",
+			"negotiationRejected": "Negotiation was rejected/terminated (negotiationId: {negotiationId}, duration: {durationMs}ms)"
+		}
+	},
+	"debug": {
+		"dataspaceControlPlaneService": {
+			"engineCloneStart": "Skipping Federated Catalogue population (engine clone or no engine)",
+			"discoveredApps": "Discovered {count} registered Dataspace apps",
+			"datasetRegistered": "Dataset {datasetId} registered from app {appName}"
+		}
+	},
+	"warn": {
+		"dataspaceControlPlaneService": {
+			"catalogDatasetHasNoOffers": "Dataset has no Offers (odrl:hasPolicy) in Federated Catalogue",
+			"pushTransferModeNotImplemented": "PUSH transfer mode requested but not implemented. Consumer provided dataAddress endpoint but data push is not yet supported.",
+			"stalledNegotiationCleanedUp": "Stalled negotiation cleaned up (negotiationId: {negotiationId})"
+		},
+		"dataspaceControlPlanePolicyRequester": {
+			"unknownNegotiationFinalized": "Unknown negotiation finalized (negotiationId: {negotiationId})",
+			"negotiationTerminated": "Negotiation terminated by provider (negotiationId: {negotiationId})",
+			"unknownNegotiationTerminated": "Unknown negotiation terminated (negotiationId: {negotiationId})"
+		}
+	},
+	"error": {
+		"dataspaceControlPlaneService": {
+			"transferProcessNotFound": "Transfer Process not found",
+			"pullTransfersNotSupported": "PULL transfers are not supported. Configure dataPlanePath in service configuration to enable PULL transfers.",
+			"datasetRegistrationFailed": "Failed to register dataset {datasetId} from app {appName}",
+			"appDatasetsRetrievalFailed": "Failed to retrieve datasets from app {appName}",
+			"transferProcessTerminated": "Transfer Process \"{consumerPid}\" is terminated and cannot be used",
+			"transferProcessTerminatedProvider": "Transfer Process \"{providerPid}\" is terminated and cannot be used",
+			"invalidTransferRequest": "Transfer Request does not conform to Dataspace Protocol specification",
+			"invalidStateForStart": "Transfer Process cannot be started: current state is \"{currentState}\", expected REQUESTED or SUSPENDED",
+			"invalidStateForComplete": "Transfer Process cannot be completed: current state is \"{currentState}\", expected STARTED",
+			"invalidStateForSuspend": "Transfer Process cannot be suspended: current state is \"{currentState}\", expected STARTED",
+			"invalidTransferStartMessage": "Transfer Start Message does not conform to Dataspace Protocol specification",
+			"invalidTransferCompletionMessage": "Transfer Completion Message does not conform to Dataspace Protocol specification",
+			"invalidTransferSuspensionMessage": "Transfer Suspension Message does not conform to Dataspace Protocol specification",
+			"invalidTransferTerminationMessage": "Transfer Termination Message does not conform to Dataspace Protocol specification",
+			"agreementLookupFailed": "Failed to lookup Agreement: {agreementId}",
+			"agreementNotFound": "Agreement not found",
+			"agreementMissingTarget": "Agreement is missing target (dataset): {agreementId}",
+			"agreementMultipleTargetsNotSupported": "Agreement has multiple targets which is not supported. Only single target Agreements are allowed: {agreementId}, target count: {targetCount}",
+			"agreementTargetMissingUid": "Agreement target object is missing required \"uid\" property: {agreementId}",
+			"datasetNotInCatalog": "Dataset \"{datasetId}\" not found in Federated Catalogue (Agreement: {agreementId})",
+			"catalogLookupFailed": "Failed to lookup dataset in Federated Catalogue: {datasetId} (Agreement: {agreementId})",
+			"agreementNotMatchingOffer": "Agreement \"{agreementId}\" does not match any Catalog Offer for dataset {datasetId}. Available Offers: {availableOffers}",
+			"organizationContextMissing": "Organization context is missing. Cannot verify Agreement authorization for consumerPid: {consumerPid}",
+			"organizationContextMissingProvider": "Organization context is missing. Cannot verify Agreement authorization for providerPid: {providerPid}",
+			"agreementAssignerMismatch": "Agreement assigner does not match current organization. Agreement: {agreementId}, consumerPid: {consumerPid}, expected: {expectedOrgId}, actual: {actualAssigner}",
+			"agreementAssignerMismatchProvider": "Agreement assigner does not match current organization. Agreement: {agreementId}, providerPid: {providerPid}, expected: {expectedOrgId}, actual: {actualAssigner}",
+			"agreementAssigneeMismatch": "Agreement assignee does not match expected consumer identity. Agreement: {agreementId}, providerPid: {providerPid}, expected: {expectedConsumerIdentity}, actual: {actualAssignee}",
+			"negotiationInitiationFailed": "Failed to initiate contract negotiation",
+			"datasetNotFoundInCatalog": "Dataset/Offer \"{offerId}\" not found in Federated Catalogue. Cannot initiate negotiation for non-existent offer.",
+			"catalogLookupFailedForNegotiation": "Failed to lookup dataset/offer in Federated Catalogue before negotiation: {offerId}",
+			"datasetHasNoOffers": "Dataset \"{datasetId}\" has no ODRL offers (odrl:hasPolicy). Cannot negotiate without an offer.",
+			"datasetHasNoValidOffers": "Dataset \"{datasetId}\" has no valid ODRL offer objects. Cannot negotiate without a valid offer.",
+			"offerNotFoundInDataset": "Offer \"{offerId}\" not found in dataset \"{datasetId}\". Available offers: {availableOffers}",
+			"pnapNotConfigured": "Policy Negotiation Admin Point not configured. Cannot retrieve negotiation history without PNAP.",
+			"negotiationCallbackError": "Negotiation callback \"{key}\" threw an error during {method} for negotiation {negotiationId}"
+		},
+		"dataspaceControlPlanePolicyRequester": {}
+	}
+}

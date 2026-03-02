@@ -1,7 +1,0 @@
-{
-	"error": {
-		"dataSpaceConnectorRestClient": {
-			"notSupportedOnClient": "The method \"{methodName}\" is not supported on the REST client, it can only be used on a server side component"
-		}
-	}
-}

@@ -1,0 +1,111 @@
+{
+	"name": "@twin.org/dataspace-control-plane-service",
+	"version": "0.0.3-next.14",
+	"description": "Dataspace Control Plane service implementation for Eclipse Dataspace Protocol Transfer Process Protocol",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/twinfoundation/dataspace.git",
+		"directory": "packages/dataspace-control-plane-service"
+	},
+	"author": "martyn.janes@iota.org",
+	"license": "Apache-2.0",
+	"type": "module",
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"scripts": {
+		"clean": "rimraf dist coverage docs/reference",
+		"build": "tspc",
+		"dev": "nodemon --watch src --ext ts --exec \"npm run build\"",
+		"test": "vitest --run --config ./vitest.config.ts --no-cache",
+		"test:build": "tspc -p ./tests/tsconfig.json --noEmit",
+		"validate-locales": "validate-locales",
+		"test:coverage": "vitest --run --coverage --config ./vitest.config.ts --no-cache",
+		"docs:clean": "rimraf docs/reference",
+		"docs:generate": "typedoc",
+		"docs": "npm run docs:clean && npm run docs:generate",
+		"dist": "npm run clean && npm run build && npm run validate-locales && npm run test:build && npm run test && npm run docs",
+		"dist:no-test": "npm run clean && npm run build && npm run test:build && npm run docs"
+	},
+	"dependencies": {
+		"@twin.org/api-models": "next",
+		"@twin.org/context": "next",
+		"@twin.org/core": "next",
+		"@twin.org/dataspace-models": "0.0.3-next.14",
+		"@twin.org/entity": "next",
+		"@twin.org/entity-storage-models": "next",
+		"@twin.org/federated-catalogue-models": "next",
+		"@twin.org/logging-models": "next",
+		"@twin.org/nameof": "next",
+		"@twin.org/rights-management-models": "next",
+		"@twin.org/standards-dataspace-protocol": "next",
+		"@twin.org/standards-w3c-odrl": "next",
+		"@twin.org/trust-models": "next"
+	},
+	"devDependencies": {
+		"@twin.org/api-processors": "next",
+		"@twin.org/api-server-fastify": "next",
+		"@twin.org/entity-storage-connector-memory": "next",
+		"@twin.org/federated-catalogue-service": "next",
+		"@twin.org/logging-connector-entity-storage": "next",
+		"@twin.org/nameof-transformer": "next",
+		"@twin.org/nameof-vitest-plugin": "next",
+		"@twin.org/rights-management-pap-service": "next",
+		"@twin.org/rights-management-pip-service": "next",
+		"@twin.org/rights-management-pnp-service": "next",
+		"@twin.org/standards-dublin-core": "next",
+		"@twin.org/standards-ld-contexts": "next",
+		"@twin.org/trust-generators": "next",
+		"@twin.org/trust-service": "next",
+		"@twin.org/trust-verifiers": "next",
+		"@twin.org/validate-locales": "next",
+		"@vitest/coverage-v8": "4.0.8",
+		"copyfiles": "2.4.1",
+		"nodemon": "3.1.10",
+		"rimraf": "6.1.0",
+		"ts-patch": "3.3.0",
+		"typedoc": "0.28.14",
+		"typedoc-plugin-markdown": "4.9.0",
+		"typescript": "5.9.3",
+		"vitest": "4.0.8"
+	},
+	"main": "./dist/es/index.js",
+	"types": "./dist/types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/es/index.js",
+			"default": "./dist/es/index.js"
+		},
+		"./locales/*.json": "./locales/*.json"
+	},
+	"files": [
+		"dist/es",
+		"dist/types",
+		"locales",
+		"docs"
+	],
+	"keywords": [
+		"twin",
+		"trade",
+		"iota",
+		"framework",
+		"blockchain",
+		"data",
+		"space",
+		"control",
+		"plane",
+		"service",
+		"dataspace",
+		"protocol",
+		"dsp",
+		"transfer",
+		"process",
+		"microservice",
+		"business-logic"
+	],
+	"bugs": {
+		"url": "git+https://github.com/twinfoundation/dataspace/issues"
+	},
+	"homepage": "https://twindev.org"
+}

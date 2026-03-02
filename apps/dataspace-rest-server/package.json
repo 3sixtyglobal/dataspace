@@ -1,0 +1,74 @@
+{
+	"name": "@twin.org/dataspace-rest-server",
+	"version": "0.0.3-next.14",
+	"description": "Dataspace REST Server",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/twinfoundation/dataspace.git",
+		"directory": "apps/dataspace-rest-server"
+	},
+	"private": true,
+	"author": "jose.cantera@iota.org",
+	"license": "Apache-2.0",
+	"type": "module",
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"scripts": {
+		"clean": "rimraf dist coverage",
+		"build": "tspc",
+		"dev": "concurrently \"tspc --watch\" \"nodemon\"",
+		"merge-locales": "merge-locales",
+		"validate-locales": "validate-locales",
+		"test": "vitest --run --config ./vitest.config.ts --no-cache",
+		"test:build": "tspc -p ./tests/tsconfig.json --noEmit",
+		"test:coverage": "vitest --run --coverage --config ./vitest.config.ts --no-cache",
+		"docs:clean": "rimraf docs/open-api",
+		"docs:api": "ts-to-openapi ./ts-to-openapi.json ./docs/open-api/spec.json",
+		"docs": "npm run docs:clean && npm run docs:api",
+		"dist": "npm run clean && npm run build && npm run merge-locales && npm run validate-locales && npm run test:build && npm run test && npm run docs",
+		"dist:no-test": "npm run clean && npm run build && npm run merge-locales && npm run docs",
+		"start": "node dist/es/index.js",
+		"bootstrap": "twin-node bootstrap-legacy --load-env=.env --env-prefix=DATASPACE_"
+	},
+	"dependencies": {
+		"@twin.org/context": "next",
+		"@twin.org/core": "next",
+		"@twin.org/dataspace-models": "0.0.3-next.14",
+		"@twin.org/dataspace-data-plane-rest-client": "0.0.3-next.14",
+		"@twin.org/dataspace-data-plane-socket-client": "0.0.3-next.14",
+		"@twin.org/dataspace-data-plane-service": "0.0.3-next.14",
+		"@twin.org/dataspace-control-plane-service": "0.0.3-next.14",
+		"@twin.org/dataspace-test-app": "0.0.3-next.14",
+		"@twin.org/engine-types": "next",
+		"@twin.org/engine-models": "next",
+		"@twin.org/entity": "next",
+		"@twin.org/nameof": "next",
+		"@twin.org/node-core": "next"
+	},
+	"devDependencies": {
+		"@twin.org/entity-storage-connector-memory": "next",
+		"@twin.org/merge-locales": "next",
+		"@twin.org/nameof-transformer": "next",
+		"@twin.org/nameof-vitest-plugin": "next",
+		"@twin.org/validate-locales": "next",
+		"@twin.org/ts-to-openapi": "next",
+		"@twin.org/node": "next",
+		"@types/node": "24.10.1",
+		"@vitest/coverage-v8": "4.0.8",
+		"concurrently": "9.2.1",
+		"copyfiles": "2.4.1",
+		"cross-env": "10.1.0",
+		"nodemon": "3.1.11",
+		"rimraf": "6.1.0",
+		"ts-patch": "3.3.0",
+		"typedoc": "0.28.14",
+		"typedoc-plugin-markdown": "4.9.0",
+		"typescript": "5.9.3",
+		"vitest": "4.0.8"
+	},
+	"bugs": {
+		"url": "git+https://github.com/twinfoundation/dataspace/issues"
+	},
+	"homepage": "https://twindev.org"
+}

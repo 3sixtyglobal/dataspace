@@ -1,0 +1,1658 @@
+{
+	"openapi": "3.1.1",
+	"info": {
+		"title": "TWIN Dataspace Connector",
+		"description": "REST API Dataspace Connector.",
+		"version": "0.0.1",
+		"license": {
+			"name": "Apache 2.0 License",
+			"url": "https://opensource.org/licenses/Apache-2.0"
+		}
+	},
+	"servers": [
+		{
+			"url": "http://localhost:3010"
+		}
+	],
+	"tags": [
+		{
+			"name": "Dataspace Data Plane",
+			"description": "Endpoints to access a Dataspace Data Plane."
+		}
+	],
+	"paths": {
+		"/dataspace-data-plane/notify": {
+			"post": {
+				"operationId": "activityStreamNotify",
+				"summary": "Notify of a new Activity",
+				"tags": [
+					"Dataspace Data Plane"
+				],
+				"security": [
+					{
+						"jwtBearerAuthScheme": []
+					}
+				],
+				"requestBody": {
+					"description": "Activity Stream Notify Request.",
+					"required": true,
+					"content": {
+						"application/ld+json": {
+							"schema": {
+								"$ref": "#/components/schemas/ActivityStreamsActivity"
+							},
+							"examples": {
+								"activityStreamNotifyExample": {
+									"value": {
+										"@context": "https://www.w3.org/ns/activitystreams",
+										"type": "Add",
+										"actor": {
+											"id": "did:iota:testnet:0x123456"
+										},
+										"object": {
+											"@context": "https://vocabulary.uncefact.org",
+											"@type": "Consignment",
+											"globalId": "24KEP051219453I002610796"
+										},
+										"updated": "2025-08-12T12:00:00Z"
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "The rest request ended in created response."
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "UnauthorizedError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					},
+					"422": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "UnprocessableError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/dataspace-data-plane/activity-logs/{id}": {
+			"get": {
+				"operationId": "dataspaceDataPlaneGetActivityLogEntry",
+				"summary": "Get a Activity Log Entry",
+				"tags": [
+					"Dataspace Data Plane"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"description": "The ID of the entry to get.",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "urn:x-activity-log:1234567"
+					}
+				],
+				"security": [
+					{
+						"jwtBearerAuthScheme": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Service Offering response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ActivityLogEntry"
+								},
+								"examples": {
+									"activityLogEntryResponseExample": {
+										"value": {
+											"id": "urn:x-activity-log:134567",
+											"dateCreated": "2025-08-12T12:00:00Z",
+											"dateModified": "2025-08-12T12:00:00Z",
+											"generator": "did:iota:testnet:123456",
+											"status": "pending",
+											"pendingTasks": [
+												{
+													"taskId": "urn:x-task-id:45678",
+													"dataspaceAppId": "https://my-app.example.org/app1"
+												}
+											],
+											"runningTasks": [],
+											"finalizedTasks": [],
+											"inErrorTasks": []
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "UnauthorizedError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/dataspace-data-plane/entities": {
+			"get": {
+				"operationId": "dataspaceDataPlaneGetDataAssetEntities",
+				"summary": "Get Data Asset Entities",
+				"tags": [
+					"Dataspace Data Plane"
+				],
+				"parameters": [
+					{
+						"name": "id",
+						"description": "The ID of the entity(ies) to get. (comma separated list)",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "urn:ucr:24PLP051219453I002610799053311"
+					},
+					{
+						"name": "type",
+						"description": "The type of the entity to get.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "https://vocabulary.uncefact.org/Consignment"
+					},
+					{
+						"name": "consumerPid",
+						"description": "The consumer Process ID from the DSP Transfer Process. Mandatory - used to determine the Dataset, Distribution, and Agreement. The datasetId is resolved from the Transfer Process using this ID.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						},
+						"example": "urn:uuid:consumer-pid-12345"
+					},
+					{
+						"name": "dataServiceId",
+						"description": "The Id of the data service that offers the data asset",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "limit",
+						"description": "The maximum number of entities to retrieve.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "cursor",
+						"description": "Cursor to control pagination.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Response containing data asset entities with optional pagination Link header.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DataAssetItemList"
+								},
+								"examples": {
+									"dataAssetEntitiesGetResponseExample": {
+										"value": {
+											"@context": "https://schema.org",
+											"type": "ItemList",
+											"itemListElement": [
+												{
+													"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+													"type": "Consignment",
+													"id": "urn:ucr:PL527288386100000"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/dataspace-data-plane/entities/query": {
+			"post": {
+				"operationId": "dataspaceDataPlaneQueryDataAsset",
+				"summary": "Query Data Asset",
+				"tags": [
+					"Dataspace Data Plane"
+				],
+				"parameters": [
+					{
+						"name": "cursor",
+						"description": "Opaque cursor token for pagination.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "limit",
+						"description": "Maximum number of items to return.",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple"
+					}
+				],
+				"requestBody": {
+					"description": "Request to query data asset entities.",
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/DataAssetQueryRequest"
+							},
+							"examples": {
+								"dataAssetQuery": {
+									"value": {
+										"consumerPid": "urn:uuid:consumer-pid-12345",
+										"query": {
+											"type": "Example",
+											"q": "example query"
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Response containing data asset entities with optional pagination Link header.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DataAssetItemList"
+								},
+								"examples": {
+									"dataAssetEntitiesGetResponseExample": {
+										"value": {
+											"@context": "https://schema.org",
+											"type": "ItemList",
+											"itemListElement": [
+												{
+													"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+													"type": "Consignment",
+													"id": "urn:ucr:PL527288386100000"
+												}
+											]
+										}
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "The server cannot process the request, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "GeneralError",
+											"message": "errorMessage",
+											"properties": {
+												"foo": "bar"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "The server has encountered a situation it does not know how to handle, see the content for more details.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"examples": {
+									"exampleResponse": {
+										"value": {
+											"name": "InternalServerError",
+											"message": "errorMessage"
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"ActivityLogEntry": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "The Id of the Activity Log entry."
+					},
+					"activityId": {
+						"type": "string",
+						"description": "The activity Id that this entry refers to."
+					},
+					"generator": {
+						"type": "string",
+						"description": "The identity of the Activity's generator."
+					},
+					"dateCreated": {
+						"type": "string",
+						"description": "The creation date of this object."
+					},
+					"dateModified": {
+						"type": "string",
+						"description": "The last update date of this object."
+					},
+					"retryCount": {
+						"type": "number",
+						"description": "Number of times this activity has been retried."
+					},
+					"status": {
+						"$ref": "#/components/schemas/ActivityProcessingStatus"
+					},
+					"pendingTasks": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/TaskApp"
+						},
+						"description": "The pending tasks that have to be run to process the Activity."
+					},
+					"runningTasks": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"startDate": {
+									"type": "string",
+									"description": "Task processing start timestamp"
+								},
+								"endDate": {
+									"type": "string",
+									"description": "Task processing end timestamp"
+								},
+								"taskId": {
+									"type": "string",
+									"description": "Task Id."
+								},
+								"dataspaceAppId": {
+									"type": "string",
+									"description": "Dataspace App Id."
+								}
+							},
+							"required": [
+								"dataspaceAppId",
+								"startDate",
+								"taskId"
+							]
+						},
+						"description": "The running tasks that are processing the Activity."
+					},
+					"finalizedTasks": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"result": {
+									"type": "string",
+									"description": "The task result."
+								},
+								"startDate": {
+									"type": "string",
+									"description": "Task processing start timestamp"
+								},
+								"endDate": {
+									"type": "string",
+									"description": "Task processing end timestamp"
+								},
+								"taskId": {
+									"type": "string",
+									"description": "Task Id."
+								},
+								"dataspaceAppId": {
+									"type": "string",
+									"description": "Dataspace App Id."
+								}
+							},
+							"required": [
+								"dataspaceAppId",
+								"result",
+								"startDate",
+								"taskId"
+							]
+						},
+						"description": "The tasks that have already finalized."
+					},
+					"inErrorTasks": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"properties": {
+								"error": {
+									"$ref": "#/components/schemas/Error"
+								},
+								"taskId": {
+									"type": "string",
+									"description": "Task Id."
+								},
+								"dataspaceAppId": {
+									"type": "string",
+									"description": "Dataspace App Id."
+								}
+							},
+							"required": [
+								"dataspaceAppId",
+								"error",
+								"taskId"
+							]
+						},
+						"description": "The tasks that are in error."
+					}
+				},
+				"required": [
+					"dateCreated",
+					"dateModified",
+					"generator",
+					"id",
+					"status"
+				],
+				"description": "The details related to the processing of an Activity"
+			},
+			"ActivityProcessingStatus": {
+				"anyOf": [
+					{
+						"type": "string",
+						"const": "pending",
+						"description": "Pending: Activity Processing has not started yet."
+					},
+					{
+						"type": "string",
+						"const": "running",
+						"description": "Running Activity processing is running."
+					},
+					{
+						"type": "string",
+						"const": "completed",
+						"description": "Completed: Activity processing completed without error."
+					},
+					{
+						"type": "string",
+						"const": "error",
+						"description": "Error: Activity processing cannot be performed and marked as in error. (Depends on application)."
+					},
+					{
+						"type": "string",
+						"const": "registering",
+						"description": "Transient state. The background tasks associated with the activity are still being registered."
+					}
+				],
+				"description": "Activity processing statuses.   The type exported."
+			},
+			"ActivityStreamsActivity": {
+				"type": "object",
+				"properties": {
+					"@context": {
+						"description": "The Activity Streams JSON-LD context type.",
+						"anyOf": [
+							{
+								"type": "string",
+								"const": "https://www.w3.org/ns/activitystreams"
+							},
+							{
+								"type": "array",
+								"items": {
+									"type": "string",
+									"const": "https://www.w3.org/ns/activitystreams"
+								},
+								"minItems": 1,
+								"maxItems": 1
+							},
+							{
+								"type": "array",
+								"minItems": 1,
+								"prefixItems": [
+									{
+										"type": "string",
+										"const": "https://www.w3.org/ns/activitystreams"
+									}
+								],
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+								}
+							},
+							{
+								"type": "array",
+								"minItems": 1,
+								"prefixItems": [
+									{
+										"type": "string",
+										"const": "https://www.w3.org/ns/activitystreams"
+									}
+								],
+								"items": {
+									"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+								}
+							}
+						]
+					},
+					"type": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
+							},
+							{
+								"type": "string"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
+										},
+										{
+											"type": "string"
+										}
+									]
+								}
+							}
+						]
+					},
+					"id": {
+						"type": "string",
+						"description": "Global identifier."
+					},
+					"name": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
+							}
+						],
+						"description": "Natural language name."
+					},
+					"nameMap": {
+						"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
+					},
+					"summary": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
+							}
+						],
+						"description": "Summary of the Activity."
+					},
+					"summaryMap": {
+						"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
+					},
+					"content": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
+							}
+						],
+						"description": "Natural language content."
+					},
+					"contentMap": {
+						"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
+					},
+					"url": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"image": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"icon": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"published": {
+						"type": "string",
+						"description": "Published date-time."
+					},
+					"updated": {
+						"type": "string",
+						"description": "The date and time at which the object was updated."
+					},
+					"startTime": {
+						"type": "string",
+						"description": "Start time."
+					},
+					"endTime": {
+						"type": "string",
+						"description": "End time."
+					},
+					"duration": {
+						"type": "string",
+						"description": "Duration."
+					},
+					"generator": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"attachment": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"attributedTo": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"audience": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"context": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"location": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"tag": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"inReplyTo": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"replies": {
+						"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+					},
+					"preview": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"to": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"bto": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"cc": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"bcc": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"mediaType": {
+						"type": "string",
+						"description": "MIME media type of the referenced resource."
+					},
+					"actor": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"object": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"target": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"result": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"origin": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					},
+					"instrument": {
+						"description": "Object or array data type",
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+							},
+							{
+								"type": "array",
+								"items": {
+									"anyOf": [
+										{
+											"type": "string"
+										},
+										{
+											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+										}
+									]
+								}
+							}
+						]
+					}
+				},
+				"required": [
+					"@context",
+					"type"
+				],
+				"description": "A W3C Activity from Activity Streams.\n\nAn `Activity` describes an action performed by an `actor` on an `object`, and can optionally include a `target`, `result`, `origin`, or `instrument`."
+			},
+			"ActivityStreamsLinkTypes": {
+				"anyOf": [
+					{
+						"type": "string",
+						"const": "Link",
+						"description": "Link"
+					},
+					{
+						"type": "string",
+						"const": "Mention",
+						"description": "Mention"
+					}
+				],
+				"description": "The link types concerning Activity Streams."
+			},
+			"ActivityStreamsObjectTypes": {
+				"anyOf": [
+					{
+						"type": "string",
+						"const": "Object",
+						"description": "Object"
+					},
+					{
+						"type": "string",
+						"const": "Activity",
+						"description": "Activity"
+					},
+					{
+						"type": "string",
+						"const": "IntransitiveActivity",
+						"description": "IntransitiveActivity"
+					},
+					{
+						"type": "string",
+						"const": "Collection",
+						"description": "Collection"
+					},
+					{
+						"type": "string",
+						"const": "OrderedCollection",
+						"description": "OrderedCollection"
+					},
+					{
+						"type": "string",
+						"const": "CollectionPage",
+						"description": "CollectionPage"
+					},
+					{
+						"type": "string",
+						"const": "OrderedCollectionPage",
+						"description": "OrderedCollectionPage"
+					},
+					{
+						"type": "string",
+						"const": "Actor",
+						"description": "Actor"
+					},
+					{
+						"type": "string",
+						"const": "Application",
+						"description": "Application"
+					},
+					{
+						"type": "string",
+						"const": "Group",
+						"description": "Group"
+					},
+					{
+						"type": "string",
+						"const": "Organization",
+						"description": "Organization"
+					},
+					{
+						"type": "string",
+						"const": "Person",
+						"description": "Person"
+					},
+					{
+						"type": "string",
+						"const": "Service",
+						"description": "Service"
+					},
+					{
+						"type": "string",
+						"const": "Article",
+						"description": "Article"
+					},
+					{
+						"type": "string",
+						"const": "Audio",
+						"description": "Audio"
+					},
+					{
+						"type": "string",
+						"const": "Document",
+						"description": "Document"
+					},
+					{
+						"type": "string",
+						"const": "Event",
+						"description": "Event"
+					},
+					{
+						"type": "string",
+						"const": "Image",
+						"description": "Image"
+					},
+					{
+						"type": "string",
+						"const": "Note",
+						"description": "Note"
+					},
+					{
+						"type": "string",
+						"const": "Page",
+						"description": "Page"
+					},
+					{
+						"type": "string",
+						"const": "Place",
+						"description": "Place"
+					},
+					{
+						"type": "string",
+						"const": "Profile",
+						"description": "Profile"
+					},
+					{
+						"type": "string",
+						"const": "Relationship",
+						"description": "Relationship"
+					},
+					{
+						"type": "string",
+						"const": "Tombstone",
+						"description": "Tombstone"
+					},
+					{
+						"type": "string",
+						"const": "Video",
+						"description": "Video"
+					}
+				],
+				"description": "The object types concerning Activity Streams."
+			},
+			"DataAssetItemList": {
+				"type": "object",
+				"properties": {
+					"@context": {
+						"type": "string",
+						"const": "https://schema.org",
+						"description": "The LD Context."
+					},
+					"type": {
+						"type": "string",
+						"const": "ItemList",
+						"description": "The type"
+					},
+					"itemListElement": {
+						"type": "array",
+						"items": {
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
+						},
+						"description": "The components of the Collection"
+					}
+				},
+				"required": [
+					"@context",
+					"type",
+					"itemListElement"
+				],
+				"description": "Interface describing a list of entities that are within a Data Asset. Pagination is handled via HTTP Link headers."
+			},
+			"DataAssetQueryRequest": {
+				"type": "object",
+				"properties": {
+					"consumerPid": {
+						"type": "string",
+						"description": "The consumer Process ID from the DSP Transfer Process. Mandatory - used to determine the Dataset, Distribution, and Agreement. The datasetId is resolved from the Transfer Process using this ID."
+					},
+					"query": {
+						"$ref": "#/components/schemas/FilteringQuery"
+					}
+				},
+				"required": [
+					"consumerPid",
+					"query"
+				],
+				"description": "Request body containing the data asset and query criteria."
+			},
+			"Error": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "The name for the error."
+					},
+					"message": {
+						"type": "string",
+						"description": "The message for the error."
+					},
+					"source": {
+						"type": "string",
+						"description": "The source of the error."
+					},
+					"properties": {
+						"type": "object",
+						"additionalProperties": {},
+						"description": "Any additional information for the error."
+					},
+					"stack": {
+						"type": "string",
+						"description": "The stack trace for the error."
+					},
+					"cause": {
+						"$ref": "#/components/schemas/Error"
+					}
+				},
+				"required": [
+					"name",
+					"message"
+				],
+				"description": "Model to describe serialized error."
+			},
+			"FilteringQuery": {
+				"type": "object",
+				"properties": {
+					"type": {
+						"type": "string",
+						"description": "The query type."
+					},
+					"q": {
+						"description": "The representation of the query."
+					},
+					"jsonLdContext": {
+						"type": "array",
+						"items": {
+							"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+						},
+						"description": "The JSON-LD context to be applied over the query terms."
+					}
+				},
+				"required": [
+					"type",
+					"q"
+				],
+				"description": "A query over a data asset that to be processed by a Dataspace Data Plane App."
+			},
+			"TaskApp": {
+				"type": "object",
+				"properties": {
+					"taskId": {
+						"type": "string",
+						"description": "Task Id."
+					},
+					"dataspaceAppId": {
+						"type": "string",
+						"description": "Dataspace App Id."
+					}
+				},
+				"required": [
+					"taskId",
+					"dataspaceAppId"
+				],
+				"description": "Denotes a task associated with a Dataspace App"
+			}
+		},
+		"securitySchemes": {
+			"jwtBearerAuthScheme": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "JWT"
+			}
+		}
+	}
+}

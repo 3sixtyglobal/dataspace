@@ -1,0 +1,66 @@
+// Copyright 2025 IOTA Stiftung.
+// SPDX-License-Identifier: Apache-2.0.
+import type {
+	DataspaceProtocolTransferProcessStateType,
+	IDataspaceProtocolDataAddress
+} from "@twin.org/standards-dataspace-protocol";
+import type { IOdrlAgreement } from "@twin.org/standards-w3c-odrl";
+
+/**
+ * Transfer Context data structure.
+ * Contains all information needed by DSC to execute queries.
+ * This is NOT part of the DSP protocol - it's a TWIN internal API
+ * used by dataspace-control-plane to resolve consumerPid to datasetId and policies.
+ */
+export interface ITransferContext {
+	/**
+	 * Consumer Process ID.
+	 */
+	consumerPid: string;
+
+	/**
+	 * Provider Process ID.
+	 */
+	providerPid: string;
+
+	/**
+	 * Agreement associated with this Transfer Process.
+	 * Contains permissions, obligations, and prohibitions that DSC uses for runtime policy enforcement.
+	 */
+	agreement: IOdrlAgreement;
+
+	/**
+	 * Dataset ID - what the DSC needs to execute the query.
+	 * Convenience field extracted from agreement.target for quick access.
+	 */
+	datasetId: string;
+
+	/**
+	 * Offer ID.
+	 */
+	offerId: string;
+
+	/**
+	 * Current Transfer Process state.
+	 * DSC should only allow queries if state is STARTED.
+	 */
+	state: DataspaceProtocolTransferProcessStateType;
+
+	/**
+	 * Consumer identity (for auditing).
+	 */
+	consumerIdentity?: string;
+
+	/**
+	 * Provider identity (for auditing).
+	 * Extracted from Agreement's assigner field.
+	 */
+	providerIdentity?: string;
+
+	/**
+	 * Data address for push mode transfers.
+	 * Contains endpoint information where data should be pushed (for Activity Stream push mode).
+	 * Only present when format is Http-Push-Activity-Stream-Format or Http-Post-Activity-Stream-Format.
+	 */
+	dataAddress?: IDataspaceProtocolDataAddress;
+}

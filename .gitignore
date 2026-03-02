@@ -18,4 +18,4 @@ vitest.config.ts.timestamp*
 
 .DS_Store
 
-data-space-connector-apps*.json
+dataspace-apps*.json
