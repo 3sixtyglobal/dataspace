@@ -6,14 +6,14 @@ on:
     branches:
       - next
     paths-ignore:
-      - "**/*.md"
-      - ".github/**"
+      - '**/*.md'
+      - '.github/**'
   push:
     branches:
       - next
     paths-ignore:
-      - "**/*.md"
-      - ".github/**"
+      - '**/*.md'
+      - '.github/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

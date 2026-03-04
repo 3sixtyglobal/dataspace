@@ -10,7 +10,9 @@ import { DataspaceProtocolContractNegotiationStateType as StateType } from "@twi
 /**
  * Mock implementation of IPolicyNegotiationAdminPointComponent for testing.
  */
-export class MockPolicyNegotiationAdminPointComponent implements IPolicyNegotiationAdminPointComponent {
+export class MockPolicyNegotiationAdminPointComponent
+	implements IPolicyNegotiationAdminPointComponent
+{
 	/**
 	 * Stored negotiations indexed by negotiation ID.
 	 */
