@@ -142,7 +142,7 @@ The id of the negotiation.
 
 ##### offer
 
-`IOdrlOffer`
+`IDataspaceProtocolOffer`
 
 The offer sent by the provider.
 
@@ -175,7 +175,7 @@ The id of the negotiation.
 
 ##### agreement
 
-`IOdrlAgreement`
+`IDataspaceProtocolAgreement`
 
 The agreement sent by the provider.
 

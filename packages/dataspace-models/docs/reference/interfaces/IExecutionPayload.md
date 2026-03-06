@@ -14,7 +14,7 @@ The Activity Log Entry Id.
 
 ### activity
 
-> **activity**: `IActivityStreamsActivity`
+> **activity**: [`IDataspaceActivity`](IDataspaceActivity.md)
 
 The activity
 

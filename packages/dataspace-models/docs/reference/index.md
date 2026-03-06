@@ -2,6 +2,7 @@
 
 ## Classes
 
+- [DataspaceDataTypes](classes/DataspaceDataTypes.md)
 - [TransferProcess](classes/TransferProcess.md)
 
 ## Interfaces
@@ -13,6 +14,7 @@
 - [IActivityTask](interfaces/IActivityTask.md)
 - [IDataAssetItemList](interfaces/IDataAssetItemList.md)
 - [IDataAssetItemListResult](interfaces/IDataAssetItemListResult.md)
+- [IDataspaceActivity](interfaces/IDataspaceActivity.md)
 - [IEntitySet](interfaces/IEntitySet.md)
 - [IExecutionPayload](interfaces/IExecutionPayload.md)
 - [IFilteringQuery](interfaces/IFilteringQuery.md)
@@ -56,6 +58,8 @@
 - [IDataRequest](type-aliases/IDataRequest.md)
 - [DataRequestType](type-aliases/DataRequestType.md)
 - [TransferProcessRole](type-aliases/TransferProcessRole.md)
+- [DataspaceContexts](type-aliases/DataspaceContexts.md)
+- [DataspaceTypes](type-aliases/DataspaceTypes.md)
 
 ## Variables
 
@@ -63,3 +67,5 @@
 - [ActivityProcessingStatus](variables/ActivityProcessingStatus.md)
 - [DataRequestType](variables/DataRequestType.md)
 - [TransferProcessRole](variables/TransferProcessRole.md)
+- [DataspaceContexts](variables/DataspaceContexts.md)
+- [DataspaceTypes](variables/DataspaceTypes.md)

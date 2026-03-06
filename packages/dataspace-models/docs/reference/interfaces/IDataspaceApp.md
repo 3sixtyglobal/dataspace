@@ -66,7 +66,7 @@ Handles an Activity and report about results through the Dataspace Data Plane Ca
 
 ##### activity
 
-`IActivityStreamsActivity`
+[`IDataspaceActivity`](IDataspaceActivity.md)
 
 The Activity to be handled
 

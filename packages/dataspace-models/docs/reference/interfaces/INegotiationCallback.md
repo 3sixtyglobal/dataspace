@@ -33,13 +33,13 @@ Optional data associated with the state change.
 
 ###### offer?
 
-`IOdrlOffer`
+`IDataspaceProtocolOffer`
 
 The offer received from the provider.
 
 ###### agreement?
 
-`IOdrlAgreement`
+`IDataspaceProtocolAgreement`
 
 The agreement received from the provider.
 

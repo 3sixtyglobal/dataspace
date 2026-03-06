@@ -69,7 +69,7 @@ Offer ID from the original Catalog offer.
 
 ### policies?
 
-> `optional` **policies**: `IOdrlPolicy`[]
+> `optional` **policies**: `IDataspaceProtocolPolicy`[]
 
 Policies from the Agreement.
 Used by DSC for runtime policy enforcement.
