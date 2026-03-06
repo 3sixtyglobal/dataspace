@@ -13,7 +13,7 @@ export const canonicalActivity: IActivityStreamsActivity = {
 	},
 	object: {
 		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
-		"@type": "Consignment",
+		type: "Consignment",
 		globalId: "24KEP051219453I002610796"
 	},
 	updated: new Date().toISOString()
@@ -37,7 +37,26 @@ export const extendedActivity: IActivityStreamsActivity = {
 	},
 	object: {
 		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
-		"@type": "Consignment",
+		type: "Consignment",
+		globalId: "24KEP051219453I002610796"
+	},
+	updated: new Date().toISOString()
+};
+
+export const canonicalActivityWithTarget: IActivityStreamsActivity = {
+	"@context": ActivityStreamsContexts.Context,
+	type: "Add",
+	actor: {
+		id: "did:iota:testnet:0x123456"
+	},
+	object: {
+		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+		type: "Document",
+		identifier: "abcde-1234"
+	},
+	target: {
+		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+		type: "Consignment",
 		globalId: "24KEP051219453I002610796"
 	},
 	updated: new Date().toISOString()

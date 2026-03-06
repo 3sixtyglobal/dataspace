@@ -3,9 +3,9 @@
 import type { IComponent } from "@twin.org/core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import type { IDataspaceProtocolDataset } from "@twin.org/standards-dataspace-protocol";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { IActivityQuery } from "./IActivityQuery.js";
 import type { IDataRequest } from "./IDataRequest.js";
+import type { IDataspaceActivity } from "../IDataspaceActivity.js";
 
 /**
  * Interface describes a Dataspace App.
@@ -34,7 +34,7 @@ export interface IDataspaceApp extends IComponent {
 	 * @param activity The Activity to be handled
 	 * @returns The result of executing the Activity.
 	 */
-	handleActivity?<T>(activity: IActivityStreamsActivity): Promise<T>;
+	handleActivity?<T>(activity: IDataspaceActivity): Promise<T>;
 
 	/**
 	 * Handles a Data Request.

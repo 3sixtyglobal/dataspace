@@ -17,6 +17,7 @@ import {
 	GuardError,
 	Guards,
 	Is,
+	JsonHelper,
 	NotFoundError,
 	RandomHelper,
 	UnprocessableError,
@@ -25,6 +26,7 @@ import {
 	type IValidationFailure
 } from "@twin.org/core";
 import { Blake2b } from "@twin.org/crypto";
+import { DataTypeHelper, JsonSchemaHelper } from "@twin.org/data-core";
 import {
 	JsonLdDataTypes,
 	JsonLdHelper,
@@ -50,7 +52,11 @@ import {
 	type IFilteringQuery,
 	type ITaskApp,
 	type ITransferContext,
-	type TransferProcess
+	type TransferProcess,
+	DataspaceContexts,
+	DataspaceTypes,
+	type IDataspaceActivity,
+	DataspaceDataTypes
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
@@ -71,10 +77,7 @@ import {
 	SchemaOrgDataTypes,
 	SchemaOrgTypes
 } from "@twin.org/standards-schema-org";
-import {
-	ActivityStreamsDataTypes,
-	type IActivityStreamsActivity
-} from "@twin.org/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { IOdrlAgreement } from "@twin.org/standards-w3c-odrl";
 import { type ITrustComponent, TrustHelper } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
@@ -258,7 +261,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		>(options?.transferProcessEntityStorageType ?? nameofKebabCase<TransferProcess>());
 
 		JsonLdDataTypes.registerTypes();
-		ActivityStreamsDataTypes.registerTypes();
+		DataspaceDataTypes.registerTypes();
 		SchemaOrgDataTypes.registerRedirects();
 		DataspaceProtocolDataTypes.registerRedirects();
 		DataspaceProtocolDataTypes.registerTypes();
@@ -401,20 +404,24 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 		});
 
-		// Validate that the Activity notified is encoded using the representation format expected
-		const validationFailures: IValidationFailure[] = [];
-		await JsonLdHelper.validate(activity, validationFailures, { failOnMissingType: true });
-		Validation.asValidationError(
-			DataspaceDataPlaneService.CLASS_NAME,
-			nameof(activity),
-			validationFailures
-		);
-
-		// Avoid using terms not defined in any Ld Context
-		const compactedObj = await JsonLdProcessor.compact(activity, activity["@context"]);
+		// We only validate that the activity conforms to Activity Streams Schema without entering into details
+		// about the object, target or actor as they might be subject of custom validation rules
+		const typeId = `${DataspaceContexts.JsonSchemaNamespace}${DataspaceTypes.Activity}`;
+		const activitySchema = await DataTypeHelper.getSchemaForType(typeId);
+		if (Is.undefined(activitySchema)) {
+			throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "schemaNotFound", {
+				schemaId: typeId
+			});
+		}
+		const validationResult = await JsonSchemaHelper.validate(activitySchema, activity);
+		if (!validationResult.result) {
+			throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "invalidActivity", {
+				errors: validationResult.error
+			});
+		}
 
 		// Calculate Activity Log Entry Id
-		const canonical = await JsonLdProcessor.canonize(compactedObj as unknown as IJsonLdNodeObject);
+		const canonical = JsonHelper.canonicalize(activity);
 		const canonicalBytes = Converter.utf8ToBytes(canonical);
 		const activityLogId = Converter.bytesToHex(Blake2b.sum256(canonicalBytes));
 		const activityLogEntryId = `urn:x-activity-log:${activityLogId}`;
@@ -464,59 +471,66 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			await this._entityStorageActivityLogs.set(logEntry);
 		}
 
-		const activityQuerySet = await this.calculateActivityQuerySet(compactedObj);
+		const activityQuerySet = await this.calculateActivityQuerySet(activity as IDataspaceActivity);
 
 		const tasksScheduled: ITaskApp[] = [];
+		const dataspaceAppIds: string[] = [];
+
 		for (const query of activityQuerySet) {
-			const dataspaceAppIds = this.getAppForActivityQuery(query);
-
-			for (const dataspaceAppId of dataspaceAppIds) {
-				// Only process apps that haven't already completed successfully
-				if (!existingSuccessfulApps.includes(dataspaceAppId)) {
-					const payload: IExecutionPayload = {
-						activityLogEntryId,
-						activity: compactedObj,
-						executorApp: dataspaceAppId
-					};
-
-					const taskType = Converter.bytesToHex(RandomHelper.generate(16));
-					const taskId = await this._backgroundTaskComponent.create<IExecutionPayload>(
-						taskType,
-						payload,
-						{
-							retainFor: this._retainTasksFor
-						}
-					);
-
-					await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
-						taskType,
-						"@twin.org/dataspace-app-runner",
-						"appRunner",
-						async task => {
-							await this.finaliseTask(task);
-						},
-						{
-							initialiseMethod: "appRunnerStart",
-							shutdownMethod: "appRunnerEnd"
-						}
-					);
-
-					tasksScheduled.push({
-						taskId,
-						dataspaceAppId
-					});
-
-					await this._logging?.log({
-						level: "info",
-						source: DataspaceDataPlaneService.CLASS_NAME,
-						message: "scheduledTask",
-						data: {
-							taskId,
-							dataspaceAppId,
-							isRetry
-						}
-					});
+			const appIds = this.getAppForActivityQuery(query);
+			for (const appId of appIds) {
+				if (!dataspaceAppIds.includes(appId)) {
+					dataspaceAppIds.push(appId);
 				}
+			}
+		}
+
+		for (const dataspaceAppId of dataspaceAppIds) {
+			// Only process apps that haven't already completed successfully
+			if (!existingSuccessfulApps.includes(dataspaceAppId)) {
+				const payload: IExecutionPayload = {
+					activityLogEntryId,
+					activity: activity as IDataspaceActivity,
+					executorApp: dataspaceAppId
+				};
+
+				const taskType = Converter.bytesToHex(RandomHelper.generate(16));
+				const taskId = await this._backgroundTaskComponent.create<IExecutionPayload>(
+					taskType,
+					payload,
+					{
+						retainFor: this._retainTasksFor
+					}
+				);
+
+				await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
+					taskType,
+					"@twin.org/dataspace-app-runner",
+					"appRunner",
+					async task => {
+						await this.finaliseTask(task);
+					},
+					{
+						initialiseMethod: "appRunnerStart",
+						shutdownMethod: "appRunnerEnd"
+					}
+				);
+
+				tasksScheduled.push({
+					taskId,
+					dataspaceAppId
+				});
+
+				await this._logging?.log({
+					level: "info",
+					source: DataspaceDataPlaneService.CLASS_NAME,
+					message: "scheduledTask",
+					data: {
+						taskId,
+						dataspaceAppId,
+						isRetry
+					}
+				});
 			}
 		}
 
@@ -1129,64 +1143,22 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Calculates the (Activity, Object, Target) query set.
-	 * @param compactedObj The compactObj representing the Activity.
+	 * @param activity The object representing the Activity.
 	 * @returns the (Activity, Object, Target) query set.
 	 * @internal
 	 */
-	private async calculateActivityQuerySet(
-		compactedObj: IActivityStreamsActivity
-	): Promise<IActivityQuery[]> {
-		const expanded = await JsonLdProcessor.expand({
-			"@context": compactedObj["@context"],
-			"@type": compactedObj.type
-		});
-		const expandedDoc = expanded[0];
-		const activityTypes = expandedDoc["@type"];
-		if (!Is.arrayValue<string[]>(activityTypes)) {
-			throw new GuardError(
-				DataspaceDataPlaneService.CLASS_NAME,
-				"invalidActivity",
-				nameof(compactedObj.type),
-				compactedObj.type
-			);
-		}
+	private async calculateActivityQuerySet(activity: IDataspaceActivity): Promise<IActivityQuery[]> {
+		const activityTypes = await JsonLdHelper.getType(activity);
+		let objectTypes: string[] = [];
 
-		const objects = ArrayHelper.fromObjectOrArray(compactedObj?.object);
-		if (Is.arrayValue(objects)) {
-			for (const obj of objects) {
-				if (Is.object(obj) && Is.empty(obj["@context"])) {
-					obj["@context"] = compactedObj["@context"];
-				}
-			}
-		}
-
-		const objectExpanded = await JsonLdProcessor.expand(compactedObj.object);
-		const objectTypes = objectExpanded[0]["@type"];
-		if (!Is.arrayValue<string[]>(objectTypes)) {
-			throw new GuardError(
-				DataspaceDataPlaneService.CLASS_NAME,
-				"invalidActivity",
-				nameof(objectTypes),
-				compactedObj
-			);
+		const objects = ArrayHelper.fromObjectOrArray<IJsonLdNodeObject>(activity.object);
+		for (const object of objects) {
+			objectTypes = objectTypes.concat(await JsonLdHelper.getType(object));
 		}
 
 		let targetTypes: string[] = [""];
-		if (Is.object(compactedObj.target)) {
-			if (Is.undefined(compactedObj.target["@context"])) {
-				compactedObj.target["@context"] = compactedObj["@context"];
-			}
-			const targetExpanded = await JsonLdProcessor.expand(compactedObj.target);
-			targetTypes = targetExpanded[0]["@type"] as string[];
-
-			if (!Is.arrayValue<string[]>(targetTypes)) {
-				throw new GuardError(
-					DataspaceDataPlaneService.CLASS_NAME,
-					"invalidActivity",
-					nameof(compactedObj.target?.type),
-					compactedObj.target?.type
-				);
-			}
+		if (Is.object<IJsonLdNodeObject>(activity.target)) {
+			targetTypes = await JsonLdHelper.getType(activity.target);
 		}
 
 		const result: IActivityQuery[] = [];
@@ -1247,7 +1219,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 						appQuery.activityType === activityQuery.activityType) &&
 					(Is.undefined(appQuery.targetType) || appQuery.targetType === activityQuery.targetType)
 				) {
-					matchingElements.push(appId);
+					// Avoid duplicates. Only one DS App can be executed per activity
+					if (!matchingElements.includes(appId)) {
+						matchingElements.push(appId);
+					}
 				}
 			}
 		}

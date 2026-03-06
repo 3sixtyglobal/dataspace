@@ -12,10 +12,12 @@ import {
 	type BackgroundTask
 } from "@twin.org/background-task-service";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Is, ObjectHelper } from "@twin.org/core";
+import { ArrayHelper, ComponentFactory, Is, ObjectHelper } from "@twin.org/core";
+import type { JsonLdObjectWithContext } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
 	DataspaceAppFactory,
+	type IDataspaceActivity,
 	TransferProcess,
 	type IActivityLogDates,
 	type IActivityLogEntry,
@@ -31,15 +33,20 @@ import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolDataTypes,
-	DataspaceProtocolTransferProcessStateType
+	DataspaceProtocolTransferProcessStateType,
+	type IDataspaceProtocolOffer
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IOdrlOffer } from "@twin.org/standards-w3c-odrl";
 import type { ITrustComponent } from "@twin.org/trust-models";
 import { HeaderHelper, HeaderTypes } from "@twin.org/web";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
-import { activityLdContextArray, canonicalActivity, extendedActivity } from "./testData.js";
+import {
+	activityLdContextArray,
+	canonicalActivity,
+	canonicalActivityWithTarget,
+	extendedActivity
+} from "./testData.js";
 import {
 	getDataAssetEntities as getDataAssetEntitiesRoute,
 	queryDataAsset as queryDataAssetRoute
@@ -516,11 +523,7 @@ describe("dataspace-data-plane-tests", () => {
 		assertActivityLog(entry);
 	});
 
-	// Skipped: The AS "Create" JSON schema only allows @context as a string or array of strings.
-	// The extendedActivity uses @context with a custom object ({ MyCreate: "..." }) which the
-	// schema rejects. Also needs a DataTypeHandler for "https://twin.example.org/MyCreate".
-	// To enable: relax the AS Create schema to allow extended @context arrays with custom objects.
-	test.skip("It should receive an Activity in the Activity Stream - type extension", async () => {
+	test("It should receive an Activity in the Activity Stream - type extension", async () => {
 		await backgroundTaskService.start("");
 
 		// Ensure context IDs are set for test app
@@ -571,6 +574,45 @@ describe("dataspace-data-plane-tests", () => {
 		);
 	});
 
+	test("It should report an error if Activity'd object is undefined", async () => {
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		delete activity.object;
+
+		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "GeneralError"
+		});
+	});
+
+	test("It should report an error if Activity's object LD Context is undefined", async () => {
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+
+		const activity = ObjectHelper.clone<IDataspaceActivity>(
+			canonicalActivity as IDataspaceActivity
+		);
+		const object = ArrayHelper.fromObjectOrArray(activity.object);
+		ObjectHelper.propertySet(object[0], "@context", undefined);
+
+		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "GeneralError"
+		});
+	});
+
+	test("It should report an error if Activity's object 'type' is undefined", async () => {
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+
+		const activity = ObjectHelper.clone<IDataspaceActivity>(
+			canonicalActivity as IDataspaceActivity
+		);
+		const object = ArrayHelper.fromObjectOrArray(activity.object);
+		ObjectHelper.propertySet(object[0], "type", undefined);
+
+		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "GeneralError"
+		});
+	});
+
 	test("It should report an error if Activity does not contain generator nor actor", async () => {
 		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
 
@@ -580,6 +622,34 @@ describe("dataspace-data-plane-tests", () => {
 
 		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
 			name: "GuardError"
+		});
+	});
+
+	test("It should report an error if Activity's target does not define LD Context", async () => {
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+
+		const activity = ObjectHelper.clone<IDataspaceActivity>(
+			canonicalActivityWithTarget as IDataspaceActivity
+		);
+		const target = activity.target as JsonLdObjectWithContext<object>;
+		ObjectHelper.propertySet(target, "@context", undefined);
+
+		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "GeneralError"
+		});
+	});
+
+	test("It should report an error if Activity's target does not define type", async () => {
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+
+		const activity = ObjectHelper.clone<IDataspaceActivity>(
+			canonicalActivityWithTarget as IDataspaceActivity
+		);
+		const target = activity.target as JsonLdObjectWithContext<object>;
+		ObjectHelper.propertySet(target, "type", undefined);
+
+		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
+			name: "GeneralError"
 		});
 	});
 
@@ -904,7 +974,7 @@ describe("dataspace-data-plane-tests", () => {
 		expect(dataset["@type"]).toBe(DataspaceProtocolCatalogTypes.Dataset);
 
 		// Dataspace Protocol requires hasPolicy as array
-		const policies = dataset.hasPolicy as IOdrlOffer[] | undefined;
+		const policies = dataset.hasPolicy as IDataspaceProtocolOffer[] | undefined;
 		expect(policies).toBeDefined();
 		expect(Is.array(policies)).toBe(true);
 		expect(policies?.length).toBeGreaterThan(0);
@@ -1470,7 +1540,7 @@ describe("dataspace-data-plane-tests", () => {
 		if (!originalHandleActivity) {
 			throw new Error("Test app must have handleActivity");
 		}
-		testApp.handleActivity = async <T>(activity: IActivityStreamsActivity): Promise<T> => {
+		testApp.handleActivity = async <T>(activity: IDataspaceActivity): Promise<T> => {
 			if (shouldFail) {
 				throw new Error("Simulated processing failure");
 			}

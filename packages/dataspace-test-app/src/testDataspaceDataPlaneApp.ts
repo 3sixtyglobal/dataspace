@@ -6,6 +6,7 @@ import { DataTypeHandlerFactory } from "@twin.org/data-core";
 import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import {
 	DataRequestType,
+	type IDataspaceActivity,
 	type IActivityQuery,
 	type IDataRequest,
 	type IDataspaceApp
@@ -105,6 +106,7 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 				"dcterms:publisher": organizationId,
 				hasPolicy: [
 					{
+						"@id": "urn:uuid:test-policy-offer-1",
 						"@type": "Offer",
 						uid: "urn:uuid:test-policy-offer-1",
 						assigner: organizationId,
@@ -175,7 +177,7 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 	 * @param activity Activity
 	 * @returns Activity processing result
 	 */
-	public async handleActivity<T>(activity: IActivityStreamsActivity): Promise<T> {
+	public async handleActivity<T>(activity: IDataspaceActivity): Promise<T> {
 		Guards.object<IActivityStreamsActivity>(
 			TestDataspaceDataPlaneApp.CLASS_NAME,
 			nameof(activity),

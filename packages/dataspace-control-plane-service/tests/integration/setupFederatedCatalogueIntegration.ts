@@ -27,7 +27,7 @@ export function createRealFederatedCatalogue(): {
 
 	// Create the real FederatedCatalogue service
 	const federatedCatalogue = new FederatedCatalogueService({
-		datasetStorageConnectorType: "dataset"
+		datasetEntityStorageType: "dataset"
 	});
 
 	return {

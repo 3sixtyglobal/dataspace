@@ -14,7 +14,6 @@ import {
 	type IEngineCoreClone
 } from "@twin.org/engine-models";
 import { nameof } from "@twin.org/nameof";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 
 const APP_RUNNER_SOURCE = "appRunner";
 
@@ -69,11 +68,7 @@ export async function appRunner(
 		nameof(payload.activityLogEntryId),
 		payload.activityLogEntryId
 	);
-	Guards.object<IActivityStreamsActivity>(
-		APP_RUNNER_SOURCE,
-		nameof(payload.activity),
-		payload.activity
-	);
+	Guards.object<IDataspaceApp>(APP_RUNNER_SOURCE, nameof(payload.activity), payload.activity);
 
 	const app = DataspaceAppFactory.get<IDataspaceApp>(payload.executorApp);
 

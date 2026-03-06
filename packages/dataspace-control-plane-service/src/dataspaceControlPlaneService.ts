@@ -1814,7 +1814,7 @@ export class DataspaceControlPlaneService
 		) {
 			return (
 				ArrayHelper.fromObjectOrArray<JsonLdObjectWithNoContext<IOdrlPolicy>>(
-					catalogDataset.hasPolicy
+					catalogDataset.hasPolicy as ObjectOrArray<JsonLdObjectWithNoContext<IOdrlPolicy>>
 				) ?? []
 			);
 		}

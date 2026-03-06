@@ -16,6 +16,12 @@ export * from "./models/control-plane/api/ITransferContextResponse.js";
 // Data Plane exports
 export * from "./models/data-plane/IDataspaceDataPlaneComponent.js";
 
+export * from "./models/IDataspaceActivity.js";
+export * from "./models/dataspaceTypes.js";
+export * from "./models/dataspaceContexts.js";
+
+export * from "./dataTypes/dataspaceDataTypes.js";
+
 // App exports
 export * from "./factories/dataspaceAppFactory.js";
 export * from "./models/app/IDataspaceApp.js";
