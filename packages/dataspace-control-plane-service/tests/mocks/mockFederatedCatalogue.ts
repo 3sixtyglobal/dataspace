@@ -68,7 +68,8 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 				const offers = ds["odrl:hasPolicy"] ?? ("hasPolicy" in ds ? ds.hasPolicy : undefined);
 				if (Is.arrayValue(offers)) {
 					const matchingOffer = offers.find(
-						(offer: unknown) => Is.object(offer) && (offer as { uid?: string }).uid === datasetId
+						(offer: unknown) =>
+							Is.object(offer) && (offer as { "@id"?: string })["@id"] === datasetId
 					);
 					if (matchingOffer) {
 						dataset = ds;
@@ -170,7 +171,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-123",
+					"@id": "offer-123",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-123",
 					permission: [
@@ -191,7 +192,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-456",
+					"@id": "offer-456",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-456",
 					permission: [
@@ -212,7 +213,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-789",
+					"@id": "offer-789",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-789",
 					permission: [
@@ -233,7 +234,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-new-test",
+					"@id": "offer-new-test",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-new-test",
 					permission: [
@@ -254,7 +255,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-push",
+					"@id": "offer-push",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-push",
 					permission: [
@@ -275,7 +276,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-push-123",
+					"@id": "offer-push-123",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-push-123",
 					permission: [
@@ -296,7 +297,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-workflow-123",
+					"@id": "offer-workflow-123",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-workflow-123",
 					permission: [
@@ -317,7 +318,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-negotiation-valid",
+					"@id": "offer-negotiation-valid",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-negotiation-valid",
 					permission: [
@@ -338,7 +339,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-multi-1",
+					"@id": "offer-multi-1",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-multi-offers",
 					permission: [
@@ -349,7 +350,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 				},
 				{
 					"@type": "odrl:Offer",
-					uid: "offer-multi-2",
+					"@id": "offer-multi-2",
 					assigner: "did:iota:provider-node-xyz",
 					target: "urn:uuid:dataset-multi-offers",
 					permission: [

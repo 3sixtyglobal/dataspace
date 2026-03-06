@@ -20,20 +20,18 @@ import type { OdrlPolicy } from "@twin.org/rights-management-pap-service";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessStateType,
-	DataspaceProtocolTransferProcessTypes
+	DataspaceProtocolTransferProcessTypes,
+	type IDataspaceProtocolTransferError,
+	type IDataspaceProtocolTransferProcess,
+	type IDataspaceProtocolAgreement
 } from "@twin.org/standards-dataspace-protocol";
-import type {
-	IDataspaceProtocolTransferError,
-	IDataspaceProtocolTransferProcess
-} from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlAgreement } from "@twin.org/standards-w3c-odrl";
+import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { cleanupPapIntegration, setupPapIntegration } from "./integration/setupPapIntegration.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
 import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiationPoint.js";
 import { createMockTrustComponent, setupTestEnv } from "./setupTestEnv.js";
-
 describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => {
 	let pap: IPolicyAdministrationPointComponent;
 	let policyStorage: MemoryEntityStorageConnector<OdrlPolicy>;
@@ -119,7 +117,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		const agreementId = await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: agreementUrn,
+			"@id": agreementUrn,
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-node-abc",
 			target: "urn:uuid:dataset-123",
@@ -129,7 +127,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		// Verify agreement was stored
 		const storedAgreement = await pap.getAgreement(agreementId);
 		expect(storedAgreement).toBeDefined();
-		expect(storedAgreement.uid).toBe(agreementUrn);
+		expect(storedAgreement["@id"]).toBe(agreementUrn);
 
 		// Act - Use dynamically created agreement with URN format
 		const result = await service.requestTransfer(
@@ -164,7 +162,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		expect(context.datasetId).toBe("urn:uuid:dataset-123");
 		expect(context.consumerIdentity).toBe("did:iota:consumer-node-abc");
 		expect(context.agreement).toBeDefined();
-		expect(context.agreement.uid).toBe(agreementUrn);
+		expect(context.agreement["@id"]).toBe(agreementUrn);
 		expect(context.agreement.permission).toBeDefined();
 		const permissions = Is.array(context.agreement.permission)
 			? context.agreement.permission
@@ -173,7 +171,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 
 		// NEW: Verify agreement is still in PAP storage (not modified by transfer)
 		const agreementAfterTransfer = await pap.getAgreement(agreementUrn);
-		expect(agreementAfterTransfer.uid).toBe(agreementUrn);
+		expect(agreementAfterTransfer["@id"]).toBe(agreementUrn);
 		expect(agreementAfterTransfer.assignee).toBe("did:iota:consumer-node-abc");
 	});
 
@@ -183,7 +181,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: agreementUrn,
+			"@id": agreementUrn,
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-abc",
 			target: "urn:uuid:dataset-456", // URN format
@@ -217,7 +215,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		// NEW: Verify we can inspect policy storage directly
 		const allPolicies = policyStorage.getStore();
 		expect(allPolicies.length).toBeGreaterThan(0);
-		const ourPolicy = allPolicies.find(p => p.uid === agreementUrn);
+		const ourPolicy = allPolicies.find(p => p.id === agreementUrn);
 		expect(ourPolicy).toBeDefined();
 		expect(ourPolicy?.target).toBe("urn:uuid:dataset-456");
 	});
@@ -274,11 +272,11 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 			pap.create({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: agreementUrn,
+				"@id": agreementUrn,
 				assigner: "did:iota:provider-node-xyz",
 				// Missing assignee - intentional for test
 				target: "urn:uuid:dataset-error"
-			} as unknown as IOdrlAgreement)
+			} as unknown as IDataspaceProtocolAgreement)
 		).rejects.toThrow("common.validation");
 
 		// NEW: Verify PAP storage remains empty (invalid agreement was rejected)
@@ -292,7 +290,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: agreementUrn,
+			"@id": agreementUrn,
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-node-abc",
 			target: "urn:uuid:dataset-789",
@@ -319,7 +317,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 
 		// NEW: Verify agreement was stored (status field may be optional and not persisted)
 		const storedAgreement = await pap.getAgreement(agreementUrn);
-		expect(storedAgreement.uid).toBe(agreementUrn);
+		expect(storedAgreement["@id"]).toBe(agreementUrn);
 		expect(storedAgreement.assignee).toBe("did:iota:consumer-node-abc");
 		// Note: status field may not be persisted by entity schema
 	});
@@ -331,13 +329,13 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 
 		// Real PAP allows creating this (target is optional in ODRL)
 		await pap.create({
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
+			"@context": OdrlContexts.Context,
 			"@type": "Agreement",
-			uid: agreementUrn,
+			"@id": agreementUrn,
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-node-abc"
 			// Missing target - intentional for test
-		} as IOdrlAgreement);
+		} as IDataspaceProtocolAgreement);
 
 		// Act - Try to use agreement without target in transfer request
 		const result = await service.requestTransfer(
@@ -376,7 +374,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Offer",
-			uid: offerUrn,
+			"@id": offerUrn,
 			assigner: "did:iota:provider-node-xyz",
 			target: "urn:uuid:dataset-error-2",
 			permission: [{ action: "read" }]
@@ -414,14 +412,14 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 
 		// Real PAP allows this (valid in ODRL spec)
 		await pap.create({
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
+			"@context": OdrlContexts.Context,
 			"@type": "Agreement",
-			uid: agreementUrn,
+			"@id": agreementUrn,
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-node-abc",
 			target: ["urn:uuid:dataset-1", "urn:uuid:dataset-2", "urn:uuid:dataset-3"],
 			permission: [{ action: "read" }]
-		} as IOdrlAgreement);
+		} as IDataspaceProtocolAgreement);
 
 		// Act - Try to use agreement with multiple targets in transfer request
 		const result = await service.requestTransfer(

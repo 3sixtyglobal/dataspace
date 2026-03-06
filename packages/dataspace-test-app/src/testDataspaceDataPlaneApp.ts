@@ -108,7 +108,6 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 					{
 						"@id": "urn:uuid:test-policy-offer-1",
 						"@type": "Offer",
-						uid: "urn:uuid:test-policy-offer-1",
 						assigner: organizationId,
 						permission: [
 							{

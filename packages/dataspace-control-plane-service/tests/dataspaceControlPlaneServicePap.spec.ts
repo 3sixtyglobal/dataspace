@@ -9,13 +9,11 @@ import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessStateType,
-	DataspaceProtocolTransferProcessTypes
+	DataspaceProtocolTransferProcessTypes,
+	type IDataspaceProtocolAgreement,
+	type IDataspaceProtocolTransferError,
+	type IDataspaceProtocolTransferProcess
 } from "@twin.org/standards-dataspace-protocol";
-import type {
-	IDataspaceProtocolTransferError,
-	IDataspaceProtocolTransferProcess
-} from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlAgreement } from "@twin.org/standards-w3c-odrl";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
@@ -131,7 +129,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		expect(context.datasetId).toBe("urn:uuid:dataset-123");
 		expect(context.consumerIdentity).toBe("did:iota:consumer-node-abc");
 		expect(context.agreement).toBeDefined();
-		expect(context.agreement.uid).toBe("agreement-valid-urn");
+		expect(context.agreement["@id"]).toBe("agreement-valid-urn");
 		expect(context.agreement.permission).toBeDefined();
 		const permissions = Is.array(context.agreement.permission)
 			? context.agreement.permission
@@ -144,7 +142,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		mockPap.addAgreement({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: "agreement-urn",
+			"@id": "agreement-urn",
 			assigner: "did:iota:provider-node-xyz", // Must match ContextIdStore mock
 			assignee: "did:iota:consumer-abc",
 			target: "urn:uuid:dataset-456", // Matches dataset-456 in mock FedCat
@@ -238,11 +236,11 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		mockPap.addAgreement({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: "agreement-no-assignee",
+			"@id": "agreement-no-assignee",
 			assigner: "did:iota:provider-node-xyz", // Must match ContextIdStore mock
 			// Missing assignee - intentional for test
 			target: "urn:uuid:dataset-error"
-		} as unknown as IOdrlAgreement);
+		} as unknown as IDataspaceProtocolAgreement);
 
 		// Act
 		const result = await service.requestTransfer(

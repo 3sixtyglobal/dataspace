@@ -21,23 +21,22 @@ import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { PolicyRequesterFactory } from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolCatalogTypes,
-	DataspaceProtocolContractNegotiationStateType,
 	DataspaceProtocolContexts,
+	DataspaceProtocolContractNegotiationStateType,
 	DataspaceProtocolEndpointType,
 	DataspaceProtocolTransferProcessStateType,
-	DataspaceProtocolTransferProcessTypes
+	DataspaceProtocolTransferProcessTypes,
+	type IDataspaceProtocolAgreement,
+	type IDataspaceProtocolCatalogError,
+	type IDataspaceProtocolOffer,
+	type IDataspaceProtocolTransferCompletionMessage,
+	type IDataspaceProtocolTransferError,
+	type IDataspaceProtocolTransferProcess,
+	type IDataspaceProtocolTransferRequestMessage,
+	type IDataspaceProtocolTransferStartMessage,
+	type IDataspaceProtocolTransferSuspensionMessage,
+	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
-import type {
-	IDataspaceProtocolCatalogError,
-	IDataspaceProtocolTransferCompletionMessage,
-	IDataspaceProtocolTransferError,
-	IDataspaceProtocolTransferProcess,
-	IDataspaceProtocolTransferRequestMessage,
-	IDataspaceProtocolTransferStartMessage,
-	IDataspaceProtocolTransferSuspensionMessage,
-	IDataspaceProtocolTransferTerminationMessage
-} from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlAgreement, IOdrlOffer } from "@twin.org/standards-w3c-odrl";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { DataspaceControlPlanePolicyRequester } from "../src/dataspaceControlPlanePolicyRequester.js";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
@@ -500,7 +499,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-001",
+				"@id": "agreement-001",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-123",
@@ -554,7 +553,7 @@ describe("DataspaceControlPlaneService", () => {
 			// datasetId is now the full URN (DCAT-compliant, not parsed)
 			expect(context.datasetId).toBe("urn:uuid:dataset-123");
 			expect(context.agreement).toBeDefined();
-			expect(context.agreement.uid).toBe("agreement-001");
+			expect(context.agreement["@id"]).toBe("agreement-001");
 			expect(context.agreement["@type"]).toBe("Agreement");
 			expect(context.providerIdentity).toBe("did:iota:provider-node-xyz");
 			expect(context.offerId).toBeDefined();
@@ -588,7 +587,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-001",
+				"@id": "agreement-001",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-123",
@@ -647,7 +646,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-trust-fail",
+				"@id": "agreement-trust-fail",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-123",
@@ -717,7 +716,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-001",
+				"@id": "agreement-001",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-123",
@@ -763,7 +762,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-001",
+				"@id": "agreement-001",
 				assigner: "did:iota:provider-node-xyz", // Matches offer in mock FedCat
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-123",
@@ -810,12 +809,12 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-001",
+				"@id": "agreement-001",
 				// assigner is missing
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-123",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlAgreement);
+			} as unknown as IDataspaceProtocolAgreement);
 
 			// With FedCat validation, missing assigner causes requestTransfer to return TransferError
 			// (agreement won't match any offer in catalog)
@@ -850,7 +849,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push",
+				"@id": "agreement-push",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-push",
@@ -959,7 +958,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapProvider.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push-001",
+				"@id": "agreement-push-001",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-push-123",
@@ -1020,7 +1019,7 @@ describe("DataspaceControlPlaneService", () => {
 			// datasetId is now the full URN (DCAT-compliant, not parsed)
 			expect(context.datasetId).toBe("urn:uuid:dataset-push-123");
 			expect(context.agreement).toBeDefined();
-			expect(context.agreement.uid).toBe("agreement-push-001");
+			expect(context.agreement["@id"]).toBe("agreement-push-001");
 			expect(context.agreement["@type"]).toBe("Agreement");
 			expect(context.providerIdentity).toBe("did:iota:provider-node-xyz");
 			expect(context.consumerIdentity).toBe("did:iota:consumer-node-abc");
@@ -1062,7 +1061,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapProvider.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push-trust-fail",
+				"@id": "agreement-push-trust-fail",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-push",
@@ -1133,7 +1132,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapProvider.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push-terminate",
+				"@id": "agreement-push-terminate",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-push",
@@ -1198,7 +1197,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapProvider.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push-no-org",
+				"@id": "agreement-push-no-org",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-push",
@@ -1252,7 +1251,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapProvider.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push-mismatch",
+				"@id": "agreement-push-mismatch",
 				assigner: "did:iota:provider-node-xyz", // Matches mocked org for requestTransfer
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-push",
@@ -1307,7 +1306,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapProvider.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push-assignee",
+				"@id": "agreement-push-assignee",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-push",
@@ -1352,7 +1351,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPapProvider.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-push-assignee",
+				"@id": "agreement-push-assignee",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:another-consumer", // Different from stored consumerIdentity
 				target: "urn:uuid:dataset-push",
@@ -1386,7 +1385,7 @@ describe("DataspaceControlPlaneService", () => {
 			workflowMockPap.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "workflow-agreement-123",
+				"@id": "workflow-agreement-123",
 				assigner: "did:iota:provider-node-xyz",
 				assignee: "did:iota:consumer-node-abc",
 				target: "urn:uuid:dataset-workflow-123",
@@ -1464,7 +1463,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 			expect(context.datasetId).toBeDefined();
 			expect(context.agreement).toBeDefined();
-			expect(context.agreement.uid).toBe("workflow-agreement-123");
+			expect(context.agreement["@id"]).toBe("workflow-agreement-123");
 
 			// Complete Transfer
 			const completeMessage: IDataspaceProtocolTransferCompletionMessage = {
@@ -1517,7 +1516,7 @@ describe("DataspaceControlPlaneService", () => {
 							"odrl:hasPolicy": [
 								{
 									"@type": "odrl:Offer",
-									uid: "agreement-test-catalog",
+									"@id": "agreement-test-catalog",
 									assigner: "urn:uuid:provider-123",
 									target: "urn:uuid:valid-dataset-123",
 									permission: [
@@ -1545,7 +1544,7 @@ describe("DataspaceControlPlaneService", () => {
 					if (agreementId === "agreement-test-catalog") {
 						return {
 							"@type": "Agreement",
-							uid: "agreement-test-catalog",
+							"@id": "agreement-test-catalog",
 							status: "active",
 							assignee: "urn:uuid:consumer-123",
 							assigner: "urn:uuid:provider-123",
@@ -1621,7 +1620,7 @@ describe("DataspaceControlPlaneService", () => {
 					if (agreementId === "agreement-missing-dataset") {
 						return {
 							"@type": "Agreement",
-							uid: "agreement-missing-dataset",
+							"@id": "agreement-missing-dataset",
 							status: "active",
 							assignee: "urn:uuid:consumer-123",
 							assigner: "urn:uuid:provider-123",
@@ -1699,7 +1698,7 @@ describe("DataspaceControlPlaneService", () => {
 							"odrl:hasPolicy": [
 								{
 									"@type": "odrl:Offer",
-									uid: "offer-different-123",
+									"@id": "offer-different-123",
 									assigner: "urn:uuid:provider-123",
 									target: "urn:uuid:dataset-mismatch-123",
 									permission: [
@@ -1727,7 +1726,7 @@ describe("DataspaceControlPlaneService", () => {
 					if (agreementId === "agreement-mismatch-123") {
 						return {
 							"@type": "Agreement",
-							uid: "agreement-mismatch-123",
+							"@id": "agreement-mismatch-123",
 							status: "active",
 							assignee: "urn:uuid:consumer-123",
 							assigner: "urn:uuid:provider-different",
@@ -2317,13 +2316,13 @@ describe("DataspaceControlPlaneService", () => {
 				"dataspace-control-plane-requester"
 			);
 
-			const mockOffer: IOdrlOffer = {
+			const mockOffer: IDataspaceProtocolOffer = {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Offer",
-				uid: "test-offer-uid",
+				"@id": "test-offer-uid",
 				assigner: "did:iota:provider",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlOffer;
+			} as unknown as IDataspaceProtocolOffer;
 
 			const accepted = await requester.offer("cb-neg-001", mockOffer);
 
@@ -2360,14 +2359,14 @@ describe("DataspaceControlPlaneService", () => {
 				"dataspace-control-plane-requester"
 			);
 
-			const mockAgreement: IOdrlAgreement = {
+			const mockAgreement: IDataspaceProtocolAgreement = {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "test-agreement-uid",
+				"@id": "test-agreement-uid",
 				assigner: "did:iota:provider",
 				assignee: "did:iota:consumer",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlAgreement;
+			} as unknown as IDataspaceProtocolAgreement;
 
 			const accepted = await requester.agreement("cb-neg-002", mockAgreement);
 
@@ -2404,23 +2403,23 @@ describe("DataspaceControlPlaneService", () => {
 				"dataspace-control-plane-requester"
 			);
 
-			const mockAgreement: IOdrlAgreement = {
+			const mockAgreement: IDataspaceProtocolAgreement = {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "final-agreement-uid",
+				"@id": "final-agreement-uid",
 				assigner: "did:iota:provider",
 				assignee: "did:iota:consumer",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlAgreement;
+			} as unknown as IDataspaceProtocolAgreement;
 
 			// Simulate the full callback sequence: offer → agreement → finalised
 			await requester.offer("cb-neg-003", {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Offer",
-				uid: "offer-uid",
+				"@id": "offer-uid",
 				assigner: "did:iota:provider",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlOffer);
+			} as unknown as IDataspaceProtocolOffer);
 
 			await requester.agreement("cb-neg-003", mockAgreement);
 			await requester.finalised("cb-neg-003");
@@ -2515,11 +2514,11 @@ describe("DataspaceControlPlaneService", () => {
 			await requester.agreement("cb-neg-006", {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "agreement-cleanup",
+				"@id": "agreement-cleanup",
 				assigner: "did:iota:provider",
 				assignee: "did:iota:consumer",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlAgreement);
+			} as unknown as IDataspaceProtocolAgreement);
 
 			await requester.finalised("cb-neg-006");
 
@@ -2580,19 +2579,19 @@ describe("DataspaceControlPlaneService", () => {
 			await requester.offer("cb-neg-008", {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Offer",
-				uid: "seq-offer",
+				"@id": "seq-offer",
 				assigner: "did:iota:provider",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlOffer);
+			} as unknown as IDataspaceProtocolOffer);
 
 			await requester.agreement("cb-neg-008", {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: "seq-agreement",
+				"@id": "seq-agreement",
 				assigner: "did:iota:provider",
 				assignee: "did:iota:consumer",
 				permission: [{ action: "read" }]
-			} as unknown as IOdrlAgreement);
+			} as unknown as IDataspaceProtocolAgreement);
 
 			await requester.finalised("cb-neg-008");
 
@@ -2725,14 +2724,14 @@ describe("DataspaceControlPlaneService", () => {
 					offer: {
 						"@context": "http://www.w3.org/ns/odrl.jsonld",
 						"@type": "Offer",
-						uid: "offer-1",
+						"@id": "offer-1",
 						assigner: "did:iota:provider",
 						permission: [{ action: "read" }]
 					},
 					agreement: {
 						"@context": "http://www.w3.org/ns/odrl.jsonld",
 						"@type": "Agreement",
-						uid: "agreement-1",
+						"@id": "agreement-1",
 						assigner: "did:iota:provider",
 						assignee: "did:iota:consumer",
 						permission: [{ action: "read" }]
@@ -2749,7 +2748,7 @@ describe("DataspaceControlPlaneService", () => {
 					offer: {
 						"@context": "http://www.w3.org/ns/odrl.jsonld",
 						"@type": "Offer",
-						uid: "offer-2",
+						"@id": "offer-2",
 						assigner: "did:iota:provider",
 						permission: [{ action: "write" }]
 					}

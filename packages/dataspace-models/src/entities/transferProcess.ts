@@ -3,9 +3,9 @@
 import { entity, property, SortDirection } from "@twin.org/entity";
 import type {
 	DataspaceProtocolTransferProcessStateType,
-	IDataspaceProtocolDataAddress
+	IDataspaceProtocolDataAddress,
+	IDataspaceProtocolPolicy
 } from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlPolicy } from "@twin.org/standards-w3c-odrl";
 
 /**
  * Transfer Process for shared storage between Control Plane and Data Plane.
@@ -98,7 +98,7 @@ export class TransferProcess {
 	 * Policies from the Agreement (stored as JSON).
 	 */
 	@property({ type: "array", format: "json", optional: true })
-	public policies?: IOdrlPolicy[];
+	public policies?: IDataspaceProtocolPolicy[];
 
 	/**
 	 * Data address for push mode transfers (stored as JSON).

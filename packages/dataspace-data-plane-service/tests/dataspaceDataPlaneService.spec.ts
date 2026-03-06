@@ -100,7 +100,7 @@ function createTestTransferProcess(overrides?: Partial<TransferProcess>): Transf
 		{
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: TEST_AGREEMENT_ID,
+			"@id": TEST_AGREEMENT_ID,
 			assigner: TEST_NODE_IDENTITY,
 			assignee: DATA_CONSUMER_IDENTITY,
 			target: SERVICE_DATASET_ID,
@@ -984,7 +984,7 @@ describe("dataspace-data-plane-tests", () => {
 			// Verify policy has required ODRL Offer properties
 			expect(policy["@type"]).toBeDefined();
 			expect(policy["@type"]).toBe("Offer");
-			expect(policy.uid).toBeDefined();
+			expect(policy["@id"]).toBeDefined();
 		}
 	});
 

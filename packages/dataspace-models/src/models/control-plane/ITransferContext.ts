@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type {
 	DataspaceProtocolTransferProcessStateType,
+	IDataspaceProtocolAgreement,
 	IDataspaceProtocolDataAddress
 } from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlAgreement } from "@twin.org/standards-w3c-odrl";
 
 /**
  * Transfer Context data structure.
@@ -27,7 +27,7 @@ export interface ITransferContext {
 	 * Agreement associated with this Transfer Process.
 	 * Contains permissions, obligations, and prohibitions that DSC uses for runtime policy enforcement.
 	 */
-	agreement: IOdrlAgreement;
+	agreement: IDataspaceProtocolAgreement;
 
 	/**
 	 * Dataset ID - what the DSC needs to execute the query.

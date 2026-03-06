@@ -38,6 +38,9 @@ import {
 	ActivityProcessingStatus,
 	DataRequestType,
 	DataspaceAppFactory,
+	DataspaceContexts,
+	DataspaceDataTypes,
+	DataspaceTypes,
 	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
@@ -45,18 +48,15 @@ import {
 	type IDataAssetItemListResult,
 	type IDataAssetQuery,
 	type IDataRequest,
-	type IDataspaceDataPlaneComponent,
+	type IDataspaceActivity,
 	type IDataspaceApp,
+	type IDataspaceDataPlaneComponent,
 	type IEntitySet,
 	type IExecutionPayload,
 	type IFilteringQuery,
 	type ITaskApp,
 	type ITransferContext,
-	type TransferProcess,
-	DataspaceContexts,
-	DataspaceTypes,
-	type IDataspaceActivity,
-	DataspaceDataTypes
+	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
@@ -70,6 +70,7 @@ import type { IPolicyEnforcementPointComponent } from "@twin.org/rights-manageme
 import {
 	DataspaceProtocolDataTypes,
 	DataspaceProtocolTransferProcessStateType,
+	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolDataset
 } from "@twin.org/standards-dataspace-protocol";
 import {
@@ -78,8 +79,8 @@ import {
 	SchemaOrgTypes
 } from "@twin.org/standards-schema-org";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { IOdrlAgreement } from "@twin.org/standards-w3c-odrl";
-import { type ITrustComponent, TrustHelper } from "@twin.org/trust-models";
+import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
+import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
 import type { IDataspaceDataPlaneServiceConstructorOptions } from "./models/IDataspaceDataPlaneServiceConstructorOptions.js";
@@ -1378,17 +1379,17 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private buildTransferContext(transferProcess: TransferProcess): ITransferContext {
-		// Build the IOdrlAgreement from stored data
+		// Build the IDataspaceProtocolAgreement from stored data
 		// The entity stores agreementId and policies separately
 		//
 		// NOTE: Currently policies are cached in the TransferProcessEntity at transfer start time.
 		// Eventually, this should fetch fresh policies from Rights Management (PAP) using:
 		//   const freshAgreement = await this._policyAdministrationPoint.get(transferProcess.agreementId);
 		// This would ensure policies are always up-to-date and support dynamic policy updates.
-		const agreement: IOdrlAgreement = {
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
+		const agreement: IDataspaceProtocolAgreement = {
+			"@context": OdrlContexts.Context,
 			"@type": "Agreement",
-			uid: transferProcess.agreementId,
+			"@id": transferProcess.agreementId,
 			target: transferProcess.datasetId,
 			// Provider is the assigner, consumer is the assignee
 			assigner: transferProcess.providerIdentity ?? "",
@@ -1398,7 +1399,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// Extract policies from the stored Agreement
 		// Extract permission, prohibition, and obligation
 		if (Is.arrayValue(transferProcess.policies)) {
-			const storedAgreement = transferProcess.policies[0] as IOdrlAgreement | undefined;
+			const storedAgreement = transferProcess.policies[0] as
+				| IDataspaceProtocolAgreement
+				| undefined;
 			if (storedAgreement) {
 				agreement.permission = storedAgreement.permission;
 				agreement.prohibition = storedAgreement.prohibition;
@@ -1433,7 +1436,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 */
 	private async applyPolicyFilters(
 		result: IDataAssetItemListResult,
-		agreement?: IOdrlAgreement
+		agreement?: IDataspaceProtocolAgreement
 	): Promise<IDataAssetItemListResult> {
 		if (!agreement || !this._policyEnforcementPoint) {
 			return result;
@@ -1446,7 +1449,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			);
 
 		if (Is.arrayValue(agreement.obligation)) {
-			await this.logObligations(agreement.obligation, agreement.uid);
+			await this.logObligations(agreement.obligation, agreement["@id"]);
 		}
 
 		return processed;
@@ -1460,7 +1463,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private async logObligations(
-		obligations: IOdrlAgreement["obligation"],
+		obligations: IDataspaceProtocolAgreement["obligation"],
 		agreementId: string
 	): Promise<void> {
 		if (!Is.arrayValue(obligations)) {

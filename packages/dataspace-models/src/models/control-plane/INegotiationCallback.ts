@@ -1,8 +1,10 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-
-import type { DataspaceProtocolContractNegotiationStateType } from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlAgreement, IOdrlOffer } from "@twin.org/standards-w3c-odrl";
+import type {
+	DataspaceProtocolContractNegotiationStateType,
+	IDataspaceProtocolAgreement,
+	IDataspaceProtocolOffer
+} from "@twin.org/standards-dataspace-protocol";
 
 /**
  * Callback interface for negotiation state change notifications.
@@ -23,7 +25,7 @@ export interface INegotiationCallback {
 	onStateChanged(
 		negotiationId: string,
 		state: DataspaceProtocolContractNegotiationStateType,
-		data?: { offer?: IOdrlOffer; agreement?: IOdrlAgreement }
+		data?: { offer?: IDataspaceProtocolOffer; agreement?: IDataspaceProtocolAgreement }
 	): Promise<void>;
 
 	/**

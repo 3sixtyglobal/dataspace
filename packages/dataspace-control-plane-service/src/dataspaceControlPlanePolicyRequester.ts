@@ -4,9 +4,12 @@ import { ComponentFactory } from "@twin.org/core";
 import type { INegotiationCallback } from "@twin.org/dataspace-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
-import type { IPolicyRequester } from "@twin.org/rights-management-models";
-import { DataspaceProtocolContractNegotiationStateType } from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlAgreement, IOdrlOffer } from "@twin.org/standards-w3c-odrl";
+import { OdrlPolicyHelper, type IPolicyRequester } from "@twin.org/rights-management-models";
+import {
+	DataspaceProtocolContractNegotiationStateType,
+	type IDataspaceProtocolAgreement,
+	type IDataspaceProtocolOffer
+} from "@twin.org/standards-dataspace-protocol";
 import type { INegotiationState } from "./models/INegotiationState.js";
 
 /**
@@ -107,7 +110,7 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 	 * @param offer The offer sent by the provider.
 	 * @returns True if the offer was accepted, false otherwise.
 	 */
-	public async offer(negotiationId: string, offer: IOdrlOffer): Promise<boolean> {
+	public async offer(negotiationId: string, offer: IDataspaceProtocolOffer): Promise<boolean> {
 		await this._loggingComponent?.log({
 			level: "info",
 			source: DataspaceControlPlanePolicyRequester.CLASS_NAME,
@@ -115,7 +118,7 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 			message: "offerReceived",
 			data: {
 				negotiationId,
-				offerId: offer.uid
+				offerId: offer["@id"]
 			}
 		});
 
@@ -141,7 +144,10 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 	 * @param agreement The agreement sent by the provider.
 	 * @returns True if the agreement was accepted, false otherwise.
 	 */
-	public async agreement(negotiationId: string, agreement: IOdrlAgreement): Promise<boolean> {
+	public async agreement(
+		negotiationId: string,
+		agreement: IDataspaceProtocolAgreement
+	): Promise<boolean> {
 		await this._loggingComponent?.log({
 			level: "info",
 			source: DataspaceControlPlanePolicyRequester.CLASS_NAME,
@@ -149,7 +155,7 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 			message: "agreementReceived",
 			data: {
 				negotiationId,
-				agreementId: agreement.uid
+				agreementId: OdrlPolicyHelper.getUid(agreement) ?? ""
 			}
 		});
 
@@ -189,7 +195,7 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 			negotiation.state = DataspaceProtocolContractNegotiationStateType.FINALIZED;
 			negotiation.updatedAt = Date.now();
 
-			const agreementId = negotiation.agreement?.uid;
+			const agreementId = OdrlPolicyHelper.getUid(negotiation.agreement);
 			this._negotiations.delete(negotiationId);
 
 			await this._loggingComponent?.log({

@@ -164,7 +164,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
 				"@type": PolicyType.Offer,
-				uid: "urn:policy:offer-test-001",
+				"@id": "urn:policy:offer-test-001",
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;
@@ -221,7 +221,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
 				"@type": PolicyType.Offer,
-				uid: agreementUrn, // Offer and Agreement share same UID (agreement derived from offer)
+				"@id": agreementUrn, // Offer and Agreement share same UID (agreement derived from offer)
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;
@@ -232,7 +232,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: agreementUrn,
+			"@id": agreementUrn,
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-node-abc",
 			target: datasetId,
@@ -305,7 +305,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
 				"@type": PolicyType.Offer,
-				uid: policyUrn, // Offer UID
+				"@id": policyUrn, // Offer UID
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;
@@ -316,7 +316,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: policyUrn, // Agreement UID matches offer UID
+			"@id": policyUrn, // Agreement UID matches offer UID
 
 			assignee: "did:iota:consumer-node-abc",
 			assigner: "did:iota:provider-node-xyz",
@@ -356,7 +356,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: agreementUrn,
+			"@id": agreementUrn,
 
 			assignee: "did:iota:consumer-node-abc",
 			assigner: "did:iota:provider-node-xyz",
@@ -429,7 +429,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
 				"@type": PolicyType.Offer,
-				uid: offerUrn, // Offer has UID "offer-mismatch-789"
+				"@id": offerUrn, // Offer has UID "offer-mismatch-789"
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;
@@ -440,7 +440,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		await pap.create({
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: agreementUrn, // Agreement UID "agreement-DIFFERENT-789" != Offer UID!
+			"@id": agreementUrn, // Agreement UID "agreement-DIFFERENT-789" != Offer UID!
 
 			assignee: "did:iota:consumer-node-abc",
 			assigner: "did:iota:provider-node-xyz",

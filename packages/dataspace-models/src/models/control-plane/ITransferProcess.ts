@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type {
 	DataspaceProtocolTransferProcessStateType,
-	IDataspaceProtocolDataAddress
+	IDataspaceProtocolDataAddress,
+	IDataspaceProtocolPolicy
 } from "@twin.org/standards-dataspace-protocol";
-import type { IOdrlPolicy } from "@twin.org/standards-w3c-odrl";
 
 /**
  * Transfer Process for internal storage.
@@ -60,7 +60,7 @@ export interface ITransferProcess {
 	 * Policies from the Agreement.
 	 * Used by DSC for runtime policy enforcement.
 	 */
-	policies?: IOdrlPolicy[];
+	policies?: IDataspaceProtocolPolicy[];
 
 	/**
 	 * Consumer identity (DID or URI).

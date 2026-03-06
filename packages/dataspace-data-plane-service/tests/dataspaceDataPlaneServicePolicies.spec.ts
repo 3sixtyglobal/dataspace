@@ -1,11 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 
+import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
 	TaskSchedulerService,
 	initSchema as initSchemaTaskScheduler
 } from "@twin.org/background-task-scheduler";
-import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
 	BackgroundTaskService,
 	initSchema as initSchemaBackgroundTask,
@@ -25,10 +25,12 @@ import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolDataTypes,
-	DataspaceProtocolTransferProcessStateType
+	DataspaceProtocolTransferProcessStateType,
+	type IDataspaceProtocolAgreement,
+	type IDataspaceProtocolPolicy
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
-import type { IOdrlAgreement, IOdrlPolicy } from "@twin.org/standards-w3c-odrl";
+import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
 import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { createMockPolicyEnforcementPoint, createMockTrustComponent } from "./setupTestEnv.js";
 import locales from "../locales/en.json" with { type: "json" };
@@ -71,7 +73,7 @@ function createTestTransferProcess(overrides?: Partial<TransferProcess>): Transf
 		{
 			"@context": "http://www.w3.org/ns/odrl.jsonld",
 			"@type": "Agreement",
-			uid: TEST_AGREEMENT_ID,
+			"@id": TEST_AGREEMENT_ID,
 			assigner: TEST_NODE_IDENTITY,
 			assignee: DATA_CONSUMER_IDENTITY,
 			target: TEST_DATASET_ID,
@@ -334,7 +336,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			const fullAgreement = {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: TEST_AGREEMENT_ID,
+				"@id": TEST_AGREEMENT_ID,
 				assigner: TEST_NODE_IDENTITY,
 				assignee: DATA_CONSUMER_IDENTITY,
 				target: TEST_DATASET_ID,
@@ -355,7 +357,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 						constraint: [{ leftOperand: "event", operator: "eq", rightOperand: "policyExpiry" }]
 					}
 				]
-			} as unknown as IOdrlPolicy;
+			} as unknown as IDataspaceProtocolPolicy;
 
 			const transferProcess = createTestTransferProcess({
 				policies: [fullAgreement]
@@ -398,10 +400,10 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			}
 		};
 
-		const testAgreement: IOdrlAgreement = {
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
+		const testAgreement: IDataspaceProtocolAgreement = {
+			"@context": OdrlContexts.Context,
 			"@type": "Agreement",
-			uid: TEST_AGREEMENT_ID,
+			"@id": TEST_AGREEMENT_ID,
 			assigner: TEST_NODE_IDENTITY,
 			assignee: DATA_CONSUMER_IDENTITY,
 			permission: [{ action: "read" }]
@@ -410,13 +412,13 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		async function callApplyPolicyFilters(
 			svc: DataspaceDataPlaneService,
 			result: IDataAssetItemListResult,
-			agreement?: IOdrlAgreement
+			agreement?: IDataspaceProtocolAgreement
 		): Promise<IDataAssetItemListResult> {
 			return (
 				svc as unknown as {
 					applyPolicyFilters: (
 						result: IDataAssetItemListResult,
-						agreement?: IOdrlAgreement
+						agreement?: IDataspaceProtocolAgreement
 					) => Promise<IDataAssetItemListResult>;
 				}
 			).applyPolicyFilters(result, agreement);
@@ -482,7 +484,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 				log: logSpy
 			};
 
-			const agreementWithObligations: IOdrlAgreement = {
+			const agreementWithObligations: IDataspaceProtocolAgreement = {
 				...testAgreement,
 				obligation: [
 					{ action: "attribute", assignee: DATA_CONSUMER_IDENTITY },
@@ -526,7 +528,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 				log: logSpy
 			};
 
-			const agreementWithObligations: IOdrlAgreement = {
+			const agreementWithObligations: IDataspaceProtocolAgreement = {
 				...testAgreement,
 				obligation: [{ action: "attribute", assignee: DATA_CONSUMER_IDENTITY }]
 			};
@@ -549,17 +551,19 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 	describe("Policy Filters at Call Site (getDataAssetEntities / queryDataAsset)", () => {
 		const APP_DATASET_ID = "https://twin.example.org/data-service-1";
 
-		function createTransferWithAgreement(agreement?: Partial<IOdrlAgreement>): TransferProcess {
+		function createTransferWithAgreement(
+			agreement?: Partial<IDataspaceProtocolAgreement>
+		): TransferProcess {
 			const fullAgreement = {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
-				uid: TEST_AGREEMENT_ID,
+				"@id": TEST_AGREEMENT_ID,
 				assigner: TEST_NODE_IDENTITY,
 				assignee: DATA_CONSUMER_IDENTITY,
 				target: APP_DATASET_ID,
 				permission: [{ action: "read" }],
 				...agreement
-			} as unknown as IOdrlPolicy;
+			} as unknown as IDataspaceProtocolPolicy;
 
 			return createTestTransferProcess({
 				datasetId: APP_DATASET_ID,
@@ -702,7 +706,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			expect(context.providerPid).toBe(TEST_PROVIDER_PID);
 			expect(context.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 			expect(context.agreement).toBeDefined();
-			expect(context.agreement.uid).toBe(TEST_AGREEMENT_ID);
+			expect(context.agreement["@id"]).toBe(TEST_AGREEMENT_ID);
 
 			// Step 6: Verify consumer/provider identities for auditing
 			expect(context.consumerIdentity).toBe(DATA_CONSUMER_IDENTITY);

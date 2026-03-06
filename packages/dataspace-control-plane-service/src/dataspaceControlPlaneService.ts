@@ -53,9 +53,11 @@ import {
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes,
 	type DataspaceProtocolContractNegotiationStateType,
+	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolContractNegotiation,
 	type IDataspaceProtocolContractNegotiationError,
 	type IDataspaceProtocolDataset,
+	type IDataspaceProtocolPolicy,
 	type IDataspaceProtocolTransferCompletionMessage,
 	type IDataspaceProtocolTransferError,
 	type IDataspaceProtocolTransferProcess,
@@ -65,7 +67,6 @@ import {
 	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
-import type { IOdrlAgreement, IOdrlPolicy } from "@twin.org/standards-w3c-odrl";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import { DataspaceControlPlanePolicyRequester } from "./dataspaceControlPlanePolicyRequester.js";
 import type { IDataspaceControlPlaneServiceConstructorOptions } from "./models/IDataspaceControlPlaneServiceConstructorOptions.js";
@@ -500,7 +501,7 @@ export class DataspaceControlPlaneService
 		let datasetId: string;
 		let consumerIdentity: ObjectOrArray<string>;
 		let providerIdentity: ObjectOrArray<string>;
-		let policies: IOdrlPolicy[] = [];
+		let policies: IDataspaceProtocolPolicy[] = [];
 
 		try {
 			const agreement = await this.lookupAgreement(request.agreementId);
@@ -1102,7 +1103,7 @@ export class DataspaceControlPlaneService
 			});
 		}
 
-		const catalogOffers = rawOffers.filter(offer => Is.object<IOdrlPolicy>(offer));
+		const catalogOffers = rawOffers.filter(offer => Is.object<IDataspaceProtocolPolicy>(offer));
 
 		if (!Is.arrayValue(catalogOffers)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetHasNoValidOffers", {
@@ -1111,14 +1112,14 @@ export class DataspaceControlPlaneService
 			});
 		}
 
-		const matchingOffer = catalogOffers.find((offer: IOdrlPolicy) => {
+		const matchingOffer = catalogOffers.find((offer: IDataspaceProtocolPolicy) => {
 			const offerUid = OdrlPolicyHelper.getUid(offer);
 			return offerUid === offerId;
 		});
 
 		if (!matchingOffer) {
 			const availableOffers = catalogOffers
-				.map((o: IOdrlPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
+				.map((o: IDataspaceProtocolPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
 				.join(", ");
 
 			throw new NotFoundError(
@@ -1618,7 +1619,7 @@ export class DataspaceControlPlaneService
 	 * @returns Agreement.
 	 * @internal
 	 */
-	private async lookupAgreement(agreementId: string): Promise<IOdrlAgreement> {
+	private async lookupAgreement(agreementId: string): Promise<IDataspaceProtocolAgreement> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(agreementId), agreementId);
 
 		let agreement;
@@ -1646,7 +1647,7 @@ export class DataspaceControlPlaneService
 	 * @returns Dataset ID.
 	 * @internal
 	 */
-	private extractDatasetId(agreement: IOdrlAgreement): string {
+	private extractDatasetId(agreement: IDataspaceProtocolAgreement): string {
 		if (Is.empty(agreement.target)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "agreementMissingTarget", {
 				agreementId: OdrlPolicyHelper.getUid(agreement)
@@ -1684,10 +1685,10 @@ export class DataspaceControlPlaneService
 	 */
 	private async validateCatalogDataset(
 		datasetId: string,
-		agreement: IOdrlAgreement
+		agreement: IDataspaceProtocolAgreement
 	): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
-		Guards.object<IOdrlAgreement>(
+		Guards.object<IDataspaceProtocolAgreement>(
 			DataspaceControlPlaneService.CLASS_NAME,
 			nameof(agreement),
 			agreement
@@ -1710,7 +1711,7 @@ export class DataspaceControlPlaneService
 			}
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "catalogLookupFailed", {
 				datasetId,
-				agreementId: agreement.uid,
+				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
 				errorCode: catalogResult.code
 			});
 		}
@@ -1722,7 +1723,7 @@ export class DataspaceControlPlaneService
 			message: "catalogDatasetFound",
 			data: {
 				datasetId,
-				agreementId: agreement.uid,
+				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
 				datasetTitle: catalogResult["dcterms:title"]
 			}
 		});
@@ -1798,25 +1799,21 @@ export class DataspaceControlPlaneService
 	 */
 	private getCatalogDatasetPolicies(
 		catalogDataset: IDcatDataset | IDataspaceProtocolDataset
-	): JsonLdObjectWithNoContext<IOdrlPolicy>[] {
+	): JsonLdObjectWithNoContext<IDataspaceProtocolPolicy>[] {
 		// Support both "odrl:hasPolicy" and "hasPolicy" to accommodate different catalog implementations
 		if (Is.object<IDcatDataset>(catalogDataset) && !Is.empty(catalogDataset["odrl:hasPolicy"])) {
-			return (
-				ArrayHelper.fromObjectOrArray<JsonLdObjectWithNoContext<IOdrlPolicy>>(
-					catalogDataset["odrl:hasPolicy"]
-				) ?? []
-			);
+			const items = ArrayHelper.fromObjectOrArray(catalogDataset["odrl:hasPolicy"]) ?? [];
+			return items.map(item => ({
+				...item,
+				"@id": OdrlPolicyHelper.getUid(item) ?? ""
+			}));
 		}
 
 		if (
 			Is.object<IDataspaceProtocolDataset>(catalogDataset) &&
 			!Is.empty(catalogDataset.hasPolicy)
 		) {
-			return (
-				ArrayHelper.fromObjectOrArray<JsonLdObjectWithNoContext<IOdrlPolicy>>(
-					catalogDataset.hasPolicy as ObjectOrArray<JsonLdObjectWithNoContext<IOdrlPolicy>>
-				) ?? []
-			);
+			return ArrayHelper.fromObjectOrArray(catalogDataset.hasPolicy) ?? [];
 		}
 
 		return [];
@@ -1829,10 +1826,10 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private async validateAgreementMatchesOffer(
-		agreement: IOdrlAgreement,
+		agreement: IDataspaceProtocolAgreement,
 		catalogDataset: IDcatDataset
 	): Promise<void> {
-		Guards.object<IOdrlAgreement>(
+		Guards.object<IDataspaceProtocolAgreement>(
 			DataspaceControlPlaneService.CLASS_NAME,
 			nameof(agreement),
 			agreement
@@ -1853,13 +1850,13 @@ export class DataspaceControlPlaneService
 				message: "catalogDatasetHasNoOffers",
 				data: {
 					datasetId: getJsonLdId(catalogDataset) ?? "",
-					agreementId: agreement.uid
+					agreementId: OdrlPolicyHelper.getUid(agreement) ?? ""
 				}
 			});
 			return;
 		}
 
-		const catalogOffers = rawOffers.filter(offer => Is.object<IOdrlPolicy>(offer));
+		const catalogOffers = rawOffers.filter(offer => Is.object<IDataspaceProtocolPolicy>(offer));
 
 		if (!Is.arrayValue(catalogOffers)) {
 			await this._loggingComponent?.log({
@@ -1869,24 +1866,24 @@ export class DataspaceControlPlaneService
 				message: "catalogDatasetHasNoOffers",
 				data: {
 					datasetId: getJsonLdId(catalogDataset) ?? "",
-					agreementId: agreement.uid
+					agreementId: OdrlPolicyHelper.getUid(agreement) ?? ""
 				}
 			});
 			return;
 		}
 
 		const matchingOffer = catalogOffers.find(
-			(offer: IOdrlPolicy) =>
-				OdrlPolicyHelper.getUid(offer) === agreement.uid ||
+			(offer: IDataspaceProtocolPolicy) =>
+				OdrlPolicyHelper.getUid(offer) === OdrlPolicyHelper.getUid(agreement) ||
 				this.isPolicyDerivedFrom(agreement, offer)
 		);
 
 		if (!matchingOffer) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "agreementNotMatchingOffer", {
-				agreementId: agreement.uid,
+				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
 				datasetId: getJsonLdId(catalogDataset) ?? "",
 				availableOffers: catalogOffers
-					.map((o: IOdrlPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
+					.map((o: IDataspaceProtocolPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
 					.join(", ")
 			});
 		}
@@ -1897,7 +1894,7 @@ export class DataspaceControlPlaneService
 			ts: Date.now(),
 			message: "agreementMatchedOffer",
 			data: {
-				agreementId: agreement.uid,
+				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
 				offerId: OdrlPolicyHelper.getUid(matchingOffer) ?? "",
 				datasetId: getJsonLdId(catalogDataset) ?? ""
 			}
@@ -1911,7 +1908,10 @@ export class DataspaceControlPlaneService
 	 * @returns True if Agreement appears derived from Offer.
 	 * @internal
 	 */
-	private isPolicyDerivedFrom(agreement: IOdrlAgreement, offer: IOdrlPolicy): boolean {
+	private isPolicyDerivedFrom(
+		agreement: IDataspaceProtocolAgreement,
+		offer: IDataspaceProtocolPolicy
+	): boolean {
 		const agreementTargets = OdrlPolicyHelper.getTargets(agreement);
 		const offerTargets = OdrlPolicyHelper.getTargets(offer);
 
