@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.17](https://github.com/twinfoundation/dataspace/compare/dataspace-app-runner-v0.0.3-next.16...dataspace-app-runner-v0.0.3-next.17) (2026-03-06)
+
+
+### Bug Fixes
+
+* avoid compaction of incoming activities ([#77](https://github.com/twinfoundation/dataspace/issues/77)) ([ff43d6a](https://github.com/twinfoundation/dataspace/commit/ff43d6a3e1563eb9cb185501134b2a53ae88787c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.16 to 0.0.3-next.17
+
 ## [0.0.3-next.16](https://github.com/twinfoundation/dataspace/compare/dataspace-app-runner-v0.0.3-next.15...dataspace-app-runner-v0.0.3-next.16) (2026-03-02)
 
 

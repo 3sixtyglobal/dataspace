@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.0.3-next.17](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.16...dataspace-control-plane-service-v0.0.3-next.17) (2026-03-06)
+
+
+### Features
+
+* docs update ([8b44c7a](https://github.com/twinfoundation/dataspace/commit/8b44c7a75afb8d377a6f606616f8a78d58439ab4))
+* types update ([77c338e](https://github.com/twinfoundation/dataspace/commit/77c338e9244dcc7e3d597fdb06229513b1f13eac))
+
+
+### Bug Fixes
+
+* avoid compaction of incoming activities ([#77](https://github.com/twinfoundation/dataspace/issues/77)) ([ff43d6a](https://github.com/twinfoundation/dataspace/commit/ff43d6a3e1563eb9cb185501134b2a53ae88787c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.16 to 0.0.3-next.17
+
 ## [0.0.3-next.16](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.15...dataspace-control-plane-service-v0.0.3-next.16) (2026-03-02)
 
 

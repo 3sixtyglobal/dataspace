@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.0.3-next.17](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.16...dataspace-data-plane-service-v0.0.3-next.17) (2026-03-06)
+
+
+### Features
+
+* types update ([77c338e](https://github.com/twinfoundation/dataspace/commit/77c338e9244dcc7e3d597fdb06229513b1f13eac))
+
+
+### Bug Fixes
+
+* avoid compaction of incoming activities ([#77](https://github.com/twinfoundation/dataspace/issues/77)) ([ff43d6a](https://github.com/twinfoundation/dataspace/commit/ff43d6a3e1563eb9cb185501134b2a53ae88787c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.16 to 0.0.3-next.17
+    * @twin.org/dataspace-models bumped from 0.0.3-next.16 to 0.0.3-next.17
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.16 to 0.0.3-next.17
+
 ## [0.0.3-next.16](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.15...dataspace-data-plane-service-v0.0.3-next.16) (2026-03-02)
 
 
