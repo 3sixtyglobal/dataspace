@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.17](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-socket-client-v0.0.3-next.16...dataspace-data-plane-socket-client-v0.0.3-next.17) (2026-03-06)
+
+
+### Miscellaneous Chores
+
+* **dataspace-data-plane-socket-client:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.16 to 0.0.3-next.17
+
 ## [0.0.3-next.16](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-socket-client-v0.0.3-next.15...dataspace-data-plane-socket-client-v0.0.3-next.16) (2026-03-02)
 
 
