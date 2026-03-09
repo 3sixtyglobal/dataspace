@@ -722,8 +722,11 @@
 							},
 							{
 								"type": "array",
-								"minItems": 1,
+								"minItems": 2,
 								"prefixItems": [
+									{
+										"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
+									},
 									{
 										"type": "string",
 										"const": "https://www.w3.org/ns/activitystreams"
@@ -735,11 +738,14 @@
 							},
 							{
 								"type": "array",
-								"minItems": 1,
+								"minItems": 2,
 								"prefixItems": [
 									{
 										"type": "string",
 										"const": "https://www.w3.org/ns/activitystreams"
+									},
+									{
+										"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
 									}
 								],
 								"items": {
@@ -749,7 +755,6 @@
 						]
 					},
 					"type": {
-						"description": "Object or array data type",
 						"anyOf": [
 							{
 								"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
@@ -770,7 +775,8 @@
 									]
 								}
 							}
-						]
+						],
+						"description": "Activity Type."
 					},
 					"id": {
 						"type": "string",
@@ -1379,151 +1385,6 @@
 					"type"
 				],
 				"description": "A W3C Activity from Activity Streams.\n\nAn `Activity` describes an action performed by an `actor` on an `object`, and can optionally include a `target`, `result`, `origin`, or `instrument`."
-			},
-			"ActivityStreamsLinkTypes": {
-				"anyOf": [
-					{
-						"type": "string",
-						"const": "Link",
-						"description": "Link"
-					},
-					{
-						"type": "string",
-						"const": "Mention",
-						"description": "Mention"
-					}
-				],
-				"description": "The link types concerning Activity Streams."
-			},
-			"ActivityStreamsObjectTypes": {
-				"anyOf": [
-					{
-						"type": "string",
-						"const": "Object",
-						"description": "Object"
-					},
-					{
-						"type": "string",
-						"const": "Activity",
-						"description": "Activity"
-					},
-					{
-						"type": "string",
-						"const": "IntransitiveActivity",
-						"description": "IntransitiveActivity"
-					},
-					{
-						"type": "string",
-						"const": "Collection",
-						"description": "Collection"
-					},
-					{
-						"type": "string",
-						"const": "OrderedCollection",
-						"description": "OrderedCollection"
-					},
-					{
-						"type": "string",
-						"const": "CollectionPage",
-						"description": "CollectionPage"
-					},
-					{
-						"type": "string",
-						"const": "OrderedCollectionPage",
-						"description": "OrderedCollectionPage"
-					},
-					{
-						"type": "string",
-						"const": "Actor",
-						"description": "Actor"
-					},
-					{
-						"type": "string",
-						"const": "Application",
-						"description": "Application"
-					},
-					{
-						"type": "string",
-						"const": "Group",
-						"description": "Group"
-					},
-					{
-						"type": "string",
-						"const": "Organization",
-						"description": "Organization"
-					},
-					{
-						"type": "string",
-						"const": "Person",
-						"description": "Person"
-					},
-					{
-						"type": "string",
-						"const": "Service",
-						"description": "Service"
-					},
-					{
-						"type": "string",
-						"const": "Article",
-						"description": "Article"
-					},
-					{
-						"type": "string",
-						"const": "Audio",
-						"description": "Audio"
-					},
-					{
-						"type": "string",
-						"const": "Document",
-						"description": "Document"
-					},
-					{
-						"type": "string",
-						"const": "Event",
-						"description": "Event"
-					},
-					{
-						"type": "string",
-						"const": "Image",
-						"description": "Image"
-					},
-					{
-						"type": "string",
-						"const": "Note",
-						"description": "Note"
-					},
-					{
-						"type": "string",
-						"const": "Page",
-						"description": "Page"
-					},
-					{
-						"type": "string",
-						"const": "Place",
-						"description": "Place"
-					},
-					{
-						"type": "string",
-						"const": "Profile",
-						"description": "Profile"
-					},
-					{
-						"type": "string",
-						"const": "Relationship",
-						"description": "Relationship"
-					},
-					{
-						"type": "string",
-						"const": "Tombstone",
-						"description": "Tombstone"
-					},
-					{
-						"type": "string",
-						"const": "Video",
-						"description": "Video"
-					}
-				],
-				"description": "The object types concerning Activity Streams."
 			},
 			"DataAssetItemList": {
 				"type": "object",
