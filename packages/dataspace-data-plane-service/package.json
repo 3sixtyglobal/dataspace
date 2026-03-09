@@ -23,7 +23,7 @@
 		"test:coverage": "vitest --run --coverage --config ./vitest.config.ts --no-cache",
 		"docs:clean": "rimraf docs/reference",
 		"docs:generate": "typedoc",
-		"docs:api": "ts-to-openapi ./ts-to-openapi.json ./docs/open-api/spec.json",
+		"docs:api": "echo ts-to-openapi ./ts-to-openapi.json ./docs/open-api/spec.json",
 		"docs": "npm run docs:clean && npm run docs:generate && npm run docs:api",
 		"dist": "npm run clean && npm run build && npm run validate-locales && npm run test:build && npm run test",
 		"dist:no-test": "npm run clean && npm run build && npm run test:build"

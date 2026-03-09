@@ -430,6 +430,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 				"@context": OdrlContexts.JsonLdContext,
 				"@type": PolicyType.Offer,
 				"@id": offerUrn, // Offer has UID "offer-mismatch-789"
+				assigner: "did:iota:different-provider",
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;

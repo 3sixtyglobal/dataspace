@@ -11,12 +11,10 @@ import {
 	Guards,
 	Is,
 	NotFoundError,
-	ObjectHelper,
 	RandomHelper,
 	StringHelper,
 	UnauthorizedError,
-	type IValidationFailure,
-	type ObjectOrArray
+	type IValidationFailure
 } from "@twin.org/core";
 import { JsonLdHelper, type JsonLdObjectWithNoContext } from "@twin.org/data-json-ld";
 import {
@@ -474,7 +472,11 @@ export class DataspaceControlPlaneService
 		request: IDataspaceProtocolTransferRequestMessage,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "requestTransfer");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"requestTransfer"
+		);
 
 		const validationFailures: IValidationFailure[] = [];
 		const isConformant = await DataspaceProtocolHelper.checkConformance(
@@ -499,8 +501,8 @@ export class DataspaceControlPlaneService
 		const providerPid = `urn:uuid:${RandomHelper.generateUuidV7()}`;
 
 		let datasetId: string;
-		let consumerIdentity: ObjectOrArray<string>;
-		let providerIdentity: ObjectOrArray<string>;
+		let consumerIdentity: string;
+		let providerIdentity: string;
 		let policies: IDataspaceProtocolPolicy[] = [];
 
 		try {
@@ -530,10 +532,26 @@ export class DataspaceControlPlaneService
 			}
 
 			const assigneeIdentity = OdrlPolicyHelper.extractAssigneeIdentity(agreement);
-			consumerIdentity = Is.array(assigneeIdentity) ? assigneeIdentity[0] : assigneeIdentity;
+			const assigneeIds = ArrayHelper.fromObjectOrArray<string>(assigneeIdentity);
+
+			if (!assigneeIds.includes(trustInfo.identity)) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"callerNotAuthorizedForAgreement"
+				);
+			}
+			consumerIdentity = trustInfo.identity;
 
 			const assignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
-			providerIdentity = Is.array(assignerIdentity) ? assignerIdentity[0] : assignerIdentity;
+			const assignerIds = ArrayHelper.fromObjectOrArray<string>(assignerIdentity);
+			if (assignerIds.length > 1) {
+				throw new GeneralError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"multipleAssignersNotSupported"
+				);
+			}
+			providerIdentity = assignerIds[0];
+
 			datasetId = this.extractDatasetId(agreement);
 
 			await this.validateCatalogDataset(datasetId, agreement);
@@ -552,8 +570,8 @@ export class DataspaceControlPlaneService
 			state: DataspaceProtocolTransferProcessStateType.REQUESTED,
 			agreementId: request.agreementId,
 			datasetId,
-			consumerIdentity: ArrayHelper.fromObjectOrArray<string>(consumerIdentity)[0],
-			providerIdentity: ArrayHelper.fromObjectOrArray<string>(providerIdentity)[0],
+			consumerIdentity,
+			providerIdentity,
 			// offerId should reference Catalog Offer (via Agreement)
 			// For now, use agreementId as reference (proper flow: Catalog → Negotiation → Agreement)
 			offerId: request.agreementId,
@@ -609,7 +627,11 @@ export class DataspaceControlPlaneService
 		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError> {
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "startTransfer");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"startTransfer"
+		);
 
 		const validationFailures: IValidationFailure[] = [];
 		const isConformant = await DataspaceProtocolHelper.checkConformance(
@@ -628,6 +650,8 @@ export class DataspaceControlPlaneService
 
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
+
+			this.validateCallerIsProvider(trustInfo.identity, entity);
 
 			if (
 				entity.state !== DataspaceProtocolTransferProcessStateType.REQUESTED &&
@@ -698,18 +722,29 @@ export class DataspaceControlPlaneService
 					);
 				}
 
+				// Provider signs the data access token with its own identity.
+				// The subject contains the transfer context claims that the data plane
+				// will verify when the consumer presents this token.
+				if (!Is.stringValue(entity.providerIdentity)) {
+					throw new GeneralError(
+						DataspaceControlPlaneService.CLASS_NAME,
+						"providerIdentityMissing"
+					);
+				}
 				const accessToken = await this._trustComponent.generate(
-					entity.consumerIdentity ?? entity.consumerPid,
+					entity.providerIdentity,
 					this._overrideTrustGeneratorType,
 					{
-						consumerPid: entity.consumerPid,
-						providerPid: entity.providerPid,
-						agreementId: entity.agreementId,
-						datasetId: entity.datasetId
+						subject: {
+							consumerPid: entity.consumerPid,
+							providerPid: entity.providerPid,
+							agreementId: entity.agreementId,
+							datasetId: entity.datasetId
+						}
 					}
 				);
 
-				const tokenString = Converter.bytesToBase64(ObjectHelper.toBytes(accessToken));
+				const tokenString = accessToken as string;
 				const fullEndpoint = `${publicOrigin}/${this._dataPlanePath}`;
 
 				response.dataAddress = {
@@ -795,7 +830,11 @@ export class DataspaceControlPlaneService
 		message: IDataspaceProtocolTransferCompletionMessage,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "completeTransfer");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"completeTransfer"
+		);
 
 		const validationFailures: IValidationFailure[] = [];
 		const isConformant = await DataspaceProtocolHelper.checkConformance(
@@ -816,6 +855,8 @@ export class DataspaceControlPlaneService
 
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
+
+			this.validateCallerIsConsumer(trustInfo.identity, entity);
 
 			if (entity.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
 				return transformToTransferError(
@@ -867,7 +908,11 @@ export class DataspaceControlPlaneService
 		message: IDataspaceProtocolTransferSuspensionMessage,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "suspendTransfer");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"suspendTransfer"
+		);
 
 		const validationFailures: IValidationFailure[] = [];
 		const isConformant = await DataspaceProtocolHelper.checkConformance(
@@ -888,6 +933,8 @@ export class DataspaceControlPlaneService
 
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
+
+			this.validateCallerIsTransferParty(trustInfo.identity, entity);
 
 			if (entity.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
 				return transformToTransferError(
@@ -940,7 +987,11 @@ export class DataspaceControlPlaneService
 		message: IDataspaceProtocolTransferTerminationMessage,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "terminateTransfer");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"terminateTransfer"
+		);
 
 		const validationFailures: IValidationFailure[] = [];
 		const isConformant = await DataspaceProtocolHelper.checkConformance(
@@ -961,6 +1012,8 @@ export class DataspaceControlPlaneService
 
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
+
+			this.validateCallerIsTransferParty(trustInfo.identity, entity);
 
 			entity.state = DataspaceProtocolTransferProcessStateType.TERMINATED;
 			entity.dateModified = new Date();
@@ -1002,10 +1055,16 @@ export class DataspaceControlPlaneService
 		pid: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "getTransferProcess");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"getTransferProcess"
+		);
 
 		try {
 			const { entity, role } = await this.lookupTransferByPid(pid);
+
+			this.validateCallerIsTransferParty(trustInfo.identity, entity);
 
 			await this._loggingComponent?.log({
 				level: "info",
@@ -1040,6 +1099,7 @@ export class DataspaceControlPlaneService
 	 * Returns immediately with a negotiationId. The caller is notified
 	 * via the registered INegotiationCallback when the negotiation completes.
 	 *
+	 * @param datasetId The dataset ID from the provider's catalog.
 	 * @param offerId The offer ID from the provider's catalog.
 	 * @param providerEndpoint The provider's contract negotiation endpoint URL.
 	 * @param publicOrigin The public origin URL of this control plane (for callbacks).
@@ -1047,11 +1107,13 @@ export class DataspaceControlPlaneService
 	 * @returns The negotiation ID. Use the registered callback for completion notification.
 	 */
 	public async negotiateAgreement(
+		datasetId: string,
 		offerId: string,
 		providerEndpoint: string,
 		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<{ negotiationId: string }> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(offerId), offerId);
 		Guards.stringValue(
 			DataspaceControlPlaneService.CLASS_NAME,
@@ -1065,18 +1127,19 @@ export class DataspaceControlPlaneService
 			source: DataspaceControlPlaneService.CLASS_NAME,
 			ts: Date.now(),
 			message: "startingContractNegotiation",
-			data: { offerId, providerEndpoint, publicOrigin }
+			data: { datasetId, offerId, providerEndpoint, publicOrigin }
 		});
 
-		const catalogResult = await this._federatedCatalogueComponent.get(offerId);
+		const catalogResult = await this._federatedCatalogueComponent.get(datasetId);
 
 		if (isCatalogError(catalogResult)) {
 			if (isCatalogErrorName(catalogResult, NotFoundError.CLASS_NAME)) {
 				throw new NotFoundError(
 					DataspaceControlPlaneService.CLASS_NAME,
 					"datasetNotFoundInCatalog",
-					offerId,
+					datasetId,
 					{
+						datasetId,
 						offerId,
 						providerEndpoint
 					}
@@ -1087,6 +1150,7 @@ export class DataspaceControlPlaneService
 				DataspaceControlPlaneService.CLASS_NAME,
 				"catalogLookupFailedForNegotiation",
 				{
+					datasetId,
 					offerId,
 					providerEndpoint,
 					errorCode: catalogResult.code
@@ -1355,9 +1419,9 @@ export class DataspaceControlPlaneService
 		}
 
 		const assignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
-		const assignerId = Is.array(assignerIdentity) ? assignerIdentity[0] : assignerIdentity;
+		const assignerIds = ArrayHelper.fromObjectOrArray<string>(assignerIdentity);
 
-		if (assignerId !== currentOrgId) {
+		if (!assignerIds.includes(currentOrgId)) {
 			throw new UnauthorizedError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"agreementAssignerMismatch",
@@ -1365,7 +1429,7 @@ export class DataspaceControlPlaneService
 					consumerPid,
 					agreementId: OdrlPolicyHelper.getUid(agreement),
 					expectedOrgId: currentOrgId,
-					actualAssigner: assignerId
+					actualAssigner: assignerIds.join(", ")
 				}
 			);
 		}
@@ -1442,9 +1506,9 @@ export class DataspaceControlPlaneService
 		// Extract assigner UID (can be string, array, or IOdrlParty object)
 
 		const assignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
-		const assignerId = Is.array(assignerIdentity) ? assignerIdentity[0] : assignerIdentity;
+		const assignerIds = ArrayHelper.fromObjectOrArray<string>(assignerIdentity);
 
-		if (assignerId !== currentOrgId) {
+		if (!assignerIds.includes(currentOrgId)) {
 			throw new UnauthorizedError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"agreementAssignerMismatchProvider",
@@ -1452,7 +1516,7 @@ export class DataspaceControlPlaneService
 					providerPid,
 					agreementId: OdrlPolicyHelper.getUid(agreement),
 					expectedOrgId: currentOrgId,
-					actualAssigner: assignerId
+					actualAssigner: assignerIds.join(", ")
 				}
 			);
 		}
@@ -1461,9 +1525,12 @@ export class DataspaceControlPlaneService
 		// This ensures we're pushing to the correct consumer
 		// If assignee is undefined but consumerIdentity has a value, this is also a mismatch
 		const assigneeIdentity = OdrlPolicyHelper.extractAssigneeIdentity(agreement);
-		const assigneeId = Is.array(assigneeIdentity) ? assigneeIdentity[0] : assigneeIdentity;
+		const assigneeIds = ArrayHelper.fromObjectOrArray<string>(assigneeIdentity);
 
-		if (assigneeId !== entity.consumerIdentity) {
+		if (
+			!Is.stringValue(entity.consumerIdentity) ||
+			!assigneeIds.includes(entity.consumerIdentity)
+		) {
 			throw new UnauthorizedError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"agreementAssigneeMismatch",
@@ -1471,7 +1538,7 @@ export class DataspaceControlPlaneService
 					providerPid,
 					agreementId: OdrlPolicyHelper.getUid(agreement),
 					expectedConsumerIdentity: entity.consumerIdentity,
-					actualAssignee: assigneeId
+					actualAssignee: assigneeIds.join(", ")
 				}
 			);
 		}
@@ -1639,6 +1706,54 @@ export class DataspaceControlPlaneService
 		}
 
 		return agreement;
+	}
+
+	/**
+	 * Validate that the caller's verified identity matches the consumer of a transfer process.
+	 * @param callerIdentity The identity from the verified trust token.
+	 * @param entity The transfer process entity.
+	 * @throws UnauthorizedError if the caller is not the consumer.
+	 * @internal
+	 */
+	private validateCallerIsConsumer(callerIdentity: string, entity: ITransferProcess): void {
+		if (callerIdentity !== entity.consumerIdentity) {
+			throw new UnauthorizedError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"callerNotAuthorizedAsConsumer"
+			);
+		}
+	}
+
+	/**
+	 * Validate that the caller's verified identity matches the provider of a transfer process.
+	 * @param callerIdentity The identity from the verified trust token.
+	 * @param entity The transfer process entity.
+	 * @throws UnauthorizedError if the caller is not the provider.
+	 * @internal
+	 */
+	private validateCallerIsProvider(callerIdentity: string, entity: ITransferProcess): void {
+		if (callerIdentity !== entity.providerIdentity) {
+			throw new UnauthorizedError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"callerNotAuthorizedAsProvider"
+			);
+		}
+	}
+
+	/**
+	 * Validate that the caller's verified identity matches either the consumer or provider of a transfer process.
+	 * @param callerIdentity The identity from the verified trust token.
+	 * @param entity The transfer process entity.
+	 * @throws UnauthorizedError if the caller is not a party to the transfer.
+	 * @internal
+	 */
+	private validateCallerIsTransferParty(callerIdentity: string, entity: ITransferProcess): void {
+		if (callerIdentity !== entity.consumerIdentity && callerIdentity !== entity.providerIdentity) {
+			throw new UnauthorizedError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"callerNotAuthorizedForTransfer"
+			);
+		}
 	}
 
 	/**
@@ -1840,6 +1955,10 @@ export class DataspaceControlPlaneService
 			catalogDataset
 		);
 
+		const datasetId = getJsonLdId(catalogDataset);
+		if (!Is.stringValue(datasetId)) {
+			throw new NotFoundError(DataspaceControlPlaneService.CLASS_NAME, "catalogDatasetMissingId");
+		}
 		const rawOffers = this.getCatalogDatasetPolicies(catalogDataset);
 
 		if (!Is.arrayValue(rawOffers)) {
@@ -1896,16 +2015,21 @@ export class DataspaceControlPlaneService
 			data: {
 				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
 				offerId: OdrlPolicyHelper.getUid(matchingOffer) ?? "",
-				datasetId: getJsonLdId(catalogDataset) ?? ""
+				datasetId
 			}
 		});
 	}
 
 	/**
 	 * Check if an Agreement is derived from an Offer.
+	 * Per the DS Protocol spec, Offers within a Dataset's hasPolicy array must NOT
+	 * include an explicit "target" property — the target is implicitly the Dataset itself.
+	 * When the offer has no explicit targets, we use the datasetId as the implicit target
+	 * so that the comparison with the agreement's target can succeed.
 	 * @param agreement Agreement to check.
 	 * @param offer Offer to compare against.
 	 * @returns True if Agreement appears derived from Offer.
+	 * @see https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1-err1/#lower-level-types
 	 * @internal
 	 */
 	private isPolicyDerivedFrom(

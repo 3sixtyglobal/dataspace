@@ -183,7 +183,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 			"@type": "Agreement",
 			"@id": agreementUrn,
 			assigner: "did:iota:provider-node-xyz",
-			assignee: "did:iota:consumer-abc",
+			assignee: "did:iota:consumer-node-abc",
 			target: "urn:uuid:dataset-456", // URN format
 			permission: [{ action: "read" }]
 		});

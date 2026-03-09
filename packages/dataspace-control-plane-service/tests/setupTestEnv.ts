@@ -22,7 +22,7 @@ import locales from "../locales/en.json" with { type: "json" };
  * @returns A mock ITrustComponent for testing.
  */
 export function createMockTrustComponent(
-	identity: string = "did:iota:consumer-identity"
+	identity: string = "did:iota:consumer-node-abc"
 ): ITrustComponent {
 	return {
 		className: () => "MockTrustComponent",

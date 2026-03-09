@@ -310,7 +310,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 		} as unknown as IDcatDataset);
 
 		// Dataset for negotiation tests - with valid offer
-		this._datasets.set("offer-negotiation-valid", {
+		this._datasets.set("urn:uuid:dataset-negotiation-valid", {
 			"@context": [DataspaceProtocolContexts.JsonLdContext],
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-negotiation-valid",

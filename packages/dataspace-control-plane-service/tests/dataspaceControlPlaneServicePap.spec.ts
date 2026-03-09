@@ -144,7 +144,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 			"@type": "Agreement",
 			"@id": "agreement-urn",
 			assigner: "did:iota:provider-node-xyz", // Must match ContextIdStore mock
-			assignee: "did:iota:consumer-abc",
+			assignee: "did:iota:consumer-node-abc",
 			target: "urn:uuid:dataset-456", // Matches dataset-456 in mock FedCat
 			permission: [{ action: "read" }]
 		});

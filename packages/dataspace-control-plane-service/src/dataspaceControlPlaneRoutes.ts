@@ -70,6 +70,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		tag: tagsDataspaceControlPlane[0].name,
 		method: "POST",
 		path: `${baseRouteName}/transfers/request`,
+		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
 			requestTransferHandler(httpRequestContext, componentName, request)
 	});
@@ -81,6 +82,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		tag: tagsDataspaceControlPlane[0].name,
 		method: "GET",
 		path: `${baseRouteName}/transfers/:pid`,
+		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
 			getTransferProcessHandler(httpRequestContext, componentName, request)
 	});
@@ -92,6 +94,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		tag: tagsDataspaceControlPlane[0].name,
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/start`,
+		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
 			startTransferHandler(httpRequestContext, componentName, request)
 	});
@@ -103,6 +106,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		tag: tagsDataspaceControlPlane[0].name,
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/complete`,
+		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
 			completeTransferHandler(httpRequestContext, componentName, request)
 	});
@@ -114,6 +118,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		tag: tagsDataspaceControlPlane[0].name,
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/suspend`,
+		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
 			suspendTransferHandler(httpRequestContext, componentName, request)
 	});
@@ -125,6 +130,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		tag: tagsDataspaceControlPlane[0].name,
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/terminate`,
+		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
 			terminateTransferHandler(httpRequestContext, componentName, request)
 	});

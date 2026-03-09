@@ -86,7 +86,14 @@
 			"datasetHasNoValidOffers": "Dataset \"{datasetId}\" has no valid ODRL offer objects. Cannot negotiate without a valid offer.",
 			"offerNotFoundInDataset": "Offer \"{offerId}\" not found in dataset \"{datasetId}\". Available offers: {availableOffers}",
 			"pnapNotConfigured": "Policy Negotiation Admin Point not configured. Cannot retrieve negotiation history without PNAP.",
-			"negotiationCallbackError": "Negotiation callback \"{key}\" threw an error during {method} for negotiation {negotiationId}"
+			"negotiationCallbackError": "Negotiation callback \"{key}\" threw an error during {method} for negotiation {negotiationId}",
+			"catalogDatasetMissingId": "Catalog dataset is missing a required @id identifier",
+			"providerIdentityMissing": "Provider identity (DID) is required to sign data access tokens but was not set on the Transfer Process",
+			"callerNotAuthorizedForAgreement": "The caller's verified identity does not match the agreement assignee (consumer)",
+			"callerNotAuthorizedAsConsumer": "The caller's verified identity does not match the consumer for this transfer process",
+			"callerNotAuthorizedAsProvider": "The caller's verified identity does not match the provider for this transfer process",
+			"callerNotAuthorizedForTransfer": "The caller's verified identity does not match the consumer or provider for this transfer process",
+			"multipleAssignersNotSupported": "Multiple assigners found in agreement, which is not supported. Only single assigner agreements are supported."
 		},
 		"dataspaceControlPlanePolicyRequester": {}
 	}

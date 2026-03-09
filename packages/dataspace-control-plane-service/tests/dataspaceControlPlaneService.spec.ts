@@ -463,8 +463,11 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.register("test-pap-resolve", () => mockPapResolve);
 			ComponentFactory.register("test-fedcat-resolve", () => mockFedCatResolve);
 
-			// Register mock trust component for resolver tests
+			// Register mock trust components for resolver tests
 			ComponentFactory.register("test-trust-resolve", () => createMockTrustComponent());
+			ComponentFactory.register("test-trust-resolve-as-provider", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
 
 			// Mock ContextIdStore to return test organization ID
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
@@ -480,6 +483,7 @@ describe("DataspaceControlPlaneService", () => {
 				ComponentFactory.unregister("test-pap-resolve");
 				ComponentFactory.unregister("test-fedcat-resolve");
 				ComponentFactory.unregister("test-trust-resolve");
+				ComponentFactory.unregister("test-trust-resolve-as-provider");
 			} catch {
 				// Ignore errors if already unregistered
 			}
@@ -495,7 +499,7 @@ describe("DataspaceControlPlaneService", () => {
 				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
 			});
 
-			// Add a test agreement (target must match offer target in mock FedCat)
+			// Add a test agreement (target must match dataset @id in mock FedCat)
 			mockPapResolve.addAgreement({
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
@@ -524,8 +528,15 @@ describe("DataspaceControlPlaneService", () => {
 				const transferProcess = requestResponse;
 				providerPid = transferProcess.providerPid;
 
-				// Start the transfer to get it to STARTED state
-				await service.startTransfer(
+				// Start the transfer as the provider (startTransfer requires provider identity)
+				const providerService = new DataspaceControlPlaneService({
+					policyAdministrationPointComponentType: "test-pap-resolve",
+					policyNegotiationPointComponentType: "test-pnp",
+					federatedCatalogueComponentType: "test-fedcat-resolve",
+					trustComponentType: "test-trust-resolve-as-provider",
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+				});
+				await providerService.startTransfer(
 					{
 						"@context": [DataspaceProtocolContexts.JsonLdContext],
 						"@type": "TransferStartMessage",
@@ -675,13 +686,20 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			// Start the transfer with working service
+			// Start the transfer as provider (startTransfer requires provider identity)
+			const providerStartService = new DataspaceControlPlaneService({
+				policyAdministrationPointComponentType: "test-pap-resolve",
+				policyNegotiationPointComponentType: "test-pnp",
+				federatedCatalogueComponentType: "test-fedcat-resolve",
+				trustComponentType: "test-trust-resolve-as-provider",
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			});
 			const startResponse = await workingService.getTransferProcess(
 				"consumer-pid-trust-fail",
 				"valid-trust-payload"
 			);
 			if (startResponse["@type"] !== DataspaceProtocolTransferProcessTypes.TransferError) {
-				await workingService.startTransfer(
+				await providerStartService.startTransfer(
 					{
 						"@context": [DataspaceProtocolContexts.JsonLdContext],
 						"@type": "TransferStartMessage",
@@ -877,8 +895,15 @@ describe("DataspaceControlPlaneService", () => {
 			if (requestResponse["@type"] !== DataspaceProtocolTransferProcessTypes.TransferError) {
 				const transferProcess = requestResponse;
 
-				// Start the transfer
-				await service.startTransfer(
+				// Start the transfer as provider (startTransfer requires provider identity)
+				const providerStartService = new DataspaceControlPlaneService({
+					policyAdministrationPointComponentType: "test-pap-resolve",
+					policyNegotiationPointComponentType: "test-pnp",
+					federatedCatalogueComponentType: "test-fedcat-resolve",
+					trustComponentType: "test-trust-resolve-as-provider",
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+				});
+				await providerStartService.startTransfer(
 					{
 						"@context": [DataspaceProtocolContexts.JsonLdContext],
 						"@type": "TransferStartMessage",
@@ -922,8 +947,11 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.register("test-pap-resolve-provider", () => mockPapProvider);
 			ComponentFactory.register("test-fedcat-resolve-provider", () => mockFedCatProvider);
 
-			// Register mock trust component for provider resolver tests
+			// Register mock trust components for provider resolver tests
 			ComponentFactory.register("test-trust-resolve-provider", () => createMockTrustComponent());
+			ComponentFactory.register("test-trust-resolve-provider-as-provider", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
 
 			// Mock ContextIdStore to return test organization ID
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
@@ -939,6 +967,7 @@ describe("DataspaceControlPlaneService", () => {
 				ComponentFactory.unregister("test-pap-resolve-provider");
 				ComponentFactory.unregister("test-fedcat-resolve-provider");
 				ComponentFactory.unregister("test-trust-resolve-provider");
+				ComponentFactory.unregister("test-trust-resolve-provider-as-provider");
 			} catch {
 				// Ignore errors if already unregistered
 			}
@@ -988,8 +1017,15 @@ describe("DataspaceControlPlaneService", () => {
 				const transferProcess = requestResponse;
 				providerPid = transferProcess.providerPid;
 
-				// Start the transfer
-				await service.startTransfer(
+				// Start the transfer as the provider (startTransfer requires provider identity)
+				const providerService = new DataspaceControlPlaneService({
+					policyAdministrationPointComponentType: "test-pap-resolve-provider",
+					policyNegotiationPointComponentType: "test-pnp",
+					federatedCatalogueComponentType: "test-fedcat-resolve-provider",
+					trustComponentType: "test-trust-resolve-provider-as-provider",
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+				});
+				await providerService.startTransfer(
 					{
 						"@context": [DataspaceProtocolContexts.JsonLdContext],
 						"@type": "TransferStartMessage",
@@ -1086,8 +1122,15 @@ describe("DataspaceControlPlaneService", () => {
 				const transferProcess = requestResponse;
 				providerPid = transferProcess.providerPid;
 
-				// Start the transfer
-				await workingService.startTransfer(
+				// Start the transfer as provider (startTransfer requires provider identity)
+				const providerStartService = new DataspaceControlPlaneService({
+					policyAdministrationPointComponentType: "test-pap-resolve-provider",
+					policyNegotiationPointComponentType: "test-pnp",
+					federatedCatalogueComponentType: "test-fedcat-resolve-provider",
+					trustComponentType: "test-trust-resolve-provider-as-provider",
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+				});
+				await providerStartService.startTransfer(
 					{
 						"@context": [DataspaceProtocolContexts.JsonLdContext],
 						"@type": "TransferStartMessage",
@@ -1331,8 +1374,15 @@ describe("DataspaceControlPlaneService", () => {
 				const transferProcess = requestResponse;
 				providerPid = transferProcess.providerPid;
 
-				// Start the transfer
-				await service.startTransfer(
+				// Start the transfer as provider (startTransfer requires provider identity)
+				const providerStartService = new DataspaceControlPlaneService({
+					policyAdministrationPointComponentType: "test-pap-resolve-provider",
+					policyNegotiationPointComponentType: "test-pnp",
+					federatedCatalogueComponentType: "test-fedcat-resolve-provider",
+					trustComponentType: "test-trust-resolve-provider-as-provider",
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+				});
+				await providerStartService.startTransfer(
 					{
 						"@context": [DataspaceProtocolContexts.JsonLdContext],
 						"@type": "TransferStartMessage",
@@ -1373,6 +1423,9 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.register("test-pap-workflow", () => workflowMockPap);
 			ComponentFactory.register("test-fedcat-workflow", () => workflowMockFedCat);
 			ComponentFactory.register("test-trust-workflow", () => createMockTrustComponent());
+			ComponentFactory.register("test-trust-workflow-provider", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
 
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:test-node",
@@ -1427,7 +1480,14 @@ describe("DataspaceControlPlaneService", () => {
 			);
 			expect(getResponse1.consumerPid).toBe("workflow-test-consumer-pid");
 
-			// Start Transfer (Provider side)
+			// Start Transfer (Provider side — requires provider identity)
+			const providerService = new DataspaceControlPlaneService({
+				policyAdministrationPointComponentType: "test-pap-workflow",
+				policyNegotiationPointComponentType: "test-pnp",
+				federatedCatalogueComponentType: "test-fedcat-workflow",
+				trustComponentType: "test-trust-workflow-provider",
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			});
 			const startMessage: IDataspaceProtocolTransferStartMessage = {
 				"@context": [DataspaceProtocolContexts.JsonLdContext],
 				"@type": "TransferStartMessage",
@@ -1435,7 +1495,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid: initiateResponse.providerPid
 			};
 
-			const startResponse = await service.startTransfer(
+			const startResponse = await providerService.startTransfer(
 				startMessage,
 				"https://test-origin.com",
 				"valid-trust-payload"
@@ -1498,6 +1558,7 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-pap-workflow");
 			ComponentFactory.unregister("test-fedcat-workflow");
 			ComponentFactory.unregister("test-trust-workflow");
+			ComponentFactory.unregister("test-trust-workflow-provider");
 		});
 	});
 
@@ -1518,7 +1579,6 @@ describe("DataspaceControlPlaneService", () => {
 									"@type": "odrl:Offer",
 									"@id": "agreement-test-catalog",
 									assigner: "urn:uuid:provider-123",
-									target: "urn:uuid:valid-dataset-123",
 									permission: [
 										{
 											action: "use"
@@ -1564,7 +1624,9 @@ describe("DataspaceControlPlaneService", () => {
 			// Register mocks with ComponentFactory (TWIN pattern)
 			ComponentFactory.register("mock-pap-catalog-test", () => mockPapCatalog);
 			ComponentFactory.register("mock-fedcat-test", () => mockCatalog);
-			ComponentFactory.register("mock-trust-catalog-test", () => createMockTrustComponent());
+			ComponentFactory.register("mock-trust-catalog-test", () =>
+				createMockTrustComponent("urn:uuid:consumer-123")
+			);
 
 			// Create service with component types
 			const service = new DataspaceControlPlaneService({
@@ -1640,7 +1702,9 @@ describe("DataspaceControlPlaneService", () => {
 			// Register mocks with ComponentFactory
 			ComponentFactory.register("mock-pap-notfound-test", () => mockPapNotFound);
 			ComponentFactory.register("mock-fedcat-notfound-test", () => mockCatalog);
-			ComponentFactory.register("mock-trust-notfound-test", () => createMockTrustComponent());
+			ComponentFactory.register("mock-trust-notfound-test", () =>
+				createMockTrustComponent("urn:uuid:consumer-123")
+			);
 
 			// Create service with component types
 			const service = new DataspaceControlPlaneService({
@@ -1700,7 +1764,6 @@ describe("DataspaceControlPlaneService", () => {
 									"@type": "odrl:Offer",
 									"@id": "offer-different-123",
 									assigner: "urn:uuid:provider-123",
-									target: "urn:uuid:dataset-mismatch-123",
 									permission: [
 										{
 											action: "use"
@@ -1746,7 +1809,9 @@ describe("DataspaceControlPlaneService", () => {
 			// Register mocks with ComponentFactory
 			ComponentFactory.register("mock-pap-mismatch-test", () => mockPapMismatch);
 			ComponentFactory.register("mock-fedcat-mismatch-test", () => mockCatalog);
-			ComponentFactory.register("mock-trust-mismatch-test", () => createMockTrustComponent());
+			ComponentFactory.register("mock-trust-mismatch-test", () =>
+				createMockTrustComponent("urn:uuid:consumer-123")
+			);
 
 			// Create service with component types
 			const service = new DataspaceControlPlaneService({
@@ -2138,11 +2203,12 @@ describe("DataspaceControlPlaneService", () => {
 	});
 
 	describe("Contract Negotiation - Catalog Integration", () => {
-		test("should throw NotFoundError when offer not found in catalog", async () => {
+		test("should throw NotFoundError when dataset not found in catalog", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			await expect(
 				service.negotiateAgreement(
+					"dataset-does-not-exist",
 					"offer-does-not-exist",
 					"http://provider.example.com",
 					"http://consumer.example.com",
@@ -2160,6 +2226,7 @@ describe("DataspaceControlPlaneService", () => {
 			await expect(
 				service.negotiateAgreement(
 					"dataset-no-offers",
+					"any-offer-id",
 					"http://provider.example.com",
 					"http://consumer.example.com",
 					"valid-trust-payload"
@@ -2173,9 +2240,9 @@ describe("DataspaceControlPlaneService", () => {
 		test("should throw NotFoundError when specific offer not found in dataset", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			// Dataset exists but doesn't contain the requested offer ID
 			await expect(
 				service.negotiateAgreement(
+					"urn:uuid:dataset-negotiation-valid",
 					"offer-wrong-id",
 					"http://provider.example.com",
 					"http://consumer.example.com",
@@ -2183,7 +2250,7 @@ describe("DataspaceControlPlaneService", () => {
 				)
 			).rejects.toMatchObject({
 				name: "NotFoundError",
-				message: expect.stringContaining("datasetNotFoundInCatalog")
+				message: expect.stringContaining("offerNotFoundInDataset")
 			});
 		});
 
@@ -2193,6 +2260,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp);
 
 			const result = await service.negotiateAgreement(
+				"dataset-multi-offers",
 				"offer-multi-2",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2209,12 +2277,30 @@ describe("DataspaceControlPlaneService", () => {
 			);
 		});
 
+		test("should successfully look up dataset by datasetId", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			mockPnpToReturnNegotiationId(mockPnp);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"http://consumer.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result).toBeDefined();
+			expect(result.negotiationId).toBe("test-negotiation-id");
+		});
+
 		test("should successfully initiate negotiation with valid offer from catalog", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			mockPnpToReturnNegotiationId(mockPnp);
 
 			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2237,6 +2323,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp);
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2259,6 +2346,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "my-negotiation-123");
 
 			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2275,6 +2363,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "tracked-negotiation-456");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2305,6 +2394,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-001");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2349,6 +2439,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-002");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2393,6 +2484,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-003");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2441,6 +2533,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-004");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2473,6 +2566,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-005");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2499,6 +2593,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-006");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2531,6 +2626,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-007");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2566,6 +2662,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-008");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2617,6 +2714,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-multi-001");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2653,6 +2751,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-unreg-001");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2690,6 +2789,7 @@ describe("DataspaceControlPlaneService", () => {
 			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-partial-001");
 
 			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
 				"http://consumer.example.com",
@@ -2902,6 +3002,236 @@ describe("DataspaceControlPlaneService", () => {
 			await expect(
 				service.getNegotiationHistory(undefined, undefined, "trust-payload")
 			).rejects.toThrow();
+		});
+	});
+
+	describe("Identity-based authorization", () => {
+		test("requestTransfer should return TransferError when caller is not agreement assignee", async () => {
+			ComponentFactory.register("test-trust-unauthorized", () =>
+				createMockTrustComponent("did:iota:unauthorized-node")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-unauthorized"
+			});
+
+			const request: IDataspaceProtocolTransferRequestMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferRequestMessage",
+				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				agreementId: "agreement-123",
+				callbackAddress: "https://consumer.example.com/callback",
+				format: "application/json"
+			};
+
+			const result = await service.requestTransfer(request, "valid-trust-payload");
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(result.code).toMatch(/^UnauthorizedError:/);
+			}
+
+			ComponentFactory.unregister("test-trust-unauthorized");
+		});
+
+		test("getTransferProcess should return TransferError when caller is neither consumer nor provider", async () => {
+			const now = new Date().toISOString();
+			await transferProcessStorage.set({
+				consumerPid: "auth-test-consumer-pid",
+				id: "auth-test-id",
+				providerPid: "auth-test-provider-pid",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				agreementId: "agreement-123",
+				datasetId: "urn:uuid:dataset-123",
+				offerId: "agreement-123",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: now,
+				dateModified: now
+			} as TransferProcess);
+
+			ComponentFactory.register("test-trust-unauthorized", () =>
+				createMockTrustComponent("did:iota:unauthorized-node")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-unauthorized"
+			});
+
+			const result = await service.getTransferProcess(
+				"auth-test-consumer-pid",
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(result.code).toMatch(/^UnauthorizedError:/);
+			}
+
+			ComponentFactory.unregister("test-trust-unauthorized");
+		});
+
+		test("completeTransfer should return TransferError when caller is not the consumer", async () => {
+			const now = new Date().toISOString();
+			await transferProcessStorage.set({
+				consumerPid: "auth-test-complete-pid",
+				id: "auth-test-complete-id",
+				providerPid: "auth-test-complete-provider",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				agreementId: "agreement-123",
+				datasetId: "urn:uuid:dataset-123",
+				offerId: "agreement-123",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: now,
+				dateModified: now
+			} as TransferProcess);
+
+			ComponentFactory.register("test-trust-unauthorized", () =>
+				createMockTrustComponent("did:iota:unauthorized-node")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-unauthorized"
+			});
+
+			const message: IDataspaceProtocolTransferCompletionMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferCompletionMessage",
+				consumerPid: "auth-test-complete-pid",
+				providerPid: "auth-test-complete-provider"
+			};
+
+			const result = await service.completeTransfer(message, "valid-trust-payload");
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(result.code).toMatch(/^UnauthorizedError:/);
+			}
+
+			ComponentFactory.unregister("test-trust-unauthorized");
+		});
+
+		test("startTransfer should return TransferError when caller is not the provider", async () => {
+			const now = new Date().toISOString();
+			await transferProcessStorage.set({
+				consumerPid: "auth-test-start-pid",
+				id: "auth-test-start-id",
+				providerPid: "auth-test-start-provider",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				agreementId: "agreement-123",
+				datasetId: "urn:uuid:dataset-123",
+				offerId: "agreement-123",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: now,
+				dateModified: now
+			} as TransferProcess);
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "auth-test-start-pid",
+				providerPid: "auth-test-start-provider"
+			};
+
+			const result = await service.startTransfer(
+				message,
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(result.code).toMatch(/^UnauthorizedError:/);
+			}
+		});
+
+		test("completeTransfer should return TransferError when caller is the provider (not consumer)", async () => {
+			const now = new Date().toISOString();
+			await transferProcessStorage.set({
+				consumerPid: "auth-test-complete-provider-pid",
+				id: "auth-test-complete-provider-id",
+				providerPid: "auth-test-complete-provider-ppid",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				agreementId: "agreement-123",
+				datasetId: "urn:uuid:dataset-123",
+				offerId: "agreement-123",
+				consumerIdentity: "did:iota:other-consumer",
+				providerIdentity: "did:iota:consumer-node-abc",
+				dateCreated: now,
+				dateModified: now
+			} as TransferProcess);
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const message: IDataspaceProtocolTransferCompletionMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferCompletionMessage",
+				consumerPid: "auth-test-complete-provider-pid",
+				providerPid: "auth-test-complete-provider-ppid"
+			};
+
+			const result = await service.completeTransfer(message, "valid-trust-payload");
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(result.code).toMatch(/^UnauthorizedError:/);
+			}
+		});
+
+		test("requestTransfer should succeed when caller matches one of multiple agreement assignees", async () => {
+			ComponentFactory.register("test-trust-multi-assignee", () =>
+				createMockTrustComponent("did:iota:consumer-node-abc")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-multi-assignee"
+			});
+
+			const request: IDataspaceProtocolTransferRequestMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferRequestMessage",
+				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				agreementId: "agreement-multi-assignee",
+				callbackAddress: "https://consumer.example.com/callback",
+				format: "application/json"
+			};
+
+			const result = await service.requestTransfer(request, "valid-trust-payload");
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			ComponentFactory.unregister("test-trust-multi-assignee");
+		});
+
+		test("authorized consumer should successfully access transfer process", async () => {
+			const now = new Date().toISOString();
+			await transferProcessStorage.set({
+				consumerPid: "auth-test-ok-pid",
+				id: "auth-test-ok-id",
+				providerPid: "auth-test-ok-provider",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				agreementId: "agreement-123",
+				datasetId: "urn:uuid:dataset-123",
+				offerId: "agreement-123",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: now,
+				dateModified: now
+			} as TransferProcess);
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const result = await service.getTransferProcess("auth-test-ok-pid", "valid-trust-payload");
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferProcess);
 		});
 	});
 });

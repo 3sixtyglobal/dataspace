@@ -58,6 +58,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 *
 	 * DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1/#negotiation-protocol
 	 *
+	 * @param datasetId The dataset ID from the provider's catalog.
 	 * @param offerId The offer ID from the provider's catalog.
 	 * @param providerEndpoint The provider's contract negotiation endpoint URL.
 	 * @param publicOrigin The public origin URL of this control plane (for callbacks).
@@ -65,6 +66,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @returns The negotiation ID for tracking. Use registered callback for completion.
 	 */
 	negotiateAgreement(
+		datasetId: string,
 		offerId: string,
 		providerEndpoint: string,
 		publicOrigin: string,

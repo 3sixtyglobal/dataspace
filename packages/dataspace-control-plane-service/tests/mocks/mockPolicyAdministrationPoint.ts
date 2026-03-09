@@ -249,6 +249,21 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 			]
 		});
 
+		// Agreement with multiple assignees (D6: check all assignees)
+		this._policies.set("agreement-multi-assignee", {
+			"@context": "http://www.w3.org/ns/odrl.jsonld",
+			"@type": "Agreement",
+			"@id": "agreement-multi-assignee",
+			assigner: "did:iota:provider-node-xyz",
+			assignee: ["did:iota:other-consumer", "did:iota:consumer-node-abc"],
+			target: "urn:uuid:dataset-123",
+			permission: [
+				{
+					action: "read"
+				}
+			]
+		});
+
 		// Agreement for Federated Catalogue integration tests
 		this._policies.set("agreement-new-test", {
 			"@context": "http://www.w3.org/ns/odrl.jsonld",

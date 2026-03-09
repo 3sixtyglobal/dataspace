@@ -106,7 +106,7 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 				"dcterms:publisher": organizationId,
 				hasPolicy: [
 					{
-						"@id": "urn:uuid:test-policy-offer-1",
+						"@id": "urn:policy:test-offer-read-consignment",
 						"@type": "Offer",
 						assigner: organizationId,
 						permission: [
