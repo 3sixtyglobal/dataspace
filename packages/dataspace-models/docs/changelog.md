@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.18](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.17...dataspace-models-v0.0.3-next.18) (2026-03-09)
+
+
+### Features
+
+* resolve DSP transfer flow bugs for cross-node communication ([#76](https://github.com/twinfoundation/dataspace/issues/76)) ([506a45c](https://github.com/twinfoundation/dataspace/commit/506a45c94e63d5f958b1fc7131adfe452c3e2974))
+
 ## [0.0.3-next.17](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.16...dataspace-models-v0.0.3-next.17) (2026-03-06)
 
 

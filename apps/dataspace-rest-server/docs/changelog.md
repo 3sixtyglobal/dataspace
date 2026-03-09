@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.18](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.17...dataspace-rest-server-v0.0.3-next.18) (2026-03-09)
+
+
+### Features
+
+* resolve DSP transfer flow bugs for cross-node communication ([#76](https://github.com/twinfoundation/dataspace/issues/76)) ([506a45c](https://github.com/twinfoundation/dataspace/commit/506a45c94e63d5f958b1fc7131adfe452c3e2974))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.17 to 0.0.3-next.18
+    * @twin.org/dataspace-data-plane-rest-client bumped from 0.0.3-next.17 to 0.0.3-next.18
+    * @twin.org/dataspace-data-plane-socket-client bumped from 0.0.3-next.17 to 0.0.3-next.18
+    * @twin.org/dataspace-data-plane-service bumped from 0.0.3-next.17 to 0.0.3-next.18
+    * @twin.org/dataspace-control-plane-service bumped from 0.0.3-next.17 to 0.0.3-next.18
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.17 to 0.0.3-next.18
+
 ## [0.0.3-next.17](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.16...dataspace-rest-server-v0.0.3-next.17) (2026-03-06)
 
 
