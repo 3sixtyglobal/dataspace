@@ -372,13 +372,19 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ### negotiateAgreement()
 
-> **negotiateAgreement**(`offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Returns immediately with a negotiationId. The caller is notified
 via the registered INegotiationCallback when the negotiation completes.
 
 #### Parameters
+
+##### datasetId
+
+`string`
+
+The dataset ID from the provider's catalog.
 
 ##### offerId
 

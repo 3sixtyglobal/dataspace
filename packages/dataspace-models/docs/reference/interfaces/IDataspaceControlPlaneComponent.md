@@ -66,7 +66,7 @@ The key used when registering the callback.
 
 ### negotiateAgreement()
 
-> **negotiateAgreement**(`offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Implements DSP Contract Negotiation Protocol.
@@ -80,6 +80,12 @@ This method has NO REST client implementation — it is only accessible via Comp
 DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1/#negotiation-protocol
 
 #### Parameters
+
+##### datasetId
+
+`string`
+
+The dataset ID from the provider's catalog.
 
 ##### offerId
 
