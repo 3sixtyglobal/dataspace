@@ -1,6 +1,8 @@
-# TWIN Dataspace Data Plane REST Client
+# Dataspace Data Plane REST Client
 
-Dataspace Data Plane contract implementation which can connect to REST endpoints.
+This package provides an HTTP client for querying data assets and activity logs from data plane endpoints. It supports request-driven integrations that need to retrieve entities, submit activities, and inspect processing outcomes.
+
+The API surface mirrors service operations to reduce translation work in consuming applications.
 
 ## Installation
 

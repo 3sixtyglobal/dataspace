@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-control-plane-service",
 	"version": "0.0.3-next.18",
-	"description": "Dataspace Control Plane service implementation for Eclipse Dataspace Protocol Transfer Process Protocol",
+	"description": "Implements agreement negotiation and transfer process lifecycle management for control plane operations.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

@@ -1,6 +1,8 @@
 # Dataspace Test App
 
-Dataspace test app.
+This package provides a sample dataspace app for local integration tests and development workflows. It gives a practical baseline for dataset handling, activity processing, and data request execution.
+
+It is useful for validating service wiring and behaviour without building a custom app implementation first.
 
 ## Installation
 

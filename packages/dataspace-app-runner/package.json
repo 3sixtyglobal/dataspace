@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-app-runner",
 	"version": "0.0.3-next.18",
-	"description": "Dataspace App Runner",
+	"description": "Runs dataspace app activity handlers in background execution contexts.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

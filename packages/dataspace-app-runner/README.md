@@ -1,6 +1,8 @@
 # Dataspace App Runner
 
-Dataspace app runner task.
+This package runs dataspace app activity handlers in background execution contexts. It is intended for workloads where app logic should execute asynchronously while preserving runtime context and engine state.
+
+By isolating execution concerns, it helps services schedule and process activity workloads consistently.
 
 ## Installation
 

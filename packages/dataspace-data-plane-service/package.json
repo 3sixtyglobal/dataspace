@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-data-plane-service",
 	"version": "0.0.3-next.18",
-	"description": "Dataspace Data Plane service implementation and REST endpoint definitions",
+	"description": "Processes activities and data requests while enforcing transfer and policy constraints in the data plane.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

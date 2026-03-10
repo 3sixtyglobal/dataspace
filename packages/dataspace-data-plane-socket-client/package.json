@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-data-plane-socket-client",
 	"version": "0.0.3-next.18",
-	"description": "Dataspace Data Plane Socket client implementation",
+	"description": "Provides a WebSocket client for subscribing to activity log status notifications.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

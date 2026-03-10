@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace",
 	"version": "0.0.0",
-	"description": "Dataspace",
+	"description": "Provides coordinated components for secure dataspace data exchange.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git"

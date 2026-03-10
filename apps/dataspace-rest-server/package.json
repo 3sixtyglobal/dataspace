@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-rest-server",
 	"version": "0.0.3-next.18",
-	"description": "Dataspace REST Server",
+	"description": "Hosts control plane and data plane APIs in a single deployable REST server.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

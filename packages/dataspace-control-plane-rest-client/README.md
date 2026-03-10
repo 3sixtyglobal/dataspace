@@ -1,6 +1,8 @@
-# TWIN Dataspace Control Plane REST Client
+# Dataspace Control Plane REST Client
 
-Dataspace Control Plane contract implementation which can connect to REST endpoints.
+This package provides an HTTP client for invoking control plane transfer process endpoints. It offers a straightforward way to integrate transfer lifecycle operations into external services without hosting control plane components directly.
+
+The client is aligned with the protocol-facing request and response structures used by the service layer.
 
 ## Installation
 

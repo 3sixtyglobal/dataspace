@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-models",
 	"version": "0.0.3-next.18",
-	"description": "Models which define the structure of the Dataspace (Control Plane and Data Plane)",
+	"description": "Defines shared entities, interfaces, and data types used by control plane and data plane components.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

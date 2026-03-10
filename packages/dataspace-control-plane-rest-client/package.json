@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-control-plane-rest-client",
 	"version": "0.0.3-next.18",
-	"description": "Dataspace Control Plane REST client for programmatic access",
+	"description": "Provides an HTTP client for invoking control plane transfer process endpoints.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

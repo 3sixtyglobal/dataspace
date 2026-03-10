@@ -1,7 +1,7 @@
 {
 	"name": "@twin.org/dataspace-test-app",
 	"version": "0.0.3-next.18",
-	"description": "Dataspace Test App",
+	"description": "Provides a sample dataspace app for local integration tests and development workflows.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/twinfoundation/dataspace.git",

@@ -1,6 +1,8 @@
-# TWIN Dataspace Data Plane Socket Client
+# Dataspace Data Plane Socket Client
 
-Dataspace Data Plane contract implementation which can connect to WebSocket endpoints.
+This package provides a WebSocket client for subscribing to activity log status notifications. It enables event-driven integrations that require timely status updates as activities progress through processing stages.
+
+It complements request-response clients by covering real-time notification scenarios.
 
 ## Installation
 
