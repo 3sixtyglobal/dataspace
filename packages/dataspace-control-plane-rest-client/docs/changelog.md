@@ -70,4 +70,4 @@
   * dependencies
     * @twin.org/data-exchange-models bumped from 0.0.3-next.0 to 0.0.3-next.1
 
-## @twin.org/data-exchange-rest-client - Changelog
+## Changelog

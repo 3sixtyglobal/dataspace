@@ -345,4 +345,4 @@
   * dependencies
     * @twin.org/dataspace-models bumped from 0.0.1-next.0 to 0.0.1-next.1
 
-## @twin.org/dataspace-rest-client - Changelog
+## Changelog
