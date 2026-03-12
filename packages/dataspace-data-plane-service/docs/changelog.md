@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.19](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.18...dataspace-data-plane-service-v0.0.3-next.19) (2026-03-12)
+
+
+### Features
+
+* improve validation ([#82](https://github.com/twinfoundation/dataspace/issues/82)) ([8bfaf7b](https://github.com/twinfoundation/dataspace/commit/8bfaf7b830f89b63575f8a51ee96bd8ac4da02f4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.18 to 0.0.3-next.19
+    * @twin.org/dataspace-models bumped from 0.0.3-next.18 to 0.0.3-next.19
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.18 to 0.0.3-next.19
+
 ## [0.0.3-next.18](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.17...dataspace-data-plane-service-v0.0.3-next.18) (2026-03-09)
 
 

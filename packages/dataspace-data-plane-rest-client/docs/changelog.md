@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.19](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-rest-client-v0.0.3-next.18...dataspace-data-plane-rest-client-v0.0.3-next.19) (2026-03-12)
+
+
+### Miscellaneous Chores
+
+* **dataspace-data-plane-rest-client:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.18 to 0.0.3-next.19
+
 ## [0.0.3-next.18](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-rest-client-v0.0.3-next.17...dataspace-data-plane-rest-client-v0.0.3-next.18) (2026-03-09)
 
 

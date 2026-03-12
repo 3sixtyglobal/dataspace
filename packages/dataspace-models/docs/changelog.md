@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.19](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.18...dataspace-models-v0.0.3-next.19) (2026-03-12)
+
+
+### Features
+
+* improve validation ([#82](https://github.com/twinfoundation/dataspace/issues/82)) ([8bfaf7b](https://github.com/twinfoundation/dataspace/commit/8bfaf7b830f89b63575f8a51ee96bd8ac4da02f4))
+
 ## [0.0.3-next.18](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.17...dataspace-models-v0.0.3-next.18) (2026-03-09)
 
 
