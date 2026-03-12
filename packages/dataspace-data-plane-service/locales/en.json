@@ -6,7 +6,6 @@
 			"activityStillProcessing": "Activity is still being processed",
 			"noFailedTasksToRetry": "Activity has error status but no failed tasks to retry",
 			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
-			"invalidActivity": "Invalid Activity. Expected fields not specified",
 			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
 			"tooManyAppsRegistered": "There are several DS Apps registered for Dataset \"{datasetId}\"",
 			"noAppRegistered": "There are no DS Apps registered for Dataset \"{datasetId}\"",

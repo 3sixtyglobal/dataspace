@@ -27,8 +27,11 @@ export class DataspaceDataTypes {
 
 		DataTypeHelper.registerTypes(
 			DataspaceContexts.JsonSchemaNamespace,
-			DataspaceContexts.JsonSchemaNamespace,
-			types
+			undefined,
+			types.map(t => ({
+				type: `Dataspace${t.type}`,
+				schema: t.schema
+			}))
 		);
 	}
 }

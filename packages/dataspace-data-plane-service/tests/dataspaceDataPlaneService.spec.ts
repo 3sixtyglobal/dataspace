@@ -581,7 +581,7 @@ describe("dataspace-data-plane-tests", () => {
 		delete activity.object;
 
 		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
-			name: "GeneralError"
+			name: "ValidationError"
 		});
 	});
 
@@ -595,7 +595,7 @@ describe("dataspace-data-plane-tests", () => {
 		ObjectHelper.propertySet(object[0], "@context", undefined);
 
 		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
-			name: "GeneralError"
+			name: "ValidationError"
 		});
 	});
 
@@ -609,7 +609,7 @@ describe("dataspace-data-plane-tests", () => {
 		ObjectHelper.propertySet(object[0], "type", undefined);
 
 		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
-			name: "GeneralError"
+			name: "ValidationError"
 		});
 	});
 
@@ -635,7 +635,7 @@ describe("dataspace-data-plane-tests", () => {
 		ObjectHelper.propertySet(target, "@context", undefined);
 
 		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
-			name: "GeneralError"
+			name: "ValidationError"
 		});
 	});
 
@@ -649,7 +649,7 @@ describe("dataspace-data-plane-tests", () => {
 		ObjectHelper.propertySet(target, "type", undefined);
 
 		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
-			name: "GeneralError"
+			name: "ValidationError"
 		});
 	});
 

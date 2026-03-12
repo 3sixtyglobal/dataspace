@@ -14,7 +14,7 @@ import {
 	RandomHelper,
 	StringHelper,
 	UnauthorizedError,
-	type IValidationFailure
+	ValidationError
 } from "@twin.org/core";
 import { JsonLdHelper, type JsonLdObjectWithNoContext } from "@twin.org/data-json-ld";
 import {
@@ -478,13 +478,11 @@ export class DataspaceControlPlaneService
 			"requestTransfer"
 		);
 
-		const validationFailures: IValidationFailure[] = [];
-		const isConformant = await DataspaceProtocolHelper.checkConformance(
-			JsonLdHelper.toNodeObject(request),
-			validationFailures
+		const validationFailures = await DataspaceProtocolHelper.validate(
+			JsonLdHelper.toNodeObject(request)
 		);
 
-		if (!isConformant) {
+		if (validationFailures.length > 0) {
 			await this._loggingComponent?.log({
 				level: "error",
 				source: DataspaceControlPlaneService.CLASS_NAME,
@@ -493,9 +491,14 @@ export class DataspaceControlPlaneService
 				data: { validationFailures }
 			});
 
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "invalidTransferRequest", {
-				validationFailures
-			});
+			return transformToTransferError(
+				new ValidationError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					nameof(request),
+					validationFailures
+				),
+				request
+			);
 		}
 
 		const providerPid = `urn:uuid:${RandomHelper.generateUuidV7()}`;
@@ -633,17 +636,25 @@ export class DataspaceControlPlaneService
 			"startTransfer"
 		);
 
-		const validationFailures: IValidationFailure[] = [];
-		const isConformant = await DataspaceProtocolHelper.checkConformance(
-			JsonLdHelper.toNodeObject(message),
-			validationFailures
+		const validationFailures = await DataspaceProtocolHelper.validate(
+			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (!isConformant) {
+		if (validationFailures.length > 0) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "invalidTransferStartMessage",
+				data: { validationFailures }
+			});
+
 			return transformToTransferError(
-				new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "invalidTransferStartMessage", {
+				new ValidationError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					nameof(message),
 					validationFailures
-				}),
+				),
 				message
 			);
 		}
@@ -836,18 +847,24 @@ export class DataspaceControlPlaneService
 			"completeTransfer"
 		);
 
-		const validationFailures: IValidationFailure[] = [];
-		const isConformant = await DataspaceProtocolHelper.checkConformance(
-			JsonLdHelper.toNodeObject(message),
-			validationFailures
+		const validationFailures = await DataspaceProtocolHelper.validate(
+			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (!isConformant) {
+		if (validationFailures.length > 0) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "invalidTransferCompletionMessage",
+				data: { validationFailures }
+			});
+
 			return transformToTransferError(
-				new GeneralError(
+				new ValidationError(
 					DataspaceControlPlaneService.CLASS_NAME,
-					"invalidTransferCompletionMessage",
-					{ validationFailures }
+					nameof(message),
+					validationFailures
 				),
 				message
 			);
@@ -914,18 +931,24 @@ export class DataspaceControlPlaneService
 			"suspendTransfer"
 		);
 
-		const validationFailures: IValidationFailure[] = [];
-		const isConformant = await DataspaceProtocolHelper.checkConformance(
-			JsonLdHelper.toNodeObject(message),
-			validationFailures
+		const validationFailures = await DataspaceProtocolHelper.validate(
+			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (!isConformant) {
+		if (validationFailures.length > 0) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "invalidTransferSuspensionMessage",
+				data: { validationFailures }
+			});
+
 			return transformToTransferError(
-				new GeneralError(
+				new ValidationError(
 					DataspaceControlPlaneService.CLASS_NAME,
-					"invalidTransferSuspensionMessage",
-					{ validationFailures }
+					nameof(message),
+					validationFailures
 				),
 				message
 			);
@@ -993,18 +1016,24 @@ export class DataspaceControlPlaneService
 			"terminateTransfer"
 		);
 
-		const validationFailures: IValidationFailure[] = [];
-		const isConformant = await DataspaceProtocolHelper.checkConformance(
-			JsonLdHelper.toNodeObject(message),
-			validationFailures
+		const validationFailures = await DataspaceProtocolHelper.validate(
+			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (!isConformant) {
+		if (validationFailures.length > 0) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "invalidTransferTerminationMessage",
+				data: { validationFailures }
+			});
+
 			return transformToTransferError(
-				new GeneralError(
+				new ValidationError(
 					DataspaceControlPlaneService.CLASS_NAME,
-					"invalidTransferTerminationMessage",
-					{ validationFailures }
+					nameof(message),
+					validationFailures
 				),
 				message
 			);

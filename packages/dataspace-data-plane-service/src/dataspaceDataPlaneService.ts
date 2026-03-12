@@ -407,19 +407,19 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		// We only validate that the activity conforms to Activity Streams Schema without entering into details
 		// about the object, target or actor as they might be subject of custom validation rules
-		const typeId = `${DataspaceContexts.JsonSchemaNamespace}${DataspaceTypes.Activity}`;
+		const typeId = `${DataspaceContexts.JsonSchemaNamespace}Dataspace${DataspaceTypes.Activity}`;
 		const activitySchema = await DataTypeHelper.getSchemaForType(typeId);
 		if (Is.undefined(activitySchema)) {
 			throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "schemaNotFound", {
 				schemaId: typeId
 			});
 		}
-		const validationResult = await JsonSchemaHelper.validate(activitySchema, activity);
-		if (!validationResult.result) {
-			throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "invalidActivity", {
-				errors: validationResult.error
-			});
-		}
+		const validationFailures = await JsonSchemaHelper.validate(activitySchema, activity);
+		Validation.asValidationError(
+			DataspaceDataPlaneService.CLASS_NAME,
+			nameof(activity),
+			validationFailures
+		);
 
 		// Calculate Activity Log Entry Id
 		const canonical = JsonHelper.canonicalize(activity);
