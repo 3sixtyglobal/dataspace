@@ -4,7 +4,7 @@ The status supplied to clients of the Dataspace Data Plane
 
 ## Properties
 
-### activityLogEntryId
+### activityLogEntryId {#activitylogentryid}
 
 > **activityLogEntryId**: `string`
 
@@ -12,7 +12,7 @@ The activity log entry id.
 
 ***
 
-### activityId?
+### activityId? {#activityid}
 
 > `optional` **activityId**: `string`
 
@@ -20,7 +20,7 @@ The activity Id.
 
 ***
 
-### taskProcessingStatus
+### taskProcessingStatus {#taskprocessingstatus}
 
 > **taskProcessingStatus**: `object`
 

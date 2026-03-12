@@ -8,7 +8,7 @@ The details related to the processing of an Activity
 
 ## Properties
 
-### id
+### id {#id}
 
 > **id**: `string`
 
@@ -20,7 +20,7 @@ The Id of the Activity Log entry.
 
 ***
 
-### activityId?
+### activityId? {#activityid}
 
 > `optional` **activityId**: `string`
 
@@ -32,7 +32,7 @@ The activity Id that this entry refers to.
 
 ***
 
-### generator
+### generator {#generator}
 
 > **generator**: `string`
 
@@ -44,7 +44,7 @@ The identity of the Activity's generator.
 
 ***
 
-### dateCreated
+### dateCreated {#datecreated}
 
 > **dateCreated**: `string`
 
@@ -56,7 +56,7 @@ The creation date of this object.
 
 ***
 
-### dateModified
+### dateModified {#datemodified}
 
 > **dateModified**: `string`
 
@@ -68,7 +68,7 @@ The last update date of this object.
 
 ***
 
-### retryCount?
+### retryCount? {#retrycount}
 
 > `optional` **retryCount**: `number`
 
@@ -80,7 +80,7 @@ Number of times this activity has been retried.
 
 ***
 
-### status
+### status {#status}
 
 > **status**: [`ActivityProcessingStatus`](../type-aliases/ActivityProcessingStatus.md)
 
@@ -88,7 +88,7 @@ Status of the Activity Processing.
 
 ***
 
-### pendingTasks?
+### pendingTasks? {#pendingtasks}
 
 > `optional` **pendingTasks**: [`ITaskApp`](ITaskApp.md)[]
 
@@ -96,7 +96,7 @@ The pending tasks that have to be run to process the Activity.
 
 ***
 
-### runningTasks?
+### runningTasks? {#runningtasks}
 
 > `optional` **runningTasks**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md)[]
 
@@ -104,7 +104,7 @@ The running tasks that are processing the Activity.
 
 ***
 
-### finalizedTasks?
+### finalizedTasks? {#finalizedtasks}
 
 > `optional` **finalizedTasks**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md) & `object`[]
 
@@ -112,7 +112,7 @@ The tasks that have already finalized.
 
 ***
 
-### inErrorTasks?
+### inErrorTasks? {#inerrortasks}
 
 > `optional` **inErrorTasks**: [`ITaskApp`](ITaskApp.md) & `object`[]
 

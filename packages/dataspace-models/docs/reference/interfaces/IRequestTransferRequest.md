@@ -4,7 +4,7 @@ API request for requesting a transfer process.
 
 ## Properties
 
-### headers
+### headers {#headers}
 
 > **headers**: `object`
 
@@ -16,7 +16,7 @@ Authorization header containing the Base64-encoded trust payload.
 
 ***
 
-### body
+### body {#body}
 
 > **body**: `IDataspaceProtocolTransferRequestMessage`
 

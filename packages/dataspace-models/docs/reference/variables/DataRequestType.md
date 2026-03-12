@@ -6,13 +6,13 @@ Data Request Types.
 
 ## Type Declaration
 
-### DataAssetEntities
+### DataAssetEntities {#dataassetentities}
 
 > `readonly` **DataAssetEntities**: `"DataAssetEntities"` = `"DataAssetEntities"`
 
 Data Asset Entities
 
-### QueryDataAsset
+### QueryDataAsset {#querydataasset}
 
 > `readonly` **QueryDataAsset**: `"QueryDataAsset"` = `"QueryDataAsset"`
 

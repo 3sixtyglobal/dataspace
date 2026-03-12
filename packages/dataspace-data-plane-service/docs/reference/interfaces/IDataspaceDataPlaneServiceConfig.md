@@ -4,7 +4,7 @@ Dataspace Data Plane service configuration
 
 ## Properties
 
-### retainActivityLogsFor?
+### retainActivityLogsFor? {#retainactivitylogsfor}
 
 > `optional` **retainActivityLogsFor**: `number`
 
@@ -12,7 +12,7 @@ The amount of time in minutes to retain activity log entries until removal, set 
 
 ***
 
-### activityLogsCleanUpInterval?
+### activityLogsCleanUpInterval? {#activitylogscleanupinterval}
 
 > `optional` **activityLogsCleanUpInterval**: `number`
 

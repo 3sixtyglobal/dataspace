@@ -4,7 +4,7 @@
 
 ## Properties
 
-### activityType?
+### activityType? {#activitytype}
 
 > `optional` **activityType**: `string`
 
@@ -12,7 +12,7 @@ FQN of the Activity type.
 
 ***
 
-### objectType
+### objectType {#objecttype}
 
 > **objectType**: `string`
 
@@ -20,7 +20,7 @@ FQN of the Object Type.
 
 ***
 
-### targetType?
+### targetType? {#targettype}
 
 > `optional` **targetType**: `string`
 

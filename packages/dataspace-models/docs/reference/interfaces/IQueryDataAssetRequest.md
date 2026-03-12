@@ -4,7 +4,7 @@ Data Request type for representing data requests received by Dataspace Apps.
 
 ## Properties
 
-### type
+### type {#type}
 
 > **type**: `"QueryDataAsset"`
 
@@ -12,7 +12,7 @@ Data Asset Entities type.
 
 ***
 
-### dataAsset
+### dataAsset {#dataasset}
 
 > **dataAsset**: `IDataspaceProtocolDataset`
 
@@ -20,7 +20,7 @@ The data asset we are referring to.
 
 ***
 
-### query
+### query {#query}
 
 > **query**: [`IFilteringQuery`](IFilteringQuery.md)
 

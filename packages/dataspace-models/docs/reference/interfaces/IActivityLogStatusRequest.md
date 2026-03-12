@@ -4,7 +4,7 @@ Activity log status
 
 ## Properties
 
-### body
+### body {#body}
 
 > **body**: `object`
 

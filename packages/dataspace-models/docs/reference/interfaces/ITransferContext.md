@@ -7,7 +7,7 @@ used by dataspace-control-plane to resolve consumerPid to datasetId and policies
 
 ## Properties
 
-### consumerPid
+### consumerPid {#consumerpid}
 
 > **consumerPid**: `string`
 
@@ -15,7 +15,7 @@ Consumer Process ID.
 
 ***
 
-### providerPid
+### providerPid {#providerpid}
 
 > **providerPid**: `string`
 
@@ -23,7 +23,7 @@ Provider Process ID.
 
 ***
 
-### agreement
+### agreement {#agreement}
 
 > **agreement**: `IDataspaceProtocolAgreement`
 
@@ -32,7 +32,7 @@ Contains permissions, obligations, and prohibitions that DSC uses for runtime po
 
 ***
 
-### datasetId
+### datasetId {#datasetid}
 
 > **datasetId**: `string`
 
@@ -41,7 +41,7 @@ Convenience field extracted from agreement.target for quick access.
 
 ***
 
-### offerId
+### offerId {#offerid}
 
 > **offerId**: `string`
 
@@ -49,7 +49,7 @@ Offer ID.
 
 ***
 
-### state
+### state {#state}
 
 > **state**: `DataspaceProtocolTransferProcessStateType`
 
@@ -58,7 +58,7 @@ DSC should only allow queries if state is STARTED.
 
 ***
 
-### consumerIdentity?
+### consumerIdentity? {#consumeridentity}
 
 > `optional` **consumerIdentity**: `string`
 
@@ -66,7 +66,7 @@ Consumer identity (for auditing).
 
 ***
 
-### providerIdentity?
+### providerIdentity? {#provideridentity}
 
 > `optional` **providerIdentity**: `string`
 
@@ -75,7 +75,7 @@ Extracted from Agreement's assigner field.
 
 ***
 
-### dataAddress?
+### dataAddress? {#dataaddress}
 
 > `optional` **dataAddress**: `IDataspaceProtocolDataAddress`
 

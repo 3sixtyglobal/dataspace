@@ -4,7 +4,7 @@ Response containing data asset entities with optional pagination Link header.
 
 ## Properties
 
-### headers?
+### headers? {#headers}
 
 > `optional` **headers**: `object`
 
@@ -16,7 +16,7 @@ Optional headers.
 
 ***
 
-### body
+### body {#body}
 
 > **body**: [`IDataAssetItemList`](IDataAssetItemList.md)
 

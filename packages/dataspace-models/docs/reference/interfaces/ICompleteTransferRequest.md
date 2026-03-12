@@ -4,7 +4,7 @@ API request for completing a transfer process.
 
 ## Properties
 
-### pathParams
+### pathParams {#pathparams}
 
 > **pathParams**: `object`
 
@@ -18,7 +18,7 @@ Process ID (consumerPid).
 
 ***
 
-### headers
+### headers {#headers}
 
 > **headers**: `object`
 
@@ -30,7 +30,7 @@ Authorization header containing the Base64-encoded trust payload.
 
 ***
 
-### body
+### body {#body}
 
 > **body**: `IDataspaceProtocolTransferCompletionMessage`
 

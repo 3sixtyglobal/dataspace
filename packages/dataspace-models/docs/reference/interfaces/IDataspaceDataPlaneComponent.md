@@ -9,7 +9,7 @@ Implements the Data Plane functionality for the Eclipse Dataspace Protocol.
 
 ## Methods
 
-### notifyActivity()
+### notifyActivity() {#notifyactivity}
 
 > **notifyActivity**(`activity`): `Promise`\<`string`\>
 
@@ -31,7 +31,7 @@ The Activity's identifier.
 
 ***
 
-### subscribeToActivityLog()
+### subscribeToActivityLog() {#subscribetoactivitylog}
 
 > **subscribeToActivityLog**(`callback`, `subscriptionId?`): `Promise`\<`string`\>
 
@@ -59,7 +59,7 @@ The subscription Id.
 
 ***
 
-### unSubscribeToActivityLog()
+### unSubscribeToActivityLog() {#unsubscribetoactivitylog}
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
@@ -81,7 +81,7 @@ The subscription Id.
 
 ***
 
-### getActivityLogEntry()
+### getActivityLogEntry() {#getactivitylogentry}
 
 > **getActivityLogEntry**(`logEntryId`): `Promise`\<[`IActivityLogEntry`](IActivityLogEntry.md)\>
 
@@ -107,7 +107,7 @@ NotFoundError if activity log entry is not known.
 
 ***
 
-### getDataAssetEntities()
+### getDataAssetEntities() {#getdataassetentities}
 
 > **getDataAssetEntities**(`entitySet`, `consumerPid`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<[`IDataAssetItemListResult`](IDataAssetItemListResult.md)\>
 
@@ -154,7 +154,7 @@ The item list and optional cursor for pagination via Link headers.
 
 ***
 
-### queryDataAsset()
+### queryDataAsset() {#querydataasset}
 
 > **queryDataAsset**(`consumerPid`, `query`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<[`IDataAssetItemListResult`](IDataAssetItemListResult.md)\>
 

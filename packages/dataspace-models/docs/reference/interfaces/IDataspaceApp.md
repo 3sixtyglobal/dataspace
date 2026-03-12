@@ -8,7 +8,7 @@ Interface describes a Dataspace App.
 
 ## Methods
 
-### activitiesHandled()
+### activitiesHandled() {#activitieshandled}
 
 > **activitiesHandled**(): [`IActivityQuery`](IActivityQuery.md)[]
 
@@ -22,7 +22,7 @@ A query that describes the set of activities handled by the App.
 
 ***
 
-### datasetsHandled()
+### datasetsHandled() {#datasetshandled}
 
 > **datasetsHandled**(): `Promise`\<`IDataspaceProtocolDataset`[]\>
 
@@ -36,7 +36,7 @@ The Dataspace Protocol compliant datasets handled by the App.
 
 ***
 
-### supportedQueryTypes()
+### supportedQueryTypes() {#supportedquerytypes}
 
 > **supportedQueryTypes**(): `string`[]
 
@@ -50,7 +50,7 @@ The types of queries supported by the Dataspace App to retrieve data.
 
 ***
 
-### handleActivity()?
+### handleActivity()? {#handleactivity}
 
 > `optional` **handleActivity**\<`T`\>(`activity`): `Promise`\<`T`\>
 
@@ -78,7 +78,7 @@ The result of executing the Activity.
 
 ***
 
-### handleDataRequest()?
+### handleDataRequest()? {#handledatarequest}
 
 > `optional` **handleDataRequest**(`dataRequest`, `cursor?`, `limit?`): `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
 

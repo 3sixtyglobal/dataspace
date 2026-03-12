@@ -4,7 +4,7 @@ Dataspace Control Plane service constructor options.
 
 ## Properties
 
-### policyAdministrationPointComponentType?
+### policyAdministrationPointComponentType? {#policyadministrationpointcomponenttype}
 
 > `optional` **policyAdministrationPointComponentType**: `string`
 
@@ -13,7 +13,7 @@ Used for Agreement lookup and validation during Transfer Process initiation.
 
 ***
 
-### policyNegotiationPointComponentType?
+### policyNegotiationPointComponentType? {#policynegotiationpointcomponenttype}
 
 > `optional` **policyNegotiationPointComponentType**: `string`
 
@@ -22,7 +22,7 @@ Used for contract negotiation to create agreements before transfer processes.
 
 ***
 
-### policyNegotiationAdminPointComponentType?
+### policyNegotiationAdminPointComponentType? {#policynegotiationadminpointcomponenttype}
 
 > `optional` **policyNegotiationAdminPointComponentType**: `string`
 
@@ -32,7 +32,7 @@ Optional - if not provided, negotiation history will not be available.
 
 ***
 
-### federatedCatalogueComponentType?
+### federatedCatalogueComponentType? {#federatedcataloguecomponenttype}
 
 > `optional` **federatedCatalogueComponentType**: `string`
 
@@ -42,7 +42,7 @@ Validates that Agreements reference valid catalog datasets.
 
 ***
 
-### loggingComponentType?
+### loggingComponentType? {#loggingcomponenttype}
 
 > `optional` **loggingComponentType**: `string`
 
@@ -50,7 +50,7 @@ Logging component type.
 
 ***
 
-### identityComponentType?
+### identityComponentType? {#identitycomponenttype}
 
 > `optional` **identityComponentType**: `string`
 
@@ -58,7 +58,7 @@ Identity component type (for token signing/verification).
 
 ***
 
-### identityAuthenticationComponentType?
+### identityAuthenticationComponentType? {#identityauthenticationcomponenttype}
 
 > `optional` **identityAuthenticationComponentType**: `string`
 
@@ -66,7 +66,7 @@ Identity Authentication component type (for token validation).
 
 ***
 
-### trustComponentType?
+### trustComponentType? {#trustcomponenttype}
 
 > `optional` **trustComponentType**: `string`
 
@@ -75,7 +75,7 @@ Used to verify JWT/VC tokens and extract identity information.
 
 ***
 
-### transferProcessEntityStorageType?
+### transferProcessEntityStorageType? {#transferprocessentitystoragetype}
 
 > `optional` **transferProcessEntityStorageType**: `string`
 
@@ -85,7 +85,7 @@ Must match the Data Plane's transferProcessEntityStorageType for shared storage.
 
 ***
 
-### taskSchedulerComponentType?
+### taskSchedulerComponentType? {#taskschedulercomponenttype}
 
 > `optional` **taskSchedulerComponentType**: `string`
 
@@ -93,7 +93,7 @@ Task scheduler component type for periodic cleanup of stalled negotiations.
 
 ***
 
-### config?
+### config? {#config}
 
 > `optional` **config**: [`IDataspaceControlPlaneServiceConfig`](IDataspaceControlPlaneServiceConfig.md)
 

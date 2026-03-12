@@ -4,7 +4,7 @@ Dataspace Data Plane service options
 
 ## Properties
 
-### loggingComponentType?
+### loggingComponentType? {#loggingcomponenttype}
 
 > `optional` **loggingComponentType**: `string`
 
@@ -12,7 +12,7 @@ Logging component type.
 
 ***
 
-### backgroundTaskComponentType?
+### backgroundTaskComponentType? {#backgroundtaskcomponenttype}
 
 > `optional` **backgroundTaskComponentType**: `string`
 
@@ -20,7 +20,7 @@ Background task component.
 
 ***
 
-### taskSchedulerComponentType?
+### taskSchedulerComponentType? {#taskschedulercomponenttype}
 
 > `optional` **taskSchedulerComponentType**: `string`
 
@@ -28,7 +28,7 @@ Task Scheduler Component Type.
 
 ***
 
-### activityLogEntityStorageType?
+### activityLogEntityStorageType? {#activitylogentitystoragetype}
 
 > `optional` **activityLogEntityStorageType**: `string`
 
@@ -36,7 +36,7 @@ The entity storage for activity log details.
 
 ***
 
-### activityTaskEntityStorageType?
+### activityTaskEntityStorageType? {#activitytaskentitystoragetype}
 
 > `optional` **activityTaskEntityStorageType**: `string`
 
@@ -44,7 +44,7 @@ The entity storage for the association between Activities and Tasks.
 
 ***
 
-### transferProcessEntityStorageType?
+### transferProcessEntityStorageType? {#transferprocessentitystoragetype}
 
 > `optional` **transferProcessEntityStorageType**: `string`
 
@@ -53,7 +53,7 @@ Used to read Transfer Process state from shared storage.
 
 ***
 
-### partitionContextIds?
+### partitionContextIds? {#partitioncontextids}
 
 > `optional` **partitionContextIds**: `string`[]
 
@@ -61,7 +61,7 @@ The keys to use from the context ids to cleanup partitions.
 
 ***
 
-### trustComponentType?
+### trustComponentType? {#trustcomponenttype}
 
 > `optional` **trustComponentType**: `string`
 
@@ -69,7 +69,7 @@ Trust component type.
 
 ***
 
-### pepComponentType?
+### pepComponentType? {#pepcomponenttype}
 
 > `optional` **pepComponentType**: `string`
 
@@ -77,7 +77,7 @@ Policy enforcement point component type for ODRL policy enforcement.
 
 ***
 
-### config?
+### config? {#config}
 
 > `optional` **config**: [`IDataspaceDataPlaneServiceConfig`](IDataspaceDataPlaneServiceConfig.md)
 

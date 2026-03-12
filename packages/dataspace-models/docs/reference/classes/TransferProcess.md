@@ -15,7 +15,7 @@ This entity is the persistent representation of ITransferProcess.
 
 ## Properties
 
-### consumerPid
+### consumerPid {#consumerpid}
 
 > **consumerPid**: `string`
 
@@ -24,7 +24,7 @@ Used for direct lookup by consumerPid.
 
 ***
 
-### id
+### id {#id}
 
 > **id**: `string`
 
@@ -32,7 +32,7 @@ Internal UUID for storage (secondary key for providerPid lookup).
 
 ***
 
-### providerPid
+### providerPid {#providerpid}
 
 > **providerPid**: `string`
 
@@ -41,7 +41,7 @@ Indexed for lookup by providerPid.
 
 ***
 
-### agreementId
+### agreementId {#agreementid}
 
 > **agreementId**: `string`
 
@@ -49,7 +49,7 @@ Agreement ID linking to the rights-management Agreement.
 
 ***
 
-### state
+### state {#state}
 
 > **state**: `DataspaceProtocolTransferProcessStateType`
 
@@ -58,7 +58,7 @@ One of: REQUESTED, STARTED, COMPLETED, SUSPENDED, TERMINATED.
 
 ***
 
-### datasetId
+### datasetId {#datasetid}
 
 > **datasetId**: `string`
 
@@ -66,7 +66,7 @@ Dataset ID for DSC resolution.
 
 ***
 
-### offerId
+### offerId {#offerid}
 
 > **offerId**: `string`
 
@@ -74,7 +74,7 @@ Offer ID from the original Catalog offer.
 
 ***
 
-### consumerIdentity?
+### consumerIdentity? {#consumeridentity}
 
 > `optional` **consumerIdentity**: `string`
 
@@ -82,7 +82,7 @@ Consumer identity (DID or URI).
 
 ***
 
-### providerIdentity?
+### providerIdentity? {#provideridentity}
 
 > `optional` **providerIdentity**: `string`
 
@@ -90,7 +90,7 @@ Provider identity (DID or URI).
 
 ***
 
-### format?
+### format? {#format}
 
 > `optional` **format**: `string`
 
@@ -98,7 +98,7 @@ Data format from the Dataset Distribution.
 
 ***
 
-### callbackAddress?
+### callbackAddress? {#callbackaddress}
 
 > `optional` **callbackAddress**: `string`
 
@@ -106,7 +106,7 @@ Callback address for Consumer notifications.
 
 ***
 
-### dateCreated
+### dateCreated {#datecreated}
 
 > **dateCreated**: `string`
 
@@ -114,7 +114,7 @@ Creation timestamp (ISO string format).
 
 ***
 
-### dateModified
+### dateModified {#datemodified}
 
 > **dateModified**: `string`
 
@@ -122,7 +122,7 @@ Last update timestamp (ISO string format).
 
 ***
 
-### policies?
+### policies? {#policies}
 
 > `optional` **policies**: `IDataspaceProtocolPolicy`[]
 
@@ -130,7 +130,7 @@ Policies from the Agreement (stored as JSON).
 
 ***
 
-### dataAddress?
+### dataAddress? {#dataaddress}
 
 > `optional` **dataAddress**: `IDataspaceProtocolDataAddress`
 

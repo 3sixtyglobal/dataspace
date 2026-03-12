@@ -36,7 +36,7 @@ Options for the client.
 
 ## Properties
 
-### CLASS\_NAME
+### CLASS\_NAME {#class_name}
 
 > `readonly` `static` **CLASS\_NAME**: `string`
 
@@ -44,7 +44,7 @@ Runtime name for the class.
 
 ## Methods
 
-### className()
+### className() {#classname}
 
 > **className**(): `string`
 
@@ -62,7 +62,7 @@ The class name of the component.
 
 ***
 
-### notifyActivity()
+### notifyActivity() {#notifyactivity}
 
 > **notifyActivity**(`activity`): `Promise`\<`string`\>
 
@@ -88,7 +88,7 @@ The Activity's identifier.
 
 ***
 
-### subscribeToActivityLog()
+### subscribeToActivityLog() {#subscribetoactivitylog}
 
 > **subscribeToActivityLog**(`callback`, `subscriptionId?`): `Promise`\<`string`\>
 
@@ -120,7 +120,7 @@ The subscription Id.
 
 ***
 
-### unSubscribeToActivityLog()
+### unSubscribeToActivityLog() {#unsubscribetoactivitylog}
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
@@ -146,7 +146,7 @@ The subscription Id.
 
 ***
 
-### getActivityLogEntry()
+### getActivityLogEntry() {#getactivitylogentry}
 
 > **getActivityLogEntry**(`logEntryId`): `Promise`\<`IActivityLogEntry`\>
 
@@ -176,7 +176,7 @@ NotFoundError if activity log entry is not known.
 
 ***
 
-### getDataAssetEntities()
+### getDataAssetEntities() {#getdataassetentities}
 
 > **getDataAssetEntities**(`entitySet`, `consumerPid`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<`IDataAssetItemListResult`\>
 
@@ -227,7 +227,7 @@ The item list and optional cursor for pagination via Link headers.
 
 ***
 
-### queryDataAsset()
+### queryDataAsset() {#querydataasset}
 
 > **queryDataAsset**(`consumerPid`, `query`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<`IDataAssetItemListResult`\>
 
@@ -278,7 +278,7 @@ The item list and optional cursor for pagination via Link headers.
 
 ***
 
-### handleConnected()
+### handleConnected() {#handleconnected}
 
 > `protected` **handleConnected**(): `Promise`\<`void`\>
 
@@ -294,7 +294,7 @@ Handle the socket connection.
 
 ***
 
-### handleError()
+### handleError() {#handleerror}
 
 > `protected` **handleError**(`err`): `Promise`\<`void`\>
 

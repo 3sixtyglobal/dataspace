@@ -4,7 +4,7 @@ API request for getting a transfer process state.
 
 ## Properties
 
-### pathParams
+### pathParams {#pathparams}
 
 > **pathParams**: `object`
 
@@ -18,7 +18,7 @@ Process ID (consumerPid or providerPid).
 
 ***
 
-### headers
+### headers {#headers}
 
 > **headers**: `object`
 

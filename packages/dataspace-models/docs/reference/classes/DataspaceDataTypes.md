@@ -14,7 +14,7 @@ Dataspace datatypes.
 
 ## Methods
 
-### registerTypes()
+### registerTypes() {#registertypes}
 
 > `static` **registerTypes**(): `void`
 

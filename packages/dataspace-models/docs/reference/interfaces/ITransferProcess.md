@@ -6,7 +6,7 @@ This is NOT the DSP wire format (use ITransferProcess from standards for that).
 
 ## Properties
 
-### id
+### id {#id}
 
 > **id**: `string`
 
@@ -14,7 +14,7 @@ Internal UUID (primary key for entity storage).
 
 ***
 
-### consumerPid
+### consumerPid {#consumerpid}
 
 > **consumerPid**: `string`
 
@@ -23,7 +23,7 @@ Refers to the transfer identifier on the Consumer side.
 
 ***
 
-### providerPid
+### providerPid {#providerpid}
 
 > **providerPid**: `string`
 
@@ -32,7 +32,7 @@ Refers to the transfer identifier on the Provider side.
 
 ***
 
-### state
+### state {#state}
 
 > **state**: `DataspaceProtocolTransferProcessStateType`
 
@@ -41,7 +41,7 @@ One of: REQUESTED, STARTED, COMPLETED, SUSPENDED, TERMINATED.
 
 ***
 
-### agreementId
+### agreementId {#agreementid}
 
 > **agreementId**: `string`
 
@@ -50,7 +50,7 @@ Used to resolve policies and permissions.
 
 ***
 
-### datasetId
+### datasetId {#datasetid}
 
 > **datasetId**: `string`
 
@@ -59,7 +59,7 @@ Identifies the dataset being transferred.
 
 ***
 
-### offerId
+### offerId {#offerid}
 
 > **offerId**: `string`
 
@@ -67,7 +67,7 @@ Offer ID from the original Catalog offer.
 
 ***
 
-### policies?
+### policies? {#policies}
 
 > `optional` **policies**: `IDataspaceProtocolPolicy`[]
 
@@ -76,7 +76,7 @@ Used by DSC for runtime policy enforcement.
 
 ***
 
-### consumerIdentity?
+### consumerIdentity? {#consumeridentity}
 
 > `optional` **consumerIdentity**: `string`
 
@@ -85,7 +85,7 @@ Used for auditing and access control.
 
 ***
 
-### providerIdentity?
+### providerIdentity? {#provideridentity}
 
 > `optional` **providerIdentity**: `string`
 
@@ -94,7 +94,7 @@ Used for auditing.
 
 ***
 
-### callbackAddress?
+### callbackAddress? {#callbackaddress}
 
 > `optional` **callbackAddress**: `string`
 
@@ -103,7 +103,7 @@ URI where messages to the Consumer should be sent.
 
 ***
 
-### format?
+### format? {#format}
 
 > `optional` **format**: `string`
 
@@ -112,7 +112,7 @@ Specified by a Distribution for the Dataset associated with the Agreement.
 
 ***
 
-### dataAddress?
+### dataAddress? {#dataaddress}
 
 > `optional` **dataAddress**: `IDataspaceProtocolDataAddress`
 
@@ -122,7 +122,7 @@ Only present when format is Http-Push-Activity-Stream-Format or Http-Post-Activi
 
 ***
 
-### dateCreated
+### dateCreated {#datecreated}
 
 > **dateCreated**: `Date`
 
@@ -130,7 +130,7 @@ Creation timestamp.
 
 ***
 
-### dateModified
+### dateModified {#datemodified}
 
 > **dateModified**: `Date`
 

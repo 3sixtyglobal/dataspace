@@ -4,7 +4,7 @@ Dataspace Control Plane service configuration.
 
 ## Properties
 
-### overrideTrustGeneratorType?
+### overrideTrustGeneratorType? {#overridetrustgeneratortype}
 
 > `optional` **overrideTrustGeneratorType**: `string`
 
@@ -13,7 +13,7 @@ If not specified, the default trust generator configured in the trust component 
 
 ***
 
-### dataPlanePath?
+### dataPlanePath? {#dataplanepath}
 
 > `optional` **dataPlanePath**: `string`
 

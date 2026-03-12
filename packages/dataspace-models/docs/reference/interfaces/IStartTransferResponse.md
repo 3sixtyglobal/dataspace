@@ -4,7 +4,7 @@ API response for starting a transfer process.
 
 ## Properties
 
-### body
+### body {#body}
 
 > **body**: `IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`
 
@@ -12,7 +12,7 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or e
 
 ***
 
-### statusCode?
+### statusCode? {#statuscode}
 
 > `optional` **statusCode**: `HttpStatusCode`
 

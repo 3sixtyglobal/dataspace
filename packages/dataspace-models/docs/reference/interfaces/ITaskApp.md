@@ -4,7 +4,7 @@ Denotes a task associated with a Dataspace App
 
 ## Properties
 
-### taskId
+### taskId {#taskid}
 
 > **taskId**: `string`
 
@@ -12,7 +12,7 @@ Task Id.
 
 ***
 
-### dataspaceAppId
+### dataspaceAppId {#dataspaceappid}
 
 > **dataspaceAppId**: `string`
 

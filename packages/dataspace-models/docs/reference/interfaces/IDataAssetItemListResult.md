@@ -5,7 +5,7 @@ The cursor is returned via HTTP Link headers (RFC 8288), not in the response bod
 
 ## Properties
 
-### itemList
+### itemList {#itemlist}
 
 > **itemList**: [`IDataAssetItemList`](IDataAssetItemList.md)
 
@@ -13,7 +13,7 @@ The item list data.
 
 ***
 
-### cursor?
+### cursor? {#cursor}
 
 > `optional` **cursor**: `string`
 

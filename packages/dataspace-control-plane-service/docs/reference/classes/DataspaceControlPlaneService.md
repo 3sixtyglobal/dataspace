@@ -33,7 +33,7 @@ The options for the service.
 
 ## Properties
 
-### CLASS\_NAME
+### CLASS\_NAME {#class_name}
 
 > `readonly` `static` **CLASS\_NAME**: `string`
 
@@ -41,7 +41,7 @@ Runtime name for the class.
 
 ## Methods
 
-### className()
+### className() {#classname}
 
 > **className**(): `string`
 
@@ -59,7 +59,7 @@ The class name of the component.
 
 ***
 
-### registerNegotiationCallback()
+### registerNegotiationCallback() {#registernegotiationcallback}
 
 > **registerNegotiationCallback**(`key`, `callback`): `void`
 
@@ -90,7 +90,7 @@ The callback interface to register.
 
 ***
 
-### unregisterNegotiationCallback()
+### unregisterNegotiationCallback() {#unregisternegotiationcallback}
 
 > **unregisterNegotiationCallback**(`key`): `void`
 
@@ -114,7 +114,7 @@ The key used when registering the callback.
 
 ***
 
-### start()
+### start() {#start}
 
 > **start**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
 
@@ -140,7 +140,7 @@ The node logging component type.
 
 ***
 
-### stop()
+### stop() {#stop}
 
 > **stop**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
 
@@ -165,7 +165,7 @@ The node logging component type.
 
 ***
 
-### requestTransfer()
+### requestTransfer() {#requesttransfer}
 
 > **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
@@ -201,7 +201,7 @@ Called by: Consumer when it wants to request a new Transfer Process
 
 ***
 
-### startTransfer()
+### startTransfer() {#starttransfer}
 
 > **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
@@ -242,7 +242,7 @@ Role Performed: Provider / Consumer
 
 ***
 
-### completeTransfer()
+### completeTransfer() {#completetransfer}
 
 > **completeTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
@@ -274,7 +274,7 @@ Transfer Process (DSP compliant) with state COMPLETED, or TransferError if the o
 
 ***
 
-### suspendTransfer()
+### suspendTransfer() {#suspendtransfer}
 
 > **suspendTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
@@ -306,7 +306,7 @@ Transfer Process (DSP compliant) with state SUSPENDED, or TransferError if the o
 
 ***
 
-### terminateTransfer()
+### terminateTransfer() {#terminatetransfer}
 
 > **terminateTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
@@ -338,7 +338,7 @@ Transfer Process (DSP compliant) with state TERMINATED, or TransferError if the 
 
 ***
 
-### getTransferProcess()
+### getTransferProcess() {#gettransferprocess}
 
 > **getTransferProcess**(`pid`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
@@ -370,7 +370,7 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ***
 
-### negotiateAgreement()
+### negotiateAgreement() {#negotiateagreement}
 
 > **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
@@ -422,7 +422,7 @@ The negotiation ID. Use the registered callback for completion notification.
 
 ***
 
-### getNegotiation()
+### getNegotiation() {#getnegotiation}
 
 > **getNegotiation**(`negotiationId`, `trustPayload`): `Promise`\<`IDataspaceProtocolContractNegotiation` \| `IDataspaceProtocolContractNegotiationError`\>
 
@@ -454,7 +454,7 @@ Current state of the negotiation.
 
 ***
 
-### getNegotiationHistory()
+### getNegotiationHistory() {#getnegotiationhistory}
 
 > **getNegotiationHistory**(`state`, `cursor`, `trustPayload`): `Promise`\<\{ `negotiations`: `object`[]; `cursor?`: `string`; `count`: `number`; \}\>
 
@@ -492,7 +492,7 @@ List of negotiation history entries with pagination.
 
 ***
 
-### resolveConsumerPid()
+### resolveConsumerPid() {#resolveconsumerpid}
 
 > **resolveConsumerPid**(`consumerPid`, `trustPayload`): `Promise`\<`ITransferContext`\>
 
@@ -524,7 +524,7 @@ Transfer Context with Agreement, datasetId, and Transfer Process metadata.
 
 ***
 
-### resolveProviderPid()
+### resolveProviderPid() {#resolveproviderpid}
 
 > **resolveProviderPid**(`providerPid`, `trustPayload`): `Promise`\<`ITransferContext`\>
 

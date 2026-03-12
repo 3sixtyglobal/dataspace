@@ -4,7 +4,7 @@ Part of the Data Request interface to represent a set of entities either by id o
 
 ## Properties
 
-### entityId?
+### entityId? {#entityid}
 
 > `optional` **entityId**: `string`[]
 
@@ -12,7 +12,7 @@ Entity Id.
 
 ***
 
-### entityType
+### entityType {#entitytype}
 
 > **entityType**: `string`
 

@@ -28,7 +28,7 @@ The options for the data plane.
 
 ## Properties
 
-### CLASS\_NAME
+### CLASS\_NAME {#class_name}
 
 > `readonly` `static` **CLASS\_NAME**: `string`
 
@@ -36,7 +36,7 @@ Runtime name for the class.
 
 ## Methods
 
-### className()
+### className() {#classname}
 
 > **className**(): `string`
 
@@ -54,7 +54,7 @@ The class name of the component.
 
 ***
 
-### start()
+### start() {#start}
 
 > **start**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
 
@@ -78,7 +78,7 @@ The node logging component type.
 
 ***
 
-### notifyActivity()
+### notifyActivity() {#notifyactivity}
 
 > **notifyActivity**(`activity`): `Promise`\<`string`\>
 
@@ -104,7 +104,7 @@ The Activity's Log Entry identifier.
 
 ***
 
-### subscribeToActivityLog()
+### subscribeToActivityLog() {#subscribetoactivitylog}
 
 > **subscribeToActivityLog**(`callback`, `subscriptionId?`): `Promise`\<`string`\>
 
@@ -136,7 +136,7 @@ The subscription Id.
 
 ***
 
-### unSubscribeToActivityLog()
+### unSubscribeToActivityLog() {#unsubscribetoactivitylog}
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
@@ -160,7 +160,7 @@ The Subscription Id.
 
 ***
 
-### getActivityLogEntry()
+### getActivityLogEntry() {#getactivitylogentry}
 
 > **getActivityLogEntry**(`logEntryId`): `Promise`\<`IActivityLogEntry`\>
 
@@ -190,7 +190,7 @@ NotFoundError if activity log entry is not known.
 
 ***
 
-### getDataAssetEntities()
+### getDataAssetEntities() {#getdataassetentities}
 
 > **getDataAssetEntities**(`entitySet`, `consumerPid`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<`IDataAssetItemListResult`\>
 
@@ -241,7 +241,7 @@ The entities requested as a JSON-LD Document.
 
 ***
 
-### queryDataAsset()
+### queryDataAsset() {#querydataasset}
 
 > **queryDataAsset**(`consumerPid`, `query`, `cursor?`, `limit?`, `trustPayload?`): `Promise`\<`IDataAssetItemListResult`\>
 
@@ -292,7 +292,7 @@ The item list and optional cursor for pagination via Link headers.
 
 ***
 
-### validateTransfer()
+### validateTransfer() {#validatetransfer}
 
 > **validateTransfer**(`consumerPid`, `trustPayload`): `Promise`\<`ITransferContext`\>
 

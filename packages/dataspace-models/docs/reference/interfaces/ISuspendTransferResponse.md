@@ -4,7 +4,7 @@ API response for suspending a transfer process.
 
 ## Properties
 
-### body
+### body {#body}
 
 > **body**: `IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`
 
@@ -12,7 +12,7 @@ Transfer Process (DSP compliant) with state SUSPENDED, or error.
 
 ***
 
-### statusCode?
+### statusCode? {#statuscode}
 
 > `optional` **statusCode**: `HttpStatusCode`
 

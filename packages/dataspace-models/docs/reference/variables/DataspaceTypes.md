@@ -6,6 +6,6 @@ The types concerning dataspace
 
 ## Type Declaration
 
-### Activity
+### Activity {#activity}
 
 > `readonly` **Activity**: `"Activity"` = `"Activity"`

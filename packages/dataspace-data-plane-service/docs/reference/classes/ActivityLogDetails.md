@@ -14,7 +14,7 @@ Activity Log Details.
 
 ## Properties
 
-### id
+### id {#id}
 
 > **id**: `string`
 
@@ -22,7 +22,7 @@ The entry Id.
 
 ***
 
-### activityId?
+### activityId? {#activityid}
 
 > `optional` **activityId**: `string`
 
@@ -30,7 +30,7 @@ The Activity Id.
 
 ***
 
-### generator
+### generator {#generator}
 
 > **generator**: `string`
 
@@ -38,7 +38,7 @@ The generator of the Activity (different than the Actor)
 
 ***
 
-### dateCreated
+### dateCreated {#datecreated}
 
 > **dateCreated**: `string`
 
@@ -46,7 +46,7 @@ The creation date.
 
 ***
 
-### dateModified
+### dateModified {#datemodified}
 
 > **dateModified**: `string`
 
@@ -54,7 +54,7 @@ The last update date.
 
 ***
 
-### retainUntil?
+### retainUntil? {#retainuntil}
 
 > `optional` **retainUntil**: `number`
 
@@ -62,7 +62,7 @@ The timestamp of when to retain the entry until.
 
 ***
 
-### retryCount?
+### retryCount? {#retrycount}
 
 > `optional` **retryCount**: `number`
 

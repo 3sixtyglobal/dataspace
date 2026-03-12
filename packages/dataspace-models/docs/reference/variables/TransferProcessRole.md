@@ -7,13 +7,13 @@ Determines whether the party is acting as Consumer or Provider.
 
 ## Type Declaration
 
-### Consumer
+### Consumer {#consumer}
 
 > `readonly` **Consumer**: `"consumer"` = `"consumer"`
 
 Consumer role - the party requesting data.
 
-### Provider
+### Provider {#provider}
 
 > `readonly` **Provider**: `"provider"` = `"provider"`
 

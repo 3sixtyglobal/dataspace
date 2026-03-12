@@ -44,7 +44,7 @@ Optional callback interface for state change notifications.
 
 ## Properties
 
-### CLASS\_NAME
+### CLASS\_NAME {#class_name}
 
 > `readonly` `static` **CLASS\_NAME**: `string`
 
@@ -52,7 +52,7 @@ Runtime name for the class.
 
 ## Methods
 
-### className()
+### className() {#classname}
 
 > **className**(): `string`
 
@@ -70,7 +70,7 @@ The class name of the component.
 
 ***
 
-### trackNegotiation()
+### trackNegotiation() {#tracknegotiation}
 
 > **trackNegotiation**(`negotiationId`): `void`
 
@@ -91,7 +91,7 @@ The negotiation ID returned by PNP.sendRequestToProvider().
 
 ***
 
-### getActiveNegotiations()
+### getActiveNegotiations() {#getactivenegotiations}
 
 > **getActiveNegotiations**(): `Map`\<`string`, [`INegotiationState`](../interfaces/INegotiationState.md)\>
 
@@ -105,7 +105,7 @@ Map of negotiationId to negotiation state.
 
 ***
 
-### removeNegotiation()
+### removeNegotiation() {#removenegotiation}
 
 > **removeNegotiation**(`negotiationId`): `void`
 
@@ -125,7 +125,7 @@ The negotiation ID to remove.
 
 ***
 
-### offer()
+### offer() {#offer}
 
 > **offer**(`negotiationId`, `offer`): `Promise`\<`boolean`\>
 
@@ -158,7 +158,7 @@ True if the offer was accepted, false otherwise.
 
 ***
 
-### agreement()
+### agreement() {#agreement}
 
 > **agreement**(`negotiationId`, `agreement`): `Promise`\<`boolean`\>
 
@@ -191,7 +191,7 @@ True if the agreement was accepted, false otherwise.
 
 ***
 
-### finalised()
+### finalised() {#finalised}
 
 > **finalised**(`negotiationId`): `Promise`\<`void`\>
 
@@ -218,7 +218,7 @@ Nothing.
 
 ***
 
-### terminated()
+### terminated() {#terminated}
 
 > **terminated**(`negotiationId`): `Promise`\<`void`\>
 

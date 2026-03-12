@@ -14,7 +14,7 @@ Activity Task entity linking activity log entries to their background tasks.
 
 ## Properties
 
-### activityLogEntryId
+### activityLogEntryId {#activitylogentryid}
 
 > **activityLogEntryId**: `string`
 
@@ -22,7 +22,7 @@ The entry Id.
 
 ***
 
-### associatedTasks
+### associatedTasks {#associatedtasks}
 
 > **associatedTasks**: `ITaskApp`[]
 

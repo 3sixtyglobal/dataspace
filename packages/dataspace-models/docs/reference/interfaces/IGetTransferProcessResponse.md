@@ -4,7 +4,7 @@ API response for getting a transfer process state.
 
 ## Properties
 
-### body
+### body {#body}
 
 > **body**: `IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`
 
@@ -12,7 +12,7 @@ Transfer Process (DSP compliant) with current state, or error.
 
 ***
 
-### statusCode?
+### statusCode? {#statuscode}
 
 > `optional` **statusCode**: `HttpStatusCode`
 

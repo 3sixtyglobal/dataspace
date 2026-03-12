@@ -16,7 +16,7 @@ accessible via ComponentFactory.get() for local, in-process service access.
 
 ## Methods
 
-### resolveConsumerPid()
+### resolveConsumerPid() {#resolveconsumerpid}
 
 > **resolveConsumerPid**(`consumerPid`, `trustPayload`): `Promise`\<[`ITransferContext`](ITransferContext.md)\>
 
@@ -64,7 +64,7 @@ GeneralError if Transfer Process is terminated or Agreement lookup fails.
 
 ***
 
-### resolveProviderPid()
+### resolveProviderPid() {#resolveproviderpid}
 
 > **resolveProviderPid**(`providerPid`, `trustPayload`): `Promise`\<[`ITransferContext`](ITransferContext.md)\>
 

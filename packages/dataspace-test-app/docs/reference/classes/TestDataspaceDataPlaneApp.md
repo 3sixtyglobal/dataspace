@@ -28,7 +28,7 @@ The constructor options.
 
 ## Properties
 
-### APP\_ID
+### APP\_ID {#app_id}
 
 > `readonly` `static` **APP\_ID**: `"https://twin.example.org/app1"` = `"https://twin.example.org/app1"`
 
@@ -36,7 +36,7 @@ App Name.
 
 ***
 
-### CLASS\_NAME
+### CLASS\_NAME {#class_name}
 
 > `readonly` `static` **CLASS\_NAME**: `string`
 
@@ -44,7 +44,7 @@ Runtime name for the class.
 
 ## Methods
 
-### className()
+### className() {#classname}
 
 > **className**(): `string`
 
@@ -62,7 +62,7 @@ The class name of the component.
 
 ***
 
-### datasetsHandled()
+### datasetsHandled() {#datasetshandled}
 
 > **datasetsHandled**(): `Promise`\<`IDataspaceProtocolDataset`[]\>
 
@@ -80,7 +80,7 @@ Dataspace Protocol compliant datasets
 
 ***
 
-### supportedQueryTypes()
+### supportedQueryTypes() {#supportedquerytypes}
 
 > **supportedQueryTypes**(): `string`[]
 
@@ -98,7 +98,7 @@ Types.
 
 ***
 
-### start()
+### start() {#start}
 
 > **start**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
 
@@ -122,7 +122,7 @@ the logging component type of such a node.
 
 ***
 
-### activitiesHandled()
+### activitiesHandled() {#activitieshandled}
 
 > **activitiesHandled**(): `IActivityQuery`[]
 
@@ -140,7 +140,7 @@ The activities handled by the App.
 
 ***
 
-### handleActivity()
+### handleActivity() {#handleactivity}
 
 > **handleActivity**\<`T`\>(`activity`): `Promise`\<`T`\>
 
@@ -172,7 +172,7 @@ Activity processing result
 
 ***
 
-### handleDataRequest()
+### handleDataRequest() {#handledatarequest}
 
 > **handleDataRequest**(`dataRequest`, `cursor?`, `limit?`): `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
 

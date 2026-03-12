@@ -16,7 +16,7 @@ DSP 2025-1 Specification: https://eclipse-dataspace-protocol-base.github.io/Data
 
 ## Methods
 
-### registerNegotiationCallback()
+### registerNegotiationCallback() {#registernegotiationcallback}
 
 > **registerNegotiationCallback**(`key`, `callback`): `void`
 
@@ -44,7 +44,7 @@ The callback interface to register.
 
 ***
 
-### unregisterNegotiationCallback()
+### unregisterNegotiationCallback() {#unregisternegotiationcallback}
 
 > **unregisterNegotiationCallback**(`key`): `void`
 
@@ -64,7 +64,7 @@ The key used when registering the callback.
 
 ***
 
-### negotiateAgreement()
+### negotiateAgreement() {#negotiateagreement}
 
 > **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
@@ -119,7 +119,7 @@ The negotiation ID for tracking. Use registered callback for completion.
 
 ***
 
-### getNegotiation()
+### getNegotiation() {#getnegotiation}
 
 > **getNegotiation**(`negotiationId`, `trustPayload`): `Promise`\<`IDataspaceProtocolContractNegotiation` \| `IDataspaceProtocolContractNegotiationError`\>
 
@@ -154,7 +154,7 @@ DSP ContractNegotiation with current state, or error.
 
 ***
 
-### getNegotiationHistory()
+### getNegotiationHistory() {#getnegotiationhistory}
 
 > **getNegotiationHistory**(`state`, `cursor`, `trustPayload`): `Promise`\<\{ `negotiations`: `object`[]; `cursor?`: `string`; `count`: `number`; \}\>
 
@@ -192,7 +192,7 @@ List of negotiation history entries with pagination cursor.
 
 ***
 
-### requestTransfer()
+### requestTransfer() {#requesttransfer}
 
 > **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -229,7 +229,7 @@ both consumerPid and providerPid, or TransferError if the operation fails.
 
 ***
 
-### startTransfer()
+### startTransfer() {#starttransfer}
 
 > **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
@@ -269,7 +269,7 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or T
 
 ***
 
-### completeTransfer()
+### completeTransfer() {#completetransfer}
 
 > **completeTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -303,7 +303,7 @@ Transfer Process (DSP compliant) with state COMPLETED, or TransferError if the o
 
 ***
 
-### suspendTransfer()
+### suspendTransfer() {#suspendtransfer}
 
 > **suspendTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -337,7 +337,7 @@ Transfer Process (DSP compliant) with state SUSPENDED, or TransferError if the o
 
 ***
 
-### terminateTransfer()
+### terminateTransfer() {#terminatetransfer}
 
 > **terminateTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -371,7 +371,7 @@ Transfer Process (DSP compliant) with state TERMINATED, or TransferError if the 
 
 ***
 
-### getTransferProcess()
+### getTransferProcess() {#gettransferprocess}
 
 > **getTransferProcess**(`pid`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 

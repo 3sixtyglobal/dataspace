@@ -5,7 +5,7 @@ Pagination is handled via HTTP Link headers.
 
 ## Properties
 
-### @context
+### @context {#context}
 
 > **@context**: `"https://schema.org"`
 
@@ -13,7 +13,7 @@ The LD Context.
 
 ***
 
-### type
+### type {#type}
 
 > **type**: `"ItemList"`
 
@@ -21,7 +21,7 @@ The type
 
 ***
 
-### itemListElement
+### itemListElement {#itemlistelement}
 
 > **itemListElement**: `IJsonLdNodeObject`[]
 

@@ -4,7 +4,7 @@ Get Request for an Activity Log Entry.
 
 ## Properties
 
-### pathParams
+### pathParams {#pathparams}
 
 > **pathParams**: `object`
 

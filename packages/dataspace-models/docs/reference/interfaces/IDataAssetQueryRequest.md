@@ -4,7 +4,7 @@ Request to query data asset entities.
 
 ## Properties
 
-### headers?
+### headers? {#headers}
 
 > `optional` **headers**: `object`
 
@@ -16,7 +16,7 @@ The headers which can be used to determine the response data type.
 
 ***
 
-### body
+### body {#body}
 
 > **body**: `object`
 
@@ -38,7 +38,7 @@ The filtering query.
 
 ***
 
-### query?
+### query? {#query}
 
 > `optional` **query**: `object`
 

@@ -7,7 +7,7 @@ to be notified when PNP callbacks fire.
 
 ## Methods
 
-### onStateChanged()
+### onStateChanged() {#onstatechanged}
 
 > **onStateChanged**(`negotiationId`, `state`, `data?`): `Promise`\<`void`\>
 
@@ -51,7 +51,7 @@ Nothing.
 
 ***
 
-### onCompleted()
+### onCompleted() {#oncompleted}
 
 > **onCompleted**(`negotiationId`, `agreementId`): `Promise`\<`void`\>
 
@@ -79,7 +79,7 @@ Nothing.
 
 ***
 
-### onFailed()
+### onFailed() {#onfailed}
 
 > **onFailed**(`negotiationId`, `reason`): `Promise`\<`void`\>
 

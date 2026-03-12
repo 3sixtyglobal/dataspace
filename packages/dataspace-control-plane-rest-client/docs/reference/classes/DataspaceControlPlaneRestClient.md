@@ -37,7 +37,7 @@ The configuration for the client.
 
 ## Properties
 
-### CLASS\_NAME
+### CLASS\_NAME {#class_name}
 
 > `readonly` `static` **CLASS\_NAME**: `string`
 
@@ -45,7 +45,7 @@ Runtime name for the class.
 
 ## Methods
 
-### className()
+### className() {#classname}
 
 > **className**(): `string`
 
@@ -63,7 +63,7 @@ The class name of the component.
 
 ***
 
-### requestTransfer()
+### requestTransfer() {#requesttransfer}
 
 > **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -95,7 +95,7 @@ Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the o
 
 ***
 
-### startTransfer()
+### startTransfer() {#starttransfer}
 
 > **startTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
@@ -127,7 +127,7 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or T
 
 ***
 
-### completeTransfer()
+### completeTransfer() {#completetransfer}
 
 > **completeTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -159,7 +159,7 @@ Transfer Process (DSP compliant) with state COMPLETED, or TransferError if the o
 
 ***
 
-### suspendTransfer()
+### suspendTransfer() {#suspendtransfer}
 
 > **suspendTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -191,7 +191,7 @@ Transfer Process (DSP compliant) with state SUSPENDED, or TransferError if the o
 
 ***
 
-### terminateTransfer()
+### terminateTransfer() {#terminatetransfer}
 
 > **terminateTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
@@ -223,7 +223,7 @@ Transfer Process (DSP compliant) with state TERMINATED, or TransferError if the 
 
 ***
 
-### getTransferProcess()
+### getTransferProcess() {#gettransferprocess}
 
 > **getTransferProcess**(`pid`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 

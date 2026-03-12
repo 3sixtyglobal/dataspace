@@ -4,7 +4,7 @@ A query over a data asset that to be processed by a Dataspace Data Plane App.
 
 ## Properties
 
-### type
+### type {#type}
 
 > **type**: `string`
 
@@ -12,7 +12,7 @@ The query type.
 
 ***
 
-### q
+### q {#q}
 
 > **q**: `unknown`
 
@@ -20,7 +20,7 @@ The representation of the query.
 
 ***
 
-### jsonLdContext?
+### jsonLdContext? {#jsonldcontext}
 
 > `optional` **jsonLdContext**: `IJsonLdContextDefinitionElement`[]
 

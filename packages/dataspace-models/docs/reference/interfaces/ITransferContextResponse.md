@@ -6,7 +6,7 @@ used by dataspace-control-plane to resolve consumerPid to datasetId and policies
 
 ## Properties
 
-### body
+### body {#body}
 
 > **body**: [`ITransferContext`](ITransferContext.md)
 

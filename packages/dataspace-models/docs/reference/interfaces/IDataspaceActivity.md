@@ -18,7 +18,7 @@ A dataspace activity that restricts an activity so that it can be handled by a D
 
 ## Properties
 
-### object
+### object {#object}
 
 > **object**: `ObjectOrArray`\<`JsonLdObjectWithContext`\<`O` & `object`\>\>
 
@@ -26,7 +26,7 @@ Activity's Object
 
 ***
 
-### target?
+### target? {#target}
 
 > `optional` **target**: `JsonLdObjectWithContext`\<`T` & `object`\>
 

@@ -4,7 +4,7 @@ Denotes a task associated with an Activity
 
 ## Properties
 
-### activityLogEntryId
+### activityLogEntryId {#activitylogentryid}
 
 > **activityLogEntryId**: `string`
 
@@ -12,7 +12,7 @@ The activity log entry.
 
 ***
 
-### associatedTasks
+### associatedTasks {#associatedtasks}
 
 > **associatedTasks**: [`ITaskApp`](ITaskApp.md)[]
 

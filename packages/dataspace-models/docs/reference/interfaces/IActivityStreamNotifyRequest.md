@@ -4,7 +4,7 @@ Activity Stream Notify Request.
 
 ## Properties
 
-### body
+### body {#body}
 
 > **body**: `IActivityStreamsActivity`
 

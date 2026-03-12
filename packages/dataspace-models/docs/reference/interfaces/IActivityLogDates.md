@@ -4,7 +4,7 @@ Activity log dates.
 
 ## Properties
 
-### startDate
+### startDate {#startdate}
 
 > **startDate**: `string`
 
@@ -12,7 +12,7 @@ Task processing start timestamp
 
 ***
 
-### endDate?
+### endDate? {#enddate}
 
 > `optional` **endDate**: `string`
 

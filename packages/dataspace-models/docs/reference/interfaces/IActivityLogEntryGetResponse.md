@@ -4,7 +4,7 @@ Service Offering response
 
 ## Properties
 
-### body
+### body {#body}
 
 > **body**: [`IActivityLogEntry`](IActivityLogEntry.md)
 

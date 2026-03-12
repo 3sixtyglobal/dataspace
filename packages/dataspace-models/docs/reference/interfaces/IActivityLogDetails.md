@@ -8,7 +8,7 @@ The details related to the processing of an Activity
 
 ## Properties
 
-### id
+### id {#id}
 
 > **id**: `string`
 
@@ -16,7 +16,7 @@ The Id of the Activity Log entry.
 
 ***
 
-### activityId?
+### activityId? {#activityid}
 
 > `optional` **activityId**: `string`
 
@@ -24,7 +24,7 @@ The activity Id that this entry refers to.
 
 ***
 
-### generator
+### generator {#generator}
 
 > **generator**: `string`
 
@@ -32,7 +32,7 @@ The identity of the Activity's generator.
 
 ***
 
-### dateCreated
+### dateCreated {#datecreated}
 
 > **dateCreated**: `string`
 
@@ -40,7 +40,7 @@ The creation date of this object.
 
 ***
 
-### dateModified
+### dateModified {#datemodified}
 
 > **dateModified**: `string`
 
@@ -48,7 +48,7 @@ The last update date of this object.
 
 ***
 
-### retryCount?
+### retryCount? {#retrycount}
 
 > `optional` **retryCount**: `number`
 

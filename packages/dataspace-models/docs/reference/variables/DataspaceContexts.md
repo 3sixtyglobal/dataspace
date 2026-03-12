@@ -6,7 +6,7 @@ The contexts related to Dataspace
 
 ## Type Declaration
 
-### JsonSchemaNamespace
+### JsonSchemaNamespace {#jsonschemanamespace}
 
 > `readonly` **JsonSchemaNamespace**: `"https://schema.twindev.org/dataspace/"` = `"https://schema.twindev.org/dataspace/"`
 

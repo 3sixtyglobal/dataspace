@@ -4,7 +4,7 @@ Negotiation state tracked internally for callback routing.
 
 ## Properties
 
-### negotiationId
+### negotiationId {#negotiationid}
 
 > **negotiationId**: `string`
 
@@ -12,7 +12,7 @@ The negotiation ID (self-reference for lookup).
 
 ***
 
-### state
+### state {#state}
 
 > **state**: `DataspaceProtocolContractNegotiationStateType`
 
@@ -20,7 +20,7 @@ Current negotiation state.
 
 ***
 
-### agreement?
+### agreement? {#agreement}
 
 > `optional` **agreement**: `IDataspaceProtocolAgreement`
 
@@ -28,7 +28,7 @@ Agreement received from provider (stored until finalized).
 
 ***
 
-### startedAt
+### startedAt {#startedat}
 
 > **startedAt**: `number`
 
@@ -36,7 +36,7 @@ Timestamp when negotiation started.
 
 ***
 
-### updatedAt
+### updatedAt {#updatedat}
 
 > **updatedAt**: `number`
 
