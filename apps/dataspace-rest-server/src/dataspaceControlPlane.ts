@@ -127,6 +127,9 @@ export function initialiseDataspaceControlPlaneComponent(
 						),
 						policyAdministrationPointComponentType: engineCore.getRegisteredInstanceType(
 							"rightsManagementPapComponent"
+						),
+						policyNegotiationPointComponentType: engineCore.getRegisteredInstanceType(
+							"rightsManagementPnpComponent"
 						)
 					},
 					createConfig.options
