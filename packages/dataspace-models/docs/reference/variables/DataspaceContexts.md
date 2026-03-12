@@ -9,3 +9,5 @@ The contexts related to Dataspace
 ### JsonSchemaNamespace
 
 > `readonly` **JsonSchemaNamespace**: `"https://schema.twindev.org/dataspace/"` = `"https://schema.twindev.org/dataspace/"`
+
+The namespace location of the hosted version of the JSON Schema.

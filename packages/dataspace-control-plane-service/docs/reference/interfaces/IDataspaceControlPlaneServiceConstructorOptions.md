@@ -11,12 +11,6 @@ Dataspace Control Plane service constructor options.
 Policy Administration Point component type.
 Used for Agreement lookup and validation during Transfer Process initiation.
 
-#### Default
-
-```ts
-policy-administration-point
-```
-
 ***
 
 ### policyNegotiationPointComponentType?
@@ -25,12 +19,6 @@ policy-administration-point
 
 Policy Negotiation Point component type.
 Used for contract negotiation to create agreements before transfer processes.
-
-#### Default
-
-```ts
-policy-negotiation-point
-```
 
 ***
 
@@ -42,12 +30,6 @@ Policy Negotiation Admin Point component type.
 Used for querying negotiation history.
 Optional - if not provided, negotiation history will not be available.
 
-#### Default
-
-```ts
-policy-negotiation-admin-point
-```
-
 ***
 
 ### federatedCatalogueComponentType?
@@ -58,12 +40,6 @@ Federated Catalogue component type.
 Used for dataset validation during Transfer Process initiation.
 Validates that Agreements reference valid catalog datasets.
 
-#### Default
-
-```ts
-federated-catalogue
-```
-
 ***
 
 ### loggingComponentType?
@@ -71,12 +47,6 @@ federated-catalogue
 > `optional` **loggingComponentType**: `string`
 
 Logging component type.
-
-#### Default
-
-```ts
-logging
-```
 
 ***
 
@@ -86,12 +56,6 @@ logging
 
 Identity component type (for token signing/verification).
 
-#### Default
-
-```ts
-identity
-```
-
 ***
 
 ### identityAuthenticationComponentType?
@@ -99,12 +63,6 @@ identity
 > `optional` **identityAuthenticationComponentType**: `string`
 
 Identity Authentication component type (for token validation).
-
-#### Default
-
-```ts
-identity-authentication
-```
 
 ***
 
@@ -114,12 +72,6 @@ identity-authentication
 
 Trust component type for trust verification.
 Used to verify JWT/VC tokens and extract identity information.
-
-#### Default
-
-```ts
-trust
-```
 
 ***
 
@@ -131,12 +83,6 @@ Entity storage type for Transfer Process entities.
 Used to persist transfer state for the consumerPid flow.
 Must match the Data Plane's transferProcessEntityStorageType for shared storage.
 
-#### Default
-
-```ts
-transfer-process
-```
-
 ***
 
 ### taskSchedulerComponentType?
@@ -144,12 +90,6 @@ transfer-process
 > `optional` **taskSchedulerComponentType**: `string`
 
 Task scheduler component type for periodic cleanup of stalled negotiations.
-
-#### Default
-
-```ts
-task-scheduler
-```
 
 ***
 

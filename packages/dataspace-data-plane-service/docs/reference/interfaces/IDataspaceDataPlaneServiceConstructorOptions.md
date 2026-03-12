@@ -10,12 +10,6 @@ Dataspace Data Plane service options
 
 Logging component type.
 
-#### Default
-
-```ts
-logging
-```
-
 ***
 
 ### backgroundTaskComponentType?
@@ -23,12 +17,6 @@ logging
 > `optional` **backgroundTaskComponentType**: `string`
 
 Background task component.
-
-#### Default
-
-```ts
-background-task
-```
 
 ***
 
@@ -38,12 +26,6 @@ background-task
 
 Task Scheduler Component Type.
 
-#### Default
-
-```ts
-task-scheduler
-```
-
 ***
 
 ### activityLogEntityStorageType?
@@ -51,12 +33,6 @@ task-scheduler
 > `optional` **activityLogEntityStorageType**: `string`
 
 The entity storage for activity log details.
-
-#### Default
-
-```ts
-activity-log-details
-```
 
 ***
 
@@ -66,12 +42,6 @@ activity-log-details
 
 The entity storage for the association between Activities and Tasks.
 
-#### Default
-
-```ts
-activity-task
-```
-
 ***
 
 ### transferProcessEntityStorageType?
@@ -80,12 +50,6 @@ activity-task
 
 The entity storage type for Transfer Process entities.
 Used to read Transfer Process state from shared storage.
-
-#### Default
-
-```ts
-transfer-process
-```
 
 ***
 
@@ -103,12 +67,6 @@ The keys to use from the context ids to cleanup partitions.
 
 Trust component type.
 
-#### Default
-
-```ts
-trust
-```
-
 ***
 
 ### pepComponentType?
@@ -116,12 +74,6 @@ trust
 > `optional` **pepComponentType**: `string`
 
 Policy enforcement point component type for ODRL policy enforcement.
-
-#### Default
-
-```ts
-policy-enforcement-point-service
-```
 
 ***
 

@@ -9,9 +9,3 @@ Test App Constructor options.
 > `optional` **loggingComponentType**: `string`
 
 Logging component type.
-
-#### Default
-
-```ts
-logging
-```
