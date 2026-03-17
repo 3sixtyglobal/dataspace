@@ -149,26 +149,22 @@ export class MockPolicyNegotiationPointComponent implements IPolicyNegotiationPo
 		state: DataspaceProtocolContractNegotiationStateType.OFFERED
 	})) as unknown as (
 		message: IDataspaceProtocolContractOfferMessage,
-		publicOrigin: string,
 		trustPayload: unknown
 	) => Promise<IDataspaceProtocolContractNegotiation | IDataspaceProtocolContractNegotiationError>;
 
 	public agreementFromProvider = vi.fn(async () => undefined) as unknown as (
 		message: IDataspaceProtocolContractAgreementMessage,
-		publicOrigin: string,
 		trustPayload: unknown
 	) => Promise<IDataspaceProtocolContractNegotiationError | undefined>;
 
 	public agreementVerificationFromConsumer = vi.fn(async () => undefined) as unknown as (
 		message: IDataspaceProtocolContractAgreementVerificationMessage,
-		publicOrigin: string,
 		trustPayload: unknown
 	) => Promise<IDataspaceProtocolContractNegotiationError | undefined>;
 
 	public event = vi.fn(async () => undefined) as unknown as (
 		message: IDataspaceProtocolContractNegotiationEventMessage,
 		destination: "provider" | "consumer",
-		publicOrigin: string,
 		trustPayload: unknown
 	) => Promise<IDataspaceProtocolContractNegotiationError | undefined>;
 
