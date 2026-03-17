@@ -8,22 +8,27 @@ import type {
 } from "@twin.org/api-models";
 import { ComponentFactory, Guards } from "@twin.org/core";
 import type {
-	IDataspaceControlPlaneComponent,
-	IRequestTransferRequest,
-	IRequestTransferResponse,
-	IGetTransferProcessRequest,
-	IGetTransferProcessResponse,
-	IStartTransferRequest,
-	IStartTransferResponse,
 	ICompleteTransferRequest,
 	ICompleteTransferResponse,
+	IDataspaceControlPlaneComponent,
+	IGetTransferProcessRequest,
+	IGetTransferProcessResponse,
+	IRequestTransferRequest,
+	IRequestTransferResponse,
+	IStartTransferRequest,
+	IStartTransferResponse,
 	ISuspendTransferRequest,
 	ISuspendTransferResponse,
 	ITerminateTransferRequest,
 	ITerminateTransferResponse
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
-import { HeaderHelper, HeaderTypes } from "@twin.org/web";
+import {
+	DataspaceProtocolContexts,
+	DataspaceProtocolTransferProcessStateType,
+	DataspaceProtocolTransferProcessTypes
+} from "@twin.org/standards-dataspace-protocol";
+import { HeaderHelper, HeaderTypes, MimeTypes } from "@twin.org/web";
 import { transformErrorToStatusCode } from "./utils/transferErrorUtils.js";
 
 /**
@@ -42,6 +47,39 @@ export const tagsDataspaceControlPlane: ITag[] = [
 	}
 ];
 
+// Example objects for API documentation
+const requestTransferExample = {
+	"@context": DataspaceProtocolContexts.Context,
+	"@type": DataspaceProtocolTransferProcessTypes.TransferRequestMessage,
+	processId: "urn:uuid:consumer-process-12345",
+	consumerPid: "urn:uuid:consumer-process-12345",
+	providerPid: "urn:uuid:provider-process-12345",
+	agreementId: "urn:uuid:agreement-12345",
+	dataAddress: {
+		"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+		"@id": "https://provider.example.com/data",
+		endpointType: "https://w3id.org/dspace/v1/HttpDataAddress",
+		baseUrl: "https://provider.example.com/data"
+	},
+	callbackAddress: "https://consumer.example.com/transfer/webhook",
+	format: "urn:example:format"
+};
+
+const transferProcessExample = {
+	"@context": DataspaceProtocolContexts.Context,
+	"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
+	processId: "urn:uuid:provider-process-12345",
+	consumerPid: "urn:uuid:consumer-process-12345",
+	providerPid: "urn:uuid:provider-process-12345",
+	state: DataspaceProtocolTransferProcessStateType.STARTED,
+	dataAddress: {
+		"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+		"@id": "https://provider.example.com/data/transfer-12345",
+		endpointType: "https://w3id.org/dspace/v1/HttpDataAddress",
+		baseUrl: "https://provider.example.com/data/transfer-12345"
+	}
+};
+
 /**
  * The REST routes for dataspace control plane (DSP Protocol only).
  * These routes implement the Eclipse Dataspace Protocol Transfer Process Protocol.
@@ -57,14 +95,12 @@ export function generateRestRoutesDataspaceControlPlane(
 	baseRouteName: string,
 	componentName: string
 ): IRestRoute[] {
-	const routes: IRestRoute[] = [];
-
 	// ============================================================================
 	// TRANSFER PROCESS PROTOCOL (DSP)
 	// ============================================================================
 
 	// POST /transfers/request - Request Transfer Process (DSP)
-	routes.push({
+	const requestTransferRoute: IRestRoute<IRequestTransferRequest, IRequestTransferResponse> = {
 		operationId: "requestTransfer",
 		summary: "Request Transfer Process (DSP)",
 		tag: tagsDataspaceControlPlane[0].name,
@@ -72,11 +108,42 @@ export function generateRestRoutesDataspaceControlPlane(
 		path: `${baseRouteName}/transfers/request`,
 		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
-			requestTransferHandler(httpRequestContext, componentName, request)
-	});
+			requestTransferHandler(httpRequestContext, componentName, request),
+		requestType: {
+			mimeType: MimeTypes.JsonLd,
+			type: nameof<IRequestTransferRequest>(),
+			examples: [
+				{
+					id: "requestTransferRequestExample",
+					request: {
+						headers: {
+							[HeaderTypes.Authorization]: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+						},
+						body: requestTransferExample
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<IRequestTransferResponse>(),
+				examples: [
+					{
+						id: "requestTransferResponseExample",
+						response: {
+							body: transferProcessExample
+						}
+					}
+				]
+			}
+		]
+	};
 
 	// GET /transfers/:pid - Get Transfer Process state (DSP)
-	routes.push({
+	const getTransferProcessRoute: IRestRoute<
+		IGetTransferProcessRequest,
+		IGetTransferProcessResponse
+	> = {
 		operationId: "getTransferProcess",
 		summary: "Get Transfer Process state (DSP)",
 		tag: tagsDataspaceControlPlane[0].name,
@@ -84,11 +151,40 @@ export function generateRestRoutesDataspaceControlPlane(
 		path: `${baseRouteName}/transfers/:pid`,
 		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
-			getTransferProcessHandler(httpRequestContext, componentName, request)
-	});
+			getTransferProcessHandler(httpRequestContext, componentName, request),
+		requestType: {
+			type: nameof<IGetTransferProcessRequest>(),
+			examples: [
+				{
+					id: "getTransferProcessRequestExample",
+					request: {
+						headers: {
+							authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+						},
+						pathParams: {
+							pid: "urn:uuid:provider-process-12345"
+						}
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<IGetTransferProcessResponse>(),
+				examples: [
+					{
+						id: "getTransferProcessResponseExample",
+						response: {
+							body: transferProcessExample
+						}
+					}
+				]
+			}
+		]
+	};
 
 	// POST /transfers/:pid/start - Start Transfer Process (DSP)
-	routes.push({
+	const startTransferRoute: IRestRoute<IStartTransferRequest, IStartTransferResponse> = {
 		operationId: "startTransfer",
 		summary: "Start Transfer Process (DSP)",
 		tag: tagsDataspaceControlPlane[0].name,
@@ -96,11 +192,52 @@ export function generateRestRoutesDataspaceControlPlane(
 		path: `${baseRouteName}/transfers/:pid/start`,
 		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
-			startTransferHandler(httpRequestContext, componentName, request)
-	});
+			startTransferHandler(httpRequestContext, componentName, request),
+		requestType: {
+			mimeType: MimeTypes.JsonLd,
+			type: nameof<IStartTransferRequest>(),
+			examples: [
+				{
+					id: "startTransferRequestExample",
+					request: {
+						headers: {
+							[HeaderTypes.Authorization]: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+						},
+						pathParams: {
+							pid: "urn:uuid:consumer-process-12345"
+						},
+						body: {
+							"@context": DataspaceProtocolContexts.Context,
+							"@type": "TransferStartMessage",
+							consumerPid: "urn:uuid:consumer-process-12345",
+							providerPid: "urn:uuid:provider-process-12345"
+						}
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<IStartTransferResponse>(),
+				examples: [
+					{
+						id: "startTransferResponseExample",
+						response: {
+							body: {
+								"@context": DataspaceProtocolContexts.Context,
+								"@type": DataspaceProtocolTransferProcessTypes.TransferStartMessage,
+								consumerPid: "urn:uuid:consumer-process-12345",
+								providerPid: "urn:uuid:provider-process-12345"
+							}
+						}
+					}
+				]
+			}
+		]
+	};
 
 	// POST /transfers/:pid/complete - Complete Transfer Process (DSP)
-	routes.push({
+	const completeTransferRoute: IRestRoute<ICompleteTransferRequest, ICompleteTransferResponse> = {
 		operationId: "completeTransfer",
 		summary: "Complete Transfer Process (DSP)",
 		tag: tagsDataspaceControlPlane[0].name,
@@ -108,11 +245,50 @@ export function generateRestRoutesDataspaceControlPlane(
 		path: `${baseRouteName}/transfers/:pid/complete`,
 		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
-			completeTransferHandler(httpRequestContext, componentName, request)
-	});
+			completeTransferHandler(httpRequestContext, componentName, request),
+		requestType: {
+			mimeType: MimeTypes.JsonLd,
+			type: nameof<ICompleteTransferRequest>(),
+			examples: [
+				{
+					id: "completeTransferRequestExample",
+					request: {
+						headers: {
+							[HeaderTypes.Authorization]: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+						},
+						pathParams: {
+							pid: "urn:uuid:consumer-process-12345"
+						},
+						body: {
+							"@context": DataspaceProtocolContexts.Context,
+							"@type": "TransferCompletionMessage",
+							consumerPid: "urn:uuid:consumer-process-12345",
+							providerPid: "urn:uuid:provider-process-12345"
+						}
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<ICompleteTransferResponse>(),
+				examples: [
+					{
+						id: "completeTransferResponseExample",
+						response: {
+							body: {
+								...transferProcessExample,
+								state: DataspaceProtocolTransferProcessStateType.COMPLETED
+							}
+						}
+					}
+				]
+			}
+		]
+	};
 
 	// POST /transfers/:pid/suspend - Suspend Transfer Process (DSP)
-	routes.push({
+	const suspendTransferRoute: IRestRoute<ISuspendTransferRequest, ISuspendTransferResponse> = {
 		operationId: "suspendTransfer",
 		summary: "Suspend Transfer Process (DSP)",
 		tag: tagsDataspaceControlPlane[0].name,
@@ -120,22 +296,108 @@ export function generateRestRoutesDataspaceControlPlane(
 		path: `${baseRouteName}/transfers/:pid/suspend`,
 		skipAuth: true,
 		handler: async (httpRequestContext, request) =>
-			suspendTransferHandler(httpRequestContext, componentName, request)
-	});
+			suspendTransferHandler(httpRequestContext, componentName, request),
+		requestType: {
+			mimeType: MimeTypes.JsonLd,
+			type: nameof<ISuspendTransferRequest>(),
+			examples: [
+				{
+					id: "suspendTransferRequestExample",
+					request: {
+						headers: {
+							[HeaderTypes.Authorization]: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+						},
+						pathParams: {
+							pid: "urn:uuid:consumer-process-12345"
+						},
+						body: {
+							"@context": DataspaceProtocolContexts.Context,
+							"@type": "TransferSuspensionMessage",
+							consumerPid: "urn:uuid:consumer-process-12345",
+							providerPid: "urn:uuid:provider-process-12345"
+						}
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<ISuspendTransferResponse>(),
+				examples: [
+					{
+						id: "suspendTransferResponseExample",
+						response: {
+							body: {
+								...transferProcessExample,
+								state: DataspaceProtocolTransferProcessStateType.SUSPENDED
+							}
+						}
+					}
+				]
+			}
+		]
+	};
 
 	// POST /transfers/:pid/terminate - Terminate Transfer Process (DSP)
-	routes.push({
-		operationId: "terminateTransfer",
-		summary: "Terminate Transfer Process (DSP)",
-		tag: tagsDataspaceControlPlane[0].name,
-		method: "POST",
-		path: `${baseRouteName}/transfers/:pid/terminate`,
-		skipAuth: true,
-		handler: async (httpRequestContext, request) =>
-			terminateTransferHandler(httpRequestContext, componentName, request)
-	});
+	const terminateTransferRoute: IRestRoute<ITerminateTransferRequest, ITerminateTransferResponse> =
+		{
+			operationId: "terminateTransfer",
+			summary: "Terminate Transfer Process (DSP)",
+			tag: tagsDataspaceControlPlane[0].name,
+			method: "POST",
+			path: `${baseRouteName}/transfers/:pid/terminate`,
+			skipAuth: true,
+			handler: async (httpRequestContext, request) =>
+				terminateTransferHandler(httpRequestContext, componentName, request),
+			requestType: {
+				mimeType: MimeTypes.JsonLd,
+				type: nameof<ITerminateTransferRequest>(),
+				examples: [
+					{
+						id: "terminateTransferRequestExample",
+						request: {
+							headers: {
+								[HeaderTypes.Authorization]: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+							},
+							pathParams: {
+								pid: "urn:uuid:consumer-process-12345"
+							},
+							body: {
+								"@context": DataspaceProtocolContexts.Context,
+								"@type": "TransferTerminationMessage",
+								consumerPid: "urn:uuid:consumer-process-12345",
+								providerPid: "urn:uuid:provider-process-12345"
+							}
+						}
+					}
+				]
+			},
+			responseType: [
+				{
+					type: nameof<ITerminateTransferResponse>(),
+					examples: [
+						{
+							id: "terminateTransferResponseExample",
+							response: {
+								body: {
+									...transferProcessExample,
+									state: DataspaceProtocolTransferProcessStateType.TERMINATED
+								}
+							}
+						}
+					]
+				}
+			]
+		};
 
-	return routes;
+	return [
+		requestTransferRoute,
+		getTransferProcessRoute,
+		startTransferRoute,
+		completeTransferRoute,
+		suspendTransferRoute,
+		terminateTransferRoute
+	];
 }
 
 // ============================================================================

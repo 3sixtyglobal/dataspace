@@ -45,7 +45,8 @@
 		"transferspidterminate",
 		"twinfoundation",
 		"unece",
-		"Unrevoke"
+		"Unrevoke",
+		"XVCJ"
 	],
 	"ignoreRegExpList": [
 		"/from\\s+(['\"]).*\\1/",

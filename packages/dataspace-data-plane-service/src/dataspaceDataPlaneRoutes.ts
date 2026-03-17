@@ -2,15 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0.
 import {
 	HttpParameterHelper,
-	type IHostingComponent,
-	type IConflictResponse,
 	type ICreatedResponse,
-	type IForbiddenResponse,
+	type IHostingComponent,
 	type IHttpRequestContext,
-	type INotFoundResponse,
 	type IRestRoute,
 	type ITag,
-	type IUnauthorizedResponse,
 	type IUnprocessableEntityResponse
 } from "@twin.org/api-models";
 import { Coerce, ComponentFactory, Guards, Is } from "@twin.org/core";
@@ -126,7 +122,7 @@ export function generateRestRoutesDataspaceDataPlane(
 			type: nameof<IActivityStreamNotifyRequest>(),
 			examples: [
 				{
-					id: "activityStreamNotifyExample",
+					id: "activityStreamNotifyRequestExample",
 					request: {
 						body: activityExample
 					}
@@ -143,7 +139,7 @@ export function generateRestRoutesDataspaceDataPlane(
 
 	const getActivityLogEntryRoute: IRestRoute<
 		IActivityLogEntryGetRequest,
-		IActivityLogEntryGetResponse | INotFoundResponse
+		IActivityLogEntryGetResponse
 	> = {
 		operationId: "dataspaceDataPlaneGetActivityLogEntry",
 		summary: "Get a Activity Log Entry",
@@ -156,7 +152,7 @@ export function generateRestRoutesDataspaceDataPlane(
 			type: nameof<IActivityLogEntryGetRequest>(),
 			examples: [
 				{
-					id: "activityLogEntryGet",
+					id: "activityLogEntryGetRequestExample",
 					request: {
 						pathParams: {
 							id: "urn:x-activity-log:1234567"
@@ -170,7 +166,7 @@ export function generateRestRoutesDataspaceDataPlane(
 				type: nameof<IActivityLogEntryGetResponse>(),
 				examples: [
 					{
-						id: "activityLogEntryResponseExample",
+						id: "activityLogEntryGetResponseExample",
 						response: {
 							body: { ...activityLogEntryExample }
 						}
@@ -182,11 +178,7 @@ export function generateRestRoutesDataspaceDataPlane(
 
 	const getDataAssetEntitiesRoute: IRestRoute<
 		IDataAssetGetEntitiesRequest,
-		| IDataAssetEntitiesResponse
-		| INotFoundResponse
-		| IConflictResponse
-		| IUnauthorizedResponse
-		| IForbiddenResponse
+		IDataAssetEntitiesResponse
 	> = {
 		operationId: "dataspaceDataPlaneGetDataAssetEntities",
 		summary: "Get Data Asset Entities",
@@ -199,7 +191,7 @@ export function generateRestRoutesDataspaceDataPlane(
 			type: nameof<IDataAssetGetEntitiesRequest>(),
 			examples: [
 				{
-					id: "dataAssetEntitiesGet",
+					id: "dataAssetEntitiesGetRequestExample",
 					request: {
 						query: {
 							consumerPid: "urn:uuid:consumer-pid-12345",
@@ -226,14 +218,7 @@ export function generateRestRoutesDataspaceDataPlane(
 		skipAuth: true
 	};
 
-	const queryDataAssetRoute: IRestRoute<
-		IDataAssetQueryRequest,
-		| IDataAssetEntitiesResponse
-		| INotFoundResponse
-		| IUnprocessableEntityResponse
-		| IUnauthorizedResponse
-		| IForbiddenResponse
-	> = {
+	const queryDataAssetRoute: IRestRoute<IDataAssetQueryRequest, IDataAssetEntitiesResponse> = {
 		operationId: "dataspaceDataPlaneQueryDataAsset",
 		summary: "Query Data Asset",
 		tag: tagsDataspaceDataPlane[0].name,
@@ -245,7 +230,7 @@ export function generateRestRoutesDataspaceDataPlane(
 			type: nameof<IDataAssetQueryRequest>(),
 			examples: [
 				{
-					id: "dataAssetQuery",
+					id: "dataAssetQueryRequestExample",
 					request: {
 						body: {
 							consumerPid: "urn:uuid:consumer-pid-12345",
@@ -263,7 +248,7 @@ export function generateRestRoutesDataspaceDataPlane(
 				type: nameof<IDataAssetEntitiesResponse>(),
 				examples: [
 					{
-						id: "dataAssetEntitiesGetResponseExample",
+						id: "dataAssetQueryResponseExample",
 						response: {
 							body: { ...dataspaceDataPlaneQueryResultExample }
 						}
@@ -321,7 +306,7 @@ export async function activityLogEntryGet(
 	httpRequestContext: IHttpRequestContext,
 	factoryServiceName: string,
 	request: IActivityLogEntryGetRequest
-): Promise<IActivityLogEntryGetResponse | INotFoundResponse> {
+): Promise<IActivityLogEntryGetResponse> {
 	Guards.object<IActivityLogEntryGetRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object<IActivityLogEntryGetRequest["pathParams"]>(
 		ROUTES_SOURCE,
@@ -348,7 +333,7 @@ export async function getDataAssetEntities(
 	httpRequestContext: IHttpRequestContext,
 	factoryServiceName: string,
 	request: IDataAssetGetEntitiesRequest
-): Promise<IDataAssetEntitiesResponse | INotFoundResponse | IConflictResponse> {
+): Promise<IDataAssetEntitiesResponse> {
 	Guards.object<IDataAssetGetEntitiesRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object<IDataAssetGetEntitiesRequest["query"]>(
 		ROUTES_SOURCE,
@@ -404,7 +389,7 @@ export async function queryDataAsset(
 	httpRequestContext: IHttpRequestContext,
 	factoryServiceName: string,
 	request: IDataAssetQueryRequest
-): Promise<IDataAssetEntitiesResponse | INotFoundResponse | IUnprocessableEntityResponse> {
+): Promise<IDataAssetEntitiesResponse> {
 	Guards.object<IDataAssetQueryRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object<IDataAssetQueryRequest["body"]>(ROUTES_SOURCE, nameof(request.body), request.body);
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.body.consumerPid), request.body.consumerPid);
