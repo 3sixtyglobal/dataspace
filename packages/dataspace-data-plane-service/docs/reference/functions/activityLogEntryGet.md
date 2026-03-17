@@ -1,6 +1,6 @@
 # Function: activityLogEntryGet()
 
-> **activityLogEntryGet**(`httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`IActivityLogEntryGetResponse` \| `INotFoundResponse`\>
+> **activityLogEntryGet**(`httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`IActivityLogEntryGetResponse`\>
 
 Get an Activity Log entry.
 
@@ -26,6 +26,6 @@ The request.
 
 ## Returns
 
-`Promise`\<`IActivityLogEntryGetResponse` \| `INotFoundResponse`\>
+`Promise`\<`IActivityLogEntryGetResponse`\>
 
 The response object with additional http response properties.

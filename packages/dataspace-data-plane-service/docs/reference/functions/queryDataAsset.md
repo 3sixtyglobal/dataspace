@@ -1,6 +1,6 @@
 # Function: queryDataAsset()
 
-> **queryDataAsset**(`httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`IUnprocessableEntityResponse` \| `INotFoundResponse` \| `IDataAssetEntitiesResponse`\>
+> **queryDataAsset**(`httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`IDataAssetEntitiesResponse`\>
 
 Handles a request to query a data asset.
 
@@ -26,6 +26,6 @@ The request.
 
 ## Returns
 
-`Promise`\<`IUnprocessableEntityResponse` \| `INotFoundResponse` \| `IDataAssetEntitiesResponse`\>
+`Promise`\<`IDataAssetEntitiesResponse`\>
 
 Either the entities as JSON-LD or the corresponding error response.
