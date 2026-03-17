@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.0.3-next.21](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.20...dataspace-control-plane-service-v0.0.3-next.21) (2026-03-17)
+
+
+### Features
+
+* improve open-api examples ([1368dbe](https://github.com/twinfoundation/dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* improve open-api examples ([44f7350](https://github.com/twinfoundation/dataspace/commit/44f7350c625d8d6afdca88b292dd48ef03253412))
+
+
+### Bug Fixes
+
+* handle missing target in catalogue offers during policy derivation check ([#89](https://github.com/twinfoundation/dataspace/issues/89)) ([a0e0dbc](https://github.com/twinfoundation/dataspace/commit/a0e0dbc8d9111d5d1c43e905249825e5d8d62816))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.20 to 0.0.3-next.21
+
 ## [0.0.3-next.20](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.19...dataspace-control-plane-service-v0.0.3-next.20) (2026-03-17)
 
 

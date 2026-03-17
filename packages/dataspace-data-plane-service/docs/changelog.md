@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.3-next.21](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.20...dataspace-data-plane-service-v0.0.3-next.21) (2026-03-17)
+
+
+### Features
+
+* improve open-api examples ([1368dbe](https://github.com/twinfoundation/dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* improve open-api examples ([87f0ad2](https://github.com/twinfoundation/dataspace/commit/87f0ad2a1fb9fe6d9e946577327c110bdcfc3246))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.20 to 0.0.3-next.21
+    * @twin.org/dataspace-models bumped from 0.0.3-next.20 to 0.0.3-next.21
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.20 to 0.0.3-next.21
+
 ## [0.0.3-next.20](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.19...dataspace-data-plane-service-v0.0.3-next.20) (2026-03-17)
 
 

@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.21](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.20...dataspace-rest-server-v0.0.3-next.21) (2026-03-17)
+
+
+### Features
+
+* improve open-api examples ([1368dbe](https://github.com/twinfoundation/dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.20 to 0.0.3-next.21
+    * @twin.org/dataspace-data-plane-rest-client bumped from 0.0.3-next.20 to 0.0.3-next.21
+    * @twin.org/dataspace-data-plane-socket-client bumped from 0.0.3-next.20 to 0.0.3-next.21
+    * @twin.org/dataspace-data-plane-service bumped from 0.0.3-next.20 to 0.0.3-next.21
+    * @twin.org/dataspace-control-plane-service bumped from 0.0.3-next.20 to 0.0.3-next.21
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.20 to 0.0.3-next.21
+
 ## [0.0.3-next.20](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.19...dataspace-rest-server-v0.0.3-next.20) (2026-03-17)
 
 
