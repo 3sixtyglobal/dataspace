@@ -1,11 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IHttpRequestContext } from "@twin.org/api-models";
+import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
 	TaskSchedulerService,
 	initSchema as initSchemaTaskScheduler
 } from "@twin.org/background-task-scheduler";
-import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
 	BackgroundTaskService,
 	initSchema as initSchemaBackgroundTask,
@@ -17,12 +17,11 @@ import type { JsonLdObjectWithContext } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
 	DataspaceAppFactory,
-	type IDataspaceActivity,
 	TransferProcess,
 	type IActivityLogDates,
 	type IActivityLogEntry,
-	type IDataAssetEntitiesResponse,
-	type IDataRequest
+	type IDataRequest,
+	type IDataspaceActivity
 } from "@twin.org/dataspace-models";
 import { TestDataspaceDataPlaneApp } from "@twin.org/dataspace-test-app";
 import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
