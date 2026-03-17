@@ -42,7 +42,7 @@
 								"$ref": "#/components/schemas/ActivityStreamsActivity"
 							},
 							"examples": {
-								"activityStreamNotifyExample": {
+								"activityStreamNotifyRequestExample": {
 									"value": {
 										"@context": "https://www.w3.org/ns/activitystreams",
 										"type": "Add",
@@ -177,7 +177,7 @@
 									"$ref": "#/components/schemas/ActivityLogEntry"
 								},
 								"examples": {
-									"activityLogEntryResponseExample": {
+									"activityLogEntryGetResponseExample": {
 										"value": {
 											"id": "urn:x-activity-log:134567",
 											"dateCreated": "2025-08-12T12:00:00Z",
@@ -447,7 +447,7 @@
 								"$ref": "#/components/schemas/DataAssetQueryRequest"
 							},
 							"examples": {
-								"dataAssetQuery": {
+								"dataAssetQueryRequestExample": {
 									"value": {
 										"consumerPid": "urn:uuid:consumer-pid-12345",
 										"query": {
@@ -469,7 +469,7 @@
 									"$ref": "#/components/schemas/DataAssetItemList"
 								},
 								"examples": {
-									"dataAssetEntitiesGetResponseExample": {
+									"dataAssetQueryResponseExample": {
 										"value": {
 											"@context": "https://schema.org",
 											"type": "ItemList",

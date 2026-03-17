@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.20](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.19...dataspace-rest-server-v0.0.3-next.20) (2026-03-17)
+
+
+### Bug Fixes
+
+* missing dependency control plane - server ([#85](https://github.com/twinfoundation/dataspace/issues/85)) ([0647637](https://github.com/twinfoundation/dataspace/commit/064763742d7f6586d274a2fa6392d798e66532f9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.19 to 0.0.3-next.20
+    * @twin.org/dataspace-data-plane-rest-client bumped from 0.0.3-next.19 to 0.0.3-next.20
+    * @twin.org/dataspace-data-plane-socket-client bumped from 0.0.3-next.19 to 0.0.3-next.20
+    * @twin.org/dataspace-data-plane-service bumped from 0.0.3-next.19 to 0.0.3-next.20
+    * @twin.org/dataspace-control-plane-service bumped from 0.0.3-next.19 to 0.0.3-next.20
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.19 to 0.0.3-next.20
+
 ## [0.0.3-next.19](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.18...dataspace-rest-server-v0.0.3-next.19) (2026-03-12)
 
 

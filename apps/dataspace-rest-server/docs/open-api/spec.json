@@ -513,7 +513,7 @@
 								"$ref": "#/components/schemas/ActivityStreamsActivity"
 							},
 							"examples": {
-								"activityStreamNotifyExample": {
+								"activityStreamNotifyRequestExample": {
 									"value": {
 										"@context": "https://www.w3.org/ns/activitystreams",
 										"type": "Add",
@@ -648,7 +648,7 @@
 									"$ref": "#/components/schemas/ActivityLogEntry"
 								},
 								"examples": {
-									"activityLogEntryResponseExample": {
+									"activityLogEntryGetResponseExample": {
 										"value": {
 											"id": "urn:x-activity-log:134567",
 											"dateCreated": "2025-08-12T12:00:00Z",
@@ -918,7 +918,7 @@
 								"$ref": "#/components/schemas/DataAssetQueryRequest"
 							},
 							"examples": {
-								"dataAssetQuery": {
+								"dataAssetQueryRequestExample": {
 									"value": {
 										"consumerPid": "urn:uuid:consumer-pid-12345",
 										"query": {
@@ -940,7 +940,7 @@
 									"$ref": "#/components/schemas/DataAssetItemList"
 								},
 								"examples": {
-									"dataAssetEntitiesGetResponseExample": {
+									"dataAssetQueryResponseExample": {
 										"value": {
 											"@context": "https://schema.org",
 											"type": "ItemList",
@@ -1006,13 +1006,74 @@
 				"tags": [
 					"Transfer Process"
 				],
+				"parameters": [
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+					}
+				],
+				"requestBody": {
+					"description": "API request for requesting a transfer process.",
+					"required": true,
+					"content": {
+						"application/ld+json": {
+							"schema": {
+								"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferRequestMessage"
+							},
+							"examples": {
+								"requestTransferRequestExample": {
+									"value": {
+										"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+										"@type": "TransferRequestMessage",
+										"processId": "urn:uuid:consumer-process-12345",
+										"consumerPid": "urn:uuid:consumer-process-12345",
+										"providerPid": "urn:uuid:provider-process-12345",
+										"agreementId": "urn:uuid:agreement-12345",
+										"dataAddress": {
+											"@type": "DataAddress",
+											"@id": "https://provider.example.com/data",
+											"endpointType": "https://w3id.org/dspace/v1/HttpDataAddress",
+											"baseUrl": "https://provider.example.com/data"
+										},
+										"callbackAddress": "https://consumer.example.com/transfer/webhook",
+										"format": "urn:example:format"
+									}
+								}
+							}
+						}
+					}
+				},
 				"responses": {
 					"200": {
-						"description": "The rest request ended in success with no data.",
+						"description": "API response for requesting a transfer process.",
 						"content": {
-							"text/plain": {
+							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/OkResponse"
+									"$ref": "#/components/schemas/RequestTransferResponse"
+								},
+								"examples": {
+									"requestTransferResponseExample": {
+										"value": {
+											"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+											"@type": "TransferProcess",
+											"processId": "urn:uuid:provider-process-12345",
+											"consumerPid": "urn:uuid:consumer-process-12345",
+											"providerPid": "urn:uuid:provider-process-12345",
+											"state": "STARTED",
+											"dataAddress": {
+												"@type": "DataAddress",
+												"@id": "https://provider.example.com/data/transfer-12345",
+												"endpointType": "https://w3id.org/dspace/v1/HttpDataAddress",
+												"baseUrl": "https://provider.example.com/data/transfer-12345"
+											}
+										}
+									}
 								}
 							}
 						}
@@ -1069,22 +1130,51 @@
 				"parameters": [
 					{
 						"name": "pid",
-						"description": "",
+						"description": "Process ID (consumerPid or providerPid).",
 						"in": "path",
 						"required": true,
 						"schema": {
 							"type": "string"
 						},
-						"style": "simple"
+						"style": "simple",
+						"example": "urn:uuid:provider-process-12345"
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 					}
 				],
 				"responses": {
 					"200": {
-						"description": "The rest request ended in success with no data.",
+						"description": "API response for getting a transfer process state.",
 						"content": {
-							"text/plain": {
+							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/OkResponse"
+									"$ref": "#/components/schemas/GetTransferProcessResponse"
+								},
+								"examples": {
+									"getTransferProcessResponseExample": {
+										"value": {
+											"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+											"@type": "TransferProcess",
+											"processId": "urn:uuid:provider-process-12345",
+											"consumerPid": "urn:uuid:consumer-process-12345",
+											"providerPid": "urn:uuid:provider-process-12345",
+											"state": "STARTED",
+											"dataAddress": {
+												"@type": "DataAddress",
+												"@id": "https://provider.example.com/data/transfer-12345",
+												"endpointType": "https://w3id.org/dspace/v1/HttpDataAddress",
+												"baseUrl": "https://provider.example.com/data/transfer-12345"
+											}
+										}
+									}
 								}
 							}
 						}
@@ -1141,22 +1231,64 @@
 				"parameters": [
 					{
 						"name": "pid",
-						"description": "",
+						"description": "Process ID (consumerPid).",
 						"in": "path",
 						"required": true,
 						"schema": {
 							"type": "string"
 						},
-						"style": "simple"
+						"style": "simple",
+						"example": "urn:uuid:consumer-process-12345"
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 					}
 				],
+				"requestBody": {
+					"description": "API request for starting a transfer process.",
+					"required": true,
+					"content": {
+						"application/ld+json": {
+							"schema": {
+								"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferStartMessage"
+							},
+							"examples": {
+								"startTransferRequestExample": {
+									"value": {
+										"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+										"@type": "TransferStartMessage",
+										"consumerPid": "urn:uuid:consumer-process-12345",
+										"providerPid": "urn:uuid:provider-process-12345"
+									}
+								}
+							}
+						}
+					}
+				},
 				"responses": {
 					"200": {
-						"description": "The rest request ended in success with no data.",
+						"description": "API response for starting a transfer process.",
 						"content": {
-							"text/plain": {
+							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/OkResponse"
+									"$ref": "#/components/schemas/StartTransferResponse"
+								},
+								"examples": {
+									"startTransferResponseExample": {
+										"value": {
+											"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+											"@type": "TransferStartMessage",
+											"consumerPid": "urn:uuid:consumer-process-12345",
+											"providerPid": "urn:uuid:provider-process-12345"
+										}
+									}
 								}
 							}
 						}
@@ -1213,22 +1345,72 @@
 				"parameters": [
 					{
 						"name": "pid",
-						"description": "",
+						"description": "Process ID (consumerPid).",
 						"in": "path",
 						"required": true,
 						"schema": {
 							"type": "string"
 						},
-						"style": "simple"
+						"style": "simple",
+						"example": "urn:uuid:consumer-process-12345"
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 					}
 				],
+				"requestBody": {
+					"description": "API request for completing a transfer process.",
+					"required": true,
+					"content": {
+						"application/ld+json": {
+							"schema": {
+								"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferCompletionMessage"
+							},
+							"examples": {
+								"completeTransferRequestExample": {
+									"value": {
+										"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+										"@type": "TransferCompletionMessage",
+										"consumerPid": "urn:uuid:consumer-process-12345",
+										"providerPid": "urn:uuid:provider-process-12345"
+									}
+								}
+							}
+						}
+					}
+				},
 				"responses": {
 					"200": {
-						"description": "The rest request ended in success with no data.",
+						"description": "API response for completing a transfer process.",
 						"content": {
-							"text/plain": {
+							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/OkResponse"
+									"$ref": "#/components/schemas/CompleteTransferResponse"
+								},
+								"examples": {
+									"completeTransferResponseExample": {
+										"value": {
+											"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+											"@type": "TransferProcess",
+											"processId": "urn:uuid:provider-process-12345",
+											"consumerPid": "urn:uuid:consumer-process-12345",
+											"providerPid": "urn:uuid:provider-process-12345",
+											"state": "COMPLETED",
+											"dataAddress": {
+												"@type": "DataAddress",
+												"@id": "https://provider.example.com/data/transfer-12345",
+												"endpointType": "https://w3id.org/dspace/v1/HttpDataAddress",
+												"baseUrl": "https://provider.example.com/data/transfer-12345"
+											}
+										}
+									}
 								}
 							}
 						}
@@ -1285,22 +1467,72 @@
 				"parameters": [
 					{
 						"name": "pid",
-						"description": "",
+						"description": "Process ID (consumerPid).",
 						"in": "path",
 						"required": true,
 						"schema": {
 							"type": "string"
 						},
-						"style": "simple"
+						"style": "simple",
+						"example": "urn:uuid:consumer-process-12345"
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 					}
 				],
+				"requestBody": {
+					"description": "API request for suspending a transfer process.",
+					"required": true,
+					"content": {
+						"application/ld+json": {
+							"schema": {
+								"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferSuspensionMessage"
+							},
+							"examples": {
+								"suspendTransferRequestExample": {
+									"value": {
+										"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+										"@type": "TransferSuspensionMessage",
+										"consumerPid": "urn:uuid:consumer-process-12345",
+										"providerPid": "urn:uuid:provider-process-12345"
+									}
+								}
+							}
+						}
+					}
+				},
 				"responses": {
 					"200": {
-						"description": "The rest request ended in success with no data.",
+						"description": "API response for suspending a transfer process.",
 						"content": {
-							"text/plain": {
+							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/OkResponse"
+									"$ref": "#/components/schemas/SuspendTransferResponse"
+								},
+								"examples": {
+									"suspendTransferResponseExample": {
+										"value": {
+											"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+											"@type": "TransferProcess",
+											"processId": "urn:uuid:provider-process-12345",
+											"consumerPid": "urn:uuid:consumer-process-12345",
+											"providerPid": "urn:uuid:provider-process-12345",
+											"state": "SUSPENDED",
+											"dataAddress": {
+												"@type": "DataAddress",
+												"@id": "https://provider.example.com/data/transfer-12345",
+												"endpointType": "https://w3id.org/dspace/v1/HttpDataAddress",
+												"baseUrl": "https://provider.example.com/data/transfer-12345"
+											}
+										}
+									}
 								}
 							}
 						}
@@ -1357,22 +1589,72 @@
 				"parameters": [
 					{
 						"name": "pid",
-						"description": "",
+						"description": "Process ID (consumerPid).",
 						"in": "path",
 						"required": true,
 						"schema": {
 							"type": "string"
 						},
-						"style": "simple"
+						"style": "simple",
+						"example": "urn:uuid:consumer-process-12345"
+					},
+					{
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple",
+						"example": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 					}
 				],
+				"requestBody": {
+					"description": "API request for terminating a transfer process.",
+					"required": true,
+					"content": {
+						"application/ld+json": {
+							"schema": {
+								"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferTerminationMessage"
+							},
+							"examples": {
+								"terminateTransferRequestExample": {
+									"value": {
+										"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+										"@type": "TransferTerminationMessage",
+										"consumerPid": "urn:uuid:consumer-process-12345",
+										"providerPid": "urn:uuid:provider-process-12345"
+									}
+								}
+							}
+						}
+					}
+				},
 				"responses": {
 					"200": {
-						"description": "The rest request ended in success with no data.",
+						"description": "API response for terminating a transfer process.",
 						"content": {
-							"text/plain": {
+							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/OkResponse"
+									"$ref": "#/components/schemas/TerminateTransferResponse"
+								},
+								"examples": {
+									"terminateTransferResponseExample": {
+										"value": {
+											"@context": "https://w3id.org/dspace/2025/1/context.jsonld",
+											"@type": "TransferProcess",
+											"processId": "urn:uuid:provider-process-12345",
+											"consumerPid": "urn:uuid:consumer-process-12345",
+											"providerPid": "urn:uuid:provider-process-12345",
+											"state": "TERMINATED",
+											"dataAddress": {
+												"@type": "DataAddress",
+												"@id": "https://provider.example.com/data/transfer-12345",
+												"endpointType": "https://w3id.org/dspace/v1/HttpDataAddress",
+												"baseUrl": "https://provider.example.com/data/transfer-12345"
+											}
+										}
+									}
 								}
 							}
 						}
@@ -2283,6 +2565,17 @@
 				],
 				"description": "A W3C Activity from Activity Streams.\n\nAn `Activity` describes an action performed by an `actor` on an `object`, and can optionally include a `target`, `result`, `origin`, or `instrument`."
 			},
+			"CompleteTransferResponse": {
+				"anyOf": [
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferProcess"
+					},
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferError"
+					}
+				],
+				"description": "Transfer Process (DSP compliant) with state COMPLETED, or error."
+			},
 			"DataAssetItemList": {
 				"type": "object",
 				"properties": {
@@ -2386,6 +2679,17 @@
 				],
 				"description": "A query over a data asset that to be processed by a Dataspace Data Plane App."
 			},
+			"GetTransferProcessResponse": {
+				"anyOf": [
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferProcess"
+					},
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferError"
+					}
+				],
+				"description": "Transfer Process (DSP compliant) with current state, or error."
+			},
 			"HealthComponentInfo": {
 				"type": "object",
 				"properties": {
@@ -2446,6 +2750,17 @@
 				],
 				"description": "The health status of the component."
 			},
+			"RequestTransferResponse": {
+				"anyOf": [
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferProcess"
+					},
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferError"
+					}
+				],
+				"description": "Transfer Process (DSP compliant) with state REQUESTED, or error."
+			},
 			"ServerInfo": {
 				"type": "object",
 				"properties": {
@@ -2479,6 +2794,28 @@
 			"ServerSpecResponse": {
 				"description": "The spec for the server."
 			},
+			"StartTransferResponse": {
+				"anyOf": [
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferStartMessage"
+					},
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferError"
+					}
+				],
+				"description": "Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or error."
+			},
+			"SuspendTransferResponse": {
+				"anyOf": [
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferProcess"
+					},
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferError"
+					}
+				],
+				"description": "Transfer Process (DSP compliant) with state SUSPENDED, or error."
+			},
 			"TaskApp": {
 				"type": "object",
 				"properties": {
@@ -2496,6 +2833,17 @@
 					"dataspaceAppId"
 				],
 				"description": "Denotes a task associated with a Dataspace App"
+			},
+			"TerminateTransferResponse": {
+				"anyOf": [
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferProcess"
+					},
+					{
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolTransferError"
+					}
+				],
+				"description": "Transfer Process (DSP compliant) with state TERMINATED, or error."
 			}
 		},
 		"securitySchemes": {

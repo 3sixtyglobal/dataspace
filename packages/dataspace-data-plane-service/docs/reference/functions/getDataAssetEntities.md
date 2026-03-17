@@ -1,6 +1,6 @@
 # Function: getDataAssetEntities()
 
-> **getDataAssetEntities**(`httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`INotFoundResponse` \| `IDataAssetEntitiesResponse` \| `IConflictResponse`\>
+> **getDataAssetEntities**(`httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`IDataAssetEntitiesResponse`\>
 
 Handles a request to obtain the entities of a data asset.
 
@@ -26,6 +26,6 @@ The request.
 
 ## Returns
 
-`Promise`\<`INotFoundResponse` \| `IDataAssetEntitiesResponse` \| `IConflictResponse`\>
+`Promise`\<`IDataAssetEntitiesResponse`\>
 
 Either the entities as JSON-LD or the corresponding error response.
