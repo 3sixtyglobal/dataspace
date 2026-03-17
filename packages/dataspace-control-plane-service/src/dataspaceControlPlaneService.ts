@@ -2068,13 +2068,22 @@ export class DataspaceControlPlaneService
 		const agreementTargets = OdrlPolicyHelper.getTargets(agreement);
 		const offerTargets = OdrlPolicyHelper.getTargets(offer);
 
-		if (
-			agreementTargets.length === 0 ||
-			offerTargets.length === 0 ||
-			!agreementTargets.some((agreementTarget: string) => offerTargets.includes(agreementTarget))
-		) {
+		// Per DSP spec, offers in a Dataset's hasPolicy MUST NOT include explicit targets —
+		// the target is implicitly the Dataset. When the catalogue offer has no targets,
+		// skip the target comparison entirely (the agreement's target is the dataset itself).
+		// Only reject if both have explicit targets that don't overlap.
+		if (offerTargets.length > 0 && agreementTargets.length > 0) {
+			if (
+				!agreementTargets.some((agreementTarget: string) => offerTargets.includes(agreementTarget))
+			) {
+				return false;
+			}
+		} else if (offerTargets.length > 0 && agreementTargets.length === 0) {
+			// Offer has targets but agreement doesn't — mismatch
 			return false;
 		}
+		// If offer has no targets (catalogue offer), accept any agreement targets
+		// since the implicit target is the dataset the offer belongs to
 
 		const agreementAssignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
 		const offerAssignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(offer);

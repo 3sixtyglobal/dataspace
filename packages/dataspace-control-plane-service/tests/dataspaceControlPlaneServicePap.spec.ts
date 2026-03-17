@@ -14,6 +14,7 @@ import {
 	type IDataspaceProtocolTransferError,
 	type IDataspaceProtocolTransferProcess
 } from "@twin.org/standards-dataspace-protocol";
+import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
@@ -317,6 +318,72 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 			const firstError = transferError.reason[0] as { message?: string };
 			expect(firstError.message).toContain("odrlPolicyHelper.policyMissingAssignee");
 		}
+	});
+
+	// ============================================================================
+	// DSP SPEC COMPLIANCE - Catalogue Offer Target Handling
+	// ============================================================================
+
+	test("Should succeed when catalogue offer has no explicit target (DSP spec compliant)", async () => {
+		// Per DSP spec (2025-1-err1), offers in a Dataset's hasPolicy MUST NOT include
+		// explicit targets — the target is implicitly the Dataset itself.
+		// The agreement DOES have an explicit target (the dataset).
+		// isPolicyDerivedFrom must accept this asymmetry.
+
+		// Arrange - Dataset with a DSP-compliant offer (no target)
+		mockFedCat.addDataset("urn:uuid:dataset-no-target-offer", {
+			"@context": [DataspaceProtocolContexts.JsonLdContext],
+			"@type": "dcat:Dataset",
+			"@id": "urn:uuid:dataset-no-target-offer",
+			"dcterms:title": "Dataset with DSP-compliant offer",
+			"odrl:hasPolicy": [
+				{
+					"@type": "odrl:Offer",
+					"@id": "offer-no-target",
+					assigner: "did:iota:provider-node-xyz",
+					// No target — DSP spec compliant
+					permission: [
+						{
+							action: "read"
+						}
+					]
+				}
+			]
+		} as unknown as IDcatDataset);
+
+		// Agreement derived from the offer, WITH explicit target
+		mockPap.addAgreement({
+			"@context": "http://www.w3.org/ns/odrl.jsonld",
+			"@type": "Agreement",
+			"@id": "agreement-catalogue-no-target",
+			assigner: "did:iota:provider-node-xyz",
+			assignee: "did:iota:consumer-node-abc",
+			target: "urn:uuid:dataset-no-target-offer",
+			permission: [
+				{
+					action: "read"
+				}
+			]
+		});
+
+		// Act
+		const result = await service.requestTransfer(
+			{
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferRequestMessage",
+				agreementId: "agreement-catalogue-no-target",
+				consumerPid: "consumer-pid-no-target",
+				callbackAddress: "https://consumer.example.com/callback",
+				format: "application/json"
+			},
+			"valid-trust-payload"
+		);
+
+		// Assert - Should succeed, NOT return TransferError
+		expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		const transferProcess = result as IDataspaceProtocolTransferProcess;
+		expect(transferProcess.consumerPid).toBe("consumer-pid-no-target");
+		expect(transferProcess.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 	});
 
 	test("Should return TransferError for Agreement with multiple targets", async () => {
