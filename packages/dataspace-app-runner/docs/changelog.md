@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.20](https://github.com/twinfoundation/dataspace/compare/dataspace-app-runner-v0.0.3-next.19...dataspace-app-runner-v0.0.3-next.20) (2026-03-17)
+
+
+### Miscellaneous Chores
+
+* **dataspace-app-runner:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.19 to 0.0.3-next.20
+
 ## [0.0.3-next.19](https://github.com/twinfoundation/dataspace/compare/dataspace-app-runner-v0.0.3-next.18...dataspace-app-runner-v0.0.3-next.19) (2026-03-12)
 
 
