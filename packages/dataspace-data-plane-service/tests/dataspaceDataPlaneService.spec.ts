@@ -1240,11 +1240,7 @@ describe("dataspace-data-plane-tests", () => {
 			}
 		};
 
-		const response = (await getDataAssetEntitiesRoute(
-			mockContext,
-			"dataspace-data-plane",
-			request
-		)) as IDataAssetEntitiesResponse;
+		const response = await getDataAssetEntitiesRoute(mockContext, "dataspace-data-plane", request);
 
 		// Verify no Link header when no cursor
 		expect(response.headers).toEqual({});
@@ -1298,11 +1294,7 @@ describe("dataspace-data-plane-tests", () => {
 			}
 		};
 
-		const response = (await getDataAssetEntitiesRoute(
-			mockContext,
-			"dataspace-data-plane",
-			request
-		)) as IDataAssetEntitiesResponse;
+		const response = await getDataAssetEntitiesRoute(mockContext, "dataspace-data-plane", request);
 
 		// Verify Link header is present
 		expect(response.headers).toBeDefined();
@@ -1357,11 +1349,7 @@ describe("dataspace-data-plane-tests", () => {
 			}
 		};
 
-		const response = (await getDataAssetEntitiesRoute(
-			mockContext,
-			"dataspace-data-plane",
-			request
-		)) as IDataAssetEntitiesResponse;
+		const response = await getDataAssetEntitiesRoute(mockContext, "dataspace-data-plane", request);
 
 		// Verify Link header format: <url?cursor=...>; rel="next"
 		const linkHeader = response.headers?.[HeaderTypes.Link];
@@ -1418,11 +1406,7 @@ describe("dataspace-data-plane-tests", () => {
 			}
 		};
 
-		const response = (await getDataAssetEntitiesRoute(
-			mockContext,
-			"dataspace-data-plane",
-			request
-		)) as IDataAssetEntitiesResponse;
+		const response = await getDataAssetEntitiesRoute(mockContext, "dataspace-data-plane", request);
 
 		// Verify cursor is NOT in response body (pagination via Link header only)
 		expect((response.body as { cursor?: string }).cursor).toBeUndefined();
@@ -1484,11 +1468,11 @@ describe("dataspace-data-plane-tests", () => {
 			}
 		};
 
-		const firstResponse = (await queryDataAssetRoute(
+		const firstResponse = await queryDataAssetRoute(
 			mockContext,
 			"dataspace-data-plane",
 			firstRequest
-		)) as IDataAssetEntitiesResponse;
+		);
 
 		// Verify first response has Link header
 		expect(firstResponse.headers?.[HeaderTypes.Link]).toBeDefined();
@@ -1512,11 +1496,11 @@ describe("dataspace-data-plane-tests", () => {
 			}
 		};
 
-		const secondResponse = (await queryDataAssetRoute(
+		const secondResponse = await queryDataAssetRoute(
 			mockContext,
 			"dataspace-data-plane",
 			secondRequest
-		)) as IDataAssetEntitiesResponse;
+		);
 
 		// Verify second response has no Link header (last page)
 		expect(secondResponse.headers).toEqual({});
