@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.22](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.21...dataspace-data-plane-service-v0.0.3-next.22) (2026-03-20)
+
+
+### Miscellaneous Chores
+
+* **dataspace-data-plane-service:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.21 to 0.0.3-next.22
+    * @twin.org/dataspace-models bumped from 0.0.3-next.21 to 0.0.3-next.22
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.21 to 0.0.3-next.22
+
 ## [0.0.3-next.21](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.20...dataspace-data-plane-service-v0.0.3-next.21) (2026-03-17)
 
 

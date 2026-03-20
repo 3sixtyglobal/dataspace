@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.22](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.21...dataspace-control-plane-service-v0.0.3-next.22) (2026-03-20)
+
+
+### Features
+
+* internalise constant ([9b9b293](https://github.com/twinfoundation/dataspace/commit/9b9b2933588ee70811a601bc485b5abaa12bed41))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.21 to 0.0.3-next.22
+
 ## [0.0.3-next.21](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.20...dataspace-control-plane-service-v0.0.3-next.21) (2026-03-17)
 
 
