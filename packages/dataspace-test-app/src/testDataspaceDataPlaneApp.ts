@@ -116,12 +116,14 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 						]
 					}
 				],
-				distribution: {
-					"@id": "https://twin.example.org/distribution-1",
-					"@type": "Distribution",
-					accessService: "https://twin.example.org/data-service-1",
-					format: "Http-Pull-Query-Format"
-				},
+				distribution: [
+					{
+						"@id": "https://twin.example.org/distribution-1",
+						"@type": "Distribution",
+						accessService: "https://twin.example.org/data-service-1",
+						format: "Http-Pull-Query-Format"
+					}
+				],
 				"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
 			}
 		];

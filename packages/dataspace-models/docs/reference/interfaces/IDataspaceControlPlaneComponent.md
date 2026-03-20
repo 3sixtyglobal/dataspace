@@ -168,15 +168,15 @@ Supports optional filtering by state and pagination via cursor.
 
 ##### state
 
-Optional filter by negotiation state (e.g., "FINALIZED", "TERMINATED").
+`string` \| `undefined`
 
-`string` | `undefined`
+Optional filter by negotiation state (e.g., "FINALIZED", "TERMINATED").
 
 ##### cursor
 
-Optional pagination cursor for fetching next page.
+`string` \| `undefined`
 
-`string` | `undefined`
+Optional pagination cursor for fetching next page.
 
 ##### trustPayload
 

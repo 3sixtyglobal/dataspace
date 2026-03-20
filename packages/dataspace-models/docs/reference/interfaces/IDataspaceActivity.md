@@ -28,7 +28,7 @@ Activity's Object
 
 ### target? {#target}
 
-> `optional` **target**: `JsonLdObjectWithContext`\<`T` & `object`\>
+> `optional` **target?**: `JsonLdObjectWithContext`\<`T` & `object`\>
 
 Activity's target
 

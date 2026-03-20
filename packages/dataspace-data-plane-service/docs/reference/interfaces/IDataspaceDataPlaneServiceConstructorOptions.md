@@ -6,56 +6,92 @@ Dataspace Data Plane service options
 
 ### loggingComponentType? {#loggingcomponenttype}
 
-> `optional` **loggingComponentType**: `string`
+> `optional` **loggingComponentType?**: `string`
 
 Logging component type.
+
+#### Default
+
+```ts
+logging
+```
 
 ***
 
 ### backgroundTaskComponentType? {#backgroundtaskcomponenttype}
 
-> `optional` **backgroundTaskComponentType**: `string`
+> `optional` **backgroundTaskComponentType?**: `string`
 
 Background task component.
+
+#### Default
+
+```ts
+background-task
+```
 
 ***
 
 ### taskSchedulerComponentType? {#taskschedulercomponenttype}
 
-> `optional` **taskSchedulerComponentType**: `string`
+> `optional` **taskSchedulerComponentType?**: `string`
 
 Task Scheduler Component Type.
+
+#### Default
+
+```ts
+task-scheduler
+```
 
 ***
 
 ### activityLogEntityStorageType? {#activitylogentitystoragetype}
 
-> `optional` **activityLogEntityStorageType**: `string`
+> `optional` **activityLogEntityStorageType?**: `string`
 
 The entity storage for activity log details.
+
+#### Default
+
+```ts
+activity-log-details
+```
 
 ***
 
 ### activityTaskEntityStorageType? {#activitytaskentitystoragetype}
 
-> `optional` **activityTaskEntityStorageType**: `string`
+> `optional` **activityTaskEntityStorageType?**: `string`
 
 The entity storage for the association between Activities and Tasks.
+
+#### Default
+
+```ts
+activity-task
+```
 
 ***
 
 ### transferProcessEntityStorageType? {#transferprocessentitystoragetype}
 
-> `optional` **transferProcessEntityStorageType**: `string`
+> `optional` **transferProcessEntityStorageType?**: `string`
 
 The entity storage type for Transfer Process entities.
 Used to read Transfer Process state from shared storage.
+
+#### Default
+
+```ts
+transfer-process
+```
 
 ***
 
 ### partitionContextIds? {#partitioncontextids}
 
-> `optional` **partitionContextIds**: `string`[]
+> `optional` **partitionContextIds?**: `string`[]
 
 The keys to use from the context ids to cleanup partitions.
 
@@ -63,22 +99,34 @@ The keys to use from the context ids to cleanup partitions.
 
 ### trustComponentType? {#trustcomponenttype}
 
-> `optional` **trustComponentType**: `string`
+> `optional` **trustComponentType?**: `string`
 
 Trust component type.
+
+#### Default
+
+```ts
+trust
+```
 
 ***
 
 ### pepComponentType? {#pepcomponenttype}
 
-> `optional` **pepComponentType**: `string`
+> `optional` **pepComponentType?**: `string`
 
 Policy enforcement point component type for ODRL policy enforcement.
+
+#### Default
+
+```ts
+policy-enforcement-point-service
+```
 
 ***
 
 ### config? {#config}
 
-> `optional` **config**: [`IDataspaceDataPlaneServiceConfig`](IDataspaceDataPlaneServiceConfig.md)
+> `optional` **config?**: [`IDataspaceDataPlaneServiceConfig`](IDataspaceDataPlaneServiceConfig.md)
 
 The configuration of the Dataspace Data Plane Service.

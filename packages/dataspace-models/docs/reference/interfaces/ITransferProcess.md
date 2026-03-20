@@ -69,7 +69,7 @@ Offer ID from the original Catalog offer.
 
 ### policies? {#policies}
 
-> `optional` **policies**: `IDataspaceProtocolPolicy`[]
+> `optional` **policies?**: `IDataspaceProtocolPolicy`[]
 
 Policies from the Agreement.
 Used by DSC for runtime policy enforcement.
@@ -78,7 +78,7 @@ Used by DSC for runtime policy enforcement.
 
 ### consumerIdentity? {#consumeridentity}
 
-> `optional` **consumerIdentity**: `string`
+> `optional` **consumerIdentity?**: `string`
 
 Consumer identity (DID or URI).
 Used for auditing and access control.
@@ -87,7 +87,7 @@ Used for auditing and access control.
 
 ### providerIdentity? {#provideridentity}
 
-> `optional` **providerIdentity**: `string`
+> `optional` **providerIdentity?**: `string`
 
 Provider identity (DID or URI).
 Used for auditing.
@@ -96,7 +96,7 @@ Used for auditing.
 
 ### callbackAddress? {#callbackaddress}
 
-> `optional` **callbackAddress**: `string`
+> `optional` **callbackAddress?**: `string`
 
 Callback address for Consumer notifications.
 URI where messages to the Consumer should be sent.
@@ -105,7 +105,7 @@ URI where messages to the Consumer should be sent.
 
 ### format? {#format}
 
-> `optional` **format**: `string`
+> `optional` **format?**: `string`
 
 Data format from the Dataset Distribution.
 Specified by a Distribution for the Dataset associated with the Agreement.
@@ -114,7 +114,7 @@ Specified by a Distribution for the Dataset associated with the Agreement.
 
 ### dataAddress? {#dataaddress}
 
-> `optional` **dataAddress**: `IDataspaceProtocolDataAddress`
+> `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
 Data address for push mode transfers.
 Contains endpoint information where data should be pushed (for Activity Stream push mode).

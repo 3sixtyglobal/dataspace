@@ -14,6 +14,6 @@ Transfer Process (DSP compliant) with current state, or error.
 
 ### statusCode? {#statuscode}
 
-> `optional` **statusCode**: `HttpStatusCode`
+> `optional` **statusCode?**: `HttpStatusCode`
 
 HTTP status code for the response.

@@ -27,7 +27,7 @@ import {
 import { DublinCoreContexts } from "@twin.org/standards-dublin-core";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
 import { DcatClasses, DcatContexts } from "@twin.org/standards-w3c-dcat";
-import { OdrlContexts, PolicyType } from "@twin.org/standards-w3c-odrl";
+import { OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import {
@@ -163,8 +163,9 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			}, // REQUIRED by real service (note: object, not array!)
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
-				"@type": PolicyType.Offer,
+				"@type": OdrlPolicyType.Offer,
 				"@id": "urn:policy:offer-test-001",
+				assigner: "https://example.com/participants/test-publisher",
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;
@@ -220,8 +221,9 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			},
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
-				"@type": PolicyType.Offer,
+				"@type": OdrlPolicyType.Offer,
 				"@id": agreementUrn, // Offer and Agreement share same UID (agreement derived from offer)
+				assigner: "https://example.com/participants/test-publisher",
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;
@@ -304,8 +306,9 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			},
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
-				"@type": PolicyType.Offer,
+				"@type": OdrlPolicyType.Offer,
 				"@id": policyUrn, // Offer UID
+				assigner: "https://example.com/participants/test-publisher",
 				permission: [{ action: "use" }]
 			}
 		} as unknown as IDcatDataset;
@@ -428,7 +431,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			},
 			"odrl:hasPolicy": {
 				"@context": OdrlContexts.JsonLdContext,
-				"@type": PolicyType.Offer,
+				"@type": OdrlPolicyType.Offer,
 				"@id": offerUrn, // Offer has UID "offer-mismatch-789"
 				assigner: "did:iota:different-provider",
 				permission: [{ action: "use" }]

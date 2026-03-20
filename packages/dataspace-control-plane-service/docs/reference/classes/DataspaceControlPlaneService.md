@@ -464,15 +464,15 @@ Get negotiation history.
 
 ##### state
 
-Optional filter by negotiation state.
+`string` \| `undefined`
 
-`string` | `undefined`
+Optional filter by negotiation state.
 
 ##### cursor
 
-Optional pagination cursor.
+`string` \| `undefined`
 
-`string` | `undefined`
+Optional pagination cursor.
 
 ##### trustPayload
 

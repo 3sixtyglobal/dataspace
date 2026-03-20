@@ -13,10 +13,11 @@ import {
 } from "@twin.org/background-task-service";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ArrayHelper, ComponentFactory, Is, ObjectHelper } from "@twin.org/core";
-import type { JsonLdObjectWithContext } from "@twin.org/data-json-ld";
+import { JsonLdDataTypes, type JsonLdObjectWithContext } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
 	DataspaceAppFactory,
+	DataspaceDataTypes,
 	TransferProcess,
 	type IActivityLogDates,
 	type IActivityLogEntry,
@@ -151,6 +152,8 @@ describe("dataspace-data-plane-tests", () => {
 		initSchema();
 		initSchemaBackgroundTask();
 		initSchemaTaskScheduler();
+		JsonLdDataTypes.registerTypes();
+		DataspaceDataTypes.registerTypes();
 		DataspaceProtocolDataTypes.registerTypes();
 
 		// Register TransferProcessEntity schema
@@ -573,7 +576,7 @@ describe("dataspace-data-plane-tests", () => {
 		);
 	});
 
-	test("It should report an error if Activity'd object is undefined", async () => {
+	test("It should report an error if Activity's object is undefined", async () => {
 		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
 
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);

@@ -22,6 +22,6 @@ The representation of the query.
 
 ### jsonLdContext? {#jsonldcontext}
 
-> `optional` **jsonLdContext**: `IJsonLdContextDefinitionElement`[]
+> `optional` **jsonLdContext?**: `IJsonLdContextDefinitionElement`[]
 
 The JSON-LD context to be applied over the query terms.

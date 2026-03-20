@@ -6,7 +6,7 @@
 
 ### activityType? {#activitytype}
 
-> `optional` **activityType**: `string`
+> `optional` **activityType?**: `string`
 
 FQN of the Activity type.
 
@@ -22,6 +22,6 @@ FQN of the Object Type.
 
 ### targetType? {#targettype}
 
-> `optional` **targetType**: `string`
+> `optional` **targetType?**: `string`
 
 FQN of the target type.

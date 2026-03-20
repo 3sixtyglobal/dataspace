@@ -22,7 +22,7 @@ The Id of the Activity Log entry.
 
 ### activityId? {#activityid}
 
-> `optional` **activityId**: `string`
+> `optional` **activityId?**: `string`
 
 The activity Id that this entry refers to.
 
@@ -70,7 +70,7 @@ The last update date of this object.
 
 ### retryCount? {#retrycount}
 
-> `optional` **retryCount**: `number`
+> `optional` **retryCount?**: `number`
 
 Number of times this activity has been retried.
 
@@ -90,7 +90,7 @@ Status of the Activity Processing.
 
 ### pendingTasks? {#pendingtasks}
 
-> `optional` **pendingTasks**: [`ITaskApp`](ITaskApp.md)[]
+> `optional` **pendingTasks?**: [`ITaskApp`](ITaskApp.md)[]
 
 The pending tasks that have to be run to process the Activity.
 
@@ -98,7 +98,7 @@ The pending tasks that have to be run to process the Activity.
 
 ### runningTasks? {#runningtasks}
 
-> `optional` **runningTasks**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md)[]
+> `optional` **runningTasks?**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md)[]
 
 The running tasks that are processing the Activity.
 
@@ -106,7 +106,7 @@ The running tasks that are processing the Activity.
 
 ### finalizedTasks? {#finalizedtasks}
 
-> `optional` **finalizedTasks**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md) & `object`[]
+> `optional` **finalizedTasks?**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md) & `object`[]
 
 The tasks that have already finalized.
 
@@ -114,6 +114,6 @@ The tasks that have already finalized.
 
 ### inErrorTasks? {#inerrortasks}
 
-> `optional` **inErrorTasks**: [`ITaskApp`](ITaskApp.md) & `object`[]
+> `optional` **inErrorTasks?**: [`ITaskApp`](ITaskApp.md) & `object`[]
 
 The tasks that are in error.

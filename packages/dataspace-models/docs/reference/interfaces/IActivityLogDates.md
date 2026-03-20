@@ -14,6 +14,6 @@ Task processing start timestamp
 
 ### endDate? {#enddate}
 
-> `optional` **endDate**: `string`
+> `optional` **endDate?**: `string`
 
 Task processing end timestamp

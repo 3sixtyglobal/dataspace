@@ -6,7 +6,7 @@ Part of the Data Request interface to represent a set of entities either by id o
 
 ### entityId? {#entityid}
 
-> `optional` **entityId**: `string`[]
+> `optional` **entityId?**: `string`[]
 
 Entity Id.
 

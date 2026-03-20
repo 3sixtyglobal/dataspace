@@ -6,7 +6,7 @@ The options for the dataspace data plane socket client.
 
 ### loggingComponentType? {#loggingcomponenttype}
 
-> `optional` **loggingComponentType**: `string`
+> `optional` **loggingComponentType?**: `string`
 
 The type of logging component to use.
 

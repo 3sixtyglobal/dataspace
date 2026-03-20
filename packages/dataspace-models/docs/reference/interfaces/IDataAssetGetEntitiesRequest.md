@@ -6,13 +6,13 @@ Get Request Data Asset Entities
 
 ### headers? {#headers}
 
-> `optional` **headers**: `object`
+> `optional` **headers?**: `object`
 
 The headers which can be used to determine the response data type.
 
 #### authorization?
 
-> `optional` **authorization**: `string`
+> `optional` **authorization?**: `string`
 
 ***
 
@@ -24,7 +24,7 @@ The parameters from the query.
 
 #### id?
 
-> `optional` **id**: `string`
+> `optional` **id?**: `string`
 
 The ID of the entity(ies) to get. (comma separated list)
 
@@ -44,18 +44,18 @@ The datasetId is resolved from the Transfer Process using this ID.
 
 #### dataServiceId?
 
-> `optional` **dataServiceId**: `string`
+> `optional` **dataServiceId?**: `string`
 
 The Id of the data service that offers the data asset
 
 #### limit?
 
-> `optional` **limit**: `string`
+> `optional` **limit?**: `string`
 
 The maximum number of entities to retrieve.
 
 #### cursor?
 
-> `optional` **cursor**: `string`
+> `optional` **cursor?**: `string`
 
 Cursor to control pagination.

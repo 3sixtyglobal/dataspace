@@ -39,7 +39,7 @@
 					"content": {
 						"application/ld+json": {
 							"schema": {
-								"$ref": "#/components/schemas/ActivityStreamsActivity"
+								"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsActivity"
 							},
 							"examples": {
 								"activityStreamNotifyRequestExample": {
@@ -289,7 +289,7 @@
 					},
 					{
 						"name": "consumerPid",
-						"description": "The consumer Process ID from the DSP Transfer Process. Mandatory - used to determine the Dataset, Distribution, and Agreement. The datasetId is resolved from the Transfer Process using this ID.",
+						"description": "The consumer Process ID from the DSP Transfer Process.\nMandatory - used to determine the Dataset, Distribution, and Agreement.\nThe datasetId is resolved from the Transfer Process using this ID.",
 						"in": "query",
 						"required": false,
 						"schema": {
@@ -531,7 +531,25 @@
 	},
 	"components": {
 		"schemas": {
-			"ActivityLogEntry": {
+			"ActivityLogDates": {
+				"description": "Activity log dates.",
+				"type": "object",
+				"properties": {
+					"startDate": {
+						"type": "string",
+						"description": "Task processing start timestamp"
+					},
+					"endDate": {
+						"type": "string",
+						"description": "Task processing end timestamp"
+					}
+				},
+				"required": [
+					"startDate"
+				]
+			},
+			"ActivityLogDetails": {
+				"description": "The details related to the processing of an Activity",
 				"type": "object",
 				"properties": {
 					"id": {
@@ -557,7 +575,19 @@
 					"retryCount": {
 						"type": "number",
 						"description": "Number of times this activity has been retried."
-					},
+					}
+				},
+				"required": [
+					"id",
+					"generator",
+					"dateCreated",
+					"dateModified"
+				]
+			},
+			"ActivityLogEntry": {
+				"description": "The details related to the processing of an Activity",
+				"type": "object",
+				"properties": {
 					"status": {
 						"$ref": "#/components/schemas/ActivityProcessingStatus"
 					},
@@ -572,29 +602,13 @@
 						"type": "array",
 						"items": {
 							"type": "object",
-							"additionalProperties": false,
-							"properties": {
-								"startDate": {
-									"type": "string",
-									"description": "Task processing start timestamp"
+							"allOf": [
+								{
+									"$ref": "#/components/schemas/TaskApp"
 								},
-								"endDate": {
-									"type": "string",
-									"description": "Task processing end timestamp"
-								},
-								"taskId": {
-									"type": "string",
-									"description": "Task Id."
-								},
-								"dataspaceAppId": {
-									"type": "string",
-									"description": "Dataspace App Id."
+								{
+									"$ref": "#/components/schemas/ActivityLogDates"
 								}
-							},
-							"required": [
-								"dataspaceAppId",
-								"startDate",
-								"taskId"
 							]
 						},
 						"description": "The running tasks that are processing the Activity."
@@ -603,34 +617,22 @@
 						"type": "array",
 						"items": {
 							"type": "object",
-							"additionalProperties": false,
 							"properties": {
 								"result": {
 									"type": "string",
 									"description": "The task result."
-								},
-								"startDate": {
-									"type": "string",
-									"description": "Task processing start timestamp"
-								},
-								"endDate": {
-									"type": "string",
-									"description": "Task processing end timestamp"
-								},
-								"taskId": {
-									"type": "string",
-									"description": "Task Id."
-								},
-								"dataspaceAppId": {
-									"type": "string",
-									"description": "Dataspace App Id."
 								}
 							},
 							"required": [
-								"dataspaceAppId",
-								"result",
-								"startDate",
-								"taskId"
+								"result"
+							],
+							"allOf": [
+								{
+									"$ref": "#/components/schemas/TaskApp"
+								},
+								{
+									"$ref": "#/components/schemas/ActivityLogDates"
+								}
 							]
 						},
 						"description": "The tasks that have already finalized."
@@ -639,769 +641,66 @@
 						"type": "array",
 						"items": {
 							"type": "object",
-							"additionalProperties": false,
 							"properties": {
 								"error": {
 									"$ref": "#/components/schemas/Error"
-								},
-								"taskId": {
-									"type": "string",
-									"description": "Task Id."
-								},
-								"dataspaceAppId": {
-									"type": "string",
-									"description": "Dataspace App Id."
 								}
 							},
 							"required": [
-								"dataspaceAppId",
-								"error",
-								"taskId"
+								"error"
+							],
+							"allOf": [
+								{
+									"$ref": "#/components/schemas/TaskApp"
+								}
 							]
 						},
 						"description": "The tasks that are in error."
 					}
 				},
 				"required": [
-					"dateCreated",
-					"dateModified",
-					"generator",
-					"id",
 					"status"
 				],
-				"description": "The details related to the processing of an Activity"
+				"allOf": [
+					{
+						"$ref": "#/components/schemas/ActivityLogDetails"
+					}
+				]
 			},
 			"ActivityProcessingStatus": {
+				"description": "The type exported.",
 				"anyOf": [
 					{
-						"type": "string",
 						"const": "pending",
 						"description": "Pending: Activity Processing has not started yet."
 					},
 					{
-						"type": "string",
 						"const": "running",
 						"description": "Running Activity processing is running."
 					},
 					{
-						"type": "string",
 						"const": "completed",
 						"description": "Completed: Activity processing completed without error."
 					},
 					{
-						"type": "string",
 						"const": "error",
 						"description": "Error: Activity processing cannot be performed and marked as in error. (Depends on application)."
 					},
 					{
-						"type": "string",
 						"const": "registering",
 						"description": "Transient state. The background tasks associated with the activity are still being registered."
 					}
-				],
-				"description": "Activity processing statuses.   The type exported."
-			},
-			"ActivityStreamsActivity": {
-				"type": "object",
-				"properties": {
-					"@context": {
-						"description": "The Activity Streams JSON-LD context type.",
-						"anyOf": [
-							{
-								"type": "string",
-								"const": "https://www.w3.org/ns/activitystreams"
-							},
-							{
-								"type": "array",
-								"items": {
-									"type": "string",
-									"const": "https://www.w3.org/ns/activitystreams"
-								},
-								"minItems": 1,
-								"maxItems": 1
-							},
-							{
-								"type": "array",
-								"minItems": 2,
-								"prefixItems": [
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-									},
-									{
-										"type": "string",
-										"const": "https://www.w3.org/ns/activitystreams"
-									}
-								],
-								"items": {
-									"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-								}
-							},
-							{
-								"type": "array",
-								"minItems": 2,
-								"prefixItems": [
-									{
-										"type": "string",
-										"const": "https://www.w3.org/ns/activitystreams"
-									},
-									{
-										"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-									}
-								],
-								"items": {
-									"$ref": "https://schema.twindev.org/json-ld/JsonLdContextDefinitionElement"
-								}
-							}
-						]
-					},
-					"type": {
-						"anyOf": [
-							{
-								"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
-							},
-							{
-								"type": "string"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"$ref": "https://schema.twindev.org/w3c-activity-streams/ActivityStreamsTypes"
-										},
-										{
-											"type": "string"
-										}
-									]
-								}
-							}
-						],
-						"description": "Activity Type."
-					},
-					"id": {
-						"type": "string",
-						"description": "Global identifier.",
-						"format": "uri"
-					},
-					"name": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
-							}
-						],
-						"description": "Natural language name."
-					},
-					"nameMap": {
-						"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
-					},
-					"summary": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
-							}
-						],
-						"description": "Summary of the Activity."
-					},
-					"summaryMap": {
-						"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
-					},
-					"content": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
-							}
-						],
-						"description": "Natural language content."
-					},
-					"contentMap": {
-						"$ref": "https://schema.twindev.org/json-ld/JsonLdLanguageMap"
-					},
-					"url": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"image": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"icon": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"published": {
-						"type": "string",
-						"description": "Published date-time.",
-						"format": "date-time"
-					},
-					"updated": {
-						"type": "string",
-						"description": "Updated date-time.",
-						"format": "date-time"
-					},
-					"startTime": {
-						"type": "string",
-						"description": "Start time.",
-						"format": "date-time"
-					},
-					"endTime": {
-						"type": "string",
-						"description": "End time.",
-						"format": "date-time"
-					},
-					"duration": {
-						"type": "string",
-						"description": "Duration.",
-						"format": "duration"
-					},
-					"generator": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"attachment": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"attributedTo": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"audience": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"context": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"location": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"tag": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"inReplyTo": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"replies": {
-						"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-					},
-					"preview": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"to": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"bto": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"cc": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"bcc": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"mediaType": {
-						"type": "string",
-						"description": "MIME media type of the referenced resource."
-					},
-					"actor": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"object": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"target": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"result": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"origin": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					},
-					"instrument": {
-						"description": "Object or array data type",
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-							},
-							{
-								"type": "array",
-								"items": {
-									"anyOf": [
-										{
-											"type": "string"
-										},
-										{
-											"$ref": "https://schema.twindev.org/json-ld/JsonLdNodeObject"
-										}
-									]
-								}
-							}
-						]
-					}
-				},
-				"required": [
-					"@context",
-					"type"
-				],
-				"description": "A W3C Activity from Activity Streams.\n\nAn `Activity` describes an action performed by an `actor` on an `object`, and can optionally include a `target`, `result`, `origin`, or `instrument`."
+				]
 			},
 			"DataAssetItemList": {
+				"description": "Interface describing a list of entities that are within a Data Asset.\nPagination is handled via HTTP Link headers.",
 				"type": "object",
 				"properties": {
 					"@context": {
-						"type": "string",
 						"const": "https://schema.org",
 						"description": "The LD Context."
 					},
 					"type": {
-						"type": "string",
 						"const": "ItemList",
 						"description": "The type"
 					},
@@ -1417,15 +716,14 @@
 					"@context",
 					"type",
 					"itemListElement"
-				],
-				"description": "Interface describing a list of entities that are within a Data Asset. Pagination is handled via HTTP Link headers."
+				]
 			},
 			"DataAssetQueryRequest": {
 				"type": "object",
 				"properties": {
 					"consumerPid": {
 						"type": "string",
-						"description": "The consumer Process ID from the DSP Transfer Process. Mandatory - used to determine the Dataset, Distribution, and Agreement. The datasetId is resolved from the Transfer Process using this ID."
+						"description": "The consumer Process ID from the DSP Transfer Process.\nMandatory - used to determine the Dataset, Distribution, and Agreement.\nThe datasetId is resolved from the Transfer Process using this ID."
 					},
 					"query": {
 						"$ref": "#/components/schemas/FilteringQuery"
@@ -1438,6 +736,7 @@
 				"description": "Request body containing the data asset and query criteria."
 			},
 			"Error": {
+				"description": "Model to describe serialized error.",
 				"type": "object",
 				"properties": {
 					"name": {
@@ -1468,10 +767,10 @@
 				"required": [
 					"name",
 					"message"
-				],
-				"description": "Model to describe serialized error."
+				]
 			},
 			"FilteringQuery": {
+				"description": "A query over a data asset that to be processed by a Dataspace Data Plane App.",
 				"type": "object",
 				"properties": {
 					"type": {
@@ -1492,10 +791,10 @@
 				"required": [
 					"type",
 					"q"
-				],
-				"description": "A query over a data asset that to be processed by a Dataspace Data Plane App."
+				]
 			},
 			"TaskApp": {
+				"description": "Denotes a task associated with a Dataspace App",
 				"type": "object",
 				"properties": {
 					"taskId": {
@@ -1510,8 +809,7 @@
 				"required": [
 					"taskId",
 					"dataspaceAppId"
-				],
-				"description": "Denotes a task associated with a Dataspace App"
+				]
 			}
 		},
 		"securitySchemes": {

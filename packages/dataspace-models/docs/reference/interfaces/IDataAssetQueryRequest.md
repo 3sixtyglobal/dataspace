@@ -6,13 +6,13 @@ Request to query data asset entities.
 
 ### headers? {#headers}
 
-> `optional` **headers**: `object`
+> `optional` **headers?**: `object`
 
 The headers which can be used to determine the response data type.
 
 #### authorization?
 
-> `optional` **authorization**: `string`
+> `optional` **authorization?**: `string`
 
 ***
 
@@ -40,19 +40,19 @@ The filtering query.
 
 ### query? {#query}
 
-> `optional` **query**: `object`
+> `optional` **query?**: `object`
 
 Optional query parameters for pagination.
 Used when following Link header URLs.
 
 #### cursor?
 
-> `optional` **cursor**: `string`
+> `optional` **cursor?**: `string`
 
 Opaque cursor token for pagination.
 
 #### limit?
 
-> `optional` **limit**: `string`
+> `optional` **limit?**: `string`
 
 Maximum number of items to return.

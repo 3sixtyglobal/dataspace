@@ -76,7 +76,7 @@ Offer ID from the original Catalog offer.
 
 ### consumerIdentity? {#consumeridentity}
 
-> `optional` **consumerIdentity**: `string`
+> `optional` **consumerIdentity?**: `string`
 
 Consumer identity (DID or URI).
 
@@ -84,7 +84,7 @@ Consumer identity (DID or URI).
 
 ### providerIdentity? {#provideridentity}
 
-> `optional` **providerIdentity**: `string`
+> `optional` **providerIdentity?**: `string`
 
 Provider identity (DID or URI).
 
@@ -92,7 +92,7 @@ Provider identity (DID or URI).
 
 ### format? {#format}
 
-> `optional` **format**: `string`
+> `optional` **format?**: `string`
 
 Data format from the Dataset Distribution.
 
@@ -100,7 +100,7 @@ Data format from the Dataset Distribution.
 
 ### callbackAddress? {#callbackaddress}
 
-> `optional` **callbackAddress**: `string`
+> `optional` **callbackAddress?**: `string`
 
 Callback address for Consumer notifications.
 
@@ -124,7 +124,7 @@ Last update timestamp (ISO string format).
 
 ### policies? {#policies}
 
-> `optional` **policies**: `IDataspaceProtocolPolicy`[]
+> `optional` **policies?**: `IDataspaceProtocolPolicy`[]
 
 Policies from the Agreement (stored as JSON).
 
@@ -132,6 +132,6 @@ Policies from the Agreement (stored as JSON).
 
 ### dataAddress? {#dataaddress}
 
-> `optional` **dataAddress**: `IDataspaceProtocolDataAddress`
+> `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
 Data address for push mode transfers (stored as JSON).

@@ -6,6 +6,12 @@ Test App Constructor options.
 
 ### loggingComponentType? {#loggingcomponenttype}
 
-> `optional` **loggingComponentType**: `string`
+> `optional` **loggingComponentType?**: `string`
 
 Logging component type.
+
+#### Default
+
+```ts
+logging
+```

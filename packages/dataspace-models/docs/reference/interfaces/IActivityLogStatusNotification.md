@@ -14,7 +14,7 @@ The activity log entry id.
 
 ### activityId? {#activityid}
 
-> `optional` **activityId**: `string`
+> `optional` **activityId?**: `string`
 
 The activity Id.
 

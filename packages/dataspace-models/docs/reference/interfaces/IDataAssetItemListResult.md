@@ -15,7 +15,7 @@ The item list data.
 
 ### cursor? {#cursor}
 
-> `optional` **cursor**: `string`
+> `optional` **cursor?**: `string`
 
 Pagination cursor for retrieving the next page.
 This is used to generate the Link header, not included in the response body.

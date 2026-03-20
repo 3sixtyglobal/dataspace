@@ -14,6 +14,6 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or e
 
 ### statusCode? {#statuscode}
 
-> `optional` **statusCode**: `HttpStatusCode`
+> `optional` **statusCode?**: `HttpStatusCode`
 
 HTTP status code for the response.

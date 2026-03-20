@@ -6,7 +6,7 @@ Dataspace Control Plane service configuration.
 
 ### overrideTrustGeneratorType? {#overridetrustgeneratortype}
 
-> `optional` **overrideTrustGeneratorType**: `string`
+> `optional` **overrideTrustGeneratorType?**: `string`
 
 Override the default trust generator type for token generation.
 If not specified, the default trust generator configured in the trust component will be used.
@@ -15,7 +15,7 @@ If not specified, the default trust generator configured in the trust component 
 
 ### dataPlanePath? {#dataplanepath}
 
-> `optional` **dataPlanePath**: `string`
+> `optional` **dataPlanePath?**: `string`
 
 Data plane endpoint path for PULL transfers (path only, not full URL).
 Will be combined with the public origin from the hosting component.

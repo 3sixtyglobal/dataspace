@@ -60,7 +60,7 @@ DSC should only allow queries if state is STARTED.
 
 ### consumerIdentity? {#consumeridentity}
 
-> `optional` **consumerIdentity**: `string`
+> `optional` **consumerIdentity?**: `string`
 
 Consumer identity (for auditing).
 
@@ -68,7 +68,7 @@ Consumer identity (for auditing).
 
 ### providerIdentity? {#provideridentity}
 
-> `optional` **providerIdentity**: `string`
+> `optional` **providerIdentity?**: `string`
 
 Provider identity (for auditing).
 Extracted from Agreement's assigner field.
@@ -77,7 +77,7 @@ Extracted from Agreement's assigner field.
 
 ### dataAddress? {#dataaddress}
 
-> `optional` **dataAddress**: `IDataspaceProtocolDataAddress`
+> `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
 Data address for push mode transfers.
 Contains endpoint information where data should be pushed (for Activity Stream push mode).
