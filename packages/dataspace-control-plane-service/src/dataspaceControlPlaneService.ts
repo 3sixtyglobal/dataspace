@@ -76,12 +76,6 @@ import {
 } from "./utils/transferErrorUtils.js";
 
 /**
- * Stalled negotiation threshold in milliseconds (30 minutes).
- * Negotiations that haven't received a state update within this time are considered stalled.
- */
-const STALLED_NEGOTIATION_THRESHOLD_MS = 30 * 60 * 1000;
-
-/**
  * Dataspace Control Plane Service implementation.
  *
  * Handles contract negotiation (via PNP callbacks) and transfer process management.
@@ -102,6 +96,13 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private static readonly _REQUESTER_TYPE = "dataspace-control-plane-requester";
+
+	/**
+	 * Stalled negotiation threshold in milliseconds (30 minutes).
+	 * Negotiations that haven't received a state update within this time are considered stalled.
+	 * @internal
+	 */
+	private static readonly _STALLED_NEGOTIATION_THRESHOLD_MS = 30 * 60 * 1000;
 
 	/**
 	 * The logging component.
@@ -1615,7 +1616,7 @@ export class DataspaceControlPlaneService
 		const stalled: string[] = [];
 
 		for (const [negotiationId, state] of this._policyRequester.getActiveNegotiations()) {
-			if (now - state.updatedAt > STALLED_NEGOTIATION_THRESHOLD_MS) {
+			if (now - state.updatedAt > DataspaceControlPlaneService._STALLED_NEGOTIATION_THRESHOLD_MS) {
 				stalled.push(negotiationId);
 			}
 		}
