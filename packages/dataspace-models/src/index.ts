@@ -5,16 +5,16 @@
 export * from "./entities/transferProcess.js";
 
 // Control Plane exports
-export * from "./models/control-plane/IDataspaceControlPlaneComponent.js";
-export * from "./models/control-plane/IDataspaceControlPlaneResolverComponent.js";
-export * from "./models/control-plane/INegotiationCallback.js";
-export * from "./models/control-plane/ITransferProcess.js";
-export * from "./models/control-plane/transferProcessRole.js";
-export * from "./models/control-plane/ITransferContext.js";
-export * from "./models/control-plane/api/ITransferContextResponse.js";
+export * from "./models/controlPlane/IDataspaceControlPlaneComponent.js";
+export * from "./models/controlPlane/IDataspaceControlPlaneResolverComponent.js";
+export * from "./models/controlPlane/INegotiationCallback.js";
+export * from "./models/controlPlane/ITransferProcess.js";
+export * from "./models/controlPlane/transferProcessRole.js";
+export * from "./models/controlPlane/ITransferContext.js";
+export * from "./models/controlPlane/api/ITransferContextResponse.js";
 
 // Data Plane exports
-export * from "./models/data-plane/IDataspaceDataPlaneComponent.js";
+export * from "./models/dataPlane/IDataspaceDataPlaneComponent.js";
 
 export * from "./models/IDataspaceActivity.js";
 export * from "./models/dataspaceTypes.js";
@@ -38,18 +38,18 @@ export * from "./models/api/IDataAssetGetEntitiesRequest.js";
 export * from "./models/api/IDataAssetQueryRequest.js";
 
 // Control Plane API exports - Transfer Process Protocol
-export * from "./models/api/control-plane/IRequestTransferRequest.js";
-export * from "./models/api/control-plane/IRequestTransferResponse.js";
-export * from "./models/api/control-plane/IStartTransferRequest.js";
-export * from "./models/api/control-plane/IStartTransferResponse.js";
-export * from "./models/api/control-plane/ICompleteTransferRequest.js";
-export * from "./models/api/control-plane/ICompleteTransferResponse.js";
-export * from "./models/api/control-plane/ISuspendTransferRequest.js";
-export * from "./models/api/control-plane/ISuspendTransferResponse.js";
-export * from "./models/api/control-plane/ITerminateTransferRequest.js";
-export * from "./models/api/control-plane/ITerminateTransferResponse.js";
-export * from "./models/api/control-plane/IGetTransferProcessRequest.js";
-export * from "./models/api/control-plane/IGetTransferProcessResponse.js";
+export * from "./models/api/controlPlane/IRequestTransferRequest.js";
+export * from "./models/api/controlPlane/IRequestTransferResponse.js";
+export * from "./models/api/controlPlane/IStartTransferRequest.js";
+export * from "./models/api/controlPlane/IStartTransferResponse.js";
+export * from "./models/api/controlPlane/ICompleteTransferRequest.js";
+export * from "./models/api/controlPlane/ICompleteTransferResponse.js";
+export * from "./models/api/controlPlane/ISuspendTransferRequest.js";
+export * from "./models/api/controlPlane/ISuspendTransferResponse.js";
+export * from "./models/api/controlPlane/ITerminateTransferRequest.js";
+export * from "./models/api/controlPlane/ITerminateTransferResponse.js";
+export * from "./models/api/controlPlane/IGetTransferProcessRequest.js";
+export * from "./models/api/controlPlane/IGetTransferProcessResponse.js";
 
 export * from "./models/app/dataRequestType.js";
 export * from "./models/app/IActivityQuery.js";
