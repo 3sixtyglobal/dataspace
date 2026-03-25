@@ -686,7 +686,7 @@ describe("dataspace-data-plane-tests", () => {
 			TEST_TRANSFER_TOKEN
 		);
 
-		expect(result.itemList.itemListElement.length).toBe(1);
+		expect(result.itemList.itemListElement.length).toBe(2);
 	});
 
 	test("It should get data asset entities by entity type with LD Context", async () => {
@@ -717,7 +717,7 @@ describe("dataspace-data-plane-tests", () => {
 			TEST_TRANSFER_TOKEN
 		);
 
-		expect(result.itemList.itemListElement.length).toBe(1);
+		expect(result.itemList.itemListElement.length).toBe(2);
 	});
 
 	test("It should get data asset entities by entity type - no entities", async () => {
