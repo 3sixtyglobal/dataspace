@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.23](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.22...dataspace-data-plane-service-v0.0.3-next.23) (2026-03-25)
+
+
+### Features
+
+* extend test app with multi-consignment data using UNECE vocabulary ([#92](https://github.com/twinfoundation/dataspace/issues/92)) ([2f69566](https://github.com/twinfoundation/dataspace/commit/2f695668ec03e50c89ddb1437f2be39c047e3268))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.22 to 0.0.3-next.23
+    * @twin.org/dataspace-models bumped from 0.0.3-next.22 to 0.0.3-next.23
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.22 to 0.0.3-next.23
+
 ## [0.0.3-next.22](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.21...dataspace-data-plane-service-v0.0.3-next.22) (2026-03-20)
 
 
