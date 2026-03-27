@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-test-app",
-	"version": "0.0.3-next.22",
+	"version": "0.0.3-next.23",
 	"description": "Provides a sample dataspace app for local integration tests and development workflows.",
 	"repository": {
 		"type": "git",
@@ -33,7 +33,8 @@
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
 		"@twin.org/data-core": "next",
-		"@twin.org/dataspace-models": "0.0.3-next.22",
+		"@twin.org/data-json-ld": "next",
+		"@twin.org/dataspace-models": "0.0.3-next.23",
 		"@twin.org/engine-models": "next",
 		"@twin.org/engine-types": "next",
 		"@twin.org/logging-models": "next",

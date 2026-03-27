@@ -21,18 +21,55 @@ import { DublinCoreContexts } from "@twin.org/standards-dublin-core";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
-// Dummy Data
-const id = "urn:ucr:24PLP051219453I002610799053311";
-const entities = [
+// Default consignments — two entries with different port locations for filtering tests.
+// Can be overridden via constructor options (e.g. loaded from a JSON file via @json: env syntax).
+const DEFAULT_CONSIGNMENTS: IJsonLdDocument[] = [
 	{
 		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
 		type: "Consignment",
-		id,
+		id: "urn:ucr:24PLP051219453I002610799053311",
+		identifier: "M-Test0001",
+		globalId: "5-GB-IMPORT-Test0001",
 		destinationCountry: {
 			type: "Country",
 			countryId: "unece:CountryId#GB"
+		},
+		loadingLocation: {
+			type: "LogisticsLocation",
+			id: "unece:LOCODE#NLRTM",
+			name: "Rotterdam"
+		},
+		unloadingLocation: {
+			type: "LogisticsLocation",
+			id: "unece:LOCODE#GBFXT",
+			name: "Felixstowe"
 		}
 	},
+	{
+		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+		type: "Consignment",
+		id: "urn:ucr:24PLP051219453I002710888164422",
+		identifier: "M-Test0002",
+		globalId: "5-GB-IMPORT-Test0002",
+		destinationCountry: {
+			type: "Country",
+			countryId: "unece:CountryId#GB"
+		},
+		loadingLocation: {
+			type: "LogisticsLocation",
+			id: "unece:LOCODE#FRLEH",
+			name: "Le Havre"
+		},
+		unloadingLocation: {
+			type: "LogisticsLocation",
+			id: "unece:LOCODE#GBDVR",
+			name: "Dover"
+		}
+	}
+];
+
+const DEFAULT_ENTITIES: IJsonLdDocument[] = [
+	DEFAULT_CONSIGNMENTS[0],
 	{
 		"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
 		type: "Document",
@@ -62,6 +99,12 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 	private readonly _logging?: ILoggingComponent;
 
 	/**
+	 * Consignment documents served by this app.
+	 * @internal
+	 */
+	private readonly _consignments: IJsonLdDocument[];
+
+	/**
 	 * Node Identity
 	 * @internal
 	 */
@@ -75,6 +118,7 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 		this._logging = ComponentFactory.getIfExists<ILoggingComponent>(
 			options?.loggingComponentType ?? "logging"
 		);
+		this._consignments = options?.consignments ?? DEFAULT_CONSIGNMENTS;
 	}
 
 	/**
@@ -221,22 +265,25 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 
 		switch (dataRequest.type) {
 			case DataRequestType.DataAssetEntities: {
+				if (dataRequest.entitySet.entityId) {
+					const entityIds = dataRequest.entitySet.entityId;
+					const matched = this._consignments.filter(c =>
+						entityIds.includes((c as { id?: string }).id ?? "")
+					);
+					return { data: (matched.length === 1 ? matched[0] : matched) as IJsonLdDocument };
+				}
+
 				if (dataRequest.entitySet.entityType === "https://vocabulary.uncefact.org/Consignment") {
 					return {
-						data: [entities[0]]
+						data: this._consignments as unknown as IJsonLdDocument
 					};
 				}
 
-				if (dataRequest.entitySet.entityId?.includes(id)) {
-					return {
-						data: entities[0]
-					};
-				}
 				return { data: [] };
 			}
 
 			case DataRequestType.QueryDataAsset:
-				return { data: entities };
+				return { data: DEFAULT_ENTITIES as unknown as IJsonLdDocument };
 		}
 	}
 }

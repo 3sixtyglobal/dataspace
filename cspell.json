@@ -46,7 +46,12 @@
 		"twinfoundation",
 		"unece",
 		"Unrevoke",
-		"XVCJ"
+		"XVCJ",
+		"LOCODE",
+		"GBFXT",
+		"NLRTM",
+		"FRLEH",
+		"GBDVR"
 	],
 	"ignoreRegExpList": [
 		"/from\\s+(['\"]).*\\1/",
