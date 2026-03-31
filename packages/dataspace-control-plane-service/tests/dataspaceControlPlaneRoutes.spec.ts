@@ -115,6 +115,25 @@ describe("dataspaceControlPlaneRoutes", () => {
 			expect(dspRoutes.find(r => r.operationId === "suspendTransfer")).toBeDefined();
 			expect(dspRoutes.find(r => r.operationId === "terminateTransfer")).toBeDefined();
 		});
+
+		test("every route with skipAuth also has skipTenant set to true", () => {
+			const dspRoutes = generateRestRoutesDataspaceControlPlane(
+				"/api/dataspace-control-plane",
+				componentName
+			);
+
+			expect(dspRoutes).toHaveLength(6);
+
+			const skipAuthRoutes = dspRoutes.filter(r => r.skipAuth === true);
+			expect(skipAuthRoutes.length).toBeGreaterThan(0);
+
+			for (const route of skipAuthRoutes) {
+				expect(
+					route.skipTenant,
+					`${route.operationId} has skipAuth but is missing skipTenant: true`
+				).toBe(true);
+			}
+		});
 	});
 
 	describe("GET /transfers/:pid - getTransferProcess endpoint", () => {

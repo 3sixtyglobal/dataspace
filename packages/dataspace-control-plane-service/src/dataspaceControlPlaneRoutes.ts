@@ -107,6 +107,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/request`,
 		skipAuth: true,
+		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			requestTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -150,6 +151,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "GET",
 		path: `${baseRouteName}/transfers/:pid`,
 		skipAuth: true,
+		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			getTransferProcessHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -159,7 +161,7 @@ export function generateRestRoutesDataspaceControlPlane(
 					id: "getTransferProcessRequestExample",
 					request: {
 						headers: {
-							authorization: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+							[HeaderTypes.Authorization]: "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
 						},
 						pathParams: {
 							pid: "urn:uuid:provider-process-12345"
@@ -191,6 +193,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/start`,
 		skipAuth: true,
+		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			startTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -244,6 +247,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/complete`,
 		skipAuth: true,
+		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			completeTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -295,6 +299,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/suspend`,
 		skipAuth: true,
+		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			suspendTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -347,6 +352,7 @@ export function generateRestRoutesDataspaceControlPlane(
 			method: "POST",
 			path: `${baseRouteName}/transfers/:pid/terminate`,
 			skipAuth: true,
+			skipTenant: true,
 			handler: async (httpRequestContext, request) =>
 				terminateTransferHandler(httpRequestContext, componentName, request),
 			requestType: {
