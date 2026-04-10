@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.25](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.24...dataspace-control-plane-service-v0.0.3-next.25) (2026-04-10)
+
+
+### Miscellaneous Chores
+
+* **dataspace-control-plane-service:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.24 to 0.0.3-next.25
+
 ## [0.0.3-next.24](https://github.com/twinfoundation/dataspace/compare/dataspace-control-plane-service-v0.0.3-next.23...dataspace-control-plane-service-v0.0.3-next.24) (2026-03-31)
 
 

@@ -1,11 +1,11 @@
 {
-	"packages/dataspace-models": "0.0.3-next.24",
-	"packages/dataspace-control-plane-service": "0.0.3-next.24",
-	"packages/dataspace-control-plane-rest-client": "0.0.3-next.24",
-	"packages/dataspace-data-plane-rest-client": "0.0.3-next.24",
-	"packages/dataspace-data-plane-socket-client": "0.0.3-next.24",
-	"packages/dataspace-test-app": "0.0.3-next.24",
-	"packages/dataspace-data-plane-service": "0.0.3-next.24",
-	"packages/dataspace-app-runner": "0.0.3-next.24",
-	"apps/dataspace-rest-server": "0.0.3-next.24"
+	"packages/dataspace-models": "0.0.3-next.25",
+	"packages/dataspace-control-plane-service": "0.0.3-next.25",
+	"packages/dataspace-control-plane-rest-client": "0.0.3-next.25",
+	"packages/dataspace-data-plane-rest-client": "0.0.3-next.25",
+	"packages/dataspace-data-plane-socket-client": "0.0.3-next.25",
+	"packages/dataspace-test-app": "0.0.3-next.25",
+	"packages/dataspace-data-plane-service": "0.0.3-next.25",
+	"packages/dataspace-app-runner": "0.0.3-next.25",
+	"apps/dataspace-rest-server": "0.0.3-next.25"
 }

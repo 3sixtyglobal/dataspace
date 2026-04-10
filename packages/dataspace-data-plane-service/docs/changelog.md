@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.25](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.24...dataspace-data-plane-service-v0.0.3-next.25) (2026-04-10)
+
+
+### Features
+
+* use tenant admin service instead of custom tenant tracking ([#101](https://github.com/twinfoundation/dataspace/issues/101)) ([2529d69](https://github.com/twinfoundation/dataspace/commit/2529d69508c312fa7d32a55909669d4ff0b13b13))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.24 to 0.0.3-next.25
+    * @twin.org/dataspace-models bumped from 0.0.3-next.24 to 0.0.3-next.25
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.24 to 0.0.3-next.25
+
 ## [0.0.3-next.24](https://github.com/twinfoundation/dataspace/compare/dataspace-data-plane-service-v0.0.3-next.23...dataspace-data-plane-service-v0.0.3-next.24) (2026-03-31)
 
 

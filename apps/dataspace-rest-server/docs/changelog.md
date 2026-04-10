@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.25](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.24...dataspace-rest-server-v0.0.3-next.25) (2026-04-10)
+
+
+### Miscellaneous Chores
+
+* **dataspace-rest-server:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.24 to 0.0.3-next.25
+    * @twin.org/dataspace-data-plane-rest-client bumped from 0.0.3-next.24 to 0.0.3-next.25
+    * @twin.org/dataspace-data-plane-socket-client bumped from 0.0.3-next.24 to 0.0.3-next.25
+    * @twin.org/dataspace-data-plane-service bumped from 0.0.3-next.24 to 0.0.3-next.25
+    * @twin.org/dataspace-control-plane-service bumped from 0.0.3-next.24 to 0.0.3-next.25
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.24 to 0.0.3-next.25
+
 ## [0.0.3-next.24](https://github.com/twinfoundation/dataspace/compare/dataspace-rest-server-v0.0.3-next.23...dataspace-rest-server-v0.0.3-next.24) (2026-03-31)
 
 
