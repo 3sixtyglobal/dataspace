@@ -14,7 +14,8 @@
 			"transferProcessNotFound": "Transfer Process not found for consumerPid \"{notFoundId}\"",
 			"transferNotInStartedState": "Transfer Process is not in STARTED state. Current state: \"{currentState}\"",
 			"transferMissingDatasetId": "Transfer Process is missing datasetId",
-			"schemaNotFound": "Schema \"{schemaId}\" not found"
+			"schemaNotFound": "Schema \"{schemaId}\" not found",
+			"cleanupFailed": "Error occurred during cleanup of activity logs"
 		}
 	},
 	"info": {

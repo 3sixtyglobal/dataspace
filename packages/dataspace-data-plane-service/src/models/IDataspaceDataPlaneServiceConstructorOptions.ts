@@ -61,6 +61,12 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	pepComponentType?: string;
 
 	/**
+	 * Tenant admin component type.
+	 * @default tenant-admin
+	 */
+	tenantAdminType?: string;
+
+	/**
 	 * The configuration of the Dataspace Data Plane Service.
 	 */
 	config?: IDataspaceDataPlaneServiceConfig;

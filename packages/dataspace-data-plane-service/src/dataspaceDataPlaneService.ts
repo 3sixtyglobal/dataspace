@@ -1,5 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import type { ITenant, ITenantAdminComponent } from "@twin.org/api-models";
 import {
 	TaskStatus,
 	type IBackgroundTask,
@@ -10,6 +11,7 @@ import {
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	ArrayHelper,
+	BaseError,
 	ComponentFactory,
 	ConflictError,
 	Converter,
@@ -105,12 +107,6 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private static readonly _MINUTES_PER_DAY: number = 24 * 60;
-
-	/**
-	 * Milliseconds per day (24 hours).
-	 * @internal
-	 */
-	private static readonly _MS_PER_DAY: number = 24 * 60 * 60 * 1000;
 
 	/**
 	 * The default cleanup interval in minutes. (1 hour)
@@ -211,17 +207,17 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _policyEnforcementPoint?: IPolicyEnforcementPointComponent;
 
 	/**
+	 * The tenant admin component.
+	 * @internal
+	 */
+	private readonly _tenantAdmin?: ITenantAdminComponent;
+
+	/**
 	 * Entity storage for Transfer Process entities.
 	 * Used to read transfer state from shared storage (written by Control Plane).
 	 * @internal
 	 */
 	private readonly _transferProcessStorage: IEntityStorageConnector<TransferProcess>;
-
-	/**
-	 * The list of active tenants required for task cleanup.
-	 * @internal
-	 */
-	private readonly _activeTenants: string[];
 
 	/**
 	 * Create a new instance of DataspaceDataPlane.
@@ -255,6 +251,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			options?.pepComponentType ?? "policy-enforcement-point-service"
 		);
 
+		this._tenantAdmin = ComponentFactory.getIfExists<ITenantAdminComponent>(
+			options?.tenantAdminType ?? "tenant-admin"
+		);
+
 		// Entity storage for Transfer Process state lookup
 		// Used to read transfer state from shared storage (written by Control Plane)
 		this._transferProcessStorage = EntityStorageConnectorFactory.get<
@@ -268,7 +268,6 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		DataspaceProtocolDataTypes.registerTypes();
 
 		this._activityLogStatusCallbacks = {};
-		this._activeTenants = [];
 		this._partitionContextIds = options?.partitionContextIds;
 
 		this._retainTasksFor =
@@ -392,8 +391,6 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			nameof(activity),
 			activity
 		);
-
-		await this.updateActiveTenants();
 
 		await this._logging?.log({
 			level: "debug",
@@ -1039,18 +1036,6 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
-	 * Updates the list of active tenants for cleanup tasks.
-	 * @internal
-	 */
-	private async updateActiveTenants(): Promise<void> {
-		const contextIds = await ContextIdStore.getContextIds();
-		const tenantId = contextIds?.[ContextIdKeys.Tenant];
-		if (Is.stringValue(tenantId) && !this._activeTenants.includes(tenantId)) {
-			this._activeTenants.push(tenantId);
-		}
-	}
-
-	/**
 	 * Cleans up the activity log by deleting those entries that no longer shall be retained.
 	 * @internal
 	 */
@@ -1068,14 +1053,31 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		let numRecordsDeleted = 0;
 
 		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
-			// The cleanup must be done tenant by tenant
-			// as the data behind the scenes might be partitioned
-			for (const tenantId of this._activeTenants) {
-				const localContextIds = (await ContextIdStore.getContextIds()) ?? {};
-				localContextIds[ContextIdKeys.Tenant] = tenantId;
+			// The cleanup must be done by tenant as the data is partitioned
+			try {
+				let cursor;
+				do {
+					const result: { tenants: ITenant[]; cursor?: string } | undefined =
+						await this._tenantAdmin?.query(undefined, cursor);
+					cursor = result?.cursor;
+					if (!Is.empty(result)) {
+						for (const tenantId of result.tenants.map(t => t.id)) {
+							const localContextIds = (await ContextIdStore.getContextIds()) ?? {};
+							localContextIds[ContextIdKeys.Tenant] = tenantId;
 
-				await ContextIdStore.run(localContextIds, async () => {
-					numRecordsDeleted += await this.cleanupActivityLogPartition();
+							await ContextIdStore.run(localContextIds, async () => {
+								numRecordsDeleted += await this.cleanupActivityLogPartition();
+							});
+						}
+					}
+				} while (Is.stringValue(cursor));
+			} catch (error) {
+				await this._logging?.log({
+					level: "error",
+					message: "cleanupFailed",
+					ts: Date.now(),
+					source: DataspaceDataPlaneService.CLASS_NAME,
+					error: BaseError.fromError(error)
 				});
 			}
 		} else {
@@ -1136,8 +1138,13 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 					}
 				}
 			} while (Is.stringValue(cursor));
-		} catch {
-			// If cleaning up the retained items fail we don't really care, they will get cleaned up on the next sweep.
+		} catch (error) {
+			await this._logging?.log({
+				level: "error",
+				message: "cleanupFailed",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				error: BaseError.fromError(error)
+			});
 		}
 		return numRecordsDeleted;
 	}

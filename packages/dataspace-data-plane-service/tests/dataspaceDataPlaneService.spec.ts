@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IHttpRequestContext } from "@twin.org/api-models";
+import type { IHttpRequestContext, ITenantAdminComponent } from "@twin.org/api-models";
 import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
 	TaskSchedulerService,
@@ -960,6 +960,85 @@ describe("dataspace-data-plane-tests", () => {
 	// ============================================
 	// RFC-004 Specific Tests
 	// ============================================
+
+	test("cleanupActivityLog uses tenant admin pagination for tenant partitions", async () => {
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const tenantAdminQuery = vi
+			.fn()
+			.mockResolvedValueOnce({
+				tenants: [{ id: "tenant-1" }, { id: "tenant-2" }],
+				cursor: "cursor-2"
+			})
+			.mockResolvedValueOnce({
+				tenants: [{ id: "tenant-3" }],
+				cursor: undefined
+			});
+
+		ComponentFactory.register("tenant-admin", () =>
+			({
+				className: () => "MockTenantAdmin",
+				query: tenantAdminQuery
+			}) as unknown as ITenantAdminComponent
+		);
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService({
+			...options,
+			partitionContextIds: [ContextIdKeys.Tenant],
+			tenantAdminType: "tenant-admin"
+		});
+
+		const cleanupPartitionSpy = vi
+			.spyOn(dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> }, "cleanupActivityLogPartition")
+			.mockResolvedValue(1);
+
+		await (
+			dataspaceDataPlaneService as unknown as {
+				cleanupActivityLog(): Promise<void>;
+			}
+		).cleanupActivityLog();
+
+		expect(tenantAdminQuery).toHaveBeenCalledTimes(2);
+		expect(tenantAdminQuery).toHaveBeenNthCalledWith(1, undefined, undefined);
+		expect(tenantAdminQuery).toHaveBeenNthCalledWith(2, undefined, "cursor-2");
+		expect(cleanupPartitionSpy).toHaveBeenCalledTimes(3);
+	});
+
+	test("cleanupActivityLog skips partition cleanup when tenant admin returns no tenants", async () => {
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const tenantAdminQuery = vi.fn().mockResolvedValue({ tenants: [], cursor: undefined });
+
+		ComponentFactory.register("tenant-admin", () =>
+			({
+				className: () => "MockTenantAdmin",
+				query: tenantAdminQuery
+			}) as unknown as ITenantAdminComponent
+		);
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService({
+			...options,
+			partitionContextIds: [ContextIdKeys.Tenant],
+			tenantAdminType: "tenant-admin"
+		});
+
+		const cleanupPartitionSpy = vi
+			.spyOn(dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> }, "cleanupActivityLogPartition")
+			.mockResolvedValue(1);
+
+		await (
+			dataspaceDataPlaneService as unknown as {
+				cleanupActivityLog(): Promise<void>;
+			}
+		).cleanupActivityLog();
+
+		expect(tenantAdminQuery).toHaveBeenCalledTimes(1);
+		expect(cleanupPartitionSpy).not.toHaveBeenCalled();
+	});
 
 	test("Apps declare datasetsHandled() returning IDataspaceProtocolDataset[]", async () => {
 		// Verify test app implements the RFC-004 interface correctly
