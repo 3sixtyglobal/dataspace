@@ -977,11 +977,13 @@ describe("dataspace-data-plane-tests", () => {
 				cursor: undefined
 			});
 
-		ComponentFactory.register("tenant-admin", () =>
-			({
-				className: () => "MockTenantAdmin",
-				query: tenantAdminQuery
-			}) as unknown as ITenantAdminComponent
+		ComponentFactory.register(
+			"tenant-admin",
+			() =>
+				({
+					className: () => "MockTenantAdmin",
+					query: tenantAdminQuery
+				}) as unknown as ITenantAdminComponent
 		);
 
 		const dataspaceDataPlaneService = new DataspaceDataPlaneService({
@@ -991,7 +993,10 @@ describe("dataspace-data-plane-tests", () => {
 		});
 
 		const cleanupPartitionSpy = vi
-			.spyOn(dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> }, "cleanupActivityLogPartition")
+			.spyOn(
+				dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> },
+				"cleanupActivityLogPartition"
+			)
 			.mockResolvedValue(1);
 
 		await (
@@ -1013,11 +1018,13 @@ describe("dataspace-data-plane-tests", () => {
 
 		const tenantAdminQuery = vi.fn().mockResolvedValue({ tenants: [], cursor: undefined });
 
-		ComponentFactory.register("tenant-admin", () =>
-			({
-				className: () => "MockTenantAdmin",
-				query: tenantAdminQuery
-			}) as unknown as ITenantAdminComponent
+		ComponentFactory.register(
+			"tenant-admin",
+			() =>
+				({
+					className: () => "MockTenantAdmin",
+					query: tenantAdminQuery
+				}) as unknown as ITenantAdminComponent
 		);
 
 		const dataspaceDataPlaneService = new DataspaceDataPlaneService({
@@ -1027,7 +1034,10 @@ describe("dataspace-data-plane-tests", () => {
 		});
 
 		const cleanupPartitionSpy = vi
-			.spyOn(dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> }, "cleanupActivityLogPartition")
+			.spyOn(
+				dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> },
+				"cleanupActivityLogPartition"
+			)
 			.mockResolvedValue(1);
 
 		await (
