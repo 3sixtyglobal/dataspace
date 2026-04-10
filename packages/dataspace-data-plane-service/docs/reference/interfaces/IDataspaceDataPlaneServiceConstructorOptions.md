@@ -125,6 +125,20 @@ policy-enforcement-point-service
 
 ***
 
+### tenantAdminType? {#tenantadmintype}
+
+> `optional` **tenantAdminType?**: `string`
+
+Tenant admin component type.
+
+#### Default
+
+```ts
+tenant-admin
+```
+
+***
+
 ### config? {#config}
 
 > `optional` **config?**: [`IDataspaceDataPlaneServiceConfig`](IDataspaceDataPlaneServiceConfig.md)
