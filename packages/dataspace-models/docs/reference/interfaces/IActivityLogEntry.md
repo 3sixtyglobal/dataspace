@@ -68,18 +68,6 @@ The last update date of this object.
 
 ***
 
-### retryCount? {#retrycount}
-
-> `optional` **retryCount?**: `number`
-
-Number of times this activity has been retried.
-
-#### Inherited from
-
-[`IActivityLogDetails`](IActivityLogDetails.md).[`retryCount`](IActivityLogDetails.md#retrycount)
-
-***
-
 ### status {#status}
 
 > **status**: [`ActivityProcessingStatus`](../type-aliases/ActivityProcessingStatus.md)
@@ -88,32 +76,8 @@ Status of the Activity Processing.
 
 ***
 
-### pendingTasks? {#pendingtasks}
+### tasks? {#tasks}
 
-> `optional` **pendingTasks?**: [`ITaskApp`](ITaskApp.md)[]
+> `optional` **tasks?**: [`IActivityTaskEntry`](IActivityTaskEntry.md)[]
 
-The pending tasks that have to be run to process the Activity.
-
-***
-
-### runningTasks? {#runningtasks}
-
-> `optional` **runningTasks?**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md)[]
-
-The running tasks that are processing the Activity.
-
-***
-
-### finalizedTasks? {#finalizedtasks}
-
-> `optional` **finalizedTasks?**: [`ITaskApp`](ITaskApp.md) & [`IActivityLogDates`](IActivityLogDates.md) & `object`[]
-
-The tasks that have already finalized.
-
-***
-
-### inErrorTasks? {#inerrortasks}
-
-> `optional` **inErrorTasks?**: [`ITaskApp`](ITaskApp.md) & `object`[]
-
-The tasks that are in error.
+The tasks that have to be run to process the Activity.

@@ -166,7 +166,7 @@ The item list and optional cursor for pagination via Link headers.
 
 ### notifyActivity() {#notifyactivity}
 
-> **notifyActivity**(`activity`): `Promise`\<`string`\>
+> **notifyActivity**(`activity`): `Promise`\<`string` \| `IActivityLogEntry`\>
 
 Notify an Activity to the Dataspace Activity Stream.
 
@@ -180,9 +180,9 @@ The Activity notified.
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`\<`string` \| `IActivityLogEntry`\>
 
-The Activity's identifier.
+The activity's id or entry.
 
 #### Implementation of
 

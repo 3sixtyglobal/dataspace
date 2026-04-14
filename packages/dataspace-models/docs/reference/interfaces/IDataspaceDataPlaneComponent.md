@@ -11,7 +11,7 @@ Implements the Data Plane functionality for the Eclipse Dataspace Protocol.
 
 ### notifyActivity() {#notifyactivity}
 
-> **notifyActivity**(`activity`): `Promise`\<`string`\>
+> **notifyActivity**(`activity`): `Promise`\<`string` \| [`IActivityLogEntry`](IActivityLogEntry.md)\>
 
 Notify an Activity to the Dataspace Data Plane Activity Stream.
 
@@ -25,9 +25,9 @@ The Activity notified.
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`\<`string` \| [`IActivityLogEntry`](IActivityLogEntry.md)\>
 
-The Activity's identifier.
+The activity's entry.
 
 ***
 

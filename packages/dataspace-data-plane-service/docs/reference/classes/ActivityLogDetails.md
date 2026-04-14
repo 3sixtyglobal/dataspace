@@ -59,11 +59,3 @@ The last update date.
 > `optional` **retainUntil?**: `number`
 
 The timestamp of when to retain the entry until.
-
-***
-
-### retryCount? {#retrycount}
-
-> `optional` **retryCount?**: `number`
-
-Number of times this activity has been retried.

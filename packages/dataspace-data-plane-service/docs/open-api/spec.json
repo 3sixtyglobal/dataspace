@@ -62,8 +62,15 @@
 					}
 				},
 				"responses": {
-					"201": {
-						"description": "The rest request ended in created response."
+					"200": {
+						"description": "Activity Stream Notify Response.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ActivityLogEntry"
+								}
+							}
+						}
 					},
 					"400": {
 						"description": "The server cannot process the request, see the content for more details.",
@@ -184,15 +191,13 @@
 											"dateModified": "2025-08-12T12:00:00Z",
 											"generator": "did:iota:testnet:123456",
 											"status": "pending",
-											"pendingTasks": [
+											"tasks": [
 												{
 													"taskId": "urn:x-task-id:45678",
-													"dataspaceAppId": "https://my-app.example.org/app1"
+													"dataspaceAppId": "https://my-app.example.org/app1",
+													"status": "pending"
 												}
-											],
-											"runningTasks": [],
-											"finalizedTasks": [],
-											"inErrorTasks": []
+											]
 										}
 									}
 								}
@@ -531,23 +536,6 @@
 	},
 	"components": {
 		"schemas": {
-			"ActivityLogDates": {
-				"description": "Activity log dates.",
-				"type": "object",
-				"properties": {
-					"startDate": {
-						"type": "string",
-						"description": "Task processing start timestamp"
-					},
-					"endDate": {
-						"type": "string",
-						"description": "Task processing end timestamp"
-					}
-				},
-				"required": [
-					"startDate"
-				]
-			},
 			"ActivityLogDetails": {
 				"description": "The details related to the processing of an Activity",
 				"type": "object",
@@ -571,10 +559,6 @@
 					"dateModified": {
 						"type": "string",
 						"description": "The last update date of this object."
-					},
-					"retryCount": {
-						"type": "number",
-						"description": "Number of times this activity has been retried."
 					}
 				},
 				"required": [
@@ -591,71 +575,12 @@
 					"status": {
 						"$ref": "#/components/schemas/ActivityProcessingStatus"
 					},
-					"pendingTasks": {
+					"tasks": {
 						"type": "array",
 						"items": {
-							"$ref": "#/components/schemas/TaskApp"
+							"$ref": "#/components/schemas/ActivityTaskEntry"
 						},
-						"description": "The pending tasks that have to be run to process the Activity."
-					},
-					"runningTasks": {
-						"type": "array",
-						"items": {
-							"type": "object",
-							"allOf": [
-								{
-									"$ref": "#/components/schemas/TaskApp"
-								},
-								{
-									"$ref": "#/components/schemas/ActivityLogDates"
-								}
-							]
-						},
-						"description": "The running tasks that are processing the Activity."
-					},
-					"finalizedTasks": {
-						"type": "array",
-						"items": {
-							"type": "object",
-							"properties": {
-								"result": {
-									"type": "string",
-									"description": "The task result."
-								}
-							},
-							"required": [
-								"result"
-							],
-							"allOf": [
-								{
-									"$ref": "#/components/schemas/TaskApp"
-								},
-								{
-									"$ref": "#/components/schemas/ActivityLogDates"
-								}
-							]
-						},
-						"description": "The tasks that have already finalized."
-					},
-					"inErrorTasks": {
-						"type": "array",
-						"items": {
-							"type": "object",
-							"properties": {
-								"error": {
-									"$ref": "#/components/schemas/Error"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"allOf": [
-								{
-									"$ref": "#/components/schemas/TaskApp"
-								}
-							]
-						},
-						"description": "The tasks that are in error."
+						"description": "The tasks that have to be run to process the Activity."
 					}
 				},
 				"required": [
@@ -689,6 +614,67 @@
 					{
 						"const": "registering",
 						"description": "Transient state. The background tasks associated with the activity are still being registered."
+					}
+				]
+			},
+			"ActivityTaskEntry": {
+				"description": "Denotes a task associated with a Dataspace App",
+				"type": "object",
+				"properties": {
+					"taskId": {
+						"type": "string",
+						"description": "Task Id."
+					},
+					"dataspaceAppId": {
+						"type": "string",
+						"description": "Dataspace App Id."
+					},
+					"status": {
+						"$ref": "#/components/schemas/ActivityTaskStatus"
+					},
+					"processingGroupId": {
+						"type": "string",
+						"description": "Processing Group Id."
+					},
+					"startDate": {
+						"type": "string",
+						"description": "Task processing start timestamp"
+					},
+					"endDate": {
+						"type": "string",
+						"description": "Task processing end timestamp"
+					},
+					"result": {
+						"description": "The result of the task processing, if completed."
+					},
+					"error": {
+						"$ref": "#/components/schemas/Error"
+					}
+				},
+				"required": [
+					"taskId",
+					"dataspaceAppId",
+					"status"
+				]
+			},
+			"ActivityTaskStatus": {
+				"description": "Activity task statuses.",
+				"anyOf": [
+					{
+						"const": "pending",
+						"description": "Pending."
+					},
+					{
+						"const": "processing",
+						"description": "Processing."
+					},
+					{
+						"const": "success",
+						"description": "Success."
+					},
+					{
+						"const": "failed",
+						"description": "Failed."
 					}
 				]
 			},
@@ -791,24 +777,6 @@
 				"required": [
 					"type",
 					"q"
-				]
-			},
-			"TaskApp": {
-				"description": "Denotes a task associated with a Dataspace App",
-				"type": "object",
-				"properties": {
-					"taskId": {
-						"type": "string",
-						"description": "Task Id."
-					},
-					"dataspaceAppId": {
-						"type": "string",
-						"description": "Dataspace App Id."
-					}
-				},
-				"required": [
-					"taskId",
-					"dataspaceAppId"
 				]
 			}
 		},

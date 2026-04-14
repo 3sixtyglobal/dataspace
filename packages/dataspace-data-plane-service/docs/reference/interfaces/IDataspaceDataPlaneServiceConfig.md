@@ -29,3 +29,17 @@ The interval in minutes in between activity log clean ups. -1 indicates no clean
 ```ts
 60 minutes
 ```
+
+***
+
+### retryCount? {#retrycount}
+
+> `optional` **retryCount?**: `number`
+
+The number of times to retry failed tasks, defaults to forever.
+
+#### Default
+
+```ts
+undefined.
+```

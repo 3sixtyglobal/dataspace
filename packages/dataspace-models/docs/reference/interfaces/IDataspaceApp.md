@@ -8,6 +8,20 @@ Interface describes a Dataspace App.
 
 ## Methods
 
+### processingGroups()? {#processinggroups}
+
+> `optional` **processingGroups**(): `object`
+
+The settings for the processing groups for tasks.
+
+#### Returns
+
+`object`
+
+The options for each process group.
+
+***
+
 ### activitiesHandled() {#activitieshandled}
 
 > **activitiesHandled**(): [`IActivityQuery`](IActivityQuery.md)[]

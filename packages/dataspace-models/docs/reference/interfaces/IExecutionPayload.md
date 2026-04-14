@@ -20,8 +20,8 @@ The activity
 
 ***
 
-### executorApp {#executorapp}
+### dataspaceAppId {#dataspaceappid}
 
-> **executorApp**: `string`
+> **dataspaceAppId**: `string`
 
-The executor App.
+The dataspace App ID.

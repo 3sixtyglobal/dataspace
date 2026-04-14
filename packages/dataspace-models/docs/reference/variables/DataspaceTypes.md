@@ -9,3 +9,5 @@ The types concerning dataspace
 ### Activity {#activity}
 
 > `readonly` **Activity**: `"Activity"` = `"Activity"`
+
+Activity type.

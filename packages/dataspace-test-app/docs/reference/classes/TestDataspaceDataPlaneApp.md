@@ -62,6 +62,24 @@ The class name of the component.
 
 ***
 
+### processingGroups() {#processinggroups}
+
+> **processingGroups**(): `object`
+
+The settings for the processing groups for tasks.
+
+#### Returns
+
+`object`
+
+The options for each process group.
+
+#### Implementation of
+
+`IDataspaceApp.processingGroups`
+
+***
+
 ### datasetsHandled() {#datasetshandled}
 
 > **datasetsHandled**(): `Promise`\<`IDataspaceProtocolDataset`[]\>

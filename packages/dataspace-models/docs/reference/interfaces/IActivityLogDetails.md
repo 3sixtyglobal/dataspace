@@ -45,11 +45,3 @@ The creation date of this object.
 > **dateModified**: `string`
 
 The last update date of this object.
-
-***
-
-### retryCount? {#retrycount}
-
-> `optional` **retryCount?**: `number`
-
-Number of times this activity has been retried.

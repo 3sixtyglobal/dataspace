@@ -7,23 +7,23 @@
 
 ## Interfaces
 
-- [IActivityLogDates](interfaces/IActivityLogDates.md)
 - [IActivityLogDetails](interfaces/IActivityLogDetails.md)
 - [IActivityLogEntry](interfaces/IActivityLogEntry.md)
 - [IActivityLogStatusNotification](interfaces/IActivityLogStatusNotification.md)
 - [IActivityTask](interfaces/IActivityTask.md)
+- [IActivityTaskEntry](interfaces/IActivityTaskEntry.md)
 - [IDataAssetItemList](interfaces/IDataAssetItemList.md)
 - [IDataAssetItemListResult](interfaces/IDataAssetItemListResult.md)
 - [IDataspaceActivity](interfaces/IDataspaceActivity.md)
 - [IEntitySet](interfaces/IEntitySet.md)
 - [IExecutionPayload](interfaces/IExecutionPayload.md)
 - [IFilteringQuery](interfaces/IFilteringQuery.md)
-- [ITaskApp](interfaces/ITaskApp.md)
 - [IActivityLogEntryGetRequest](interfaces/IActivityLogEntryGetRequest.md)
 - [IActivityLogEntryGetResponse](interfaces/IActivityLogEntryGetResponse.md)
 - [IActivityLogStatusNotificationPayload](interfaces/IActivityLogStatusNotificationPayload.md)
 - [IActivityLogStatusRequest](interfaces/IActivityLogStatusRequest.md)
 - [IActivityStreamNotifyRequest](interfaces/IActivityStreamNotifyRequest.md)
+- [IActivityStreamNotifyResponse](interfaces/IActivityStreamNotifyResponse.md)
 - [IDataAssetEntitiesResponse](interfaces/IDataAssetEntitiesResponse.md)
 - [IDataAssetGetEntitiesRequest](interfaces/IDataAssetGetEntitiesRequest.md)
 - [IDataAssetQueryRequest](interfaces/IDataAssetQueryRequest.md)
@@ -43,6 +43,7 @@
 - [IDataAssetEntitiesRequest](interfaces/IDataAssetEntitiesRequest.md)
 - [IDataAssetQuery](interfaces/IDataAssetQuery.md)
 - [IDataspaceApp](interfaces/IDataspaceApp.md)
+- [IProcessingGroupOptions](interfaces/IProcessingGroupOptions.md)
 - [IQueryDataAssetRequest](interfaces/IQueryDataAssetRequest.md)
 - [IDataspaceControlPlaneComponent](interfaces/IDataspaceControlPlaneComponent.md)
 - [IDataspaceControlPlaneResolverComponent](interfaces/IDataspaceControlPlaneResolverComponent.md)
@@ -55,6 +56,7 @@
 ## Type Aliases
 
 - [ActivityProcessingStatus](type-aliases/ActivityProcessingStatus.md)
+- [ActivityTaskStatus](type-aliases/ActivityTaskStatus.md)
 - [IDataRequest](type-aliases/IDataRequest.md)
 - [DataRequestType](type-aliases/DataRequestType.md)
 - [TransferProcessRole](type-aliases/TransferProcessRole.md)
@@ -65,6 +67,7 @@
 
 - [DataspaceAppFactory](variables/DataspaceAppFactory.md)
 - [ActivityProcessingStatus](variables/ActivityProcessingStatus.md)
+- [ActivityTaskStatus](variables/ActivityTaskStatus.md)
 - [DataRequestType](variables/DataRequestType.md)
 - [TransferProcessRole](variables/TransferProcessRole.md)
 - [DataspaceContexts](variables/DataspaceContexts.md)

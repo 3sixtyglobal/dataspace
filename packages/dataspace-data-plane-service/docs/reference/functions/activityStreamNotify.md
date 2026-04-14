@@ -1,6 +1,6 @@
 # Function: activityStreamNotify()
 
-> **activityStreamNotify**(`baseRouteName`, `httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`ICreatedResponse`\>
+> **activityStreamNotify**(`baseRouteName`, `httpRequestContext`, `factoryServiceName`, `request`): `Promise`\<`IActivityStreamNotifyResponse`\>
 
 Notify a new Activity to the Dataspace Data Plane Activity Stream.
 
@@ -32,6 +32,6 @@ The request.
 
 ## Returns
 
-`Promise`\<`ICreatedResponse`\>
+`Promise`\<`IActivityStreamNotifyResponse`\>
 
 The response object with additional http response properties.

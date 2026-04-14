@@ -24,6 +24,6 @@ The entry Id.
 
 ### associatedTasks {#associatedtasks}
 
-> **associatedTasks**: `ITaskApp`[]
+> **associatedTasks**: `IActivityTaskEntry`[]
 
 The tasks.

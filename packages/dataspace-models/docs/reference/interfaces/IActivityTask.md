@@ -14,6 +14,6 @@ The activity log entry.
 
 ### associatedTasks {#associatedtasks}
 
-> **associatedTasks**: [`ITaskApp`](ITaskApp.md)[]
+> **associatedTasks**: [`IActivityTaskEntry`](IActivityTaskEntry.md)[]
 
 The associated tasks

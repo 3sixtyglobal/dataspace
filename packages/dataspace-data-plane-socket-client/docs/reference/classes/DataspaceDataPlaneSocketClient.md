@@ -64,7 +64,7 @@ The class name of the component.
 
 ### notifyActivity() {#notifyactivity}
 
-> **notifyActivity**(`activity`): `Promise`\<`string`\>
+> **notifyActivity**(`activity`): `Promise`\<`string` \| `IActivityLogEntry`\>
 
 Notify an Activity to the Dataspace Activity Stream - implemented in REST Client.
 
@@ -78,9 +78,9 @@ The Activity notified.
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`\<`string` \| `IActivityLogEntry`\>
 
-The Activity's identifier.
+The activity's id or entry.
 
 #### Implementation of
 

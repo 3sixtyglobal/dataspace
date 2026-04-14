@@ -80,7 +80,7 @@ The node logging component type.
 
 ### notifyActivity() {#notifyactivity}
 
-> **notifyActivity**(`activity`): `Promise`\<`string`\>
+> **notifyActivity**(`activity`): `Promise`\<`string` \| `IActivityLogEntry`\>
 
 Notify an Activity.
 
@@ -94,9 +94,9 @@ The Activity notified.
 
 #### Returns
 
-`Promise`\<`string`\>
+`Promise`\<`string` \| `IActivityLogEntry`\>
 
-The Activity's Log Entry identifier.
+The activity's id or entry.
 
 #### Implementation of
 
