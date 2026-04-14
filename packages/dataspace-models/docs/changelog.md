@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.26](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.25...dataspace-models-v0.0.3-next.26) (2026-04-14)
+
+
+### Features
+
+* add inline tasks and concurrent options ([#104](https://github.com/twinfoundation/dataspace/issues/104)) ([2227a21](https://github.com/twinfoundation/dataspace/commit/2227a212d906f58ba77850c79bb20bf2cb7195a8))
+
 ## [0.0.3-next.25](https://github.com/twinfoundation/dataspace/compare/dataspace-models-v0.0.3-next.24...dataspace-models-v0.0.3-next.25) (2026-04-10)
 
 
