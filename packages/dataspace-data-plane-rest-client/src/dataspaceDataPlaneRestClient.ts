@@ -1,12 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseRestClient } from "@twin.org/api-core";
-import {
-	HttpParameterHelper,
-	type IBaseRestClientConfig,
-	type ICreatedResponse
-} from "@twin.org/api-models";
-import { Guards, Is, NotSupportedError, Coerce } from "@twin.org/core";
+import { HttpParameterHelper, type IBaseRestClientConfig } from "@twin.org/api-models";
+import { Coerce, Guards, Is, NotSupportedError } from "@twin.org/core";
 import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type {
 	IActivityLogEntry,
@@ -14,13 +10,14 @@ import type {
 	IActivityLogEntryGetResponse,
 	IActivityLogStatusNotification,
 	IActivityStreamNotifyRequest,
+	IActivityStreamNotifyResponse,
+	IDataAssetEntitiesResponse,
 	IDataAssetGetEntitiesRequest,
 	IDataAssetItemListResult,
+	IDataAssetQueryRequest,
 	IDataspaceDataPlaneComponent,
-	IDataAssetEntitiesResponse,
 	IEntitySet,
-	IFilteringQuery,
-	IDataAssetQueryRequest
+	IFilteringQuery
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -162,24 +159,27 @@ export class DataspaceDataPlaneRestClient
 	/**
 	 * Notify an Activity to the Dataspace Activity Stream.
 	 * @param activity The Activity notified.
-	 * @returns The Activity's identifier.
+	 * @returns The activity's id or entry.
 	 */
-	public async notifyActivity(activity: IActivityStreamsActivity): Promise<string> {
+	public async notifyActivity(
+		activity: IActivityStreamsActivity
+	): Promise<string | IActivityLogEntry> {
 		Guards.object<IActivityStreamsActivity>(
 			DataspaceDataPlaneRestClient.CLASS_NAME,
 			nameof(activity),
 			activity
 		);
 
-		const response = await this.fetch<IActivityStreamNotifyRequest, ICreatedResponse>(
+		const response = await this.fetch<IActivityStreamNotifyRequest, IActivityStreamNotifyResponse>(
 			"/notify",
 			"POST",
 			{
 				body: activity
 			}
 		);
-		const parts = response.headers[HeaderTypes.Location].split("/");
-		return Is.arrayValue<string>(parts) ? parts[parts.length - 1] : "";
+		const parts = response.headers?.[HeaderTypes.Location]?.split("/");
+		const id = Is.arrayValue<string>(parts) ? parts[parts.length - 1] : "";
+		return response.body ?? id;
 	}
 
 	/**

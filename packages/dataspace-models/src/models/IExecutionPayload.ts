@@ -17,7 +17,7 @@ export interface IExecutionPayload {
 	activity: IDataspaceActivity;
 
 	/**
-	 * The executor App.
+	 * The dataspace App ID.
 	 */
-	executorApp: string;
+	dataspaceAppId: string;
 }

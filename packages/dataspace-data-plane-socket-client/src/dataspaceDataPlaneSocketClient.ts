@@ -97,9 +97,11 @@ export class DataspaceDataPlaneSocketClient
 	/**
 	 * Notify an Activity to the Dataspace Activity Stream - implemented in REST Client.
 	 * @param activity The Activity notified.
-	 * @returns The Activity's identifier.
+	 * @returns The activity's id or entry.
 	 */
-	public async notifyActivity(activity: IActivityStreamsActivity): Promise<string> {
+	public async notifyActivity(
+		activity: IActivityStreamsActivity
+	): Promise<string | IActivityLogEntry> {
 		// This method is in the REST client
 		throw new NotImplementedError(DataspaceDataPlaneSocketClient.CLASS_NAME, "notifyActivity");
 	}

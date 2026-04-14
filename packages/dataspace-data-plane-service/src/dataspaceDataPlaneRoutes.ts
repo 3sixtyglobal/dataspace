@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0.
 import {
 	HttpParameterHelper,
-	type ICreatedResponse,
 	type IHostingComponent,
 	type IHttpRequestContext,
 	type IRestRoute,
@@ -15,6 +14,7 @@ import type {
 	IActivityLogEntryGetRequest,
 	IActivityLogEntryGetResponse,
 	IActivityStreamNotifyRequest,
+	IActivityStreamNotifyResponse,
 	IDataAssetEntitiesResponse,
 	IDataAssetGetEntitiesRequest,
 	IDataAssetItemList,
@@ -76,15 +76,13 @@ const activityLogEntryExample: IActivityLogEntry = {
 	dateModified: "2025-08-12T12:00:00Z",
 	generator: "did:iota:testnet:123456",
 	status: "pending",
-	pendingTasks: [
+	tasks: [
 		{
 			taskId: "urn:x-task-id:45678",
-			dataspaceAppId: "https://my-app.example.org/app1"
+			dataspaceAppId: "https://my-app.example.org/app1",
+			status: "pending"
 		}
-	],
-	runningTasks: [],
-	finalizedTasks: [],
-	inErrorTasks: []
+	]
 };
 
 const dataspaceDataPlaneQueryResultExample: IDataAssetItemList = {
@@ -109,7 +107,10 @@ export function generateRestRoutesDataspaceDataPlane(
 	baseRouteName: string,
 	factoryServiceName: string
 ): IRestRoute[] {
-	const notifyActivityStreamRoute: IRestRoute<IActivityStreamNotifyRequest, ICreatedResponse> = {
+	const notifyActivityStreamRoute: IRestRoute<
+		IActivityStreamNotifyRequest,
+		IActivityStreamNotifyResponse
+	> = {
 		operationId: "activityStreamNotify",
 		summary: "Notify of a new Activity",
 		tag: tagsDataspaceDataPlane[0].name,
@@ -131,7 +132,7 @@ export function generateRestRoutesDataspaceDataPlane(
 		},
 		responseType: [
 			{
-				type: nameof<ICreatedResponse>()
+				type: nameof<IActivityStreamNotifyResponse>()
 			},
 			{ type: nameof<IUnprocessableEntityResponse>() }
 		]
@@ -282,18 +283,28 @@ export async function activityStreamNotify(
 	httpRequestContext: IHttpRequestContext,
 	factoryServiceName: string,
 	request: IActivityStreamNotifyRequest
-): Promise<ICreatedResponse> {
+): Promise<IActivityStreamNotifyResponse> {
 	Guards.object<IActivityStreamNotifyRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object<IActivityStreamsActivity>(ROUTES_SOURCE, nameof(request.body), request.body);
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
-	const activityLogEntryId = await component.notifyActivity(request.body);
+	const result = await component.notifyActivity(request.body);
+
+	if (Is.string(result)) {
+		return {
+			headers: {
+				location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result}`
+			},
+			statusCode: HttpStatusCode.processing
+		};
+	}
 
 	return {
 		headers: {
-			location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${activityLogEntryId}`
+			location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result.id}`
 		},
-		statusCode: HttpStatusCode.created
+		statusCode: HttpStatusCode.created,
+		body: result
 	};
 }
 

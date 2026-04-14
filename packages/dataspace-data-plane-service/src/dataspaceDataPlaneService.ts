@@ -3,7 +3,6 @@
 import type { ITenant, ITenantAdminComponent } from "@twin.org/api-models";
 import {
 	TaskStatus,
-	type IBackgroundTask,
 	type IBackgroundTaskComponent,
 	type IScheduledTaskTime,
 	type ITaskSchedulerComponent
@@ -24,7 +23,6 @@ import {
 	RandomHelper,
 	UnprocessableError,
 	Validation,
-	type IError,
 	type IValidationFailure
 } from "@twin.org/core";
 import { Blake2b } from "@twin.org/crypto";
@@ -38,15 +36,16 @@ import {
 } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
+	ActivityTaskStatus,
 	DataRequestType,
 	DataspaceAppFactory,
 	DataspaceContexts,
 	DataspaceDataTypes,
 	DataspaceTypes,
-	type IActivityLogDetails,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IActivityQuery,
+	type IActivityTaskEntry,
 	type IDataAssetItemListResult,
 	type IDataAssetQuery,
 	type IDataRequest,
@@ -56,7 +55,6 @@ import {
 	type IEntitySet,
 	type IExecutionPayload,
 	type IFilteringQuery,
-	type ITaskApp,
 	type ITransferContext,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
@@ -159,6 +157,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	};
 
 	/**
+	 * Track task handler registrations to avoid resetting worker pools on every task.
+	 * @internal
+	 */
+	private readonly _registeredTaskTypes: string[];
+
+	/**
 	 * Task retention. -1 retain forever.
 	 * @internal
 	 */
@@ -169,6 +173,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private readonly _retainActivityLogsFor: number;
+
+	/**
+	 * Retry count for failed tasks.
+	 * @internal
+	 */
+	private readonly _retryCount?: number;
 
 	/**
 	 * Clean up interval for activity logs.
@@ -268,12 +278,14 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		DataspaceProtocolDataTypes.registerTypes();
 
 		this._activityLogStatusCallbacks = {};
+		this._registeredTaskTypes = [];
 		this._partitionContextIds = options?.partitionContextIds;
 
 		this._retainTasksFor =
 			DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL * DataspaceDataPlaneService._MS_PER_MINUTE;
 		this._retainActivityLogsFor =
 			DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL * DataspaceDataPlaneService._MS_PER_MINUTE;
+		this._retryCount = options?.config?.retryCount;
 		this._activityLogCleanUpInterval = DataspaceDataPlaneService._DEFAULT_CLEANUP_INTERVAL;
 		this._cleanUpProcessOngoing = false;
 
@@ -383,9 +395,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	/**
 	 * Notify an Activity.
 	 * @param activity The Activity notified.
-	 * @returns The Activity's Log Entry identifier.
+	 * @returns The activity's id or entry.
 	 */
-	public async notifyActivity(activity: IActivityStreamsActivity): Promise<string> {
+	public async notifyActivity(
+		activity: IActivityStreamsActivity
+	): Promise<string | IActivityLogEntry> {
 		Guards.object<IActivityStreamsActivity>(
 			DataspaceDataPlaneService.CLASS_NAME,
 			nameof(activity),
@@ -425,11 +439,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const activityLogEntryId = `urn:x-activity-log:${activityLogId}`;
 
 		// Check if entry already exists
-		const existingLogEntry = await this._entityStorageActivityLogs.get(activityLogEntryId);
+		let logEntry = await this._entityStorageActivityLogs.get(activityLogEntryId);
 		let existingSuccessfulApps: string[] = [];
 		let isRetry = false;
+		const now = Date.now();
 
-		if (!Is.undefined(existingLogEntry)) {
+		if (!Is.undefined(logEntry)) {
 			// Check if there are failed tasks that can be retried
 			const existingEntry = await this.getActivityLogEntry(activityLogEntryId);
 
@@ -459,76 +474,49 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			existingSuccessfulApps = await this.prepareForRetry(activityLogEntryId, existingEntry);
 			isRetry = true;
 		} else {
-			const logEntry: IActivityLogDetails = {
+			logEntry = {
 				id: activityLogEntryId,
-				activityId: Is.string(activity.id) ? activity.id : undefined,
+				activityId: activity.id,
 				generator: this.calculateActivityGeneratorIdentity(activity),
-				dateCreated: new Date().toISOString(),
-				dateModified: new Date().toISOString()
+				dateCreated: new Date(now).toISOString(),
+				dateModified: new Date(now).toISOString()
 			};
 			await this._entityStorageActivityLogs.set(logEntry);
 		}
 
 		const activityQuerySet = await this.calculateActivityQuerySet(activity as IDataspaceActivity);
 
-		const tasksScheduled: ITaskApp[] = [];
-		const dataspaceAppIds: string[] = [];
+		const taskEntries: IActivityTaskEntry[] = [];
+		const handlerApps: {
+			[id: string]: {
+				app: IDataspaceApp;
+				processingGroupId?: string;
+			};
+		} = {};
 
 		for (const query of activityQuerySet) {
-			const appIds = this.getAppForActivityQuery(query);
-			for (const appId of appIds) {
-				if (!dataspaceAppIds.includes(appId)) {
-					dataspaceAppIds.push(appId);
+			const apps = this.getAppForActivityQuery(query);
+			for (const appId in apps) {
+				// Only process apps that haven't already completed successfully
+				if (!handlerApps[appId] && !existingSuccessfulApps.includes(appId)) {
+					handlerApps[appId] = apps[appId];
 				}
 			}
 		}
 
-		for (const dataspaceAppId of dataspaceAppIds) {
-			// Only process apps that haven't already completed successfully
-			if (!existingSuccessfulApps.includes(dataspaceAppId)) {
-				const payload: IExecutionPayload = {
+		let inlineCount = 0;
+		for (const handlerAppId in handlerApps) {
+			if (
+				await this.processTask(
 					activityLogEntryId,
-					activity: activity as IDataspaceActivity,
-					executorApp: dataspaceAppId
-				};
-
-				const taskType = Converter.bytesToHex(RandomHelper.generate(16));
-				const taskId = await this._backgroundTaskComponent.create<IExecutionPayload>(
-					taskType,
-					payload,
-					{
-						retainFor: this._retainTasksFor
-					}
-				);
-
-				await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
-					taskType,
-					"@twin.org/dataspace-app-runner",
-					"appRunner",
-					async task => {
-						await this.finaliseTask(task);
-					},
-					{
-						initialiseMethod: "appRunnerStart",
-						shutdownMethod: "appRunnerEnd"
-					}
-				);
-
-				tasksScheduled.push({
-					taskId,
-					dataspaceAppId
-				});
-
-				await this._logging?.log({
-					level: "info",
-					source: DataspaceDataPlaneService.CLASS_NAME,
-					message: "scheduledTask",
-					data: {
-						taskId,
-						dataspaceAppId,
-						isRetry
-					}
-				});
+					activity,
+					handlerApps,
+					handlerAppId,
+					taskEntries,
+					isRetry
+				)
+			) {
+				inlineCount++;
 			}
 		}
 
@@ -540,12 +528,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				existingSuccessfulApps.includes(t.dataspaceAppId)
 			) ?? [];
 
-		await this._entityStorageActivityTasks.set({
+		const activityTask: ActivityTask = {
 			activityLogEntryId,
-			associatedTasks: [...existingTasksToKeep, ...tasksScheduled]
-		});
+			associatedTasks: [...existingTasksToKeep, ...taskEntries]
+		};
 
-		return activityLogEntryId;
+		await this._entityStorageActivityTasks.set(activityTask);
+
+		if (inlineCount === taskEntries.length) {
+			return this.finaliseActivityLogEntry(activityLogEntryId);
+		}
+
+		return activityTask.activityLogEntryId;
 	}
 
 	/**
@@ -590,8 +584,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	public async getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry> {
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(logEntryId), logEntryId);
 
-		const result = await this._entityStorageActivityLogs.get(logEntryId);
-		if (Is.undefined(result)) {
+		const activityLog = await this._entityStorageActivityLogs.get(logEntryId);
+		if (Is.undefined(activityLog)) {
 			throw new NotFoundError(
 				DataspaceDataPlaneService.CLASS_NAME,
 				"activityLogEntryNotFound",
@@ -599,72 +593,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			);
 		}
 
-		let pendingTasks: IActivityLogEntry["pendingTasks"];
-		let runningTasks: IActivityLogEntry["runningTasks"];
-		let finalizedTasks: IActivityLogEntry["finalizedTasks"];
-		let inErrorTasks: IActivityLogEntry["inErrorTasks"];
-
-		// For calculating the processing status. `Registering` if we cannot determine the activity tasks yet
-		let status: ActivityProcessingStatus = ActivityProcessingStatus.Registering;
-
-		// Now query the associated tasks
 		const activityTasks = await this._entityStorageActivityTasks.get(logEntryId);
 
-		// If activity tasks is undefined it is because the corresponding store has not been persisted yet
-		if (!Is.undefined(activityTasks)) {
-			pendingTasks = [];
-			runningTasks = [];
-			finalizedTasks = [];
-			inErrorTasks = [];
-
-			for (const entity of activityTasks.associatedTasks) {
-				const taskDetails = await this._backgroundTaskComponent.get<IExecutionPayload, unknown>(
-					entity.taskId
-				);
-
-				if (Is.object(taskDetails)) {
-					switch (taskDetails.status) {
-						case TaskStatus.Success:
-							finalizedTasks.push({
-								...entity,
-								result: JSON.stringify(taskDetails.result),
-								startDate: taskDetails?.dateCreated,
-								endDate: taskDetails?.dateCompleted
-							});
-							break;
-
-						case TaskStatus.Pending:
-							pendingTasks.push(entity);
-							break;
-
-						case TaskStatus.Processing:
-							runningTasks.push({ ...entity, startDate: taskDetails.dateCreated });
-							break;
-
-						case TaskStatus.Failed:
-							inErrorTasks.push({
-								...entity,
-								error: taskDetails.error as IError
-							});
-							break;
-
-						case TaskStatus.Cancelled:
-							// Nothing to do for cancelled tasks
-							break;
-					}
-				}
-			}
-			if (Is.arrayValue(inErrorTasks)) {
-				status = ActivityProcessingStatus.Error;
-			} else if (Is.arrayValue(runningTasks)) {
-				status = ActivityProcessingStatus.Running;
-			} else if (Is.arrayValue(pendingTasks)) {
-				status = ActivityProcessingStatus.Pending;
-			} else {
-				status = ActivityProcessingStatus.Completed;
-			}
-		}
-		return { ...result, status, pendingTasks, runningTasks, finalizedTasks, inErrorTasks };
+		return this.constructLogEntry(activityLog, activityTasks);
 	}
 
 	/**
@@ -737,10 +668,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		const datasetId = serviceDataset["@id"];
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
-		const appId = await this.getAppForDataAssetQuery({ datasetId });
-
-		// getAppForDataAssetQuery already validates app exists
-		const app = DataspaceAppFactory.get<IDataspaceApp>(appId);
+		const app = await this.getAppForDataAssetQuery({ datasetId });
 
 		const handleDataRequest = app.handleDataRequest?.bind(app);
 		Guards.function(
@@ -834,9 +762,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		const datasetId = serviceDataset["@id"];
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
-		const appId = await this.getAppForDataAssetQuery({ datasetId });
-
-		const app = DataspaceAppFactory.get<IDataspaceApp>(appId);
+		const app = await this.getAppForDataAssetQuery({ datasetId });
 
 		if (!app.supportedQueryTypes().includes(query.type)) {
 			throw new UnprocessableError(DataspaceDataPlaneService.CLASS_NAME, "queryTypeNotSupported", {
@@ -978,61 +904,88 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Process activity task finalization.
-	 * @param proofEntity The proof entity to process.
+	 * @param taskId The Id of the Activity Log Entry.
+	 * @param status The final status of the task.
+	 * @param payload The execution payload of the task, required to correlate to the Activity Log Entry and update the processing status.
 	 * @internal
 	 */
-	private async finaliseTask(task: IBackgroundTask<IExecutionPayload, unknown>): Promise<void> {
-		const payload = task.payload;
-
+	private async finaliseBackgroundTask(
+		taskId: string,
+		status: TaskStatus,
+		payload?: IExecutionPayload
+	): Promise<void> {
 		if (Is.empty(payload)) {
 			return;
 		}
 
-		const activityLogEntry = await this._entityStorageActivityLogs.get(payload.activityLogEntryId);
-		if (Is.undefined(activityLogEntry)) {
-			await this._logging?.log({
-				level: "error",
-				source: DataspaceDataPlaneService.CLASS_NAME,
-				message: "unknownActivityLogEntryId",
-				data: {
-					activityLogEntryId: payload.activityLogEntryId
+		if (status === TaskStatus.Success || status === TaskStatus.Failed) {
+			await this.notifyTaskStatusChanged(
+				payload.activityLogEntryId,
+				payload.activity.id,
+				payload.dataspaceAppId,
+				taskId,
+				status
+			);
+
+			await this.finaliseActivityLogEntry(payload.activityLogEntryId);
+		}
+	}
+
+	/**
+	 * Notify registered callbacks about a task status change.
+	 * @param activityLogEntryId The Id of the Activity Log Entry.
+	 * @param activityId The Id of the Activity.
+	 * @param dataspaceAppId The Id of the Dataspace App associated with the task.
+	 * @param taskId The Id of the task.
+	 * @param taskStatus The new status of the task.
+	 * @internal
+	 */
+	private async notifyTaskStatusChanged(
+		activityLogEntryId: string,
+		activityId: string | undefined,
+		dataspaceAppId: string,
+		taskId: string,
+		taskStatus: TaskStatus
+	): Promise<void> {
+		for (const callback of Object.values(this._activityLogStatusCallbacks)) {
+			await callback({
+				activityLogEntryId,
+				activityId,
+				taskProcessingStatus: {
+					dataspaceAppId,
+					taskId,
+					taskStatus
 				}
 			});
 		}
+	}
 
-		if (task.status === TaskStatus.Success || task.status === TaskStatus.Failed) {
-			for (const callback of Object.values(this._activityLogStatusCallbacks)) {
-				await callback({
-					activityLogEntryId: payload.activityLogEntryId,
-					activityId: Is.string(payload.activity.id) ? payload.activity.id : undefined,
-					taskProcessingStatus: {
-						dataspaceAppId: payload.executorApp,
-						taskId: task.id,
-						taskStatus: task.status
-					}
-				});
-			}
-
-			// Now let's see if the full activity processing has completed, if so the entry must be marked for retention
-			if (this._retainActivityLogsFor !== -1) {
-				const entry = await this.getActivityLogEntry(payload.activityLogEntryId);
-				if (
-					entry.status === ActivityProcessingStatus.Completed ||
-					entry.status === ActivityProcessingStatus.Error
-				) {
-					const retainUntil = Date.now() + this._retainActivityLogsFor;
-					await this._entityStorageActivityLogs.set({
-						id: entry.id,
-						activityId: entry.activityId,
-						generator: entry.generator,
-						dateCreated: entry.dateCreated,
-						dateModified: entry.dateModified,
-						retainUntil,
-						retryCount: entry.retryCount
-					});
-				}
-			}
+	/**
+	 * Finalizes the Activity Log Entry by checking if all associated tasks have completed and, if so, updating the entry to be retained for the configured retention period.
+	 * @param activityLogEntryId The Id of the Activity Log Entry to finalize.
+	 * @returns The Activity Log Entry with updated retention details if applicable.
+	 * @internal
+	 */
+	private async finaliseActivityLogEntry(activityLogEntryId: string): Promise<IActivityLogEntry> {
+		const entry = await this.getActivityLogEntry(activityLogEntryId);
+		if (
+			this._retainActivityLogsFor !== -1 &&
+			(entry.status === ActivityProcessingStatus.Completed ||
+				entry.status === ActivityProcessingStatus.Error)
+		) {
+			const retainUntil = Date.now() + this._retainActivityLogsFor;
+			const updatedEntry: ActivityLogDetails = {
+				id: entry.id,
+				activityId: entry.activityId,
+				generator: entry.generator,
+				dateCreated: entry.dateCreated,
+				dateModified: entry.dateModified,
+				retainUntil
+			};
+			await this._entityStorageActivityLogs.set(updatedEntry);
 		}
+
+		return entry;
 	}
 
 	/**
@@ -1212,8 +1165,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @returns The Dataspace Data Plane Apps or empty list if nothing is registered.
 	 * @internal
 	 */
-	private getAppForActivityQuery(activityQuery: IActivityQuery): string[] {
-		const matchingElements: string[] = [];
+	private getAppForActivityQuery(activityQuery: IActivityQuery): {
+		[id: string]: {
+			app: IDataspaceApp;
+			processingGroupId?: string;
+		};
+	} {
+		const matchingElements: {
+			[id: string]: {
+				app: IDataspaceApp;
+				processingGroupId?: string;
+			};
+		} = {};
 		const appNames = DataspaceAppFactory.names();
 
 		for (const appId of appNames) {
@@ -1227,10 +1190,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 						appQuery.activityType === activityQuery.activityType) &&
 					(Is.undefined(appQuery.targetType) || appQuery.targetType === activityQuery.targetType)
 				) {
-					// Avoid duplicates. Only one DS App can be executed per activity
-					if (!matchingElements.includes(appId)) {
-						matchingElements.push(appId);
-					}
+					matchingElements[appId] = {
+						app,
+						processingGroupId: appQuery.processingGroupId
+					};
 				}
 			}
 		}
@@ -1269,8 +1232,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @returns The Dataspace Data Plane App ID.
 	 * @internal
 	 */
-	private async getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): Promise<string> {
-		const matchingElements: string[] = [];
+	private async getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): Promise<IDataspaceApp> {
+		const matchingElements: IDataspaceApp[] = [];
+		const matchingIds: string[] = [];
 		const appNames = DataspaceAppFactory.names();
 
 		for (const appId of appNames) {
@@ -1279,7 +1243,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 			for (const dataset of datasets) {
 				if (dataset["@id"] === dataAssetQuery.datasetId) {
-					matchingElements.push(appId);
+					matchingElements.push(app);
+					matchingIds.push(appId);
 				}
 			}
 		}
@@ -1289,7 +1254,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				DataspaceDataPlaneService.CLASS_NAME,
 				"tooManyAppsRegistered",
 				dataAssetQuery.datasetId,
-				matchingElements,
+				matchingIds,
 				{
 					datasetId: dataAssetQuery.datasetId
 				}
@@ -1341,7 +1306,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		activityLogEntryId: string,
 		existingEntry: IActivityLogEntry
 	): Promise<string[]> {
-		const appsToRetry = existingEntry.inErrorTasks?.map(t => t.dataspaceAppId) ?? [];
+		const appsToRetry =
+			existingEntry.tasks
+				?.filter(t => t.status === ActivityTaskStatus.Failed)
+				.map(t => t.dataspaceAppId) ?? [];
 
 		if (!Is.arrayValue(appsToRetry)) {
 			throw new NotFoundError(
@@ -1351,7 +1319,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			);
 		}
 
-		const successfulApps = existingEntry.finalizedTasks?.map(t => t.dataspaceAppId) ?? [];
+		const successfulApps =
+			existingEntry.tasks
+				?.filter(t => t.status === ActivityTaskStatus.Success)
+				.map(t => t.dataspaceAppId) ?? [];
 
 		await this._logging?.log({
 			level: "debug",
@@ -1371,8 +1342,6 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			if (this._retainActivityLogsFor !== -1) {
 				logEntry.retainUntil = Date.now() + this._retainActivityLogsFor;
 			}
-			// Monitoring purposes
-			logEntry.retryCount = (logEntry.retryCount ?? 0) + 1;
 			await this._entityStorageActivityLogs.set(logEntry);
 		}
 
@@ -1490,5 +1459,231 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				}
 			});
 		}
+	}
+
+	/**
+	 * Processes a task for an activity, by creating a background task and registering the handler.
+	 * @param activityLogEntryId The ID of the activity log entry.
+	 * @param activity The activity to be processed.
+	 * @param handlerApps The handler applications for the activity.
+	 * @param dataspaceAppId The ID of the handler application.
+	 * @param taskEntries The list of activity log entries.
+	 * @param isRetry Indicates if this is a retry of a previous task.
+	 * @returns True if the task was processed inline.
+	 * @internal
+	 */
+	private async processTask(
+		activityLogEntryId: string,
+		activity: IActivityStreamsActivity,
+		handlerApps: { [id: string]: { app: IDataspaceApp; processingGroupId?: string } },
+		dataspaceAppId: string,
+		taskEntries: IActivityTaskEntry[],
+		isRetry: boolean
+	): Promise<boolean> {
+		const handlerApp = handlerApps[dataspaceAppId].app;
+		const processingGroupId = handlerApps[dataspaceAppId].processingGroupId;
+
+		const payload: IExecutionPayload = {
+			activityLogEntryId,
+			activity: activity as IDataspaceActivity,
+			dataspaceAppId
+		};
+
+		// If there is no processing group we execute the task inline without creating a background task
+		const isInlineTask = !Is.stringValue(processingGroupId);
+		if (isInlineTask) {
+			const handleActivity = handlerApp?.handleActivity?.bind(handlerApp);
+			if (!Is.function(handleActivity)) {
+				throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "missingHandleActivity", {
+					dataspaceAppId
+				});
+			}
+			let taskError;
+			let taskResult;
+			try {
+				taskResult = await handleActivity(activity as IDataspaceActivity);
+			} catch (error) {
+				taskError = BaseError.fromError(error);
+			}
+
+			const now = Date.now();
+			const taskEntry: IActivityTaskEntry = {
+				taskId: RandomHelper.generateUuidV7("compact"),
+				dataspaceAppId,
+				processingGroupId,
+				result: taskResult,
+				startDate: new Date(now).toISOString(),
+				endDate: new Date(now).toISOString(),
+				status: Is.empty(taskError) ? ActivityTaskStatus.Success : ActivityTaskStatus.Failed,
+				error: taskError
+			};
+			taskEntries.push(taskEntry);
+
+			await this.notifyTaskStatusChanged(
+				payload.activityLogEntryId,
+				payload.activity.id,
+				payload.dataspaceAppId,
+				taskEntry.taskId,
+				taskEntry.status
+			);
+		} else {
+			const processingGroups = handlerApp.processingGroups?.() ?? {};
+			if (Is.empty(processingGroups[processingGroupId])) {
+				throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "invalidProcessingGroupId", {
+					processingGroupId
+				});
+			}
+
+			const processingGroupOptions = processingGroups[processingGroupId];
+
+			const taskType = `${dataspaceAppId}${processingGroupId ? `-${processingGroupId}` : ""}`;
+
+			const taskId = await this._backgroundTaskComponent.create<IExecutionPayload>(
+				taskType,
+				payload,
+				{
+					retainFor: this._retainTasksFor,
+					retryCount: processingGroupOptions?.retryCount ?? this._retryCount
+				}
+			);
+
+			if (!this._registeredTaskTypes.includes(taskType)) {
+				this._registeredTaskTypes.push(taskType);
+
+				await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
+					taskType,
+					"@twin.org/dataspace-app-runner",
+					"appRunner",
+					async task => {
+						await this.finaliseBackgroundTask(task.id, task.status, task.payload);
+					},
+					{
+						maxWorkerCount: processingGroupOptions?.concurrentTasks,
+						idleShutdownTimeout: processingGroupOptions?.idleShutdownTimeout,
+						initialiseMethod: "appRunnerStart",
+						shutdownMethod: "appRunnerEnd"
+					}
+				);
+			}
+
+			taskEntries.push({
+				taskId,
+				dataspaceAppId,
+				processingGroupId,
+				status: ActivityTaskStatus.Pending
+			});
+
+			await this._logging?.log({
+				level: "info",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				message: "scheduledTask",
+				data: {
+					taskId,
+					dataspaceAppId,
+					isRetry
+				}
+			});
+		}
+
+		return isInlineTask;
+	}
+
+	/**
+	 * Constructs the activity log entry with processing status and associated tasks.
+	 * @param activityLog The activity log details retrieved from storage.
+	 * @param activityTasks The activity tasks associated with the log entry, if any.
+	 * @returns The complete activity log entry with status and tasks.
+	 * @internal
+	 */
+	private async constructLogEntry(
+		activityLog: ActivityLogDetails,
+		activityTasks: ActivityTask | undefined
+	): Promise<IActivityLogEntry> {
+		let tasks: IActivityTaskEntry[] | undefined;
+
+		// For calculating the processing status. `Registering` if we cannot determine the activity tasks yet
+		let status: ActivityProcessingStatus = ActivityProcessingStatus.Registering;
+
+		// Now query the associated tasks
+		// If activity tasks is undefined it is because the corresponding store has not been persisted yet
+		if (!Is.undefined(activityTasks)) {
+			tasks = [];
+
+			const typeCount: {
+				[status in TaskStatus]: number;
+			} = {
+				[TaskStatus.Pending]: 0,
+				[TaskStatus.Processing]: 0,
+				[TaskStatus.Success]: 0,
+				[TaskStatus.Failed]: 0,
+				[TaskStatus.Cancelled]: 0
+			};
+
+			for (const entity of activityTasks.associatedTasks) {
+				let entry: IActivityTaskEntry | undefined;
+				if (!Is.stringValue(entity.processingGroupId)) {
+					// If there is no process group, the task was processed inline so the task status is already available in the entity
+					typeCount[entity.status]++;
+					entry = entity;
+				} else {
+					const taskDetails = await this._backgroundTaskComponent.get<IExecutionPayload, unknown>(
+						entity.taskId
+					);
+					if (!Is.empty(taskDetails)) {
+						typeCount[taskDetails.status]++;
+
+						switch (taskDetails.status) {
+							case TaskStatus.Success:
+								entry = {
+									...entity,
+									status: ActivityTaskStatus.Success,
+									result: taskDetails.result,
+									startDate: taskDetails?.dateCreated,
+									endDate: taskDetails?.dateCompleted
+								};
+								break;
+
+							case TaskStatus.Pending:
+								entry = { ...entity, status: ActivityTaskStatus.Pending };
+								break;
+
+							case TaskStatus.Processing:
+								entry = {
+									...entity,
+									status: ActivityTaskStatus.Processing,
+									startDate: taskDetails.dateCreated
+								};
+								break;
+
+							case TaskStatus.Failed:
+								entry = {
+									...entity,
+									status: ActivityTaskStatus.Failed,
+									error: taskDetails.error
+								};
+								break;
+
+							case TaskStatus.Cancelled:
+								// Nothing to do for cancelled tasks
+								break;
+						}
+					}
+				}
+
+				if (!Is.empty(entry)) {
+					tasks.push(entry);
+				}
+			}
+			if (typeCount[TaskStatus.Failed] > 0) {
+				status = ActivityProcessingStatus.Error;
+			} else if (typeCount[TaskStatus.Processing] > 0) {
+				status = ActivityProcessingStatus.Running;
+			} else if (typeCount[TaskStatus.Pending] > 0) {
+				status = ActivityProcessingStatus.Pending;
+			} else {
+				status = ActivityProcessingStatus.Completed;
+			}
+		}
+		return { ...activityLog, status, tasks };
 	}
 }

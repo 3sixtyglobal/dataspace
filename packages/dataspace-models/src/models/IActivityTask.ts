@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ITaskApp } from "./ITaskApp.js";
+import type { IActivityTaskEntry } from "./IActivityTaskEntry.js";
 
 /**
  * Denotes a task associated with an Activity
@@ -14,5 +14,5 @@ export interface IActivityTask {
 	/**
 	 * The associated tasks
 	 */
-	associatedTasks: ITaskApp[];
+	associatedTasks: IActivityTaskEntry[];
 }

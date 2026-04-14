@@ -6,7 +6,6 @@
 			"activityStillProcessing": "Activity is still being processed",
 			"noFailedTasksToRetry": "Activity has error status but no failed tasks to retry",
 			"invalidActivityGeneratorIdentity": "Invalid activity. No identity specified either on 'generator' or 'actor'",
-			"unknownActivityLogEntryId": "Unknown Activity Log Entry Id \"{activityLogEntryId}\"",
 			"tooManyAppsRegistered": "There are several DS Apps registered for Dataset \"{datasetId}\"",
 			"noAppRegistered": "There are no DS Apps registered for Dataset \"{datasetId}\"",
 			"notExpandableType": "Entity type \"{type}\" cannot be expanded",
@@ -15,7 +14,9 @@
 			"transferNotInStartedState": "Transfer Process is not in STARTED state. Current state: \"{currentState}\"",
 			"transferMissingDatasetId": "Transfer Process is missing datasetId",
 			"schemaNotFound": "Schema \"{schemaId}\" not found",
-			"cleanupFailed": "Error occurred during cleanup of activity logs"
+			"cleanupFailed": "Error occurred during cleanup of activity logs",
+			"invalidProcessingGroupId": "Invalid processing group id \"{processingGroupId}\" specified in activity query",
+			"missingHandleActivity": "Handler App \"{dataspaceAppId}\" does not export a \"handleActivity\" function"
 		}
 	},
 	"info": {

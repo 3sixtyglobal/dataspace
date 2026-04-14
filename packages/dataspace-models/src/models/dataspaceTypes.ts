@@ -6,6 +6,9 @@
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceTypes = {
+	/**
+	 * Activity type.
+	 */
 	Activity: "Activity"
 } as const;
 

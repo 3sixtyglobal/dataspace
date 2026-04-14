@@ -6,11 +6,18 @@ import type { IDataspaceProtocolDataset } from "@twin.org/standards-dataspace-pr
 import type { IActivityQuery } from "./IActivityQuery.js";
 import type { IDataRequest } from "./IDataRequest.js";
 import type { IDataspaceActivity } from "../IDataspaceActivity.js";
+import type { IProcessingGroupOptions } from "./IProcessingGroupOptions.js";
 
 /**
  * Interface describes a Dataspace App.
  */
 export interface IDataspaceApp extends IComponent {
+	/**
+	 * The settings for the processing groups for tasks.
+	 * @returns The options for each process group.
+	 */
+	processingGroups?(): { [id: string]: IProcessingGroupOptions };
+
 	/**
 	 * The activities handled by the App.
 	 * @returns A query that describes the set of activities handled by the App.

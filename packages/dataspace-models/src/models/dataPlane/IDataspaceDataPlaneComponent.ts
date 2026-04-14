@@ -17,9 +17,9 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	/**
 	 * Notify an Activity to the Dataspace Data Plane Activity Stream.
 	 * @param activity The Activity notified.
-	 * @returns The Activity's identifier.
+	 * @returns The activity's entry.
 	 */
-	notifyActivity(activity: IActivityStreamsActivity): Promise<string>;
+	notifyActivity(activity: IActivityStreamsActivity): Promise<string | IActivityLogEntry>;
 
 	/**
 	 * Subscribes to the activity log.

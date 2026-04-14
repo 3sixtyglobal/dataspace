@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ITaskApp } from "@twin.org/dataspace-models";
+import type { IActivityTaskEntry } from "@twin.org/dataspace-models";
 import { entity, property } from "@twin.org/entity";
 
 /**
@@ -18,5 +18,5 @@ export class ActivityTask {
 	 * The tasks.
 	 */
 	@property({ type: "array", format: "json" })
-	public associatedTasks!: ITaskApp[];
+	public associatedTasks!: IActivityTaskEntry[];
 }

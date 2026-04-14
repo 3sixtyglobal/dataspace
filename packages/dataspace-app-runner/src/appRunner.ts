@@ -62,7 +62,7 @@ export async function appRunner(
 	payload: IExecutionPayload
 ): Promise<unknown> {
 	Guards.objectValue<IExecutionPayload>(APP_RUNNER_SOURCE, nameof(payload), payload);
-	Guards.stringValue(APP_RUNNER_SOURCE, nameof(payload.executorApp), payload.executorApp);
+	Guards.stringValue(APP_RUNNER_SOURCE, nameof(payload.dataspaceAppId), payload.dataspaceAppId);
 	Guards.stringValue(
 		APP_RUNNER_SOURCE,
 		nameof(payload.activityLogEntryId),
@@ -70,7 +70,7 @@ export async function appRunner(
 	);
 	Guards.object<IDataspaceApp>(APP_RUNNER_SOURCE, nameof(payload.activity), payload.activity);
 
-	const app = DataspaceAppFactory.get<IDataspaceApp>(payload.executorApp);
+	const app = DataspaceAppFactory.get<IDataspaceApp>(payload.dataspaceAppId);
 
 	const handleActivity = app?.handleActivity?.bind(app);
 	Guards.function(APP_RUNNER_SOURCE, nameof(handleActivity), handleActivity);

@@ -9,7 +9,8 @@ import {
 	type IDataspaceActivity,
 	type IActivityQuery,
 	type IDataRequest,
-	type IDataspaceApp
+	type IDataspaceApp,
+	type IProcessingGroupOptions
 } from "@twin.org/dataspace-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
@@ -130,6 +131,20 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 	}
 
 	/**
+	 * The settings for the processing groups for tasks.
+	 * @returns The options for each process group.
+	 */
+	public processingGroups(): {
+		[id: string]: IProcessingGroupOptions;
+	} {
+		return {
+			"test-default": {
+				concurrentTasks: 2
+			}
+		};
+	}
+
+	/**
 	 * Datasets handled by the App.
 	 * @returns Dataspace Protocol compliant datasets
 	 */
@@ -214,7 +229,12 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 	 * @returns The activities handled by the App.
 	 */
 	public activitiesHandled(): IActivityQuery[] {
-		return [{ objectType: "https://vocabulary.uncefact.org/Consignment" }];
+		return [
+			{
+				objectType: "https://vocabulary.uncefact.org/Consignment",
+				processingGroupId: "test-default"
+			}
+		];
 	}
 
 	/**

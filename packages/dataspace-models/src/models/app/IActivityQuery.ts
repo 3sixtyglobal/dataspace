@@ -19,4 +19,9 @@ export interface IActivityQuery {
 	 * FQN of the target type.
 	 */
 	targetType?: string;
+
+	/**
+	 * The processing group id for this query, used to determine which tasks can be processed in parallel.
+	 */
+	processingGroupId?: string;
 }

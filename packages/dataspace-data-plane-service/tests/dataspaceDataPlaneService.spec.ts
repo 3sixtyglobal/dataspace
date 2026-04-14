@@ -1,6 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IHttpRequestContext, ITenantAdminComponent } from "@twin.org/api-models";
+import { TaskStatus } from "@twin.org/background-task-models";
 import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
 	TaskSchedulerService,
@@ -16,11 +17,12 @@ import { ArrayHelper, ComponentFactory, Is, ObjectHelper } from "@twin.org/core"
 import { JsonLdDataTypes, type JsonLdObjectWithContext } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
+	ActivityTaskStatus,
 	DataspaceAppFactory,
 	DataspaceDataTypes,
 	TransferProcess,
-	type IActivityLogDates,
 	type IActivityLogEntry,
+	type IActivityLogStatusNotification,
 	type IDataRequest,
 	type IDataspaceActivity
 } from "@twin.org/dataspace-models";
@@ -40,7 +42,7 @@ import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ITrustComponent } from "@twin.org/trust-models";
 import { HeaderHelper, HeaderTypes } from "@twin.org/web";
-import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import {
 	activityLdContextArray,
 	canonicalActivity,
@@ -118,27 +120,30 @@ function createTestTransferProcess(overrides?: Partial<TransferProcess>): Transf
 /**
  * Asserts Activity Log.
  * @param entry Entry to be asserted
+ * @param expectedSuccessfulEntries The expected number of successful task entries.
  */
-function assertActivityLog(entry: IActivityLogEntry): void {
+function assertActivityLog(entry: IActivityLogEntry, expectedSuccessfulEntries = 1): void {
 	if (entry.status !== ActivityProcessingStatus.Completed) {
 		console.debug(JSON.stringify(entry, null, 2));
 	}
 	expect(entry.status).toBe(ActivityProcessingStatus.Completed);
-	expect(entry.pendingTasks?.length).toBe(0);
-	expect(entry.runningTasks?.length).toBe(0);
-	expect(entry.inErrorTasks?.length).toBe(0);
+	expect(entry.tasks?.filter(t => t.status === ActivityTaskStatus.Pending).length).toBe(0);
+	expect(entry.tasks?.filter(t => t.status === ActivityTaskStatus.Processing).length).toBe(0);
+	expect(entry.tasks?.filter(t => t.status === ActivityTaskStatus.Failed).length).toBe(0);
+	expect(entry.tasks?.filter(t => t.status === ActivityTaskStatus.Success).length).toBe(
+		expectedSuccessfulEntries
+	);
 
-	expect(entry.finalizedTasks?.length).toBe(1);
-	expect(Is.arrayValue(entry.finalizedTasks)).toBe(true);
-	const finalizedTasks = entry.finalizedTasks as (IActivityLogDates & { result: string })[];
-	expect(finalizedTasks[0]).toBeDefined();
-	expect(finalizedTasks[0].startDate).toBeDefined();
-	expect(finalizedTasks[0].endDate).toBeDefined();
+	expect(Is.arrayValue(entry.tasks)).toBe(true);
+	const finalizedTasks = entry.tasks;
+	expect(finalizedTasks?.[0]).toBeDefined();
+	expect(finalizedTasks?.[0].startDate).toBeDefined();
+	expect(finalizedTasks?.[0].endDate).toBeDefined();
 
-	expect(JSON.parse(finalizedTasks[0].result)).toBe("1234");
+	expect(finalizedTasks?.[0]?.result ?? "").toBe("1234");
 }
 
-describe("dataspace-data-plane-tests", () => {
+describe("DataspaceDataPlaneService", () => {
 	let activityLogStorage: MemoryEntityStorageConnector<ActivityLogDetails>;
 	let activityTaskStorage: MemoryEntityStorageConnector<ActivityTask>;
 	let backgroundTaskStorage: MemoryEntityStorageConnector<BackgroundTask>;
@@ -146,6 +151,76 @@ describe("dataspace-data-plane-tests", () => {
 	let backgroundTaskService: BackgroundTaskService;
 	let taskScheduler: TaskSchedulerService;
 	let options: IDataspaceDataPlaneServiceConstructorOptions;
+	let backgroundTaskModeEnabled = false;
+
+	/**
+	 * Wait for an activity to reach a terminal state.
+	 * @param service The data plane service.
+	 * @param result The result returned by notifyActivity.
+	 * @returns The terminal activity log entry.
+	 */
+	async function waitForTerminalActivityStatus(
+		service: DataspaceDataPlaneService,
+		result: string | IActivityLogEntry
+	): Promise<IActivityLogEntry> {
+		const activityLogEntryId = Is.stringValue(result) ? result : result.id;
+
+		let entry = await service.getActivityLogEntry(activityLogEntryId);
+		let attempts = 0;
+		while (
+			entry.status === ActivityProcessingStatus.Pending ||
+			entry.status === ActivityProcessingStatus.Running ||
+			entry.status === ActivityProcessingStatus.Registering
+		) {
+			attempts++;
+			if (attempts > 80) {
+				break;
+			}
+			await sleep(100);
+			entry = await service.getActivityLogEntry(activityLogEntryId);
+		}
+
+		return entry;
+	}
+
+	/**
+	 * Wait for a background activity to finish and for post-completion callbacks to settle.
+	 * @param service The data plane service.
+	 * @param result The result returned by notifyActivity.
+	 * @returns The terminal activity log entry after background processing is quiescent.
+	 */
+	async function waitForTerminalBackgroundActivityStatus(
+		service: DataspaceDataPlaneService,
+		result: string | IActivityLogEntry
+	): Promise<IActivityLogEntry> {
+		const activityLogEntryId = Is.stringValue(result) ? result : result.id;
+
+		await waitForTerminalActivityStatus(service, result);
+		await sleep(50);
+
+		return service.getActivityLogEntry(activityLogEntryId);
+	}
+
+	async function startBackgroundTaskService(): Promise<void> {
+		backgroundTaskModeEnabled = true;
+		await backgroundTaskService.start("");
+	}
+
+	async function stopTaskServices(): Promise<void> {
+		if (backgroundTaskModeEnabled) {
+			await sleep(50);
+		}
+
+		await backgroundTaskService?.stop("");
+		await taskScheduler?.stop("");
+
+		if (backgroundTaskModeEnabled) {
+			// stop() clears timers but does not await any callback already in flight.
+			await sleep(50);
+		}
+
+		backgroundTaskModeEnabled = false;
+	}
 
 	beforeAll(async () => {
 		// Initialize schemas
@@ -260,6 +335,8 @@ describe("dataspace-data-plane-tests", () => {
 	});
 
 	beforeEach(async () => {
+		await stopTaskServices();
+
 		// Clear all entity storage
 		const allActivityLogs = await activityLogStorage.query();
 		for (const log of allActivityLogs.entities) {
@@ -309,6 +386,11 @@ describe("dataspace-data-plane-tests", () => {
 			taskSchedulerComponentType: "task-scheduler",
 			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
 		};
+		backgroundTaskModeEnabled = false;
+	});
+
+	afterEach(async () => {
+		await stopTaskServices();
 	});
 
 	afterAll(() => {
@@ -452,7 +534,7 @@ describe("dataspace-data-plane-tests", () => {
 	// ============================================
 
 	test("It should receive an Activity in the Activity Stream - canonical", async () => {
-		await backgroundTaskService.start("");
+		await startBackgroundTaskService();
 
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
@@ -466,11 +548,13 @@ describe("dataspace-data-plane-tests", () => {
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
 
-		const activityLogEntryId = await dataspaceDataPlaneService.notifyActivity(canonicalActivity);
+		const result = await dataspaceDataPlaneService.notifyActivity(canonicalActivity);
 
 		// Wait longer for background task to process
 		// Check status multiple times until completed or error
-		let entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+		let entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
 		let attempts = 0;
 		while (
 			entry.status === ActivityProcessingStatus.Pending ||
@@ -483,24 +567,24 @@ describe("dataspace-data-plane-tests", () => {
 				break;
 			}
 			await sleep(100);
-			entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+			entry = await dataspaceDataPlaneService.getActivityLogEntry(
+				Is.stringValue(result) ? result : result.id
+			);
 		}
 
+		const tasks = entry.tasks?.filter(t => t.status === ActivityTaskStatus.Failed) ?? [];
+
 		// If still in error, log the details
-		if (
-			entry.status === ActivityProcessingStatus.Error &&
-			entry.inErrorTasks &&
-			entry.inErrorTasks.length > 0
-		) {
+		if (entry.status === ActivityProcessingStatus.Error && tasks.length > 0) {
 			console.debug("Activity processing error details:");
-			console.debug(JSON.stringify(entry.inErrorTasks[0].error, null, 2));
+			console.debug(JSON.stringify(tasks[0]?.error, null, 2));
 		}
 
 		assertActivityLog(entry);
 	});
 
 	test("It should receive an Activity in the Activity Stream - canonical LD Context Array", async () => {
-		await backgroundTaskService.start("");
+		await startBackgroundTaskService();
 
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
@@ -518,15 +602,17 @@ describe("dataspace-data-plane-tests", () => {
 		const activityCopy = ObjectHelper.clone<IActivityStreamsActivity>(activityLdContextArray);
 		activityCopy.updated = new Date().toISOString();
 
-		const activityLogEntryId = await dataspaceDataPlaneService.notifyActivity(activityCopy);
+		const result = await dataspaceDataPlaneService.notifyActivity(activityCopy);
 		await sleep(1000);
 
-		const entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+		const entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
 		assertActivityLog(entry);
 	});
 
 	test("It should receive an Activity in the Activity Stream - type extension", async () => {
-		await backgroundTaskService.start("");
+		await startBackgroundTaskService();
 
 		// Ensure context IDs are set for test app
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
@@ -540,10 +626,12 @@ describe("dataspace-data-plane-tests", () => {
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
 
-		const activityLogEntryId = await dataspaceDataPlaneService.notifyActivity(extendedActivity);
+		const result = await dataspaceDataPlaneService.notifyActivity(extendedActivity);
 		await sleep(1000);
 
-		const entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+		const entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
 		assertActivityLog(entry);
 	});
 
@@ -552,14 +640,13 @@ describe("dataspace-data-plane-tests", () => {
 		const activityCopy = ObjectHelper.clone<IActivityStreamsActivity>(activityLdContextArray);
 		activityCopy.updated = new Date().toISOString();
 
-		const activityLogEntryId = await dataspaceDataPlaneService.notifyActivity(activityCopy);
-		const entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+		const result = await dataspaceDataPlaneService.notifyActivity(activityCopy);
+		const entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
 
 		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
-		expect(entry.pendingTasks?.length).toBe(0);
-		expect(entry.runningTasks?.length).toBe(0);
-		expect(entry.finalizedTasks?.length).toBe(0);
-		expect(entry.inErrorTasks?.length).toBe(0);
+		expect(entry.tasks?.length).toBe(0);
 	});
 
 	test("It should report an error if Activity is duplicated", async () => {
@@ -1599,7 +1686,7 @@ describe("dataspace-data-plane-tests", () => {
 	});
 
 	test("It should allow resubmission of activity that previously resulted in error", async () => {
-		await backgroundTaskService.start("");
+		await startBackgroundTaskService();
 
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
@@ -1630,10 +1717,12 @@ describe("dataspace-data-plane-tests", () => {
 		activity.updated = new Date().toISOString();
 
 		// First submission - will fail
-		const activityLogEntryId = await dataspaceDataPlaneService.notifyActivity(activity);
+		const result = await dataspaceDataPlaneService.notifyActivity(activity);
 
 		// Wait for task to fail
-		let entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+		let entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
 		let attempts = 0;
 		while (
 			entry.status === ActivityProcessingStatus.Pending ||
@@ -1645,12 +1734,16 @@ describe("dataspace-data-plane-tests", () => {
 				break;
 			}
 			await sleep(100);
-			entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+			entry = await dataspaceDataPlaneService.getActivityLogEntry(
+				Is.stringValue(result) ? result : result.id
+			);
 		}
 
 		// Verify activity is in error state
 		expect(entry.status).toBe(ActivityProcessingStatus.Error);
-		expect(entry.inErrorTasks?.length).toBeGreaterThan(0);
+		const tasks = entry.tasks ?? [];
+		const failedTasks = tasks.filter(t => t.status === ActivityTaskStatus.Failed);
+		expect(failedTasks.length).toBeGreaterThan(0);
 
 		// Fix the app so it succeeds on retry
 		shouldFail = false;
@@ -1660,10 +1753,14 @@ describe("dataspace-data-plane-tests", () => {
 		const retryLogEntryId = await dataspaceDataPlaneService.notifyActivity(activity);
 
 		// Should return the same activity log entry ID
-		expect(retryLogEntryId).toBe(activityLogEntryId);
+		expect(Is.stringValue(retryLogEntryId) ? retryLogEntryId : retryLogEntryId.id).toBe(
+			Is.stringValue(result) ? result : result.id
+		);
 
 		// Wait for retry to complete
-		entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+		entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
 		attempts = 0;
 		while (
 			entry.status === ActivityProcessingStatus.Pending ||
@@ -1675,16 +1772,17 @@ describe("dataspace-data-plane-tests", () => {
 				break;
 			}
 			await sleep(100);
-			entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+			entry = await dataspaceDataPlaneService.getActivityLogEntry(
+				Is.stringValue(result) ? result : result.id
+			);
 		}
 
-		// Verify activity is now completed and retry was tracked
+		// Verify activity is now completed
 		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
-		expect(entry.retryCount).toBe(1);
 	});
 
 	test("It should reject resubmission if activity is still processing", async () => {
-		await backgroundTaskService.start("");
+		await startBackgroundTaskService();
 
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
@@ -1699,6 +1797,17 @@ describe("dataspace-data-plane-tests", () => {
 			resolvePromise = resolve;
 		});
 		const testApp = new TestDataspaceDataPlaneApp();
+		const originalActivitiesHandled = testApp.activitiesHandled.bind(testApp);
+		testApp.activitiesHandled = () =>
+			originalActivitiesHandled().map(activityQuery => ({
+				...activityQuery,
+				processingGroupId: "slow-group"
+			}));
+		testApp.processingGroups = () => ({
+			"slow-group": {
+				concurrentTasks: 1
+			}
+		});
 		testApp.handleActivity = async <T>(): Promise<T> => {
 			await processingPromise;
 			return "1234" as T;
@@ -1712,7 +1821,7 @@ describe("dataspace-data-plane-tests", () => {
 		activity.updated = new Date().toISOString();
 
 		// First submission
-		await dataspaceDataPlaneService.notifyActivity(activity);
+		const result = await dataspaceDataPlaneService.notifyActivity(activity);
 
 		// Wait a bit for task to start processing
 		await sleep(200);
@@ -1724,10 +1833,29 @@ describe("dataspace-data-plane-tests", () => {
 
 		// Allow the task to complete
 		resolvePromise?.();
+
+		let entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
+		let attempts = 0;
+		while (
+			entry.status === ActivityProcessingStatus.Pending ||
+			entry.status === ActivityProcessingStatus.Running ||
+			entry.status === ActivityProcessingStatus.Registering
+		) {
+			attempts++;
+			if (attempts > 50) {
+				break;
+			}
+			await sleep(100);
+			entry = await dataspaceDataPlaneService.getActivityLogEntry(
+				Is.stringValue(result) ? result : result.id
+			);
+		}
 	});
 
 	test("It should reject resubmission if all tasks completed successfully", async () => {
-		await backgroundTaskService.start("");
+		await startBackgroundTaskService();
 
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
@@ -1745,10 +1873,12 @@ describe("dataspace-data-plane-tests", () => {
 		activity.updated = new Date().toISOString();
 
 		// First submission
-		const activityLogEntryId = await dataspaceDataPlaneService.notifyActivity(activity);
+		const result = await dataspaceDataPlaneService.notifyActivity(activity);
 
 		// Wait for completion
-		let entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+		let entry = await dataspaceDataPlaneService.getActivityLogEntry(
+			Is.stringValue(result) ? result : result.id
+		);
 		let attempts = 0;
 		while (
 			entry.status === ActivityProcessingStatus.Pending ||
@@ -1760,7 +1890,9 @@ describe("dataspace-data-plane-tests", () => {
 				break;
 			}
 			await sleep(100);
-			entry = await dataspaceDataPlaneService.getActivityLogEntry(activityLogEntryId);
+			entry = await dataspaceDataPlaneService.getActivityLogEntry(
+				Is.stringValue(result) ? result : result.id
+			);
 		}
 
 		// Verify completed
@@ -1770,5 +1902,473 @@ describe("dataspace-data-plane-tests", () => {
 		await expect(dataspaceDataPlaneService.notifyActivity(activity)).rejects.toMatchObject({
 			name: "ConflictError"
 		});
+	});
+
+	test("Inline notifications include success completion", async () => {
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const notifications: IActivityLogStatusNotification[] = [];
+		await dataspaceDataPlaneService.subscribeToActivityLog(async notification => {
+			notifications.push(notification);
+		});
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		const originalActivitiesHandled = testApp.activitiesHandled.bind(testApp);
+		testApp.activitiesHandled = () =>
+			originalActivitiesHandled().map(activityQuery => ({
+				...activityQuery,
+				processingGroupId: undefined
+			}));
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		const result = await dataspaceDataPlaneService.notifyActivity(activity);
+		const entry = await waitForTerminalBackgroundActivityStatus(dataspaceDataPlaneService, result);
+		const successfulTaskIds = [
+			...new Set(
+				notifications
+					.filter(n => n.taskProcessingStatus.taskStatus === TaskStatus.Success)
+					.map(n => n.taskProcessingStatus.taskId)
+			)
+		];
+
+		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
+		expect(successfulTaskIds.length).toBe(1);
+		expect(notifications[0].taskProcessingStatus.taskStatus).toBe(TaskStatus.Success);
+	});
+
+	test("Inline notifications include failure then success on retry", async () => {
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const notifications: IActivityLogStatusNotification[] = [];
+		await dataspaceDataPlaneService.subscribeToActivityLog(async notification => {
+			notifications.push(notification);
+		});
+
+		let shouldFail = true;
+		const testApp = new TestDataspaceDataPlaneApp();
+		const originalActivitiesHandled = testApp.activitiesHandled.bind(testApp);
+		testApp.activitiesHandled = () =>
+			originalActivitiesHandled().map(activityQuery => ({
+				...activityQuery,
+				processingGroupId: undefined
+			}));
+
+		const originalHandleActivity = testApp.handleActivity;
+		if (!originalHandleActivity) {
+			throw new Error("Test app must have handleActivity");
+		}
+		testApp.handleActivity = async <T>(activity: IDataspaceActivity): Promise<T> => {
+			if (shouldFail) {
+				throw new Error("Inline retry failure");
+			}
+			return originalHandleActivity.call(testApp, activity) as Promise<T>;
+		};
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		const firstResult = await dataspaceDataPlaneService.notifyActivity(activity);
+		const firstEntry = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			firstResult
+		);
+		expect(firstEntry.status).toBe(ActivityProcessingStatus.Error);
+		const firstFailedTasks = firstEntry.tasks?.filter(t => t.status === ActivityTaskStatus.Failed);
+		expect(firstFailedTasks?.length).toBeGreaterThan(0);
+		expect(firstFailedTasks?.[0]?.error?.message).toBe("Inline retry failure");
+
+		shouldFail = false;
+		const secondResult = await dataspaceDataPlaneService.notifyActivity(activity);
+		const secondEntry = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			secondResult
+		);
+		expect(secondEntry.status).toBe(ActivityProcessingStatus.Completed);
+
+		expect(notifications.length).toBeGreaterThanOrEqual(2);
+		expect(notifications.some(n => n.taskProcessingStatus.taskStatus === TaskStatus.Failed)).toBe(
+			true
+		);
+		expect(notifications.some(n => n.taskProcessingStatus.taskStatus === TaskStatus.Success)).toBe(
+			true
+		);
+	});
+
+	test("Background notifications include success completion", async () => {
+		await startBackgroundTaskService();
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const notifications: IActivityLogStatusNotification[] = [];
+		await dataspaceDataPlaneService.subscribeToActivityLog(async notification => {
+			notifications.push(notification);
+		});
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+		const testApp = new TestDataspaceDataPlaneApp();
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		const result = await dataspaceDataPlaneService.notifyActivity(activity);
+		const entry = await waitForTerminalActivityStatus(dataspaceDataPlaneService, result);
+		const successfulTaskIds = [
+			...new Set(
+				notifications
+					.filter(n => n.taskProcessingStatus.taskStatus === TaskStatus.Success)
+					.map(n => n.taskProcessingStatus.taskId)
+			)
+		];
+
+		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
+		expect(successfulTaskIds.length).toBe(1);
+		expect(notifications[0].taskProcessingStatus.taskStatus).toBe(TaskStatus.Success);
+	});
+
+	test("Background notifications include failure then success on retry", async () => {
+		await startBackgroundTaskService();
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const notifications: IActivityLogStatusNotification[] = [];
+		await dataspaceDataPlaneService.subscribeToActivityLog(async notification => {
+			notifications.push(notification);
+		});
+
+		let shouldFail = true;
+		const testApp = new TestDataspaceDataPlaneApp();
+		const originalHandleActivity = testApp.handleActivity;
+		if (!originalHandleActivity) {
+			throw new Error("Test app must have handleActivity");
+		}
+		testApp.handleActivity = async <T>(activity: IDataspaceActivity): Promise<T> => {
+			if (shouldFail) {
+				throw new Error("Background retry failure");
+			}
+			return originalHandleActivity.call(testApp, activity) as Promise<T>;
+		};
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		const firstResult = await dataspaceDataPlaneService.notifyActivity(activity);
+		const firstEntry = await waitForTerminalActivityStatus(dataspaceDataPlaneService, firstResult);
+		expect(firstEntry.status).toBe(ActivityProcessingStatus.Error);
+
+		shouldFail = false;
+		const secondResult = await dataspaceDataPlaneService.notifyActivity(activity);
+		const secondEntry = await waitForTerminalActivityStatus(
+			dataspaceDataPlaneService,
+			secondResult
+		);
+		expect(secondEntry.status).toBe(ActivityProcessingStatus.Completed);
+
+		expect(notifications.length).toBeGreaterThanOrEqual(2);
+		expect(notifications.some(n => n.taskProcessingStatus.taskStatus === TaskStatus.Failed)).toBe(
+			true
+		);
+		expect(notifications.some(n => n.taskProcessingStatus.taskStatus === TaskStatus.Success)).toBe(
+			true
+		);
+	});
+
+	test("Processing group runs tasks in parallel when concurrentTasks is greater than one", async () => {
+		await startBackgroundTaskService();
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		let releaseParallelTasks: (() => void) | undefined;
+		const releasePromise = new Promise<void>(resolve => {
+			releaseParallelTasks = resolve;
+		});
+
+		let startedCount = 0;
+		let bothStarted: (() => void) | undefined;
+		const bothStartedPromise = new Promise<void>(resolve => {
+			bothStarted = resolve;
+		});
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		testApp.activitiesHandled = () => [
+			{
+				objectType: "https://vocabulary.uncefact.org/Consignment",
+				processingGroupId: "parallel-group"
+			}
+		];
+		testApp.processingGroups = () => ({
+			"parallel-group": {
+				concurrentTasks: 2
+			}
+		});
+		testApp.handleActivity = async <T>(): Promise<T> => {
+			startedCount++;
+			if (startedCount === 2) {
+				bothStarted?.();
+			}
+			await releasePromise;
+			return "1234" as T;
+		};
+
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity1 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity1.updated = new Date().toISOString();
+
+		const activity2 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity2.updated = new Date(Date.now() + 1).toISOString();
+
+		const result1 = await dataspaceDataPlaneService.notifyActivity(activity1);
+		const result2 = await dataspaceDataPlaneService.notifyActivity(activity2);
+
+		await Promise.race([
+			bothStartedPromise,
+			new Promise((_resolve, reject) => {
+				setTimeout(() => reject(new Error("Timed out waiting for parallel task start")), 3000);
+			})
+		]);
+		expect(startedCount).toBe(2);
+
+		releaseParallelTasks?.();
+
+		const entry1 = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			result1
+		);
+		const entry2 = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			result2
+		);
+
+		expect(entry1.status).toBe(ActivityProcessingStatus.Completed);
+		expect(entry2.status).toBe(ActivityProcessingStatus.Completed);
+	});
+
+	test("Processing group forwards idleShutdownTimeout to background task handler", async () => {
+		await startBackgroundTaskService();
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		testApp.activitiesHandled = () => [
+			{
+				objectType: "https://vocabulary.uncefact.org/Consignment",
+				processingGroupId: "idle-timeout-group"
+			}
+		];
+		testApp.processingGroups = () => ({
+			"idle-timeout-group": {
+				concurrentTasks: 2,
+				idleShutdownTimeout: 4321
+			}
+		});
+
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		const result = await dataspaceDataPlaneService.notifyActivity(activity);
+		const entry = await waitForTerminalBackgroundActivityStatus(dataspaceDataPlaneService, result);
+		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
+
+		expect(registerHandlerSpy).toHaveBeenCalled();
+		const lastCall = registerHandlerSpy.mock.calls.at(-1);
+		expect(lastCall?.[4]).toMatchObject({
+			maxWorkerCount: 2,
+			idleShutdownTimeout: 4321
+		});
+	});
+
+	test("Processing group leaves idleShutdownTimeout undefined when not configured", async () => {
+		await startBackgroundTaskService();
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity.updated = new Date().toISOString();
+
+		const result = await dataspaceDataPlaneService.notifyActivity(activity);
+		const entry = await waitForTerminalBackgroundActivityStatus(dataspaceDataPlaneService, result);
+		expect(entry.status).toBe(ActivityProcessingStatus.Completed);
+
+		expect(registerHandlerSpy).toHaveBeenCalled();
+		const lastCall = registerHandlerSpy.mock.calls.at(-1);
+		expect(lastCall?.[4]).toMatchObject({
+			maxWorkerCount: 2
+		});
+		expect(lastCall?.[4]?.idleShutdownTimeout).toBeUndefined();
+	});
+
+	test("idleShutdownTimeout 0 shuts down workers between sequential tasks", async () => {
+		await startBackgroundTaskService();
+
+		const threadFactoryMock = (
+			ModuleHelper as unknown as {
+				execModuleMethodThreadMessage: ReturnType<typeof vi.fn>;
+			}
+		).execModuleMethodThreadMessage;
+		threadFactoryMock.mockClear();
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		testApp.activitiesHandled = () => [
+			{
+				objectType: "https://vocabulary.uncefact.org/Consignment",
+				processingGroupId: "idle-zero-group"
+			}
+		];
+		testApp.processingGroups = () => ({
+			"idle-zero-group": {
+				concurrentTasks: 1,
+				idleShutdownTimeout: 0
+			}
+		});
+
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity1 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity1.updated = new Date().toISOString();
+		const result1 = await dataspaceDataPlaneService.notifyActivity(activity1);
+		const entry1 = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			result1
+		);
+		expect(entry1.status).toBe(ActivityProcessingStatus.Completed);
+
+		// Allow idle shutdown processing to run before submitting the next task.
+		await sleep(100);
+
+		const activity2 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity2.updated = new Date(Date.now() + 1).toISOString();
+		const result2 = await dataspaceDataPlaneService.notifyActivity(activity2);
+		const entry2 = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			result2
+		);
+		expect(entry2.status).toBe(ActivityProcessingStatus.Completed);
+
+		expect(threadFactoryMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+	});
+
+	test("idleShutdownTimeout -1 keeps worker alive and reuses it", async () => {
+		await backgroundTaskService.start("");
+
+		const threadFactoryMock = (
+			ModuleHelper as unknown as {
+				execModuleMethodThreadMessage: ReturnType<typeof vi.fn>;
+			}
+		).execModuleMethodThreadMessage;
+		threadFactoryMock.mockClear();
+
+		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+		});
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		testApp.activitiesHandled = () => [
+			{
+				objectType: "https://vocabulary.uncefact.org/Consignment",
+				processingGroupId: "idle-forever-group"
+			}
+		];
+		testApp.processingGroups = () => ({
+			"idle-forever-group": {
+				concurrentTasks: 1,
+				idleShutdownTimeout: -1
+			}
+		});
+
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+
+		const activity1 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity1.updated = new Date().toISOString();
+		const result1 = await dataspaceDataPlaneService.notifyActivity(activity1);
+		const entry1 = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			result1
+		);
+		expect(entry1.status).toBe(ActivityProcessingStatus.Completed);
+
+		await sleep(100);
+
+		const activity2 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
+		activity2.updated = new Date(Date.now() + 1).toISOString();
+		const result2 = await dataspaceDataPlaneService.notifyActivity(activity2);
+		const entry2 = await waitForTerminalBackgroundActivityStatus(
+			dataspaceDataPlaneService,
+			result2
+		);
+		expect(entry2.status).toBe(ActivityProcessingStatus.Completed);
+
+		expect(threadFactoryMock.mock.calls.length).toBe(1);
+
+		const firstWorker = threadFactoryMock.mock.results[0]?.value as {
+			terminate: ReturnType<typeof vi.fn>;
+		};
+		expect(firstWorker.terminate).not.toHaveBeenCalled();
 	});
 });
