@@ -17,6 +17,7 @@ export * from "./models/controlPlane/transferProcessRole.js";
 export * from "./models/dataPlane/IDataspaceDataPlaneComponent.js";
 
 export * from "./models/dataspaceContexts.js";
+export * from "./models/dataspaceTransferFormat.js";
 export * from "./models/dataspaceTypes.js";
 export * from "./models/IDataspaceActivity.js";
 
