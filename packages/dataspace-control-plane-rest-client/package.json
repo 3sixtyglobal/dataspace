@@ -4,7 +4,7 @@
 	"description": "Provides an HTTP client for invoking control plane transfer process endpoints.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/twinfoundation/dataspace.git",
+		"url": "git+https://github.com/iotaledger/dataspace.git",
 		"directory": "packages/dataspace-control-plane-rest-client"
 	},
 	"author": "martyn.janes@iota.org",
@@ -80,7 +80,7 @@
 		"binary"
 	],
 	"bugs": {
-		"url": "git+https://github.com/twinfoundation/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }

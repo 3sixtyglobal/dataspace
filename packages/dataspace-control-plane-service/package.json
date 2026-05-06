@@ -4,7 +4,7 @@
 	"description": "Implements agreement negotiation and transfer process lifecycle management for control plane operations.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/twinfoundation/dataspace.git",
+		"url": "git+https://github.com/iotaledger/dataspace.git",
 		"directory": "packages/dataspace-control-plane-service"
 	},
 	"author": "martyn.janes@iota.org",
@@ -105,7 +105,7 @@
 		"business-logic"
 	],
 	"bugs": {
-		"url": "git+https://github.com/twinfoundation/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }

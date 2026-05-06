@@ -4,7 +4,7 @@
 	"description": "Hosts control plane and data plane APIs in a single deployable REST server.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/twinfoundation/dataspace.git",
+		"url": "git+https://github.com/iotaledger/dataspace.git",
 		"directory": "apps/dataspace-rest-server"
 	},
 	"private": true,
@@ -68,7 +68,7 @@
 		"vitest": "4.1.1"
 	},
 	"bugs": {
-		"url": "git+https://github.com/twinfoundation/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }
