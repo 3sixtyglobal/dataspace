@@ -3,7 +3,7 @@
 > `const` **DataspaceTransferFormat**: `object`
 
 TWIN transfer format identifiers used in TransferRequestMessage.format.
-Follows the Eclipse EDC canonical pattern: <DestinationType-FlowType>.
+Follows the Eclipse EDC canonical pattern: DestinationType-FlowType.
 See RFC-007 Data Transfer Profile.
 
 ## Type Declaration
