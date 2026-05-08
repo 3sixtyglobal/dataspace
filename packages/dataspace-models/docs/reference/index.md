@@ -3,6 +3,7 @@
 ## Classes
 
 - [DataspaceDataTypes](classes/DataspaceDataTypes.md)
+- [DataspaceAppDataset](classes/DataspaceAppDataset.md)
 - [TransferProcess](classes/TransferProcess.md)
 
 ## Interfaces
@@ -27,6 +28,14 @@
 - [IDataAssetEntitiesResponse](interfaces/IDataAssetEntitiesResponse.md)
 - [IDataAssetGetEntitiesRequest](interfaces/IDataAssetGetEntitiesRequest.md)
 - [IDataAssetQueryRequest](interfaces/IDataAssetQueryRequest.md)
+- [IAppDatasetCreateRequest](interfaces/IAppDatasetCreateRequest.md)
+- [IAppDatasetCreateResponse](interfaces/IAppDatasetCreateResponse.md)
+- [IAppDatasetDeleteRequest](interfaces/IAppDatasetDeleteRequest.md)
+- [IAppDatasetGetRequest](interfaces/IAppDatasetGetRequest.md)
+- [IAppDatasetGetResponse](interfaces/IAppDatasetGetResponse.md)
+- [IAppDatasetListRequest](interfaces/IAppDatasetListRequest.md)
+- [IAppDatasetListResponse](interfaces/IAppDatasetListResponse.md)
+- [IAppDatasetUpdateRequest](interfaces/IAppDatasetUpdateRequest.md)
 - [ICompleteTransferRequest](interfaces/ICompleteTransferRequest.md)
 - [ICompleteTransferResponse](interfaces/ICompleteTransferResponse.md)
 - [IGetTransferProcessRequest](interfaces/IGetTransferProcessRequest.md)
@@ -45,6 +54,7 @@
 - [IDataspaceApp](interfaces/IDataspaceApp.md)
 - [IProcessingGroupOptions](interfaces/IProcessingGroupOptions.md)
 - [IQueryDataAssetRequest](interfaces/IQueryDataAssetRequest.md)
+- [IDataspaceAppDataset](interfaces/IDataspaceAppDataset.md)
 - [IDataspaceControlPlaneComponent](interfaces/IDataspaceControlPlaneComponent.md)
 - [IDataspaceControlPlaneResolverComponent](interfaces/IDataspaceControlPlaneResolverComponent.md)
 - [INegotiationCallback](interfaces/INegotiationCallback.md)
@@ -61,6 +71,7 @@
 - [DataRequestType](type-aliases/DataRequestType.md)
 - [TransferProcessRole](type-aliases/TransferProcessRole.md)
 - [DataspaceContexts](type-aliases/DataspaceContexts.md)
+- [DataspaceTransferFormat](type-aliases/DataspaceTransferFormat.md)
 - [DataspaceTypes](type-aliases/DataspaceTypes.md)
 
 ## Variables
@@ -71,4 +82,5 @@
 - [DataRequestType](variables/DataRequestType.md)
 - [TransferProcessRole](variables/TransferProcessRole.md)
 - [DataspaceContexts](variables/DataspaceContexts.md)
+- [DataspaceTransferFormat](variables/DataspaceTransferFormat.md)
 - [DataspaceTypes](variables/DataspaceTypes.md)

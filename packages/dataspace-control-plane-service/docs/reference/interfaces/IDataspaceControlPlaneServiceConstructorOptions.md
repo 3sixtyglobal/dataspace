@@ -139,6 +139,20 @@ transfer-process
 
 ***
 
+### dataspaceAppDatasetEntityStorageType? {#dataspaceappdatasetentitystoragetype}
+
+> `optional` **dataspaceAppDatasetEntityStorageType?**: `string`
+
+Entity storage type for Dataspace App Dataset entities.
+
+#### Default
+
+```ts
+dataspace-app-dataset
+```
+
+***
+
 ### taskSchedulerComponentType? {#taskschedulercomponenttype}
 
 > `optional` **taskSchedulerComponentType?**: `string`
@@ -149,6 +163,20 @@ Task scheduler component type for periodic cleanup of stalled negotiations.
 
 ```ts
 task-scheduler
+```
+
+***
+
+### urlTransformerComponentType? {#urltransformercomponenttype}
+
+> `optional` **urlTransformerComponentType?**: `string`
+
+URL Transformer component type used to encrypt the tenant token into the data-plane..
+
+#### Default
+
+```ts
+url-transformer
 ```
 
 ***

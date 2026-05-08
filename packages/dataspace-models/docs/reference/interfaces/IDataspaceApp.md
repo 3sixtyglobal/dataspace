@@ -36,17 +36,35 @@ A query that describes the set of activities handled by the App.
 
 ***
 
-### datasetsHandled() {#datasetshandled}
+### datasetsHandled()? {#datasetshandled}
 
-> **datasetsHandled**(): `Promise`\<`IDataspaceProtocolDataset`[]\>
+> `optional` **datasetsHandled**(`payload`, `tenantId`): `Promise`\<`IDataspaceProtocolDataset`[]\>
 
-The datasets handled by the App.
+Optional override called by the Control Plane when publishing a stored dataset for this app.
+The Control Plane always calls `populateDefaults` (e.g. `dcterms:publisher`)
+on every dataset returned here, so apps don't need to populate publisher themselves.
+
+#### Parameters
+
+##### payload
+
+`IDataspaceProtocolDataset`
+
+The user-stored dataset payload.
+
+##### tenantId
+
+`string`
+
+The owning tenant for this dataset. Empty string on
+single-tenant nodes (no `TWIN_TENANT_ENABLED`).
 
 #### Returns
 
 `Promise`\<`IDataspaceProtocolDataset`[]\>
 
-The Dataspace Protocol compliant datasets handled by the App.
+One or more datasets to publish to the catalogue. System-stamped
+fields like `dcterms:publisher` may be omitted — the Control Plane fills them in.
 
 ***
 

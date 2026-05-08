@@ -80,24 +80,6 @@ The options for each process group.
 
 ***
 
-### datasetsHandled() {#datasetshandled}
-
-> **datasetsHandled**(): `Promise`\<`IDataspaceProtocolDataset`[]\>
-
-Datasets handled by the App.
-
-#### Returns
-
-`Promise`\<`IDataspaceProtocolDataset`[]\>
-
-Dataspace Protocol compliant datasets
-
-#### Implementation of
-
-`IDataspaceApp.datasetsHandled`
-
-***
-
 ### supportedQueryTypes() {#supportedquerytypes}
 
 > **supportedQueryTypes**(): `string`[]

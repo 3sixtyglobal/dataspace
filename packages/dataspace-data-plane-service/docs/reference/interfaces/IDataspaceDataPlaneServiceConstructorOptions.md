@@ -89,6 +89,20 @@ transfer-process
 
 ***
 
+### dataspaceAppDatasetEntityStorageType? {#dataspaceappdatasetentitystoragetype}
+
+> `optional` **dataspaceAppDatasetEntityStorageType?**: `string`
+
+The entity storage type for Dataspace App Dataset entities.
+
+#### Default
+
+```ts
+dataspace-app-dataset
+```
+
+***
+
 ### partitionContextIds? {#partitioncontextids}
 
 > `optional` **partitionContextIds?**: `string`[]

@@ -406,3 +406,145 @@ Trust payload containing authorization information (JWT, VC, etc.).
 `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
 Transfer Process (DSP compliant) with current state, or TransferError if the operation fails.
+
+***
+
+### createAppDataset() {#createappdataset}
+
+> **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>
+
+Register an app dataset for a dataspace app, owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string` \| `undefined`
+
+Optional explicit id. If omitted, derived from `dataset["@id"]`
+or generated.
+
+##### appId
+
+`string`
+
+The dataspace app this dataset belongs to (matches
+`DataspaceAppFactory` registration name).
+
+##### dataset
+
+`IDataspaceProtocolDataset`
+
+The dataset payload (may omit system-stamped fields).
+
+#### Returns
+
+`Promise`\<`string`\>
+
+The resolved dataset id.
+
+***
+
+### getAppDataset() {#getappdataset}
+
+> **getAppDataset**(`id`): `Promise`\<[`IDataspaceAppDataset`](IDataspaceAppDataset.md)\>
+
+Get an app dataset record owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string`
+
+The stored app dataset id.
+
+#### Returns
+
+`Promise`\<[`IDataspaceAppDataset`](IDataspaceAppDataset.md)\>
+
+The stored app dataset record.
+
+***
+
+### listAppDatasets() {#listappdatasets}
+
+> **listAppDatasets**(`cursor?`, `limit?`): `Promise`\<\{ `entities`: [`IDataspaceAppDataset`](IDataspaceAppDataset.md)[]; `cursor?`: `string`; \}\>
+
+List the app datasets owned by the calling tenant.
+
+#### Parameters
+
+##### cursor?
+
+`string`
+
+Optional pagination cursor.
+
+##### limit?
+
+`number`
+
+Optional maximum number of entries to return.
+
+#### Returns
+
+`Promise`\<\{ `entities`: [`IDataspaceAppDataset`](IDataspaceAppDataset.md)[]; `cursor?`: `string`; \}\>
+
+The stored app datasets and the next-page cursor if more exist.
+
+***
+
+### updateAppDataset() {#updateappdataset}
+
+> **updateAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`void`\>
+
+Update an app dataset record owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string`
+
+The stored app dataset id.
+
+##### appId
+
+`string`
+
+The dataspace app this dataset belongs to.
+
+##### dataset
+
+`IDataspaceProtocolDataset`
+
+The dataset payload.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Nothing.
+
+***
+
+### deleteAppDataset() {#deleteappdataset}
+
+> **deleteAppDataset**(`id`): `Promise`\<`void`\>
+
+Delete an app dataset record owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string`
+
+The stored app dataset id.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Nothing.

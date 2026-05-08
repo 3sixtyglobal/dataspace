@@ -59,11 +59,11 @@
 											"status": "ok",
 											"components": [
 												{
-													"name": "Database",
+													"source": "Database",
 													"status": "ok"
 												},
 												{
-													"name": "Storage",
+													"source": "Storage",
 													"status": "ok"
 												}
 											]
@@ -75,12 +75,12 @@
 											"status": "warning",
 											"components": [
 												{
-													"name": "Database",
+													"source": "Database",
 													"status": "warning",
 													"description": "slowRunning"
 												},
 												{
-													"name": "Storage",
+													"source": "Storage",
 													"status": "ok"
 												}
 											]
@@ -92,11 +92,11 @@
 											"status": "error",
 											"components": [
 												{
-													"name": "Database",
+													"source": "Database",
 													"status": "ok"
 												},
 												{
-													"name": "Storage",
+													"source": "Storage",
 													"status": "error",
 													"description": "storageFull"
 												}
@@ -1718,10 +1718,10 @@
 				}
 			}
 		},
-		"/dataspace-control-plane/datasets": {
+		"/dataspace-control-plane/app-datasets": {
 			"post": {
 				"operationId": "datasetCreate",
-				"summary": "Register a partial dataset for the calling tenant.",
+				"summary": "Register an app dataset for the calling tenant.",
 				"tags": [
 					"Datasets"
 				],
@@ -1731,12 +1731,12 @@
 					}
 				],
 				"requestBody": {
-					"description": "API request to register a dataset for an app.\n\nThe owning `tenantId` is captured automatically from the request's tenant\ncontext — callers do not supply it.",
+					"description": "API request to register an app dataset.\n\nThe owning `tenantId` is captured automatically from the request's tenant\ncontext — callers do not supply it.",
 					"required": true,
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/DatasetCreateRequest"
+								"$ref": "#/components/schemas/AppDatasetCreateRequest"
 							},
 							"examples": {
 								"datasetCreateRequestExample": {
@@ -1757,11 +1757,11 @@
 				},
 				"responses": {
 					"200": {
-						"description": "API response from registering a dataset.",
+						"description": "API response from registering an app dataset.",
 						"content": {
 							"text/plain": {
 								"schema": {
-									"$ref": "#/components/schemas/DatasetCreateResponse"
+									"$ref": "#/components/schemas/AppDatasetCreateResponse"
 								}
 							}
 						},
@@ -1835,7 +1835,7 @@
 			},
 			"get": {
 				"operationId": "datasetList",
-				"summary": "List the partial datasets owned by the calling tenant.",
+				"summary": "List the app datasets owned by the calling tenant.",
 				"tags": [
 					"Datasets"
 				],
@@ -1866,11 +1866,11 @@
 				],
 				"responses": {
 					"200": {
-						"description": "API response listing the datasets owned by the calling tenant.",
+						"description": "API response listing the app datasets owned by the calling tenant.",
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/DatasetListResponse"
+									"$ref": "#/components/schemas/AppDatasetListResponse"
 								}
 							}
 						}
@@ -1935,24 +1935,24 @@
 				}
 			}
 		},
-		"/dataspace-control-plane/datasets/{id}": {
+		"/dataspace-control-plane/app-datasets/{id}": {
 			"get": {
 				"operationId": "datasetGet",
-				"summary": "Retrieve a partial dataset owned by the calling tenant.",
+				"summary": "Retrieve an app dataset owned by the calling tenant.",
 				"tags": [
 					"Datasets"
 				],
 				"parameters": [
 					{
 						"name": "id",
-						"description": "The stored dataset id (entity primary key).",
+						"description": "The stored app dataset id (entity primary key).",
 						"in": "path",
 						"required": true,
 						"schema": {
 							"type": "string"
 						},
 						"style": "simple",
-						"example": "partial-dataset-1"
+						"example": "dataspace-app-dataset-1"
 					}
 				],
 				"security": [
@@ -1962,11 +1962,11 @@
 				],
 				"responses": {
 					"200": {
-						"description": "API response for a single stored dataset record.",
+						"description": "API response for a single stored app dataset record.",
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/PartialDatasetRecord"
+									"$ref": "#/components/schemas/DataspaceAppDataset"
 								}
 							}
 						}
@@ -2032,21 +2032,21 @@
 			},
 			"put": {
 				"operationId": "datasetUpdate",
-				"summary": "Update a partial dataset owned by the calling tenant.",
+				"summary": "Update an app dataset owned by the calling tenant.",
 				"tags": [
 					"Datasets"
 				],
 				"parameters": [
 					{
 						"name": "id",
-						"description": "The stored dataset id.",
+						"description": "The stored app dataset id.",
 						"in": "path",
 						"required": true,
 						"schema": {
 							"type": "string"
 						},
 						"style": "simple",
-						"example": "partial-dataset-1"
+						"example": "dataspace-app-dataset-1"
 					}
 				],
 				"security": [
@@ -2055,12 +2055,12 @@
 					}
 				],
 				"requestBody": {
-					"description": "API request to update an existing dataset record.",
+					"description": "API request to update an existing app dataset record.",
 					"required": true,
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/DatasetUpdateRequest"
+								"$ref": "#/components/schemas/AppDatasetUpdateRequest"
 							},
 							"examples": {
 								"datasetUpdateRequestExample": {
@@ -2164,7 +2164,7 @@
 			},
 			"delete": {
 				"operationId": "datasetDelete",
-				"summary": "Delete a partial dataset owned by the calling tenant.",
+				"summary": "Delete an app dataset owned by the calling tenant.",
 				"tags": [
 					"Datasets"
 				],
@@ -2178,7 +2178,7 @@
 							"type": "string"
 						},
 						"style": "simple",
-						"example": "partial-dataset-1"
+						"example": "dataspace-app-dataset-1"
 					}
 				],
 				"security": [
@@ -2416,6 +2416,65 @@
 					}
 				]
 			},
+			"AppDatasetCreateRequest": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "Optional explicit id for the stored dataset record. If omitted, the\nControl Plane derives the id from `dataset[\"@id\"]` if present, or\ngenerates a UUID otherwise. The resolved id is returned via the\n`Location` response header."
+					},
+					"appId": {
+						"type": "string",
+						"description": "The dataspace app this dataset belongs to. Matches the app's\nregistered name in `DataspaceAppFactory` (typically the app's URI)."
+					},
+					"dataset": {
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolDataset"
+					}
+				},
+				"required": [
+					"appId",
+					"dataset"
+				],
+				"description": "The body of the request."
+			},
+			"AppDatasetCreateResponse": {},
+			"AppDatasetListResponse": {
+				"type": "object",
+				"properties": {
+					"entities": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DataspaceAppDataset"
+						},
+						"description": "The stored datasets."
+					},
+					"cursor": {
+						"type": "string",
+						"description": "Cursor to fetch the next page if more entries exist."
+					}
+				},
+				"required": [
+					"entities"
+				],
+				"description": "The body of the response."
+			},
+			"AppDatasetUpdateRequest": {
+				"type": "object",
+				"properties": {
+					"appId": {
+						"type": "string",
+						"description": "The dataspace app this dataset belongs to. May change appId on\nupdate if the tenant wants to retarget the dataset."
+					},
+					"dataset": {
+						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolDataset"
+					}
+				},
+				"required": [
+					"appId",
+					"dataset"
+				],
+				"description": "The body of the request."
+			},
 			"CompleteTransferResponse": {
 				"anyOf": [
 					{
@@ -2470,64 +2529,37 @@
 				],
 				"description": "Request body containing the data asset and query criteria."
 			},
-			"DatasetCreateRequest": {
+			"DataspaceAppDataset": {
+				"description": "Stored dataset record returned by the Control Plane's dataset CRUD surface.",
 				"type": "object",
 				"properties": {
 					"id": {
 						"type": "string",
-						"description": "Optional explicit id for the stored dataset record. If omitted, the\nControl Plane derives the id from `dataset[\"@id\"]` if present, or\ngenerates a UUID otherwise. The resolved id is returned via the\n`Location` response header."
+						"description": "The stored dataset id (matches the dataset's JSON-LD `@id`)."
 					},
 					"appId": {
 						"type": "string",
-						"description": "The dataspace app this dataset belongs to. Matches the app's\nregistered name in `DataspaceAppFactory` (typically the app's URI)."
+						"description": "The dataspace app this dataset belongs to."
 					},
 					"dataset": {
 						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolDataset"
-					}
-				},
-				"required": [
-					"appId",
-					"dataset"
-				],
-				"description": "The body of the request."
-			},
-			"DatasetCreateResponse": {},
-			"DatasetListResponse": {
-				"type": "object",
-				"properties": {
-					"entities": {
-						"type": "array",
-						"items": {
-							"$ref": "#/components/schemas/PartialDatasetRecord"
-						},
-						"description": "The stored datasets."
 					},
-					"cursor": {
+					"dateCreated": {
 						"type": "string",
-						"description": "Cursor to fetch the next page if more entries exist."
-					}
-				},
-				"required": [
-					"entities"
-				],
-				"description": "The body of the response."
-			},
-			"DatasetUpdateRequest": {
-				"type": "object",
-				"properties": {
-					"appId": {
-						"type": "string",
-						"description": "The dataspace app this dataset belongs to. May change appId on\nupdate if the tenant wants to retarget the dataset."
+						"description": "Creation timestamp (ISO string)."
 					},
-					"dataset": {
-						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolDataset"
+					"dateModified": {
+						"type": "string",
+						"description": "Last-modified timestamp (ISO string)."
 					}
 				},
 				"required": [
+					"id",
 					"appId",
-					"dataset"
-				],
-				"description": "The body of the request."
+					"dataset",
+					"dateCreated",
+					"dateModified"
+				]
 			},
 			"Error": {
 				"description": "Model to describe serialized error.",
@@ -2602,33 +2634,36 @@
 				"description": "Provides health information for a component.",
 				"type": "object",
 				"properties": {
-					"name": {
+					"source": {
 						"type": "string",
-						"description": "The name of the component."
+						"description": "The source of the health information."
 					},
 					"description": {
 						"type": "string",
 						"description": "The description of the component as an i18n key."
 					},
-					"isChild": {
-						"type": "boolean",
-						"description": "Whether this entry is a child of another entry, the parent entry will report the overall status of the component."
-					},
 					"status": {
 						"$ref": "#/components/schemas/HealthStatus"
 					},
-					"details": {
+					"message": {
 						"type": "string",
-						"description": "The details for the status if there are further details to provide as an i18n key."
+						"description": "The message for the status if there are further details to provide as an i18n key."
 					},
-					"properties": {
+					"data": {
 						"type": "object",
 						"additionalProperties": {},
-						"description": "Properties to substitute in the i18n key for the details."
+						"description": "Data to substitute in the i18n key for the message."
+					},
+					"grouped": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Health"
+						},
+						"description": "The grouped child components, if any."
 					}
 				},
 				"required": [
-					"name",
+					"source",
 					"status"
 				]
 			},
@@ -2663,38 +2698,6 @@
 					}
 				],
 				"description": "The body which contains the error."
-			},
-			"PartialDatasetRecord": {
-				"description": "Stored partial dataset record returned by the Control Plane's dataset CRUD surface.",
-				"type": "object",
-				"properties": {
-					"id": {
-						"type": "string",
-						"description": "The stored dataset id (matches the dataset's JSON-LD `@id`)."
-					},
-					"appId": {
-						"type": "string",
-						"description": "The dataspace app this dataset belongs to."
-					},
-					"dataset": {
-						"$ref": "https://schema.twindev.org/dataspace-protocol/DataspaceProtocolDataset"
-					},
-					"dateCreated": {
-						"type": "string",
-						"description": "Creation timestamp (ISO string)."
-					},
-					"dateModified": {
-						"type": "string",
-						"description": "Last-modified timestamp (ISO string)."
-					}
-				},
-				"required": [
-					"id",
-					"appId",
-					"dataset",
-					"dateCreated",
-					"dateModified"
-				]
 			},
 			"RequestTransferResponse": {
 				"anyOf": [

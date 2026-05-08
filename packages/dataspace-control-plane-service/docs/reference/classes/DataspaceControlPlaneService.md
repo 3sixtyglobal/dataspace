@@ -120,7 +120,9 @@ The key used when registering the callback.
 
 The service needs to be started when the application is initialized.
 Populates the Federated Catalogue with datasets from registered apps
-and starts the stalled negotiation cleanup task.
+and starts the stalled negotiation cleanup task. Also captures the node
+identity from ContextIdStore when tenant-token encryption is configured
+(required to derive the vault key name `${nodeId}/${signingKeyName}`).
 
 #### Parameters
 
@@ -553,3 +555,160 @@ Transfer Context with Agreement, datasetId, and Transfer Process metadata.
 #### Implementation of
 
 `IDataspaceControlPlaneResolverComponent.resolveProviderPid`
+
+***
+
+### createAppDataset() {#createappdataset}
+
+> **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>
+
+Register a dataset for a dataspace app, owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string` \| `undefined`
+
+Optional explicit id. If omitted, derived from `dataset["@id"]`
+or generated.
+
+##### appId
+
+`string`
+
+The dataspace app this dataset belongs to.
+
+##### dataset
+
+`IDataspaceProtocolDataset`
+
+The dataset payload.
+
+#### Returns
+
+`Promise`\<`string`\>
+
+The resolved dataset id.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.createAppDataset`
+
+***
+
+### getAppDataset() {#getappdataset}
+
+> **getAppDataset**(`id`): `Promise`\<`IDataspaceAppDataset`\>
+
+Get a dataset record owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string`
+
+The stored dataset id.
+
+#### Returns
+
+`Promise`\<`IDataspaceAppDataset`\>
+
+The stored dataset record.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.getAppDataset`
+
+***
+
+### listAppDatasets() {#listappdatasets}
+
+> **listAppDatasets**(`cursor?`, `limit?`): `Promise`\<\{ `entities`: `IDataspaceAppDataset`[]; `cursor?`: `string`; \}\>
+
+List the dataspace app datasets owned by the calling tenant.
+
+#### Parameters
+
+##### cursor?
+
+`string`
+
+Optional pagination cursor.
+
+##### limit?
+
+`number`
+
+Optional maximum number of entries to return.
+
+#### Returns
+
+`Promise`\<\{ `entities`: `IDataspaceAppDataset`[]; `cursor?`: `string`; \}\>
+
+The stored datasets and the next-page cursor if more exist.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.listAppDatasets`
+
+***
+
+### updateAppDataset() {#updateappdataset}
+
+> **updateAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`void`\>
+
+Update a dataset record owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string`
+
+The stored dataset id.
+
+##### appId
+
+`string`
+
+The dataspace app this dataset belongs to.
+
+##### dataset
+
+`IDataspaceProtocolDataset`
+
+The dataset payload.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.updateAppDataset`
+
+***
+
+### deleteAppDataset() {#deleteappdataset}
+
+> **deleteAppDataset**(`id`): `Promise`\<`void`\>
+
+Delete a dataspace app dataset owned by the calling tenant.
+
+#### Parameters
+
+##### id
+
+`string`
+
+The stored app dataset id.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.deleteAppDataset`
