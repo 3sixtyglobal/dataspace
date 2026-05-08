@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.3-next.27](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.26...dataspace-models-v0.0.3-next.27) (2026-05-08)
+
+
+### Features
+
+* add dataspace transfer format ([#111](https://github.com/iotaledger/twin-dataspace/issues/111)) ([f59ff5e](https://github.com/iotaledger/twin-dataspace/commit/f59ff5ef10d261d1cebbf5c6bb0689e74a10738a))
+* endpoint encryption + getDatasetTargets multi-target fix ([#112](https://github.com/iotaledger/twin-dataspace/issues/112)) ([3288941](https://github.com/iotaledger/twin-dataspace/commit/328894113c19c7402f7d00dfa77b6a97ae40ca91))
+
 ## [0.0.3-next.26](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.25...dataspace-models-v0.0.3-next.26) (2026-04-14)
 
 
