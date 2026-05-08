@@ -4,6 +4,7 @@ import type { IComponent } from "@twin.org/core";
 import type {
 	IDataspaceProtocolContractNegotiation,
 	IDataspaceProtocolContractNegotiationError,
+	IDataspaceProtocolDataset,
 	IDataspaceProtocolTransferCompletionMessage,
 	IDataspaceProtocolTransferError,
 	IDataspaceProtocolTransferProcess,
@@ -12,6 +13,7 @@ import type {
 	IDataspaceProtocolTransferSuspensionMessage,
 	IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
+import type { IDataspaceAppDataset } from "./IDataspaceAppDataset.js";
 import type { INegotiationCallback } from "./INegotiationCallback.js";
 
 /**
@@ -257,4 +259,62 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 		pid: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError>;
+
+	// ============================================================================
+	// DATASET MANAGEMENT
+	// CRUD over the tenant-scoped dataset records the Control Plane reads at
+	// start time to populate the federated catalogue.
+	// ============================================================================
+
+	/**
+	 * Register an app dataset for a dataspace app, owned by the calling tenant.
+	 * @param id Optional explicit id. If omitted, derived from `dataset["@id"]`
+	 * or generated.
+	 * @param appId The dataspace app this dataset belongs to (matches
+	 * `DataspaceAppFactory` registration name).
+	 * @param dataset The dataset payload (may omit system-stamped fields).
+	 * @returns The resolved dataset id.
+	 */
+	createAppDataset(
+		id: string | undefined,
+		appId: string,
+		dataset: IDataspaceProtocolDataset
+	): Promise<string>;
+
+	/**
+	 * Get an app dataset record owned by the calling tenant.
+	 * @param id The stored app dataset id.
+	 * @returns The stored app dataset record.
+	 */
+	getAppDataset(id: string): Promise<IDataspaceAppDataset>;
+
+	/**
+	 * List the app datasets owned by the calling tenant.
+	 * @param cursor Optional pagination cursor.
+	 * @param limit Optional maximum number of entries to return.
+	 * @returns The stored app datasets and the next-page cursor if more exist.
+	 */
+	listAppDatasets(
+		cursor?: string,
+		limit?: number
+	): Promise<{
+		entities: IDataspaceAppDataset[];
+		cursor?: string;
+	}>;
+
+	/**
+	 * Update an app dataset record owned by the calling tenant.
+	 * @param id The stored app dataset id.
+	 * @param appId The dataspace app this dataset belongs to.
+	 * @param dataset The dataset payload.
+	 * @returns Nothing.
+	 */
+	updateAppDataset(id: string, appId: string, dataset: IDataspaceProtocolDataset): Promise<void>;
+
+	/**
+	 * Delete an app dataset record owned by the calling tenant.
+	 * @param id The stored app dataset id.
+	 * @returns Nothing.
+	 */
+	deleteAppDataset(id: string): Promise<void>;
 }

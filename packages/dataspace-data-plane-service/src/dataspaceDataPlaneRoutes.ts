@@ -216,8 +216,7 @@ export function generateRestRoutesDataspaceDataPlane(
 				]
 			}
 		],
-		skipAuth: true,
-		skipTenant: true
+		skipAuth: true
 	};
 
 	const queryDataAssetRoute: IRestRoute<IDataAssetQueryRequest, IDataAssetEntitiesResponse> = {
@@ -258,8 +257,7 @@ export function generateRestRoutesDataspaceDataPlane(
 				]
 			}
 		],
-		skipAuth: true,
-		skipTenant: true
+		skipAuth: true
 	};
 
 	return [

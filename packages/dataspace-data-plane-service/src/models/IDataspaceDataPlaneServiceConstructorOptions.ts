@@ -44,6 +44,12 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	transferProcessEntityStorageType?: string;
 
 	/**
+	 * The entity storage type for Dataspace App Dataset entities.
+	 * @default dataspace-app-dataset
+	 */
+	dataspaceAppDatasetEntityStorageType?: string;
+
+	/**
 	 * The keys to use from the context ids to cleanup partitions.
 	 */
 	partitionContextIds?: string[];

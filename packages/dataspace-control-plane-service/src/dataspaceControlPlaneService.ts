@@ -1,5 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import type { IUrlTransformerComponent } from "@twin.org/api-models";
 import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
@@ -24,11 +25,14 @@ import {
 	type IDataspaceControlPlaneComponent,
 	type IDataspaceControlPlaneResolverComponent,
 	type INegotiationCallback,
+	type IDataspaceAppDataset,
 	type ITransferContext,
 	type ITransferProcess,
+	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
+import { ComparisonOperator } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
@@ -146,6 +150,12 @@ export class DataspaceControlPlaneService
 	private readonly _transferProcessStorage: IEntityStorageConnector<TransferProcess>;
 
 	/**
+	 * Entity storage for tenant-supplied Dataspace App Dataset entities.
+	 * @internal
+	 */
+	private readonly _dataspaceAppDatasetStorage: IEntityStorageConnector<DataspaceAppDataset>;
+
+	/**
 	 * The trust component for token verification and generation.
 	 * @internal
 	 */
@@ -184,6 +194,12 @@ export class DataspaceControlPlaneService
 	private readonly _negotiationCallbacks: Map<string, INegotiationCallback>;
 
 	/**
+	 * The component type name for the hosting component.
+	 * @internal
+	 */
+	private readonly _urlTransformerComponent: IUrlTransformerComponent;
+
+	/**
 	 * Create a new instance of DataspaceControlPlaneService.
 	 * @param options The options for the service.
 	 */
@@ -218,6 +234,10 @@ export class DataspaceControlPlaneService
 			IEntityStorageConnector<TransferProcess>
 		>(options?.transferProcessEntityStorageType ?? nameofKebabCase<TransferProcess>());
 
+		this._dataspaceAppDatasetStorage = EntityStorageConnectorFactory.get<
+			IEntityStorageConnector<DataspaceAppDataset>
+		>(options?.dataspaceAppDatasetEntityStorageType ?? nameofKebabCase<DataspaceAppDataset>());
+
 		this._trustComponent = ComponentFactory.get<ITrustComponent>(
 			options?.trustComponentType ?? "trust"
 		);
@@ -230,6 +250,10 @@ export class DataspaceControlPlaneService
 
 		this._taskScheduler = ComponentFactory.getIfExists<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
+		);
+
+		this._urlTransformerComponent = ComponentFactory.get<IUrlTransformerComponent>(
+			options?.urlTransformerComponentType ?? "url-transformer"
 		);
 
 		this._negotiationCallbacks = new Map();
@@ -324,7 +348,9 @@ export class DataspaceControlPlaneService
 	/**
 	 * The service needs to be started when the application is initialized.
 	 * Populates the Federated Catalogue with datasets from registered apps
-	 * and starts the stalled negotiation cleanup task.
+	 * and starts the stalled negotiation cleanup task. Also captures the node
+	 * identity from ContextIdStore when tenant-token encryption is configured
+	 * (required to derive the vault key name `${nodeId}/${signingKeyName}`).
 	 * @param nodeLoggingComponentType The node logging component type.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
@@ -347,36 +373,26 @@ export class DataspaceControlPlaneService
 			message: "populatingFederatedCatalogue"
 		});
 
-		// Get all registered apps
-		const appNames = DataspaceAppFactory.names();
-
-		await this._loggingComponent?.log({
-			level: "debug",
-			ts: Date.now(),
-			source: DataspaceControlPlaneService.CLASS_NAME,
-			message: "discoveredApps",
-			data: { count: appNames.length, apps: appNames }
-		});
-
 		let registeredCount = 0;
 		let errorCount = 0;
+		let totalDatasets = 0;
 
-		// Collect and register datasets from each app
-		for (const appName of appNames) {
-			try {
-				const app = DataspaceAppFactory.get<IDataspaceApp>(appName);
-				const datasets = await app.datasetsHandled();
-
-				for (const dataset of datasets) {
+		// Walk stored dataspace app datasets one page at a time and publish each in its
+		// owning tenant's context. Memory stays bounded to one page.
+		let cursor: string | undefined;
+		do {
+			const page = await this._dataspaceAppDatasetStorage.query(
+				undefined,
+				undefined,
+				undefined,
+				cursor
+			);
+			if (Is.arrayValue(page.entities)) {
+				for (const entity of page.entities) {
+					const appDataset = entity as DataspaceAppDataset;
+					totalDatasets++;
 					try {
-						// Ensure publisher is set (required for Federated Catalogue)
-						const datasetWithPublisher = await this.ensurePublisher(dataset);
-
-						// Register with Federated Catalogue
-						await this._federatedCatalogueComponent.set(
-							datasetWithPublisher as unknown as IDcatDataset
-						);
-
+						await this.publishAppDataset(appDataset);
 						registeredCount++;
 
 						await this._loggingComponent?.log({
@@ -385,8 +401,9 @@ export class DataspaceControlPlaneService
 							source: DataspaceControlPlaneService.CLASS_NAME,
 							message: "datasetRegistered",
 							data: {
-								datasetId: getJsonLdId(datasetWithPublisher) ?? "",
-								appName
+								datasetId: appDataset.id,
+								appId: appDataset.appId,
+								tenantId: appDataset.tenantId
 							}
 						});
 					} catch (error) {
@@ -395,26 +412,19 @@ export class DataspaceControlPlaneService
 							level: "error",
 							ts: Date.now(),
 							source: DataspaceControlPlaneService.CLASS_NAME,
-							message: "datasetRegistrationFailed",
+							message: "datasetPublishFailed",
 							error: BaseError.fromError(error),
 							data: {
-								datasetId: getJsonLdId(dataset) ?? "",
-								appName
+								datasetRecordId: appDataset.id,
+								appId: appDataset.appId,
+								tenantId: appDataset.tenantId
 							}
 						});
 					}
 				}
-			} catch (error) {
-				await this._loggingComponent?.log({
-					level: "error",
-					ts: Date.now(),
-					source: DataspaceControlPlaneService.CLASS_NAME,
-					message: "appDatasetsRetrievalFailed",
-					error: BaseError.fromError(error),
-					data: { appName }
-				});
 			}
-		}
+			cursor = page.cursor;
+		} while (Is.stringValue(cursor));
 
 		await this._loggingComponent?.log({
 			level: "info",
@@ -424,7 +434,7 @@ export class DataspaceControlPlaneService
 			data: {
 				registeredCount,
 				errorCount,
-				totalApps: appNames.length
+				totalDatasets
 			}
 		});
 
@@ -483,7 +493,7 @@ export class DataspaceControlPlaneService
 			JsonLdHelper.toNodeObject(request)
 		);
 
-		if (validationFailures.length > 0) {
+		if (Is.arrayValue(validationFailures)) {
 			await this._loggingComponent?.log({
 				level: "error",
 				source: DataspaceControlPlaneService.CLASS_NAME,
@@ -641,7 +651,7 @@ export class DataspaceControlPlaneService
 			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (validationFailures.length > 0) {
+		if (Is.arrayValue(validationFailures)) {
 			await this._loggingComponent?.log({
 				level: "error",
 				source: DataspaceControlPlaneService.CLASS_NAME,
@@ -757,7 +767,18 @@ export class DataspaceControlPlaneService
 				);
 
 				const tokenString = accessToken as string;
-				const fullEndpoint = `${publicOrigin}/${this._dataPlanePath}`;
+				let fullEndpoint = `${publicOrigin}/${this._dataPlanePath}`;
+
+				const contextIds = await ContextIdStore.getContextIds();
+				const tenantId = contextIds?.[ContextIdKeys.Tenant];
+
+				if (Is.stringValue(tenantId)) {
+					fullEndpoint = await this._urlTransformerComponent.addEncryptedQueryParamToUrl(
+						fullEndpoint,
+						"tenant",
+						tenantId
+					);
+				}
 
 				response.dataAddress = {
 					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
@@ -852,7 +873,7 @@ export class DataspaceControlPlaneService
 			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (validationFailures.length > 0) {
+		if (Is.arrayValue(validationFailures)) {
 			await this._loggingComponent?.log({
 				level: "error",
 				source: DataspaceControlPlaneService.CLASS_NAME,
@@ -936,7 +957,7 @@ export class DataspaceControlPlaneService
 			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (validationFailures.length > 0) {
+		if (Is.arrayValue(validationFailures)) {
 			await this._loggingComponent?.log({
 				level: "error",
 				source: DataspaceControlPlaneService.CLASS_NAME,
@@ -1021,7 +1042,7 @@ export class DataspaceControlPlaneService
 			JsonLdHelper.toNodeObject(message)
 		);
 
-		if (validationFailures.length > 0) {
+		if (Is.arrayValue(validationFailures)) {
 			await this._loggingComponent?.log({
 				level: "error",
 				source: DataspaceControlPlaneService.CLASS_NAME,
@@ -1602,6 +1623,193 @@ export class DataspaceControlPlaneService
 		};
 	}
 
+	/**
+	 * Register a dataset for a dataspace app, owned by the calling tenant.
+	 * @param id Optional explicit id. If omitted, derived from `dataset["@id"]`
+	 * or generated.
+	 * @param appId The dataspace app this dataset belongs to.
+	 * @param dataset The dataset payload.
+	 * @returns The resolved dataset id.
+	 */
+	public async createAppDataset(
+		id: string | undefined,
+		appId: string,
+		dataset: IDataspaceProtocolDataset
+	): Promise<string> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(appId), appId);
+		Guards.object<IDataspaceProtocolDataset>(
+			DataspaceControlPlaneService.CLASS_NAME,
+			nameof(dataset),
+			dataset
+		);
+
+		const resolvedId =
+			id ??
+			(Is.stringValue(dataset["@id"]) ? dataset["@id"] : RandomHelper.generateUuidV7("compact"));
+
+		const tenantId = await this.resolveCallingTenantId();
+		const nodeIdentity = await this.resolveNodeIdentity();
+
+		const existing = await this._dataspaceAppDatasetStorage.get(resolvedId);
+		if (!Is.empty(existing)) {
+			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetAlreadyExists", {
+				id: resolvedId
+			});
+		}
+
+		const now = new Date().toISOString();
+		const entity: DataspaceAppDataset = {
+			id: resolvedId,
+			nodeIdentity,
+			tenantId,
+			appId,
+			dataset: this.stripDatasetId(dataset),
+			dateCreated: now,
+			dateModified: now
+		};
+
+		// Side effect first, primary storage last
+		await this.publishAppDataset(entity);
+		await this._dataspaceAppDatasetStorage.set(entity);
+
+		return resolvedId;
+	}
+
+	/**
+	 * Get a dataset record owned by the calling tenant.
+	 * @param id The stored dataset id.
+	 * @returns The stored dataset record.
+	 */
+	public async getAppDataset(id: string): Promise<IDataspaceAppDataset> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
+
+		const tenantId = await this.resolveCallingTenantId();
+		const entity = await this._dataspaceAppDatasetStorage.get(id);
+		if (Is.empty(entity)) {
+			throw new NotFoundError(DataspaceControlPlaneService.CLASS_NAME, "datasetNotFound", id);
+		}
+		if (entity.tenantId !== tenantId) {
+			throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "datasetWrongTenant");
+		}
+
+		return {
+			id: entity.id,
+			appId: entity.appId,
+			dataset: this.restampDatasetId(entity.dataset, entity.id),
+			dateCreated: entity.dateCreated,
+			dateModified: entity.dateModified
+		};
+	}
+
+	/**
+	 * List the dataspace app datasets owned by the calling tenant.
+	 * @param cursor Optional pagination cursor.
+	 * @param limit Optional maximum number of entries to return.
+	 * @returns The stored datasets and the next-page cursor if more exist.
+	 */
+	public async listAppDatasets(
+		cursor?: string,
+		limit?: number
+	): Promise<{
+		entities: IDataspaceAppDataset[];
+		cursor?: string;
+	}> {
+		const tenantId = await this.resolveCallingTenantId();
+		const page = await this._dataspaceAppDatasetStorage.query(
+			Is.stringValue(tenantId)
+				? {
+						property: "tenantId",
+						value: tenantId,
+						comparison: ComparisonOperator.Equals
+					}
+				: undefined,
+			undefined,
+			undefined,
+			cursor,
+			limit
+		);
+
+		const entities: IDataspaceAppDataset[] = (page.entities ?? []).map(entity => ({
+			id: entity.id ?? "",
+			appId: entity.appId ?? "",
+			dataset: this.restampDatasetId(entity.dataset ?? {}, entity.id ?? ""),
+			dateCreated: entity.dateCreated ?? "",
+			dateModified: entity.dateModified ?? ""
+		}));
+
+		return {
+			entities,
+			cursor: page.cursor
+		};
+	}
+
+	/**
+	 * Update a dataset record owned by the calling tenant.
+	 * @param id The stored dataset id.
+	 * @param appId The dataspace app this dataset belongs to.
+	 * @param dataset The dataset payload.
+	 */
+	public async updateAppDataset(
+		id: string,
+		appId: string,
+		dataset: IDataspaceProtocolDataset
+	): Promise<void> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(appId), appId);
+		Guards.object<IDataspaceProtocolDataset>(
+			DataspaceControlPlaneService.CLASS_NAME,
+			nameof(dataset),
+			dataset
+		);
+
+		const tenantId = await this.resolveCallingTenantId();
+		const existing = await this._dataspaceAppDatasetStorage.get(id);
+		if (Is.empty(existing)) {
+			throw new NotFoundError(DataspaceControlPlaneService.CLASS_NAME, "datasetNotFound", id);
+		}
+		if (existing.tenantId !== tenantId) {
+			throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "datasetWrongTenant");
+		}
+
+		const updated: DataspaceAppDataset = {
+			...existing,
+			appId,
+			dataset: this.stripDatasetId(dataset),
+			dateModified: new Date().toISOString()
+		};
+
+		// Side effect first, primary storage last
+		await this.publishAppDataset(updated);
+		await this._dataspaceAppDatasetStorage.set(updated);
+	}
+
+	/**
+	 * Delete a dataspace app dataset owned by the calling tenant.
+	 * @param id The stored app dataset id.
+	 */
+	public async deleteAppDataset(id: string): Promise<void> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
+
+		const tenantId = await this.resolveCallingTenantId();
+		const existing = await this._dataspaceAppDatasetStorage.get(id);
+		if (Is.empty(existing)) {
+			throw new NotFoundError(DataspaceControlPlaneService.CLASS_NAME, "datasetNotFound", id);
+		}
+		if (existing.tenantId !== tenantId) {
+			throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "datasetWrongTenant");
+		}
+
+		// Side effect first, primary storage last
+		const wrappedContextIds = {
+			...((await ContextIdStore.getContextIds()) ?? {}),
+			[ContextIdKeys.Tenant]: existing.tenantId
+		};
+		await ContextIdStore.run(wrappedContextIds, async () => {
+			await this._federatedCatalogueComponent.remove(id);
+		});
+
+		await this._dataspaceAppDatasetStorage.remove(id);
+	}
 	// ============================================================================
 	// PRIVATE HELPER METHODS
 	// ============================================================================
@@ -1647,7 +1855,7 @@ export class DataspaceControlPlaneService
 			}
 		}
 
-		if (stalled.length > 0) {
+		if (Is.arrayValue(stalled)) {
 			await this._loggingComponent?.log({
 				level: "info",
 				source: DataspaceControlPlaneService.CLASS_NAME,
@@ -1799,27 +2007,28 @@ export class DataspaceControlPlaneService
 			});
 		}
 
-		const targetIds = OdrlPolicyHelper.getTargets(agreement);
+		// Top-level target identifies the dataset; rule-level targets are constraint
+		// scopes (refinements, JSONPath filters, AssetCollections) and aren't datasets.
+		const datasetTargets = OdrlPolicyHelper.getDatasetTargets(agreement);
 
-		if (targetIds.length === 0) {
+		if (!Is.arrayValue(datasetTargets)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "agreementTargetMissingUid", {
 				agreementId: OdrlPolicyHelper.getUid(agreement)
 			});
 		}
 
-		// Validate single target, multiple targets are not currently supported
-		if (targetIds.length > 1) {
+		if (datasetTargets.length > 1) {
 			throw new GeneralError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"agreementMultipleTargetsNotSupported",
 				{
 					agreementId: OdrlPolicyHelper.getUid(agreement),
-					targetCount: targetIds.length
+					targetCount: datasetTargets.length
 				}
 			);
 		}
 
-		return targetIds[0];
+		return datasetTargets[0];
 	}
 
 	/**
@@ -2073,13 +2282,13 @@ export class DataspaceControlPlaneService
 		// the target is implicitly the Dataset. When the catalogue offer has no targets,
 		// skip the target comparison entirely (the agreement's target is the dataset itself).
 		// Only reject if both have explicit targets that don't overlap.
-		if (offerTargets.length > 0 && agreementTargets.length > 0) {
+		if (Is.arrayValue(offerTargets) && Is.arrayValue(agreementTargets)) {
 			if (
 				!agreementTargets.some((agreementTarget: string) => offerTargets.includes(agreementTarget))
 			) {
 				return false;
 			}
-		} else if (offerTargets.length > 0 && agreementTargets.length === 0) {
+		} else if (Is.arrayValue(offerTargets) && !Is.arrayValue(agreementTargets)) {
 			// Offer has targets but agreement doesn't — mismatch
 			return false;
 		}
@@ -2104,28 +2313,103 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Ensure the dataset has a publisher set.
-	 * @param dataset The dataset.
-	 * @returns The dataset with publisher set.
+	 * Populate the system-controlled fields of a dataset payload.
+	 * @param dataset The user-supplied dataset payload.
+	 * @returns The populated dataset.
 	 * @internal
 	 */
-	private async ensurePublisher(
+	private async populateDefaults(
 		dataset: IDataspaceProtocolDataset
 	): Promise<IDataspaceProtocolDataset> {
 		if (dataset["dcterms:publisher"]) {
 			return dataset;
 		}
-
 		const contextIds = await ContextIdStore.getContextIds();
 		const orgId = contextIds?.[ContextIdKeys.Organization];
-
 		if (orgId) {
-			return {
-				...dataset,
-				"dcterms:publisher": orgId
-			};
+			return { ...dataset, "dcterms:publisher": orgId };
 		}
-
 		return dataset;
+	}
+
+	/**
+	 * Strip `@id` from a dataset payload before storing it.
+	 * @param dataset The dataset payload.
+	 * @returns The dataset payload with `@id` removed.
+	 * @internal
+	 */
+	private stripDatasetId(dataset: IDataspaceProtocolDataset): { [key: string]: unknown } {
+		const copy = { ...(dataset as unknown as { [key: string]: unknown }) };
+		delete copy["@id"];
+		return copy;
+	}
+
+	/**
+	 * Re-stamp `@id` onto a stored payload blob using the entity primary key.
+	 * @param payload The stored payload blob (without `@id`).
+	 * @param id The entity id (becomes the dataset's `@id`).
+	 * @returns The dataset payload with `@id` populated.
+	 * @internal
+	 */
+	private restampDatasetId(
+		payload: { [key: string]: unknown },
+		id: string
+	): IDataspaceProtocolDataset {
+		return { ...payload, "@id": id } as unknown as IDataspaceProtocolDataset;
+	}
+
+	// DATASPACE APP DATASET HANDLERS
+
+	/**
+	 * Publish a single dataspace app dataset to the federated catalogue in its owning tenant's context.
+	 * @param appDataset The stored dataspace app dataset entity.
+	 * @internal
+	 */
+	private async publishAppDataset(appDataset: DataspaceAppDataset): Promise<void> {
+		// Override `Tenant` in the context wrap so federated catalogue captures the
+		// appDataset's owning tenant. On single-tenant nodes the appDataset has no tenantId,
+		// so the assignment writes `Tenant: undefined` — equivalent to no override.
+		const wrappedContextIds = {
+			...((await ContextIdStore.getContextIds()) ?? {}),
+			[ContextIdKeys.Tenant]: appDataset.tenantId
+		};
+		await ContextIdStore.run(wrappedContextIds, async () => {
+			const app = DataspaceAppFactory.get<IDataspaceApp>(appDataset.appId);
+			const datasetPayload = this.restampDatasetId(appDataset.dataset, appDataset.id);
+			const overrideHandler = app.datasetsHandled?.bind(app);
+			const rawDatasets: IDataspaceProtocolDataset[] = overrideHandler
+				? await overrideHandler(datasetPayload, appDataset.tenantId ?? "")
+				: [datasetPayload];
+			const datasets = await Promise.all(rawDatasets.map(async d => this.populateDefaults(d)));
+
+			for (const dataset of datasets) {
+				await this._federatedCatalogueComponent.set(dataset as unknown as IDcatDataset);
+			}
+		});
+	}
+
+	/**
+	 * Resolve the calling tenant from the request context.
+	 * @returns The owning tenant id, or undefined for single-tenant nodes.
+	 * @internal
+	 */
+	private async resolveCallingTenantId(): Promise<string | undefined> {
+		const contextIds = await ContextIdStore.getContextIds();
+		const tenantId = contextIds?.[ContextIdKeys.Tenant];
+		return Is.stringValue(tenantId) ? tenantId : undefined;
+	}
+
+	/**
+	 * Resolve the node identity from the current context, throwing if absent.
+	 * @returns The owning node identity.
+	 * @internal
+	 */
+	private async resolveNodeIdentity(): Promise<string> {
+		const contextIds = await ContextIdStore.getContextIds();
+		const nodeId = contextIds?.[ContextIdKeys.Node];
+		if (!Is.stringValue(nodeId)) {
+			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetNodeContextRequired");
+		}
+		return nodeId;
 	}
 }

@@ -70,10 +70,22 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	transferProcessEntityStorageType?: string;
 
 	/**
+	 * Entity storage type for Dataspace App Dataset entities.
+	 * @default dataspace-app-dataset
+	 */
+	dataspaceAppDatasetEntityStorageType?: string;
+
+	/**
 	 * Task scheduler component type for periodic cleanup of stalled negotiations.
 	 * @default task-scheduler
 	 */
 	taskSchedulerComponentType?: string;
+
+	/**
+	 * URL Transformer component type used to encrypt the tenant token into the data-plane..
+	 * @default url-transformer
+	 */
+	urlTransformerComponentType?: string;
 
 	/**
 	 * The configuration of the Dataspace Control Plane Service.

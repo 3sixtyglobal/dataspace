@@ -11,7 +11,7 @@
 
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Is } from "@twin.org/core";
-import type { TransferProcess } from "@twin.org/dataspace-models";
+import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import type { IFederatedCatalogueComponent } from "@twin.org/federated-catalogue-models";
@@ -71,6 +71,13 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 	});
 
 	beforeEach(() => {
+		// Register url-transformer before FederatedCatalogueService is constructed
+		// (its constructor eagerly calls ComponentFactory.get("url-transformer"))
+		ComponentFactory.register("url-transformer", () => ({
+			className: () => "MockUrlTransformerComponent",
+			addEncryptedQueryParamToUrl: async (url: string) => url
+		}));
+
 		// Setup REAL FederatedCatalogue service with memory storage
 		const fedCatSetup = setupFederatedCatalogueIntegration("test-fedcat");
 		federatedCatalogue = fedCatSetup.federatedCatalogue;
@@ -80,7 +87,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		const papSetup = setupPapIntegration("test-pap");
 		pap = papSetup.pap;
 
-		// Setup MOCK PNP (required by service)
+		// Setup MOCK PNP
 		mockPnp = new MockPolicyNegotiationPointComponent();
 		ComponentFactory.register("test-pnp", () => mockPnp);
 
@@ -94,13 +101,22 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			() => transferProcessStorage
 		);
 
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<DataspaceAppDataset>(),
+			() =>
+				new MemoryEntityStorageConnector<DataspaceAppDataset>({
+					entitySchema: nameof<DataspaceAppDataset>()
+				})
+		);
+
 		// Create service with REAL FederatedCatalogue, REAL PAP, and mock Trust
 		service = new DataspaceControlPlaneService({
 			policyAdministrationPointComponentType: "test-pap",
 			policyNegotiationPointComponentType: "test-pnp",
 			federatedCatalogueComponentType: "test-fedcat",
 			trustComponentType: "test-trust",
-			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+			dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>()
 		});
 
 		// Mock ContextIdStore to return test organization ID
@@ -117,9 +133,10 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		cleanupFederatedCatalogueIntegration("test-fedcat");
 		cleanupPapIntegration("test-pap");
 
-		// Cleanup mock PNP
+		// Cleanup mock PNP and URL transformer
 		try {
 			ComponentFactory.unregister("test-pnp");
+			ComponentFactory.unregister("url-transformer");
 		} catch {
 			// Ignore errors if already unregistered
 		}

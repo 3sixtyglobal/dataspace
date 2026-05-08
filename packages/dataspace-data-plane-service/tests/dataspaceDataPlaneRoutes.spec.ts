@@ -49,7 +49,7 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 		expect(operationIds).toContain("dataspaceDataPlaneQueryDataAsset");
 	});
 
-	test("every route with skipAuth also has skipTenant set to true", () => {
+	test("every skipAuth route requires tenant context (skipTenant unset, tenant key required via tenantToken)", () => {
 		const routes = generateRestRoutesDataspaceDataPlane(BASE_ROUTE, COMPONENT_NAME);
 
 		const skipAuthRoutes = routes.filter(r => r.skipAuth === true);
@@ -57,9 +57,9 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 
 		for (const route of skipAuthRoutes) {
 			expect(
-				route.skipTenant,
-				`${route.operationId} has skipAuth but is missing skipTenant: true`
-			).toBe(true);
+				route.skipTenant ?? false,
+				`${route.operationId} should not set skipTenant: true (tenant context required via encrypted tenantToken)`
+			).toBe(false);
 		}
 	});
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IHostingComponent, IHttpRequest, IHttpRequestContext } from "@twin.org/api-models";
 import { ComponentFactory } from "@twin.org/core";
-import type { TransferProcess } from "@twin.org/dataspace-models";
+import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
@@ -39,6 +39,14 @@ describe("dataspaceControlPlaneRoutes", () => {
 			() => transferProcessStorage
 		);
 
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<DataspaceAppDataset>(),
+			() =>
+				new MemoryEntityStorageConnector<DataspaceAppDataset>({
+					entitySchema: nameof<DataspaceAppDataset>()
+				})
+		);
+
 		const mockPap = new MockPolicyAdministrationPointComponent();
 		const mockPnp = new MockPolicyNegotiationPointComponent();
 		const mockFedCat = new MockFederatedCatalogueComponent();
@@ -54,6 +62,10 @@ describe("dataspaceControlPlaneRoutes", () => {
 			buildPublicUrl: async (path: string) => `https://test-origin.com${path}`
 		};
 		ComponentFactory.register("hosting", () => mockHostingComponent);
+		ComponentFactory.register("url-transformer", () => ({
+			className: () => "MockUrlTransformerComponent",
+			addEncryptedQueryParamToUrl: async (url: string) => url
+		}));
 
 		ComponentFactory.register(
 			componentName,
@@ -63,7 +75,8 @@ describe("dataspaceControlPlaneRoutes", () => {
 					policyNegotiationPointComponentType: "test-pnp-routes",
 					federatedCatalogueComponentType: "test-fedcat-routes",
 					trustComponentType: "test-trust-routes",
-					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+					dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>()
 				})
 		);
 	});
@@ -71,6 +84,7 @@ describe("dataspaceControlPlaneRoutes", () => {
 	afterEach(() => {
 		try {
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferProcess>());
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<DataspaceAppDataset>());
 		} catch {
 			// Ignore errors if already unregistered
 		}
@@ -81,6 +95,7 @@ describe("dataspaceControlPlaneRoutes", () => {
 			ComponentFactory.unregister("test-fedcat-routes");
 			ComponentFactory.unregister("test-trust-routes");
 			ComponentFactory.unregister("hosting");
+			ComponentFactory.unregister("url-transformer");
 		} catch {
 			// Ignore errors if already unregistered
 		}
@@ -116,22 +131,22 @@ describe("dataspaceControlPlaneRoutes", () => {
 			expect(dspRoutes.find(r => r.operationId === "terminateTransfer")).toBeDefined();
 		});
 
-		test("every route with skipAuth also has skipTenant set to true", () => {
+		test("every skipAuth route requires tenant context (skipTenant unset, tenant key required via tenantToken)", () => {
 			const dspRoutes = generateRestRoutesDataspaceControlPlane(
 				"/api/dataspace-control-plane",
 				componentName
 			);
 
-			expect(dspRoutes).toHaveLength(6);
+			expect(dspRoutes).toHaveLength(11);
 
 			const skipAuthRoutes = dspRoutes.filter(r => r.skipAuth === true);
 			expect(skipAuthRoutes.length).toBeGreaterThan(0);
 
 			for (const route of skipAuthRoutes) {
 				expect(
-					route.skipTenant,
-					`${route.operationId} has skipAuth but is missing skipTenant: true`
-				).toBe(true);
+					route.skipTenant ?? false,
+					`${route.operationId} should not set skipTenant: true (tenant context required via encrypted tenantToken)`
+				).toBe(false);
 			}
 		});
 	});

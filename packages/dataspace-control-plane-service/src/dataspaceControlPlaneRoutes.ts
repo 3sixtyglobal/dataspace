@@ -3,16 +3,26 @@
 import type {
 	IHostingComponent,
 	IHttpRequestContext,
+	INoContentResponse,
+	INotFoundResponse,
 	IRestRoute,
 	ITag
 } from "@twin.org/api-models";
-import { ComponentFactory, Guards } from "@twin.org/core";
+import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
 import type {
 	ICompleteTransferRequest,
 	ICompleteTransferResponse,
 	IDataspaceControlPlaneComponent,
 	IGetTransferProcessRequest,
 	IGetTransferProcessResponse,
+	IAppDatasetCreateRequest,
+	IAppDatasetCreateResponse,
+	IAppDatasetDeleteRequest,
+	IAppDatasetGetRequest,
+	IAppDatasetGetResponse,
+	IAppDatasetListRequest,
+	IAppDatasetListResponse,
+	IAppDatasetUpdateRequest,
 	IRequestTransferRequest,
 	IRequestTransferResponse,
 	IStartTransferRequest,
@@ -28,7 +38,7 @@ import {
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes
 } from "@twin.org/standards-dataspace-protocol";
-import { HeaderHelper, HeaderTypes, MimeTypes } from "@twin.org/web";
+import { HeaderHelper, HeaderTypes, HttpStatusCode, MimeTypes } from "@twin.org/web";
 import { transformErrorToStatusCode } from "./utils/transferErrorUtils.js";
 
 /**
@@ -44,6 +54,11 @@ export const tagsDataspaceControlPlane: ITag[] = [
 		name: "Transfer Process",
 		description:
 			"DSP Transfer Process Protocol endpoints for initiating and managing data transfers."
+	},
+	{
+		name: "Datasets",
+		description:
+			"Tenant-scoped CRUD over the datasets the Control Plane reads at start time to populate the federated catalogue."
 	}
 ];
 
@@ -107,7 +122,6 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/request`,
 		skipAuth: true,
-		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			requestTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -151,7 +165,6 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "GET",
 		path: `${baseRouteName}/transfers/:pid`,
 		skipAuth: true,
-		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			getTransferProcessHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -193,7 +206,6 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/start`,
 		skipAuth: true,
-		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			startTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -247,7 +259,6 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/complete`,
 		skipAuth: true,
-		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			completeTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -299,7 +310,6 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/transfers/:pid/suspend`,
 		skipAuth: true,
-		skipTenant: true,
 		handler: async (httpRequestContext, request) =>
 			suspendTransferHandler(httpRequestContext, componentName, request),
 		requestType: {
@@ -352,7 +362,6 @@ export function generateRestRoutesDataspaceControlPlane(
 			method: "POST",
 			path: `${baseRouteName}/transfers/:pid/terminate`,
 			skipAuth: true,
-			skipTenant: true,
 			handler: async (httpRequestContext, request) =>
 				terminateTransferHandler(httpRequestContext, componentName, request),
 			requestType: {
@@ -396,13 +405,207 @@ export function generateRestRoutesDataspaceControlPlane(
 			]
 		};
 
+	// ============================================================================
+	// DATASPACE APP DATASET MANAGEMENT
+	// ============================================================================
+
+	const createDataspaceAppDatasetRoute: IRestRoute<
+		IAppDatasetCreateRequest,
+		IAppDatasetCreateResponse
+	> = {
+		operationId: "datasetCreate",
+		summary: "Register an app dataset for the calling tenant.",
+		tag: tagsDataspaceControlPlane[1].name,
+		method: "POST",
+		path: `${baseRouteName}/app-datasets`,
+		handler: async (httpRequestContext, request) =>
+			createAppDatasetHandler(httpRequestContext, componentName, request),
+		requestType: {
+			type: nameof<IAppDatasetCreateRequest>(),
+			examples: [
+				{
+					id: "datasetCreateRequestExample",
+					request: {
+						body: {
+							appId: "https://twin.example.org/app1",
+							dataset: {
+								"@context": DataspaceProtocolContexts.Context,
+								"@type": "Dataset",
+								"@id": "https://twin.example.org/data-service-1",
+								hasPolicy: [],
+								distribution: []
+							} as never
+						}
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<IAppDatasetCreateResponse>(),
+				examples: [
+					{
+						id: "datasetCreateResponseExample",
+						response: {
+							statusCode: 201,
+							headers: {
+								[HeaderTypes.Location]: "https://twin.example.org/data-service-1"
+							}
+						}
+					}
+				]
+			}
+		]
+	};
+
+	const getDataspaceAppDatasetRoute: IRestRoute<IAppDatasetGetRequest, IAppDatasetGetResponse> = {
+		operationId: "datasetGet",
+		summary: "Retrieve an app dataset owned by the calling tenant.",
+		tag: tagsDataspaceControlPlane[1].name,
+		method: "GET",
+		path: `${baseRouteName}/app-datasets/:id`,
+		handler: async (httpRequestContext, request) =>
+			getAppDatasetHandler(httpRequestContext, componentName, request),
+		requestType: {
+			type: nameof<IAppDatasetGetRequest>(),
+			examples: [
+				{
+					id: "datasetGetRequestExample",
+					request: {
+						pathParams: { id: "dataspace-app-dataset-1" }
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<IAppDatasetGetResponse>()
+			}
+		]
+	};
+
+	const listDataspaceAppDatasetsRoute: IRestRoute<IAppDatasetListRequest, IAppDatasetListResponse> =
+		{
+			operationId: "datasetList",
+			summary: "List the app datasets owned by the calling tenant.",
+			tag: tagsDataspaceControlPlane[1].name,
+			method: "GET",
+			path: `${baseRouteName}/app-datasets`,
+			handler: async (httpRequestContext, request) =>
+				listAppDatasetsHandler(httpRequestContext, componentName, request),
+			requestType: {
+				type: nameof<IAppDatasetListRequest>(),
+				examples: [
+					{
+						id: "datasetListRequestExample",
+						request: {}
+					}
+				]
+			},
+			responseType: [
+				{
+					type: nameof<IAppDatasetListResponse>()
+				}
+			]
+		};
+
+	const updateDataspaceAppDatasetRoute: IRestRoute<IAppDatasetUpdateRequest, INoContentResponse> = {
+		operationId: "datasetUpdate",
+		summary: "Update an app dataset owned by the calling tenant.",
+		tag: tagsDataspaceControlPlane[1].name,
+		method: "PUT",
+		path: `${baseRouteName}/app-datasets/:id`,
+		handler: async (httpRequestContext, request) =>
+			updateAppDatasetHandler(httpRequestContext, componentName, request),
+		requestType: {
+			type: nameof<IAppDatasetUpdateRequest>(),
+			examples: [
+				{
+					id: "datasetUpdateRequestExample",
+					// `dataset["@id"]` is intentionally omitted — the path id is
+					// authoritative and any body `@id` is stripped before storage.
+					request: {
+						pathParams: { id: "dataspace-app-dataset-1" },
+						body: {
+							appId: "https://twin.example.org/app1",
+							dataset: {
+								"@context": DataspaceProtocolContexts.Context,
+								"@type": "Dataset",
+								hasPolicy: [],
+								distribution: []
+							} as never
+						}
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<INoContentResponse>(),
+				examples: [
+					{
+						id: "datasetUpdateResponseExample",
+						response: {
+							statusCode: HttpStatusCode.noContent
+						}
+					}
+				]
+			},
+			{
+				type: nameof<INotFoundResponse>()
+			}
+		]
+	};
+
+	const deleteDataspaceAppDatasetRoute: IRestRoute<IAppDatasetDeleteRequest, INoContentResponse> = {
+		operationId: "datasetDelete",
+		summary: "Delete an app dataset owned by the calling tenant.",
+		tag: tagsDataspaceControlPlane[1].name,
+		method: "DELETE",
+		path: `${baseRouteName}/app-datasets/:id`,
+		handler: async (httpRequestContext, request) =>
+			deleteAppDatasetHandler(httpRequestContext, componentName, request),
+		requestType: {
+			type: nameof<IAppDatasetDeleteRequest>(),
+			examples: [
+				{
+					id: "datasetDeleteRequestExample",
+					request: {
+						pathParams: { id: "dataspace-app-dataset-1" }
+					}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<INoContentResponse>(),
+				examples: [
+					{
+						id: "datasetDeleteResponseExample",
+						response: {
+							statusCode: HttpStatusCode.noContent
+						}
+					}
+				]
+			},
+			{
+				type: nameof<INotFoundResponse>()
+			}
+		]
+	};
+
 	return [
 		requestTransferRoute,
 		getTransferProcessRoute,
 		startTransferRoute,
 		completeTransferRoute,
 		suspendTransferRoute,
-		terminateTransferRoute
+		terminateTransferRoute,
+		createDataspaceAppDatasetRoute,
+		listDataspaceAppDatasetsRoute,
+		getDataspaceAppDatasetRoute,
+		updateDataspaceAppDatasetRoute,
+		deleteDataspaceAppDatasetRoute
 	];
 }
 
@@ -572,5 +775,137 @@ async function terminateTransferHandler(
 	return {
 		body: result,
 		statusCode: transformErrorToStatusCode(result)
+	};
+}
+
+// ============================================================================
+// App DATASET HANDLERS
+// ============================================================================
+
+/**
+ * Create app dataset handler.
+ * @param httpRequestContext The request context.
+ * @param componentName The name of the component to use.
+ * @param request The API request containing the dataset payload.
+ * @returns The response with a Location header pointing at the new resource.
+ */
+async function createAppDatasetHandler(
+	httpRequestContext: IHttpRequestContext,
+	componentName: string,
+	request: IAppDatasetCreateRequest
+): Promise<IAppDatasetCreateResponse> {
+	Guards.object<IAppDatasetCreateRequest>(ROUTES_SOURCE, nameof(request), request);
+	Guards.object(ROUTES_SOURCE, nameof(request.body), request.body);
+	Guards.stringValue(ROUTES_SOURCE, nameof(request.body.appId), request.body.appId);
+	Guards.object(ROUTES_SOURCE, nameof(request.body.dataset), request.body.dataset);
+
+	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
+	const resolvedId = await component.createAppDataset(
+		request.body.id,
+		request.body.appId,
+		request.body.dataset
+	);
+
+	return {
+		statusCode: 201,
+		headers: {
+			[HeaderTypes.Location]: resolvedId
+		}
+	};
+}
+
+/**
+ * Get app dataset record handler.
+ * @param httpRequestContext The request context.
+ * @param componentName The name of the component to use.
+ * @param request The API request containing the stored app dataset id.
+ * @returns The response containing the stored app dataset record.
+ */
+async function getAppDatasetHandler(
+	httpRequestContext: IHttpRequestContext,
+	componentName: string,
+	request: IAppDatasetGetRequest
+): Promise<IAppDatasetGetResponse> {
+	Guards.object<IAppDatasetGetRequest>(ROUTES_SOURCE, nameof(request), request);
+	Guards.object(ROUTES_SOURCE, nameof(request.pathParams), request.pathParams);
+	Guards.stringValue(ROUTES_SOURCE, nameof(request.pathParams.id), request.pathParams.id);
+
+	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
+	const result = await component.getAppDataset(request.pathParams.id);
+
+	return { body: result };
+}
+
+/**
+ * List app datasets handler.
+ * @param httpRequestContext The request context.
+ * @param componentName The name of the component to use.
+ * @param request The API request containing optional paging parameters.
+ * @returns The response containing the app datasets owned by the calling tenant.
+ */
+async function listAppDatasetsHandler(
+	httpRequestContext: IHttpRequestContext,
+	componentName: string,
+	request: IAppDatasetListRequest
+): Promise<IAppDatasetListResponse> {
+	Guards.object<IAppDatasetListRequest>(ROUTES_SOURCE, nameof(request), request);
+
+	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
+	const result = await component.listAppDatasets(
+		request.query?.cursor,
+		Coerce.integer(request.query?.limit)
+	);
+
+	return { body: result };
+}
+
+/**
+ * Update app dataset record handler.
+ * @param httpRequestContext The request context.
+ * @param componentName The name of the component to use.
+ * @param request The API request containing the updated app dataset payload.
+ * @returns Empty response on success.
+ */
+async function updateAppDatasetHandler(
+	httpRequestContext: IHttpRequestContext,
+	componentName: string,
+	request: IAppDatasetUpdateRequest
+): Promise<INoContentResponse> {
+	Guards.object<IAppDatasetUpdateRequest>(ROUTES_SOURCE, nameof(request), request);
+	Guards.object(ROUTES_SOURCE, nameof(request.pathParams), request.pathParams);
+	Guards.stringValue(ROUTES_SOURCE, nameof(request.pathParams.id), request.pathParams.id);
+	Guards.object(ROUTES_SOURCE, nameof(request.body), request.body);
+	Guards.stringValue(ROUTES_SOURCE, nameof(request.body.appId), request.body.appId);
+	Guards.object(ROUTES_SOURCE, nameof(request.body.dataset), request.body.dataset);
+
+	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
+	await component.updateAppDataset(request.pathParams.id, request.body.appId, request.body.dataset);
+
+	return {
+		statusCode: HttpStatusCode.noContent
+	};
+}
+
+/**
+ * Delete app dataset record handler.
+ * @param httpRequestContext The request context.
+ * @param componentName The name of the component to use.
+ * @param request The API request containing the stored app dataset id.
+ * @returns Empty response on success.
+ */
+async function deleteAppDatasetHandler(
+	httpRequestContext: IHttpRequestContext,
+	componentName: string,
+	request: IAppDatasetDeleteRequest
+): Promise<INoContentResponse> {
+	Guards.object<IAppDatasetDeleteRequest>(ROUTES_SOURCE, nameof(request), request);
+	Guards.object(ROUTES_SOURCE, nameof(request.pathParams), request.pathParams);
+	Guards.stringValue(ROUTES_SOURCE, nameof(request.pathParams.id), request.pathParams.id);
+
+	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
+	await component.deleteAppDataset(request.pathParams.id);
+
+	return {
+		statusCode: HttpStatusCode.noContent
 	};
 }

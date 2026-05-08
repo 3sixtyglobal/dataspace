@@ -19,6 +19,7 @@ import {
 	ActivityProcessingStatus,
 	ActivityTaskStatus,
 	DataspaceAppFactory,
+	DataspaceAppDataset,
 	DataspaceDataTypes,
 	TransferProcess,
 	type IActivityLogEntry,
@@ -35,8 +36,7 @@ import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolDataTypes,
-	DataspaceProtocolTransferProcessStateType,
-	type IDataspaceProtocolOffer
+	DataspaceProtocolTransferProcessStateType
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -75,6 +75,40 @@ const TEST_TRANSFER_TOKEN = "test-transfer-token-abc123";
  */
 async function sleep(ms: number): Promise<void> {
 	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Seed a dataspace app dataset record into the dataspace-app-dataset storage so the
+ * dataspace data plane's dataset id → app lookup resolves to TestDataspaceDataPlaneApp.
+ * Replaces what the legacy `datasetsHandled` returned at app start.
+ * @param storage The dataspace-app-dataset storage connector.
+ */
+async function seedTestAppDataset(
+	storage: MemoryEntityStorageConnector<DataspaceAppDataset>
+): Promise<void> {
+	const now = new Date().toISOString();
+	// Storage primary key IS the dataset @id; `@id` is stripped from the blob.
+	await storage.set({
+		id: SERVICE_DATASET_ID,
+		nodeIdentity: TEST_NODE_IDENTITY,
+		tenantId: "test-tenant",
+		appId: TestDataspaceDataPlaneApp.APP_ID,
+		dataset: {
+			"@context": ["https://w3id.org/dspace/2025/1/context.jsonld"],
+			"@type": DataspaceProtocolCatalogTypes.Dataset,
+			hasPolicy: [{ "@id": "urn:policy:test", "@type": "Offer", permission: [{ action: "read" }] }],
+			distribution: [
+				{
+					"@id": `${SERVICE_DATASET_ID}/distribution-1`,
+					"@type": "Distribution",
+					accessService: SERVICE_DATASET_ID,
+					format: "Http-Pull-Query-Format"
+				}
+			]
+		} as never,
+		dateCreated: now,
+		dateModified: now
+	});
 }
 
 /**
@@ -148,6 +182,7 @@ describe("DataspaceDataPlaneService", () => {
 	let activityTaskStorage: MemoryEntityStorageConnector<ActivityTask>;
 	let backgroundTaskStorage: MemoryEntityStorageConnector<BackgroundTask>;
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
+	let dataspaceAppDatasetStorage: MemoryEntityStorageConnector<DataspaceAppDataset>;
 	let backgroundTaskService: BackgroundTaskService;
 	let taskScheduler: TaskSchedulerService;
 	let options: IDataspaceDataPlaneServiceConstructorOptions;
@@ -309,6 +344,17 @@ describe("DataspaceDataPlaneService", () => {
 			() => transferProcessStorage
 		);
 
+		EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
+			EntitySchemaHelper.getSchema(DataspaceAppDataset)
+		);
+		dataspaceAppDatasetStorage = new MemoryEntityStorageConnector<DataspaceAppDataset>({
+			entitySchema: nameof<DataspaceAppDataset>()
+		});
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<DataspaceAppDataset>(),
+			() => dataspaceAppDatasetStorage
+		);
+
 		// Mock context IDs (only Node is needed for TestDataspaceDataPlaneApp.start())
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
@@ -366,6 +412,13 @@ describe("DataspaceDataPlaneService", () => {
 			}
 		}
 
+		const allDataspaceAppDatasets = await dataspaceAppDatasetStorage.query();
+		for (const dataset of allDataspaceAppDatasets.entities) {
+			if (dataset.id) {
+				await dataspaceAppDatasetStorage.remove(dataset.id);
+			}
+		}
+
 		// Clear factory between tests to ensure clean state
 		for (const name of DataspaceAppFactory.names()) {
 			DataspaceAppFactory.unregister(name);
@@ -410,6 +463,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -444,6 +498,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -547,6 +602,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const result = await dataspaceDataPlaneService.notifyActivity(canonicalActivity);
 
@@ -597,6 +653,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Avoid duplication check
 		const activityCopy = ObjectHelper.clone<IActivityStreamsActivity>(activityLdContextArray);
@@ -625,6 +682,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const result = await dataspaceDataPlaneService.notifyActivity(extendedActivity);
 		await sleep(1000);
@@ -758,6 +816,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -788,6 +847,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -819,6 +879,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -850,6 +911,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -885,6 +947,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -913,6 +976,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1021,6 +1085,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1137,35 +1202,6 @@ describe("DataspaceDataPlaneService", () => {
 		expect(cleanupPartitionSpy).not.toHaveBeenCalled();
 	});
 
-	test("Apps declare datasetsHandled() returning IDataspaceProtocolDataset[]", async () => {
-		// Verify test app implements the RFC-004 interface correctly
-		const testApp = new TestDataspaceDataPlaneApp();
-		const datasets = await testApp.datasetsHandled();
-
-		expect(datasets).toBeDefined();
-		expect(Is.array(datasets)).toBe(true);
-		expect(datasets.length).toBeGreaterThan(0);
-
-		// Verify each dataset has required DCAT properties
-		const dataset = datasets[0];
-		expect(dataset["@id"]).toBeDefined();
-		expect(dataset["@type"]).toBe(DataspaceProtocolCatalogTypes.Dataset);
-
-		// Dataspace Protocol requires hasPolicy as array
-		const policies = dataset.hasPolicy as IDataspaceProtocolOffer[] | undefined;
-		expect(policies).toBeDefined();
-		expect(Is.array(policies)).toBe(true);
-		expect(policies?.length).toBeGreaterThan(0);
-
-		if (policies && policies.length > 0) {
-			const policy = policies[0];
-			// Verify policy has required ODRL Offer properties
-			expect(policy["@type"]).toBeDefined();
-			expect(policy["@type"]).toBe("Offer");
-			expect(policy["@id"]).toBeDefined();
-		}
-	});
-
 	test("Service matches app by dataset @id", async () => {
 		// Ensure context IDs are set
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
@@ -1178,6 +1214,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1198,44 +1235,6 @@ describe("DataspaceDataPlaneService", () => {
 		// Should successfully match and delegate to app
 		expect(result).toBeDefined();
 		expect(result.itemList.itemListElement).toBeDefined();
-	});
-
-	test("Service throws ConflictError when multiple apps handle same dataset", async () => {
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
-			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
-		});
-
-		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
-		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
-
-		// Register first app via factory
-		const testApp1 = new TestDataspaceDataPlaneApp();
-		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp1);
-		await testApp1.start();
-
-		// Register a second app via factory that handles the same dataset
-		const testApp2 = new TestDataspaceDataPlaneApp();
-		DataspaceAppFactory.register("https://twin.example.org/app2", () => testApp2);
-		await testApp2.start();
-
-		// Create transfer process in storage
-		const transferProcess = createTestTransferProcess();
-		await transferProcessStorage.set(transferProcess);
-
-		// Try to get entities - should throw ConflictError because both apps handle SERVICE_DATASET_ID
-		await expect(
-			dataspaceDataPlaneService.getDataAssetEntities(
-				{
-					entityType: "https://vocabulary.uncefact.org/Consignment"
-				},
-				TEST_CONSUMER_PID,
-				undefined,
-				undefined,
-				TEST_TRANSFER_TOKEN
-			)
-		).rejects.toMatchObject({
-			name: "ConflictError"
-		});
 	});
 
 	test("Dataset-centric data requests use IDataset", async () => {
@@ -1265,6 +1264,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1301,6 +1301,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1361,6 +1362,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1399,6 +1401,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1453,6 +1456,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1508,6 +1512,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1565,6 +1570,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1626,6 +1632,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create transfer process in storage
 		const transferProcess = createTestTransferProcess();
@@ -1711,6 +1718,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create a unique activity for this test
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
@@ -1815,6 +1823,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create a unique activity for this test
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
@@ -1867,6 +1876,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		// Create a unique activity
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
@@ -1926,6 +1936,7 @@ describe("DataspaceDataPlaneService", () => {
 		});
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity.updated = new Date().toISOString();
@@ -1979,6 +1990,7 @@ describe("DataspaceDataPlaneService", () => {
 		});
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity.updated = new Date().toISOString();
@@ -2027,6 +2039,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity.updated = new Date().toISOString();
@@ -2075,6 +2088,7 @@ describe("DataspaceDataPlaneService", () => {
 		});
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity.updated = new Date().toISOString();
@@ -2144,6 +2158,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity1 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity1.updated = new Date().toISOString();
@@ -2205,6 +2220,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity.updated = new Date().toISOString();
@@ -2236,6 +2252,7 @@ describe("DataspaceDataPlaneService", () => {
 		const testApp = new TestDataspaceDataPlaneApp();
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity.updated = new Date().toISOString();
@@ -2285,6 +2302,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity1 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity1.updated = new Date().toISOString();
@@ -2343,6 +2361,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const activity1 = ObjectHelper.clone<IActivityStreamsActivity>(canonicalActivity);
 		activity1.updated = new Date().toISOString();

@@ -25,10 +25,19 @@ export interface IDataspaceApp extends IComponent {
 	activitiesHandled(): IActivityQuery[];
 
 	/**
-	 * The datasets handled by the App.
-	 * @returns The Dataspace Protocol compliant datasets handled by the App.
+	 * Optional override called by the Control Plane when publishing a stored dataset for this app.
+	 * The Control Plane always calls `populateDefaults` (e.g. `dcterms:publisher`)
+	 * on every dataset returned here, so apps don't need to populate publisher themselves.
+	 * @param payload The user-stored dataset payload.
+	 * @param tenantId The owning tenant for this dataset. Empty string on
+	 * single-tenant nodes (no `TWIN_TENANT_ENABLED`).
+	 * @returns One or more datasets to publish to the catalogue. System-stamped
+	 * fields like `dcterms:publisher` may be omitted — the Control Plane fills them in.
 	 */
-	datasetsHandled(): Promise<IDataspaceProtocolDataset[]>;
+	datasetsHandled?(
+		payload: IDataspaceProtocolDataset,
+		tenantId: string
+	): Promise<IDataspaceProtocolDataset[]>;
 
 	/**
 	 * The types of queries supported.

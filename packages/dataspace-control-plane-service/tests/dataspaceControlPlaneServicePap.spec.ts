@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Is } from "@twin.org/core";
-import type { TransferProcess } from "@twin.org/dataspace-models";
+import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
@@ -41,6 +41,10 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		ComponentFactory.register("test-fedcat", () => mockFedCat);
 		ComponentFactory.register("test-pnp", () => mockPnp);
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
+		ComponentFactory.register("url-transformer", () => ({
+			className: () => "MockUrlTransformerComponent",
+			addEncryptedQueryParamToUrl: async (url: string) => url
+		}));
 	});
 
 	afterAll(() => {
@@ -48,6 +52,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		ComponentFactory.unregister("test-fedcat");
 		ComponentFactory.unregister("test-pnp");
 		ComponentFactory.unregister("test-trust");
+		ComponentFactory.unregister("url-transformer");
 	});
 
 	beforeEach(() => {
@@ -62,13 +67,22 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 			() => transferProcessStorage
 		);
 
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<DataspaceAppDataset>(),
+			() =>
+				new MemoryEntityStorageConnector<DataspaceAppDataset>({
+					entitySchema: nameof<DataspaceAppDataset>()
+				})
+		);
+
 		// Create service with PAP, FedCat, and Trust configured
 		service = new DataspaceControlPlaneService({
 			policyAdministrationPointComponentType: "test-pap",
 			policyNegotiationPointComponentType: "test-pnp",
 			federatedCatalogueComponentType: "test-fedcat",
 			trustComponentType: "test-trust",
-			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+			dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>()
 		});
 
 		// Mock PAP retains its pre-initialized test agreements

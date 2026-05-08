@@ -14,11 +14,6 @@ import {
 } from "@twin.org/dataspace-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
-import {
-	DataspaceProtocolContexts,
-	type IDataspaceProtocolDataset
-} from "@twin.org/standards-dataspace-protocol";
-import { DublinCoreContexts } from "@twin.org/standards-dublin-core";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
@@ -142,50 +137,6 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 				concurrentTasks: 2
 			}
 		};
-	}
-
-	/**
-	 * Datasets handled by the App.
-	 * @returns Dataspace Protocol compliant datasets
-	 */
-	public async datasetsHandled(): Promise<IDataspaceProtocolDataset[]> {
-		const contextIds = await ContextIdStore.getContextIds();
-		const organizationId =
-			contextIds?.[ContextIdKeys.Organization] ?? contextIds?.[ContextIdKeys.Node] ?? "";
-		return [
-			{
-				"@context": [
-					DataspaceProtocolContexts.Context,
-					{
-						dcterms: DublinCoreContexts.NamespaceTerms
-					}
-				],
-				"@id": "https://twin.example.org/data-service-1",
-				"@type": "Dataset",
-				"dcterms:publisher": organizationId,
-				hasPolicy: [
-					{
-						"@id": "urn:policy:test-offer-read-consignment",
-						"@type": "Offer",
-						assigner: organizationId,
-						permission: [
-							{
-								action: "read"
-							}
-						]
-					}
-				],
-				distribution: [
-					{
-						"@id": "https://twin.example.org/distribution-1",
-						"@type": "Distribution",
-						accessService: "https://twin.example.org/data-service-1",
-						format: "Http-Pull-Query-Format"
-					}
-				],
-				"dcterms:type": "https://vocabulary.uncefact.org/Consignment"
-			}
-		];
 	}
 
 	/**

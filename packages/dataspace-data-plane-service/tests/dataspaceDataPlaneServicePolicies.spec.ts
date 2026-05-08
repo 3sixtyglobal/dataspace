@@ -15,6 +15,7 @@ import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ArrayHelper, ComponentFactory, GeneralError, I18n, NotFoundError } from "@twin.org/core";
 import {
 	DataspaceAppFactory,
+	DataspaceAppDataset,
 	TransferProcess,
 	type IDataAssetItemListResult
 } from "@twin.org/dataspace-models";
@@ -110,6 +111,9 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		EntitySchemaFactory.register(nameof<TransferProcess>(), () =>
 			EntitySchemaHelper.getSchema(TransferProcess)
 		);
+		EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
+			EntitySchemaHelper.getSchema(DataspaceAppDataset)
+		);
 
 		// Mock context IDs
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
@@ -117,7 +121,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		});
 	});
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		// Create fresh storage for each test
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
 			entitySchema: nameof<TransferProcess>()
@@ -137,6 +141,38 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			nameofKebabCase<TransferProcess>(),
 			() => transferProcessStorage
 		);
+		const dataspaceAppDatasetStorage = new MemoryEntityStorageConnector<DataspaceAppDataset>({
+			entitySchema: nameof<DataspaceAppDataset>()
+		});
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<DataspaceAppDataset>(),
+			() => dataspaceAppDatasetStorage
+		);
+		// Seed a dataset record whose primary key is the test app's dataset @id
+		const now = new Date().toISOString();
+		await dataspaceAppDatasetStorage.set({
+			id: "https://twin.example.org/data-service-1",
+			nodeIdentity: TEST_NODE_IDENTITY,
+			tenantId: "test-tenant",
+			appId: "test-app",
+			dataset: {
+				"@context": ["https://w3id.org/dspace/2025/1/context.jsonld"],
+				"@type": "Dataset",
+				hasPolicy: [
+					{ "@id": "urn:policy:test", "@type": "Offer", permission: [{ action: "read" }] }
+				],
+				distribution: [
+					{
+						"@id": "https://twin.example.org/distribution-1",
+						"@type": "Distribution",
+						accessService: "https://twin.example.org/data-service-1",
+						format: "Http-Pull-Query-Format"
+					}
+				]
+			} as never,
+			dateCreated: now,
+			dateModified: now
+		});
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<ActivityLogDetails>(),
 			() => activityLogStorage

@@ -56,6 +56,7 @@ import {
 	type IExecutionPayload,
 	type IFilteringQuery,
 	type ITransferContext,
+	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
@@ -230,6 +231,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _transferProcessStorage: IEntityStorageConnector<TransferProcess>;
 
 	/**
+	 * Entity storage for tenant-supplied Dataspace App Dataset entities.
+	 * @internal
+	 */
+	private readonly _dataspaceAppDatasetStorage: IEntityStorageConnector<DataspaceAppDataset>;
+
+	/**
 	 * Create a new instance of DataspaceDataPlane.
 	 * @param options The options for the data plane.
 	 */
@@ -270,6 +277,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		this._transferProcessStorage = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<TransferProcess>
 		>(options?.transferProcessEntityStorageType ?? nameofKebabCase<TransferProcess>());
+
+		this._dataspaceAppDatasetStorage = EntityStorageConnectorFactory.get<
+			IEntityStorageConnector<DataspaceAppDataset>
+		>(options?.dataspaceAppDatasetEntityStorageType ?? nameofKebabCase<DataspaceAppDataset>());
 
 		JsonLdDataTypes.registerTypes();
 		DataspaceDataTypes.registerTypes();
@@ -1202,7 +1213,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
-	 * Get a dataset from registered apps by its ID.
+	 * Get a dataset by its ID. Resolves via the tenant-supplied dataspace app
+	 * datasets stored by the Control Plane.
 	 * @param datasetId The dataset identifier (@id)
 	 * @returns The dataset
 	 * @throws NotFoundError if no app handles this dataset
@@ -1210,15 +1222,13 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 */
 	private async getDatasetFromApps(datasetId: string): Promise<IDataspaceProtocolDataset> {
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
-		const appNames = DataspaceAppFactory.names();
 
-		for (const appId of appNames) {
-			const app = DataspaceAppFactory.get<IDataspaceApp>(appId);
-			const datasets = await app.datasetsHandled();
-			const dataset = datasets.find(d => d["@id"] === datasetId);
-			if (dataset) {
-				return dataset;
-			}
+		const fromAppDataset = await this._dataspaceAppDatasetStorage.get(datasetId);
+		if (!Is.empty(fromAppDataset)) {
+			return {
+				...fromAppDataset.dataset,
+				"@id": datasetId
+			} as unknown as IDataspaceProtocolDataset;
 		}
 
 		throw new NotFoundError(DataspaceDataPlaneService.CLASS_NAME, "noAppRegistered", datasetId, {
@@ -1235,18 +1245,13 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private async getAppForDataAssetQuery(dataAssetQuery: IDataAssetQuery): Promise<IDataspaceApp> {
 		const matchingElements: IDataspaceApp[] = [];
 		const matchingIds: string[] = [];
-		const appNames = DataspaceAppFactory.names();
 
-		for (const appId of appNames) {
-			const app = DataspaceAppFactory.get<IDataspaceApp>(appId);
-			const datasets = await app.datasetsHandled();
-
-			for (const dataset of datasets) {
-				if (dataset["@id"] === dataAssetQuery.datasetId) {
-					matchingElements.push(app);
-					matchingIds.push(appId);
-				}
-			}
+		// Storage primary key is the dataset's @id, so a single get() resolves it.
+		const fromAppDataset = await this._dataspaceAppDatasetStorage.get(dataAssetQuery.datasetId);
+		if (!Is.empty(fromAppDataset)) {
+			const app = DataspaceAppFactory.get<IDataspaceApp>(fromAppDataset.appId);
+			matchingElements.push(app);
+			matchingIds.push(fromAppDataset.appId);
 		}
 
 		if (matchingElements.length > 1) {

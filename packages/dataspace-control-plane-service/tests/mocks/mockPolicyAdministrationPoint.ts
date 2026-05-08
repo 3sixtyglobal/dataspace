@@ -2,10 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { NotFoundError } from "@twin.org/core";
 import { nameof } from "@twin.org/nameof";
-import type {
-	IPolicyAdministrationPointComponent,
-	IRightsManagementEcosystemPolicy
-} from "@twin.org/rights-management-models";
+import type { IPolicyAdministrationPointComponent } from "@twin.org/rights-management-models";
 import type {
 	IDataspaceProtocolAgreement,
 	IDataspaceProtocolOffer,
@@ -142,26 +139,6 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 			);
 		}
 		return offer as IDataspaceProtocolOffer;
-	}
-
-	/**
-	 * Get an ecosystem policy by ID.
-	 * @param ecosystemPolicyId The ecosystem policy ID.
-	 * @returns The ecosystem policy (throws if not found).
-	 */
-	public async getEcosystemPolicy(
-		ecosystemPolicyId: string
-	): Promise<IRightsManagementEcosystemPolicy> {
-		const ecosystemPolicy = this._policies.get(ecosystemPolicyId);
-		if (!ecosystemPolicy) {
-			throw new NotFoundError(
-				MockPolicyAdministrationPointComponent.CLASS_NAME,
-				"policyNotFound",
-				undefined,
-				{ policyId: ecosystemPolicyId }
-			);
-		}
-		return ecosystemPolicy as unknown as IRightsManagementEcosystemPolicy;
 	}
 
 	/**

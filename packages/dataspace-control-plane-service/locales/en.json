@@ -12,8 +12,8 @@
 			"resolvedProviderPid": "Resolved providerPid to Transfer Context",
 			"catalogDatasetFound": "Dataset validated in Federated Catalogue",
 			"agreementMatchedOffer": "Agreement matched Catalog Offer",
-			"populatingFederatedCatalogue": "Populating Federated Catalogue with datasets from registered apps",
-			"federatedCataloguePopulated": "Federated Catalogue population completed (registered: {registeredCount}, errors: {errorCount}, apps: {totalApps})",
+			"populatingFederatedCatalogue": "Populating Federated Catalogue with stored app datasets",
+			"federatedCataloguePopulated": "Federated Catalogue population completed (registered: {registeredCount}, errors: {errorCount}, datasets: {totalDatasets})",
 			"startingContractNegotiation": "Starting contract negotiation with provider",
 			"offerFoundInCatalog": "Offer found in Federated Catalogue and validated",
 			"negotiationInitiated": "Contract negotiation initiated successfully",
@@ -34,8 +34,7 @@
 	"debug": {
 		"dataspaceControlPlaneService": {
 			"engineCloneStart": "Skipping Federated Catalogue population (engine clone or no engine)",
-			"discoveredApps": "Discovered {count} registered Dataspace apps",
-			"datasetRegistered": "Dataset {datasetId} registered from app {appName}"
+			"datasetRegistered": "Dataset {datasetId} registered for app {appId} (tenant: {tenantId})"
 		}
 	},
 	"warn": {
@@ -54,8 +53,6 @@
 		"dataspaceControlPlaneService": {
 			"transferProcessNotFound": "Transfer Process not found",
 			"pullTransfersNotSupported": "PULL transfers are not supported. Configure dataPlanePath in service configuration to enable PULL transfers.",
-			"datasetRegistrationFailed": "Failed to register dataset {datasetId} from app {appName}",
-			"appDatasetsRetrievalFailed": "Failed to retrieve datasets from app {appName}",
 			"transferProcessTerminated": "Transfer Process \"{consumerPid}\" is terminated and cannot be used",
 			"transferProcessTerminatedProvider": "Transfer Process \"{providerPid}\" is terminated and cannot be used",
 			"invalidTransferRequest": "Transfer Request does not conform to Dataspace Protocol specification",
@@ -93,7 +90,12 @@
 			"callerNotAuthorizedAsConsumer": "The caller's verified identity does not match the consumer for this transfer process",
 			"callerNotAuthorizedAsProvider": "The caller's verified identity does not match the provider for this transfer process",
 			"callerNotAuthorizedForTransfer": "The caller's verified identity does not match the consumer or provider for this transfer process",
-			"multipleAssignersNotSupported": "Multiple assigners found in agreement, which is not supported. Only single assigner agreements are supported."
+			"multipleAssignersNotSupported": "Multiple assigners found in agreement, which is not supported. Only single assigner agreements are supported.",
+			"datasetPublishFailed": "Failed to publish dataset {datasetRecordId} for app {appId} (tenant: {tenantId})",
+			"datasetNodeContextRequired": "A node context is required to register a dataset.",
+			"datasetAlreadyExists": "A dataset with id \"{id}\" already exists.",
+			"datasetNotFound": "Dataset not found",
+			"datasetWrongTenant": "The calling tenant does not own this dataset."
 		},
 		"dataspaceControlPlanePolicyRequester": {}
 	}

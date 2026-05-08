@@ -12,6 +12,7 @@ import {
 import {
 	DataspaceAppFactory,
 	type INegotiationCallback,
+	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
@@ -46,7 +47,6 @@ import { MockPolicyNegotiationAdminPointComponent } from "./mocks/mockPolicyNego
 import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiationPoint.js";
 import {
 	createFailingMockTrustComponent,
-	createMockDataspaceApp,
 	createMockEngineCore,
 	createMockTrustComponent,
 	DEFAULT_SERVICE_OPTIONS,
@@ -74,6 +74,7 @@ function mockPnpToReturnNegotiationId(
 describe("DataspaceControlPlaneService", () => {
 	// Create transfer process storage for tests
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
+	let dataspaceAppDatasetStorage: MemoryEntityStorageConnector<DataspaceAppDataset>;
 	let mockPap: MockPolicyAdministrationPointComponent;
 	let mockFedCat: MockFederatedCatalogueComponent;
 	let mockPnp: MockPolicyNegotiationPointComponent;
@@ -88,11 +89,18 @@ describe("DataspaceControlPlaneService", () => {
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
 			entitySchema: nameof<TransferProcess>()
 		});
+		dataspaceAppDatasetStorage = new MemoryEntityStorageConnector<DataspaceAppDataset>({
+			entitySchema: nameof<DataspaceAppDataset>()
+		});
 
-		// Register the entity storage connector
+		// Register the entity storage connectors
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<TransferProcess>(),
 			() => transferProcessStorage
+		);
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<DataspaceAppDataset>(),
+			() => dataspaceAppDatasetStorage
 		);
 
 		// Create and register mock PAP, PNP, and FedCat components
@@ -105,6 +113,16 @@ describe("DataspaceControlPlaneService", () => {
 
 		// Register mock trust component
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
+
+		// Register mock URL transformer (pass-through by default); register both the
+		// explicit "test-url-transformer" name used by DEFAULT_SERVICE_OPTIONS and the
+		// default "url-transformer" name for tests that construct the service with custom options.
+		const mockUrlTransformer = {
+			className: () => "MockUrlTransformerComponent",
+			addEncryptedQueryParamToUrl: vi.fn().mockImplementation(async (url: string) => url)
+		};
+		ComponentFactory.register("test-url-transformer", () => mockUrlTransformer);
+		ComponentFactory.register("url-transformer", () => mockUrlTransformer);
 
 		// Mock ContextIdStore to return test organization ID
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
@@ -119,6 +137,7 @@ describe("DataspaceControlPlaneService", () => {
 		// Unregister the entity storage connector after each test
 		try {
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferProcess>());
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<DataspaceAppDataset>());
 		} catch {
 			// Ignore errors if already unregistered
 		}
@@ -129,6 +148,8 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-pnp");
 			ComponentFactory.unregister("test-fedcat");
 			ComponentFactory.unregister("test-trust");
+			ComponentFactory.unregister("test-url-transformer");
+			ComponentFactory.unregister("url-transformer");
 		} catch {
 			// Ignore errors if already unregistered
 		}
@@ -323,6 +344,128 @@ describe("DataspaceControlPlaneService", () => {
 				// Semantic error code format: "ErrorName:message"
 				expect(transferError.code).toMatch(/^NotFoundError:/);
 			}
+		});
+
+		describe("tenant token URL handling", () => {
+			// Mock trust component returns identity "did:iota:consumer-node-abc" by default; seed the
+			// transfer with providerIdentity matching so validateCallerIsProvider passes, and an
+			// empty dataAddress so the PULL-mode branch is exercised.
+			const seedPullTransfer = async (): Promise<IDataspaceProtocolTransferStartMessage> => {
+				const now = new Date().toISOString();
+				const consumerPid = "urn:uuid:pull-consumer-pid";
+				const providerPid = "urn:uuid:pull-provider-pid";
+				await transferProcessStorage.set({
+					consumerPid,
+					id: "pull-test-id",
+					providerPid,
+					state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+					agreementId: "agreement-123",
+					datasetId: "urn:uuid:dataset-123",
+					offerId: "agreement-123",
+					consumerIdentity: "did:iota:provider-node-xyz",
+					providerIdentity: "did:iota:consumer-node-abc",
+					dateCreated: now,
+					dateModified: now
+				} as TransferProcess);
+				return {
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid,
+					providerPid
+				};
+			};
+
+			test("returns raw endpoint URL when url transformer is a pass-through", async () => {
+				const message = await seedPullTransfer();
+				const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+				const response = await service.startTransfer(
+					message,
+					"https://test-origin.com",
+					"valid-trust-payload"
+				);
+
+				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+					throw new Error(`unexpected TransferError: ${response.code}`);
+				}
+				expect(response.dataAddress?.endpoint).toBe("https://test-origin.com/data-plane/data");
+			});
+
+			test("calls addEncryptedQueryParamToUrl on url transformer when configured", async () => {
+				const message = await seedPullTransfer();
+				const mockUrlTransformerComponent = {
+					addEncryptedQueryParamToUrl: vi
+						.fn()
+						.mockImplementation(async (url: string) => `${url}?tenant-token=encrypted-tenant-did`),
+					className: () => "MockUrlTransformerComponent"
+				};
+
+				ComponentFactory.register("test-url-transformer-custom", () => mockUrlTransformerComponent);
+
+				const service = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					urlTransformerComponentType: "test-url-transformer-custom"
+				});
+
+				const response = await service.startTransfer(
+					message,
+					"https://test-origin.com",
+					"valid-trust-payload"
+				);
+
+				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+					throw new Error(`unexpected TransferError: ${response.code}`);
+				}
+				expect(response.dataAddress?.endpoint).toBe(
+					"https://test-origin.com/data-plane/data?tenant-token=encrypted-tenant-did"
+				);
+				expect(mockUrlTransformerComponent.addEncryptedQueryParamToUrl).toHaveBeenCalledWith(
+					"https://test-origin.com/data-plane/data",
+					"tenant",
+					"did:iota:test-tenant"
+				);
+
+				ComponentFactory.unregister("test-url-transformer-custom");
+			});
+
+			test("returns raw endpoint URL when url transformer is configured but tenant context is missing", async () => {
+				const message = await seedPullTransfer();
+				const mockUrlTransformerComponent = {
+					addEncryptedQueryParamToUrl: vi.fn(),
+					className: () => "MockUrlTransformerComponent"
+				};
+
+				ComponentFactory.register(
+					"test-url-transformer-no-tenant",
+					() => mockUrlTransformerComponent
+				);
+
+				const service = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					urlTransformerComponentType: "test-url-transformer-no-tenant"
+				});
+
+				// Remove Tenant from context
+				vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+					[ContextIdKeys.Node]: "did:iota:test-node",
+					[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+					[ContextIdKeys.User]: "did:iota:test-user"
+				});
+
+				const response = await service.startTransfer(
+					message,
+					"https://test-origin.com",
+					"valid-trust-payload"
+				);
+
+				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+					throw new Error(`unexpected TransferError: ${response.code}`);
+				}
+				expect(response.dataAddress?.endpoint).toBe("https://test-origin.com/data-plane/data");
+				expect(mockUrlTransformerComponent.addEncryptedQueryParamToUrl).not.toHaveBeenCalled();
+
+				ComponentFactory.unregister("test-url-transformer-no-tenant");
+			});
 		});
 	});
 
@@ -1851,357 +1994,6 @@ describe("DataspaceControlPlaneService", () => {
 		});
 	});
 
-	describe("start() - Federated Catalogue Population", () => {
-		let mockFedCatStart: MockFederatedCatalogueComponent;
-		let mockPapStart: MockPolicyAdministrationPointComponent;
-
-		beforeEach(() => {
-			// Create and register mock PAP and FedCat components for start tests
-			mockPapStart = new MockPolicyAdministrationPointComponent();
-			mockFedCatStart = new MockFederatedCatalogueComponent();
-			ComponentFactory.register("test-pap-start", () => mockPapStart);
-			ComponentFactory.register("test-fedcat-start", () => mockFedCatStart);
-			ComponentFactory.register("test-trust-start", () => createMockTrustComponent());
-
-			// Clear the mock federated catalogue
-			mockFedCatStart.clearDatasets();
-		});
-
-		afterEach(() => {
-			// Unregister components
-			try {
-				ComponentFactory.unregister("test-pap-start");
-				ComponentFactory.unregister("test-fedcat-start");
-				ComponentFactory.unregister("test-trust-start");
-			} catch {
-				// Ignore errors if already unregistered
-			}
-
-			// Unregister any mock apps
-			try {
-				DataspaceAppFactory.unregister("mock-app-1");
-			} catch {
-				// Ignore
-			}
-			try {
-				DataspaceAppFactory.unregister("mock-app-2");
-			} catch {
-				// Ignore
-			}
-
-			// Unregister mock engine
-			try {
-				EngineCoreFactory.unregister("engine");
-			} catch {
-				// Ignore
-			}
-
-			vi.restoreAllMocks();
-		});
-
-		test("should skip population when engine is a clone", async () => {
-			// Register mock engine as a clone
-			EngineCoreFactory.register("engine", () => createMockEngineCore(true));
-
-			// Register mock app with datasets
-			DataspaceAppFactory.register("mock-app-1", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:should-not-be-added",
-						"dcterms:title": "Should Not Be Added"
-					}
-				])
-			);
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-start",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should skip because engine is a clone
-			await service.start();
-
-			// Verify no datasets were added
-			const result = await mockFedCatStart.get("urn:uuid:should-not-be-added");
-			expect(result["@type"]).toBe(DataspaceProtocolCatalogTypes.CatalogError);
-		});
-
-		test("should skip population when no engine exists", async () => {
-			// Don't register any engine - EngineCoreFactory.getIfExists will return undefined
-
-			// Register mock app with datasets
-			DataspaceAppFactory.register("mock-app-1", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:should-not-be-added",
-						"dcterms:title": "Should Not Be Added"
-					}
-				])
-			);
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-start",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should skip because no engine exists
-			await service.start();
-
-			// Verify no datasets were added
-			const result = await mockFedCatStart.get("urn:uuid:should-not-be-added");
-			expect(result["@type"]).toBe(DataspaceProtocolCatalogTypes.CatalogError);
-		});
-
-		test("should populate federated catalogue with datasets from apps", async () => {
-			// Register mock engine (not a clone)
-			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-
-			// Register mock app with datasets
-			DataspaceAppFactory.register("mock-app-1", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-from-app",
-						"dcterms:title": "Dataset From App"
-					}
-				])
-			);
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-start",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should populate the federated catalogue
-			await service.start();
-
-			// Verify dataset was added
-			const result = await mockFedCatStart.get("urn:uuid:dataset-from-app");
-			expect(result["@type"]).not.toBe(DataspaceProtocolCatalogTypes.CatalogError);
-			expect((result as { "dcterms:title": string })["dcterms:title"]).toBe("Dataset From App");
-		});
-
-		test("should handle multiple apps with multiple datasets", async () => {
-			// Register mock engine (not a clone)
-			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-
-			// Register mock apps with datasets
-			DataspaceAppFactory.register("mock-app-1", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-app1-1",
-						"dcterms:title": "Dataset App1-1"
-					},
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-app1-2",
-						"dcterms:title": "Dataset App1-2"
-					}
-				])
-			);
-
-			DataspaceAppFactory.register("mock-app-2", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-app2-1",
-						"dcterms:title": "Dataset App2-1"
-					}
-				])
-			);
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-start",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should populate the federated catalogue
-			await service.start();
-
-			// Verify all datasets were added
-			const result1 = await mockFedCatStart.get("urn:uuid:dataset-app1-1");
-			expect(result1["@type"]).not.toBe(DataspaceProtocolCatalogTypes.CatalogError);
-
-			const result2 = await mockFedCatStart.get("urn:uuid:dataset-app1-2");
-			expect(result2["@type"]).not.toBe(DataspaceProtocolCatalogTypes.CatalogError);
-
-			const result3 = await mockFedCatStart.get("urn:uuid:dataset-app2-1");
-			expect(result3["@type"]).not.toBe(DataspaceProtocolCatalogTypes.CatalogError);
-		});
-
-		test("should add publisher when dataset doesn't have one", async () => {
-			// Register mock engine (not a clone)
-			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-
-			// Register mock app with dataset without publisher
-			DataspaceAppFactory.register("mock-app-1", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-no-publisher",
-						"dcterms:title": "Dataset Without Publisher"
-						// No dcterms:publisher
-					}
-				])
-			);
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-start",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should populate the federated catalogue
-			await service.start();
-
-			// Verify dataset was added with publisher from context
-			const result = await mockFedCatStart.get("urn:uuid:dataset-no-publisher");
-			expect(result["@type"]).not.toBe(DataspaceProtocolCatalogTypes.CatalogError);
-			// Publisher should be added from ContextIdStore organization
-			expect((result as { "dcterms:publisher"?: string })["dcterms:publisher"]).toBe(
-				"did:iota:provider-node-xyz"
-			);
-		});
-
-		test("should preserve existing publisher", async () => {
-			// Register mock engine (not a clone)
-			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-
-			// Register mock app with dataset that has a publisher
-			DataspaceAppFactory.register("mock-app-1", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-with-publisher",
-						"dcterms:title": "Dataset With Publisher",
-						"dcterms:publisher": "did:iota:existing-publisher"
-					}
-				])
-			);
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-start",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should populate the federated catalogue
-			await service.start();
-
-			// Verify dataset was added with original publisher preserved
-			const result = await mockFedCatStart.get("urn:uuid:dataset-with-publisher");
-			expect(result["@type"]).not.toBe(DataspaceProtocolCatalogTypes.CatalogError);
-			// Publisher should be preserved
-			expect((result as { "dcterms:publisher"?: string })["dcterms:publisher"]).toBe(
-				"did:iota:existing-publisher"
-			);
-		});
-
-		test("should handle apps with no datasets gracefully", async () => {
-			// Register mock engine (not a clone)
-			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-
-			// Register mock app with no datasets
-			DataspaceAppFactory.register("mock-app-1", () => createMockDataspaceApp([]));
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-start",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should complete without errors even with no datasets
-			await expect(service.start()).resolves.not.toThrow();
-		});
-
-		test("should continue registering other datasets if one fails", async () => {
-			// Register mock engine (not a clone)
-			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-
-			// Register mock app with datasets
-			DataspaceAppFactory.register("mock-app-1", () =>
-				createMockDataspaceApp([
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-first",
-						"dcterms:title": "First Dataset"
-					},
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@type": "Dataset",
-						"@id": "urn:uuid:dataset-second",
-						"dcterms:title": "Second Dataset"
-					}
-				])
-			);
-
-			// Create a special federated catalogue that fails for first dataset
-			const failingFedCat = {
-				className: () => "FailingFederatedCatalogue",
-				set: async (dataset: { "@id"?: string }) => {
-					if (dataset["@id"] === "urn:uuid:dataset-first") {
-						throw new Error("Simulated registration failure");
-					}
-				},
-				get: async (id: string) => {
-					if (id === "urn:uuid:dataset-second") {
-						return { "@type": "dcat:Dataset", "@id": id };
-					}
-					return {
-						"@type": DataspaceProtocolCatalogTypes.CatalogError,
-						code: "NotFoundError"
-					};
-				}
-			};
-
-			ComponentFactory.register("test-fedcat-failing", () => failingFedCat);
-
-			const service = new DataspaceControlPlaneService({
-				policyAdministrationPointComponentType: "test-pap-start",
-				policyNegotiationPointComponentType: "test-pnp",
-				federatedCatalogueComponentType: "test-fedcat-failing",
-				trustComponentType: "test-trust-start",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
-			});
-
-			// Start should complete even if one dataset fails
-			await expect(service.start()).resolves.not.toThrow();
-
-			// Cleanup
-			ComponentFactory.unregister("test-fedcat-failing");
-		});
-	});
-
 	describe("Contract Negotiation - Catalog Integration", () => {
 		test("should throw NotFoundError when dataset not found in catalog", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
@@ -2786,7 +2578,7 @@ describe("DataspaceControlPlaneService", () => {
 			service.registerNegotiationCallback("remove", callbackSpy2);
 			service.unregisterNegotiationCallback("remove");
 
-			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-partial-001");
+			mockPnpToReturnNegotiationId(mockPnp, "cb-neg-app-001");
 
 			await service.negotiateAgreement(
 				"urn:uuid:dataset-negotiation-valid",
@@ -2800,10 +2592,10 @@ describe("DataspaceControlPlaneService", () => {
 				"dataspace-control-plane-requester"
 			);
 
-			await requester.terminated("cb-neg-partial-001");
+			await requester.terminated("cb-neg-app-001");
 
 			expect(callbackSpy1.onFailed).toHaveBeenCalledWith(
-				"cb-neg-partial-001",
+				"cb-neg-app-001",
 				"negotiationTerminatedByProvider"
 			);
 			expect(callbackSpy2.onFailed).not.toHaveBeenCalled();
@@ -3232,6 +3024,493 @@ describe("DataspaceControlPlaneService", () => {
 			const result = await service.getTransferProcess("auth-test-ok-pid", "valid-trust-payload");
 
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferProcess);
+		});
+	});
+
+	describe("Dataset CRUD (tenant-scoped admin surface)", () => {
+		const TEST_TENANT_A = "did:iota:test-tenant";
+		const TEST_TENANT_B = "did:iota:other-tenant";
+		const TEST_NODE_ID = "did:iota:test-node";
+		const TEST_APP_ID = "https://twin.example.org/app1";
+
+		// Register a minimal mock app under TEST_APP_ID so publishDataset's
+		// DataspaceAppFactory.get lookup succeeds. The mock has no
+		// `datasetsHandled` override so the default populate path is exercised.
+		beforeEach(() => {
+			DataspaceAppFactory.register(TEST_APP_ID, () => ({
+				className: () => "MockDataspaceApp",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => []
+			}));
+		});
+
+		afterEach(() => {
+			try {
+				DataspaceAppFactory.unregister(TEST_APP_ID);
+			} catch {
+				// Already gone, ignore.
+			}
+		});
+
+		/**
+		 * Build a minimal valid IDataspaceProtocolDataset payload.
+		 * @param datasetId The DCAT @id for the dataset.
+		 * @returns A minimal app dataset.
+		 */
+		function buildDataset(datasetId: string): unknown {
+			return {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@id": datasetId,
+				"@type": "Dataset",
+				hasPolicy: [
+					{
+						"@id": "urn:policy:test",
+						"@type": "Offer",
+						permission: [{ action: "read" }]
+					}
+				],
+				distribution: [
+					{
+						"@id": `${datasetId}/distribution-1`,
+						"@type": "Distribution",
+						accessService: datasetId,
+						format: "Http-Pull-Query-Format"
+					}
+				]
+			};
+		}
+
+		test("createAppDataset persists the entity with the calling tenant captured", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await service.createAppDataset(
+				"ds-1",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/data-service-1") as never
+			);
+
+			const stored = await dataspaceAppDatasetStorage.get("ds-1");
+			expect(stored).toBeDefined();
+			expect(stored?.id).toBe("ds-1");
+			expect(stored?.appId).toBe(TEST_APP_ID);
+			expect(stored?.tenantId).toBe(TEST_TENANT_A);
+			expect(stored?.nodeIdentity).toBe(TEST_NODE_ID);
+			// `@id` is stripped from the stored blob — entity.id is the source of truth.
+			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
+			expect(stored?.dataset?.["@type"]).toBe("Dataset");
+		});
+
+		test("createAppDataset rejects duplicate id with datasetAlreadyExists", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await service.createAppDataset(
+				"ds-dup",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/data-service-dup") as never
+			);
+
+			await expect(
+				service.createAppDataset(
+					"ds-dup",
+					TEST_APP_ID,
+					buildDataset("https://twin.example.org/data-service-dup") as never
+				)
+			).rejects.toMatchObject({
+				name: "GeneralError",
+				message: expect.stringContaining("datasetAlreadyExists")
+			});
+		});
+
+		test("createAppDataset publishes the dataset to fedcat in the calling tenant context", async () => {
+			const setSpy = vi.spyOn(mockFedCat, "set");
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await service.createAppDataset(
+				"https://twin.example.org/ds-publish",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-publish") as never
+			);
+
+			// fedcat.set was called once during the inline publish flow.
+			expect(setSpy).toHaveBeenCalledTimes(1);
+			const publishedDataset = setSpy.mock.calls[0][0] as { "@id"?: string };
+			expect(publishedDataset["@id"]).toBe("https://twin.example.org/ds-publish");
+		});
+
+		test("getAppDataset returns the app when the calling tenant owns it", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await service.createAppDataset(
+				"ds-get",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-get") as never
+			);
+
+			const result = await service.getAppDataset("ds-get");
+			expect(result.id).toBe("ds-get");
+			expect(result.appId).toBe(TEST_APP_ID);
+		});
+
+		test("getAppDataset throws NotFoundError for an id that does not exist", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await expect(service.getAppDataset("does-not-exist")).rejects.toMatchObject({
+				name: "NotFoundError",
+				message: expect.stringContaining("datasetNotFound")
+			});
+		});
+
+		test("getAppDataset rejects cross-tenant reads with datasetWrongTenant", async () => {
+			// Create as Tenant A.
+			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			await serviceA.createAppDataset(
+				"ds-cross",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-cross") as never
+			);
+
+			// Switch context to Tenant B; same service instance.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: TEST_NODE_ID,
+				[ContextIdKeys.Tenant]: TEST_TENANT_B,
+				[ContextIdKeys.Organization]: "did:iota:other-org"
+			});
+
+			await expect(serviceA.getAppDataset("ds-cross")).rejects.toMatchObject({
+				name: "UnauthorizedError",
+				message: expect.stringContaining("datasetWrongTenant")
+			});
+		});
+
+		test("listDatasets returns only the calling tenant's records", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Two records under Tenant A.
+			await service.createAppDataset(
+				"ds-a-1",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-a-1") as never
+			);
+			await service.createAppDataset(
+				"ds-a-2",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-a-2") as never
+			);
+
+			// One record under Tenant B (seeded directly into storage to skip
+			// the context switch dance).
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: "ds-b-1",
+				nodeIdentity: TEST_NODE_ID,
+				tenantId: TEST_TENANT_B,
+				appId: TEST_APP_ID,
+				dataset: buildDataset("https://twin.example.org/ds-b-1") as never,
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const page = await service.listAppDatasets();
+			expect(page.entities.map(e => e.id).sort()).toEqual(["ds-a-1", "ds-a-2"]);
+		});
+
+		test("updateAppDataset rewrites the app dataset and re-publishes to fedcat", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await service.createAppDataset(
+				"ds-upd",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-upd-v1") as never
+			);
+
+			const setSpy = vi.spyOn(mockFedCat, "set");
+			await service.updateAppDataset(
+				"ds-upd",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-upd-v2") as never
+			);
+
+			// updateAppDataset publishes once (the spy was attached AFTER the
+			// initial create's publish).
+			expect(setSpy).toHaveBeenCalledTimes(1);
+			const stored = await dataspaceAppDatasetStorage.get("ds-upd");
+			// `@id` is stripped from the stored blob; entity.id is the source of truth.
+			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
+			expect(stored?.id).toBe("ds-upd");
+		});
+
+		test("updateAppDataset rejects cross-tenant writes with datasetWrongTenant", async () => {
+			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			await serviceA.createAppDataset(
+				"ds-upd-cross",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-upd-cross") as never
+			);
+
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: TEST_NODE_ID,
+				[ContextIdKeys.Tenant]: TEST_TENANT_B,
+				[ContextIdKeys.Organization]: "did:iota:other-org"
+			});
+
+			await expect(
+				serviceA.updateAppDataset(
+					"ds-upd-cross",
+					TEST_APP_ID,
+					buildDataset("https://twin.example.org/ds-upd-cross-hijack") as never
+				)
+			).rejects.toMatchObject({
+				name: "UnauthorizedError",
+				message: expect.stringContaining("datasetWrongTenant")
+			});
+		});
+
+		test("deleteAppDataset removes the app dataset and the corresponding fedcat dataset", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const datasetId = "https://twin.example.org/ds-del";
+			await service.createAppDataset(datasetId, TEST_APP_ID, buildDataset(datasetId) as never);
+
+			const removeSpy = vi.spyOn(mockFedCat, "remove");
+			await service.deleteAppDataset(datasetId);
+
+			// Local storage removed.
+			const stored = await dataspaceAppDatasetStorage.get(datasetId);
+			expect(stored).toBeUndefined();
+			// fedcat removal called with the dataset @id (which IS the entity id).
+			expect(removeSpy).toHaveBeenCalledTimes(1);
+			expect(removeSpy.mock.calls[0][0]).toBe(datasetId);
+		});
+
+		test("deleteAppDataset rejects cross-tenant deletes with datasetWrongTenant", async () => {
+			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			await serviceA.createAppDataset(
+				"ds-del-cross",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-del-cross") as never
+			);
+
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: TEST_NODE_ID,
+				[ContextIdKeys.Tenant]: TEST_TENANT_B,
+				[ContextIdKeys.Organization]: "did:iota:other-org"
+			});
+
+			await expect(serviceA.deleteAppDataset("ds-del-cross")).rejects.toMatchObject({
+				name: "UnauthorizedError",
+				message: expect.stringContaining("datasetWrongTenant")
+			});
+
+			// The record must still be present — denied delete shouldn't side-effect.
+			const stored = await dataspaceAppDatasetStorage.get("ds-del-cross");
+			expect(stored).toBeDefined();
+		});
+
+		test("deleteAppDataset throws NotFoundError when the id does not exist", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await expect(service.deleteAppDataset("does-not-exist")).rejects.toMatchObject({
+				name: "NotFoundError",
+				message: expect.stringContaining("datasetNotFound")
+			});
+		});
+
+		test("publishDataset wraps fedcat.set in the app dataset's tenant context", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Spy on ContextIdStore.run so we can read the override map the
+			// publish loop passes in. This is the load-bearing invariant of
+			// when fedcat.set() runs inside the wrap, it must see
+			// `Tenant = dataset.tenantId`, regardless of the request/engine
+			// startup tenant.
+			//
+			// We assert on the run wrapper's arguments rather than the
+			// `ContextIdStore.getContextIds()` value seen inside the wrapped
+			// callback, because the test's beforeEach replaces
+			// `getContextIds` with a fixed mock that doesn't honour the
+			// AsyncLocalStorage-backed override.
+			const runSpy = vi.spyOn(ContextIdStore, "run");
+
+			const now = new Date().toISOString();
+			const appDataset: DataspaceAppDataset = {
+				id: "ds-publish-tenant",
+				nodeIdentity: TEST_NODE_ID,
+				tenantId: TEST_TENANT_B,
+				appId: TEST_APP_ID,
+				dataset: buildDataset("https://twin.example.org/ds-publish-tenant") as never,
+				dateCreated: now,
+				dateModified: now
+			};
+			await dataspaceAppDatasetStorage.set(appDataset);
+
+			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
+			try {
+				await service.start();
+			} finally {
+				EngineCoreFactory.unregister("engine");
+			}
+
+			// Filter out any unrelated `ContextIdStore.run` calls (e.g. inner
+			// service plumbing); we only care about the publish wrap that
+			// passed our app dataset's tenantId.
+			const wrapWithTenantB = runSpy.mock.calls.find(
+				([ids]) => (ids as { [key: string]: string })?.[ContextIdKeys.Tenant] === TEST_TENANT_B
+			);
+			expect(wrapWithTenantB).toBeDefined();
+		});
+
+		test("publishDataset calls populateDefaults even when app overrides datasetsHandled", async () => {
+			// Register an app whose datasetsHandled returns a dataset WITHOUT
+			// `dcterms:publisher`. The framework should stamp publisher from
+			// the org context regardless of which path produced the dataset.
+			const APP_WITH_OVERRIDE = "https://twin.example.org/app-with-override";
+			DataspaceAppFactory.register(APP_WITH_OVERRIDE, () => ({
+				className: () => "MockAppWithOverride",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => [],
+				datasetsHandled: async () => [
+					{
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@id": "https://twin.example.org/from-override",
+						"@type": "Dataset",
+						hasPolicy: [],
+						distribution: []
+					} as never
+				]
+			}));
+
+			try {
+				const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+				const setSpy = vi.spyOn(mockFedCat, "set");
+
+				await service.createAppDataset(
+					"https://twin.example.org/seed",
+					APP_WITH_OVERRIDE,
+					buildDataset("https://twin.example.org/seed") as never
+				);
+
+				expect(setSpy).toHaveBeenCalledTimes(1);
+				const publishedDataset = setSpy.mock.calls[0][0] as { "dcterms:publisher"?: string };
+				expect(publishedDataset["dcterms:publisher"]).toBe("did:iota:provider-node-xyz");
+			} finally {
+				DataspaceAppFactory.unregister(APP_WITH_OVERRIDE);
+			}
+		});
+
+		test("createAppDataset uses dataset @id as storage key when no explicit id is provided", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const datasetId = "https://twin.example.org/derived-from-at-id";
+			const resolvedId = await service.createAppDataset(
+				undefined,
+				TEST_APP_ID,
+				buildDataset(datasetId) as never
+			);
+
+			expect(resolvedId).toBe(datasetId);
+			const stored = await dataspaceAppDatasetStorage.get(datasetId);
+			expect(stored?.id).toBe(datasetId);
+			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
+		});
+
+		test("createAppDataset auto-generates a UUID when neither id nor dataset @id is provided", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Build a dataset payload deliberately without `@id`.
+			const datasetWithoutId = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "Dataset",
+				hasPolicy: [],
+				distribution: []
+			};
+
+			const resolvedId = await service.createAppDataset(
+				undefined,
+				TEST_APP_ID,
+				datasetWithoutId as never
+			);
+
+			// UUID v7 (compact) is a 32-char lowercase hex string.
+			expect(resolvedId).toMatch(/^[\da-f]{32}$/);
+			const stored = await dataspaceAppDatasetStorage.get(resolvedId);
+			expect(stored?.id).toBe(resolvedId);
+		});
+
+		test("createAppDataset: explicit id wins when explicit id and dataset @id differ", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const explicitId = "explicit-storage-id";
+			const datasetAtId = "https://twin.example.org/payload-at-id";
+
+			const resolvedId = await service.createAppDataset(
+				explicitId,
+				TEST_APP_ID,
+				buildDataset(datasetAtId) as never
+			);
+
+			expect(resolvedId).toBe(explicitId);
+			// Nothing stored under the payload's @id.
+			const storedAtId = await dataspaceAppDatasetStorage.get(datasetAtId);
+			expect(storedAtId).toBeUndefined();
+			// Stored under the explicit id, with @id stripped.
+			const stored = await dataspaceAppDatasetStorage.get(explicitId);
+			expect(stored?.id).toBe(explicitId);
+			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
+		});
+
+		test("getAppDataset re-stamps @id from entity.id on read", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Seed storage directly with a app dataset blob that has no @id.
+			const id = "ds-restamp";
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id,
+				nodeIdentity: TEST_NODE_ID,
+				tenantId: TEST_TENANT_A,
+				appId: TEST_APP_ID,
+				dataset: {
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "Dataset",
+					hasPolicy: [],
+					distribution: []
+				} as never,
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const result = await service.getAppDataset(id);
+			// @id on the returned dataset is re-stamped from entity.id.
+			expect((result.dataset as { "@id"?: string })["@id"]).toBe(id);
+		});
+
+		test("updateAppDataset strips @id from new payload — path id stays authoritative", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const pathId = "ds-immutable-id";
+			await service.createAppDataset(
+				pathId,
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/initial") as never
+			);
+
+			// Update with a payload whose @id differs from the path id.
+			await service.updateAppDataset(
+				pathId,
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/different-at-id") as never
+			);
+
+			const stored = await dataspaceAppDatasetStorage.get(pathId);
+			// The storage key did not change.
+			expect(stored?.id).toBe(pathId);
+			// @id was stripped from the stored blob.
+			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
+			// And no entity was stored under the body's @id.
+			const storedAtId = await dataspaceAppDatasetStorage.get(
+				"https://twin.example.org/different-at-id"
+			);
+			expect(storedAtId).toBeUndefined();
 		});
 	});
 });

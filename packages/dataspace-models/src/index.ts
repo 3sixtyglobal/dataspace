@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0.
 
 // Entity exports
+export * from "./entities/dataspaceAppDataset.js";
 export * from "./entities/transferProcess.js";
 
 // Control Plane exports
 export * from "./models/controlPlane/api/ITransferContextResponse.js";
+export * from "./models/controlPlane/IDataspaceAppDataset.js";
 export * from "./models/controlPlane/IDataspaceControlPlaneComponent.js";
 export * from "./models/controlPlane/IDataspaceControlPlaneResolverComponent.js";
 export * from "./models/controlPlane/INegotiationCallback.js";
@@ -41,6 +43,14 @@ export * from "./models/api/IDataAssetGetEntitiesRequest.js";
 export * from "./models/api/IDataAssetQueryRequest.js";
 
 // Control Plane API exports - Transfer Process Protocol
+export * from "./models/api/controlPlane/IAppDatasetCreateRequest.js";
+export * from "./models/api/controlPlane/IAppDatasetCreateResponse.js";
+export * from "./models/api/controlPlane/IAppDatasetDeleteRequest.js";
+export * from "./models/api/controlPlane/IAppDatasetGetRequest.js";
+export * from "./models/api/controlPlane/IAppDatasetGetResponse.js";
+export * from "./models/api/controlPlane/IAppDatasetListRequest.js";
+export * from "./models/api/controlPlane/IAppDatasetListResponse.js";
+export * from "./models/api/controlPlane/IAppDatasetUpdateRequest.js";
 export * from "./models/api/controlPlane/ICompleteTransferRequest.js";
 export * from "./models/api/controlPlane/ICompleteTransferResponse.js";
 export * from "./models/api/controlPlane/IGetTransferProcessRequest.js";

@@ -11,7 +11,7 @@
 
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Is } from "@twin.org/core";
-import type { TransferProcess } from "@twin.org/dataspace-models";
+import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
@@ -44,18 +44,23 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		// Setup test environment (schemas, contexts, locales)
 		await setupTestEnv();
 
-		// Still using mock FedCat, PNP, and Trust for now (will migrate in later phases)
+		// Still using mock FedCat, PNP, Trust, and URL transformer for now
 		mockFedCat = new MockFederatedCatalogueComponent();
 		mockPnp = new MockPolicyNegotiationPointComponent();
 		ComponentFactory.register("test-fedcat", () => mockFedCat);
 		ComponentFactory.register("test-pnp", () => mockPnp);
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
+		ComponentFactory.register("url-transformer", () => ({
+			className: () => "MockUrlTransformerComponent",
+			addEncryptedQueryParamToUrl: async (url: string) => url
+		}));
 	});
 
 	afterAll(() => {
 		ComponentFactory.unregister("test-fedcat");
 		ComponentFactory.unregister("test-pnp");
 		ComponentFactory.unregister("test-trust");
+		ComponentFactory.unregister("url-transformer");
 	});
 
 	beforeEach(() => {
@@ -74,13 +79,22 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 			() => transferProcessStorage
 		);
 
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<DataspaceAppDataset>(),
+			() =>
+				new MemoryEntityStorageConnector<DataspaceAppDataset>({
+					entitySchema: nameof<DataspaceAppDataset>()
+				})
+		);
+
 		// Create service with REAL PAP, mock FedCat, and mock Trust
 		service = new DataspaceControlPlaneService({
 			policyAdministrationPointComponentType: "test-pap",
 			policyNegotiationPointComponentType: "test-pnp",
 			federatedCatalogueComponentType: "test-fedcat",
 			trustComponentType: "test-trust",
-			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+			dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>()
 		});
 
 		// Mock ContextIdStore to return test organization ID
@@ -449,5 +463,55 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		expect(storedAgreement).toBeDefined();
 		expect(Is.array(storedAgreement.target)).toBe(true);
 		expect((storedAgreement.target as string[]).length).toBe(3);
+	});
+
+	test("Should accept Agreement whose rule-level target refines the top-level dataset", async () => {
+		const datasetUrn = "urn:uuid:single-dataset-with-refinement";
+		const agreementUrn = "urn:policy:single-dataset-rule-refinement-test";
+
+		await pap.create({
+			"@context": OdrlContexts.Context,
+			"@type": "Agreement",
+			"@id": agreementUrn,
+			assigner: "did:iota:provider-node-xyz",
+			assignee: "did:iota:consumer-node-abc",
+			target: datasetUrn,
+			permission: [
+				{
+					action: "read",
+					target: {
+						"@type": "AssetCollection",
+						source: datasetUrn,
+						refinement: {
+							leftOperand: "unloadingLocation.id",
+							operator: "eq",
+							rightOperand: "unece:LOCODE#GBDVR"
+						}
+					}
+				}
+			]
+		} as unknown as IDataspaceProtocolAgreement);
+
+		const result = await service.requestTransfer(
+			{
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferRequestMessage",
+				agreementId: agreementUrn,
+				consumerPid: "consumer-pid-rule-refinement",
+				callbackAddress: "https://consumer.example.com/callback",
+				format: "application/json"
+			},
+			"valid-trust-payload"
+		);
+
+		// Specifically assert the multi-target error does NOT fire. Other
+		// downstream errors (e.g. dataset not in catalogue) are unrelated to
+		// this regression and not part of this test's setup.
+		if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+			const messages = (result.reason ?? [])
+				.map(r => (r as { message?: string }).message ?? "")
+				.join(" ");
+			expect(messages).not.toContain("agreementMultipleTargetsNotSupported");
+		}
 	});
 });

@@ -1,7 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { Converter, I18n } from "@twin.org/core";
-import { TransferProcess, type IDataspaceApp } from "@twin.org/dataspace-models";
+import {
+	DataspaceAppDataset,
+	TransferProcess,
+	type IDataspaceApp
+} from "@twin.org/dataspace-models";
 import type { IEngineCore } from "@twin.org/engine-models";
 import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
@@ -85,6 +89,8 @@ export const DEFAULT_SERVICE_OPTIONS = {
 	federatedCatalogueComponentType: "test-fedcat",
 	trustComponentType: "test-trust",
 	transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+	dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>(),
+	urlTransformerComponentType: "test-url-transformer",
 	config: {
 		dataPlanePath: "data-plane/data"
 	}
@@ -107,6 +113,10 @@ export async function setupTestEnv(): Promise<void> {
 	// Register TransferProcess schema for entity storage
 	EntitySchemaFactory.register(nameof<TransferProcess>(), () =>
 		EntitySchemaHelper.getSchema(TransferProcess)
+	);
+
+	EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
+		EntitySchemaHelper.getSchema(DataspaceAppDataset)
 	);
 }
 
