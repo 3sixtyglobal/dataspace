@@ -28,7 +28,6 @@ import { DublinCoreContexts } from "@twin.org/standards-dublin-core";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
 import { DcatClasses, DcatContexts } from "@twin.org/standards-w3c-dcat";
 import { OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import {
 	cleanupFederatedCatalogueIntegration,

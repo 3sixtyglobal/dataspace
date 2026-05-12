@@ -17,7 +17,6 @@ import {
 	DataspaceProtocolContractNegotiationTypes,
 	DataspaceProtocolContexts
 } from "@twin.org/standards-dataspace-protocol";
-import { vi } from "vitest";
 
 /**
  * Mock implementation of IPolicyNegotiationPointComponent for testing.

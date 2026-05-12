@@ -42,7 +42,6 @@ import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ITrustComponent } from "@twin.org/trust-models";
 import { HeaderHelper, HeaderTypes } from "@twin.org/web";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import {
 	activityLdContextArray,
 	canonicalActivity,
@@ -105,7 +104,7 @@ async function seedTestAppDataset(
 					format: "Http-Pull-Query-Format"
 				}
 			]
-		} as never,
+		},
 		dateCreated: now,
 		dateModified: now
 	});
@@ -1144,18 +1143,15 @@ describe("DataspaceDataPlaneService", () => {
 			tenantAdminType: "tenant-admin"
 		});
 
+		const servicePrivate = dataspaceDataPlaneService as unknown as {
+			cleanupActivityLogPartition(): Promise<number>;
+			cleanupActivityLog(): Promise<void>;
+		};
 		const cleanupPartitionSpy = vi
-			.spyOn(
-				dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> },
-				"cleanupActivityLogPartition"
-			)
+			.spyOn(servicePrivate, "cleanupActivityLogPartition")
 			.mockResolvedValue(1);
 
-		await (
-			dataspaceDataPlaneService as unknown as {
-				cleanupActivityLog(): Promise<void>;
-			}
-		).cleanupActivityLog();
+		await servicePrivate.cleanupActivityLog();
 
 		expect(tenantAdminQuery).toHaveBeenCalledTimes(2);
 		expect(tenantAdminQuery).toHaveBeenNthCalledWith(1, undefined, undefined);
@@ -1185,18 +1181,15 @@ describe("DataspaceDataPlaneService", () => {
 			tenantAdminType: "tenant-admin"
 		});
 
+		const servicePrivate = dataspaceDataPlaneService as unknown as {
+			cleanupActivityLogPartition(): Promise<number>;
+			cleanupActivityLog(): Promise<void>;
+		};
 		const cleanupPartitionSpy = vi
-			.spyOn(
-				dataspaceDataPlaneService as unknown as { cleanupActivityLogPartition(): Promise<number> },
-				"cleanupActivityLogPartition"
-			)
+			.spyOn(servicePrivate, "cleanupActivityLogPartition")
 			.mockResolvedValue(1);
 
-		await (
-			dataspaceDataPlaneService as unknown as {
-				cleanupActivityLog(): Promise<void>;
-			}
-		).cleanupActivityLog();
+		await servicePrivate.cleanupActivityLog();
 
 		expect(tenantAdminQuery).toHaveBeenCalledTimes(1);
 		expect(cleanupPartitionSpy).not.toHaveBeenCalled();

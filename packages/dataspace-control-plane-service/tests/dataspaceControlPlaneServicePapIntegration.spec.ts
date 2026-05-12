@@ -26,7 +26,6 @@ import {
 	type IDataspaceProtocolAgreement
 } from "@twin.org/standards-dataspace-protocol";
 import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { cleanupPapIntegration, setupPapIntegration } from "./integration/setupPapIntegration.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
@@ -349,7 +348,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-node-abc"
 			// Missing target - intentional for test
-		} as IDataspaceProtocolAgreement);
+		});
 
 		// Act - Try to use agreement without target in transfer request
 		const result = await service.requestTransfer(
@@ -433,7 +432,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 			assignee: "did:iota:consumer-node-abc",
 			target: ["urn:uuid:dataset-1", "urn:uuid:dataset-2", "urn:uuid:dataset-3"],
 			permission: [{ action: "read" }]
-		} as IDataspaceProtocolAgreement);
+		});
 
 		// Act - Try to use agreement with multiple targets in transfer request
 		const result = await service.requestTransfer(

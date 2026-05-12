@@ -57,7 +57,7 @@ export function createMockTrustComponent(
 			const payloadBase64 = Converter.bytesToBase64(payloadBytes);
 			return `mock-jwt.${payloadBase64}.mock-signature`;
 		}
-	} as unknown as ITrustComponent;
+	};
 }
 
 /**

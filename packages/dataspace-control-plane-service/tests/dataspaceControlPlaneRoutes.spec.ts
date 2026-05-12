@@ -10,7 +10,6 @@ import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessTypes
 } from "@twin.org/standards-dataspace-protocol";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { generateRestRoutesDataspaceControlPlane } from "../src/dataspaceControlPlaneRoutes.js";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";

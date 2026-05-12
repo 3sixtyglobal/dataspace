@@ -1,6 +1,5 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { describe, it, expect, beforeEach } from "vitest";
 import { setupTestEnv } from "../setupTestEnv.js";
 
 /**

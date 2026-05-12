@@ -15,7 +15,6 @@ import {
 	type IDataspaceProtocolTransferProcess
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
 import { MockPolicyAdministrationPointComponent } from "./mocks/mockPolicyAdministrationPoint.js";

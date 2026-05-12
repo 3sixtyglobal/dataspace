@@ -38,7 +38,6 @@ import {
 	type IDataspaceProtocolTransferSuspensionMessage,
 	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { DataspaceControlPlanePolicyRequester } from "../src/dataspaceControlPlanePolicyRequester.js";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
@@ -366,7 +365,7 @@ describe("DataspaceControlPlaneService", () => {
 					providerIdentity: "did:iota:consumer-node-abc",
 					dateCreated: now,
 					dateModified: now
-				} as TransferProcess);
+				});
 				return {
 					"@context": [DataspaceProtocolContexts.JsonLdContext],
 					"@type": "TransferStartMessage",
@@ -2841,7 +2840,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
-			} as TransferProcess);
+			});
 
 			ComponentFactory.register("test-trust-unauthorized", () =>
 				createMockTrustComponent("did:iota:unauthorized-node")
@@ -2879,7 +2878,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
-			} as TransferProcess);
+			});
 
 			ComponentFactory.register("test-trust-unauthorized", () =>
 				createMockTrustComponent("did:iota:unauthorized-node")
@@ -2921,7 +2920,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
-			} as TransferProcess);
+			});
 
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
@@ -2958,7 +2957,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerIdentity: "did:iota:consumer-node-abc",
 				dateCreated: now,
 				dateModified: now
-			} as TransferProcess);
+			});
 
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
@@ -3017,7 +3016,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
-			} as TransferProcess);
+			});
 
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
@@ -3474,7 +3473,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "Dataset",
 					hasPolicy: [],
 					distribution: []
-				} as never,
+				},
 				dateCreated: now,
 				dateModified: now
 			});

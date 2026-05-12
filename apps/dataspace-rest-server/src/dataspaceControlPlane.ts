@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IRestRoute } from "@twin.org/api-models";
 import { ContextIdHelper, ContextIdKeys } from "@twin.org/context";
-import { ComponentFactory, type IComponent } from "@twin.org/core";
+import { ComponentFactory } from "@twin.org/core";
 import {
 	DataspaceControlPlaneService,
 	generateRestRoutesDataspaceControlPlane,
@@ -18,9 +18,9 @@ import type {
 	IEngineServer
 } from "@twin.org/engine-models";
 import {
+	EngineTypeHelper,
 	type IEngineConfig,
-	initialiseEntityStorageConnector,
-	EngineTypeHelper
+	initialiseEntityStorageConnector
 } from "@twin.org/engine-types";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import type { INodeEngineConfig, INodeEnvironmentVariables } from "@twin.org/node-core";
@@ -140,7 +140,7 @@ export function initialiseDataspaceControlPlaneComponent(
 	}
 
 	return {
-		createComponent: createComponent as (createConfig: typeof instanceConfig) => IComponent,
+		createComponent,
 		instanceTypeName,
 		factory: ComponentFactory
 	};

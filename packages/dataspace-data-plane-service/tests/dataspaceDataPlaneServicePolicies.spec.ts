@@ -32,7 +32,6 @@ import {
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
-import { afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { createMockPolicyEnforcementPoint, createMockTrustComponent } from "./setupTestEnv.js";
 import locales from "../locales/en.json" with { type: "json" };
 import { DataspaceDataPlaneService } from "../src/dataspaceDataPlaneService.js";
@@ -169,7 +168,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 						format: "Http-Pull-Query-Format"
 					}
 				]
-			} as never,
+			},
 			dateCreated: now,
 			dateModified: now
 		});

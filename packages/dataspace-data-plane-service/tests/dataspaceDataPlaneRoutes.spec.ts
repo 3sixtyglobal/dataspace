@@ -77,13 +77,14 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 	});
 
 	test("activityStreamNotify returns 102 with location when processing is queued", async () => {
-		const mockComponent: Pick<IDataspaceDataPlaneComponent, "notifyActivity"> = {
+		const mockComponent: Pick<IDataspaceDataPlaneComponent, "notifyActivity"> & {
+			className(): string;
+		} = {
+			className: () => "MockDataspaceDataPlane",
 			notifyActivity: vi.fn().mockResolvedValue("urn:x-activity-log:queued-1")
 		};
 
-		vi.spyOn(ComponentFactory, "get").mockReturnValue(
-			mockComponent as unknown as IDataspaceDataPlaneComponent
-		);
+		vi.spyOn(ComponentFactory, "get").mockReturnValue(mockComponent);
 
 		const response = await activityStreamNotify(
 			BASE_ROUTE,
@@ -109,13 +110,14 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 			tasks: []
 		};
 
-		const mockComponent: Pick<IDataspaceDataPlaneComponent, "notifyActivity"> = {
+		const mockComponent: Pick<IDataspaceDataPlaneComponent, "notifyActivity"> & {
+			className(): string;
+		} = {
+			className: () => "MockDataspaceDataPlane",
 			notifyActivity: vi.fn().mockResolvedValue(inlineLogEntry)
 		};
 
-		vi.spyOn(ComponentFactory, "get").mockReturnValue(
-			mockComponent as unknown as IDataspaceDataPlaneComponent
-		);
+		vi.spyOn(ComponentFactory, "get").mockReturnValue(mockComponent);
 
 		const response = await activityStreamNotify(
 			BASE_ROUTE,

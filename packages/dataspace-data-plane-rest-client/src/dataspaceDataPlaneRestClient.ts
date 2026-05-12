@@ -93,7 +93,7 @@ export class DataspaceDataPlaneRestClient
 				},
 				query: {
 					id: Is.arrayValue<string>(entitySet.entityId)
-						? (HttpParameterHelper.arrayToString(entitySet.entityId) as string)
+						? HttpParameterHelper.arrayToString(entitySet.entityId)
 						: undefined,
 					type: entitySet.entityType,
 					consumerPid,

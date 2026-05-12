@@ -517,7 +517,7 @@ export class DataspaceControlPlaneService
 		let datasetId: string;
 		let consumerIdentity: string;
 		let providerIdentity: string;
-		let policies: IDataspaceProtocolPolicy[] = [];
+		let policies: IDataspaceProtocolPolicy[];
 
 		try {
 			const agreement = await this.lookupAgreement(request.agreementId);
