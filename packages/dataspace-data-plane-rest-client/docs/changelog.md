@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.28](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.0.3-next.27...dataspace-data-plane-rest-client-v0.0.3-next.28) (2026-05-12)
+
+
+### Features
+
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.27 to 0.0.3-next.28
+
 ## [0.0.3-next.27](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.0.3-next.26...dataspace-data-plane-rest-client-v0.0.3-next.27) (2026-05-08)
 
 

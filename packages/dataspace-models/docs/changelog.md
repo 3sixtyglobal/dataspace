@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.0.3-next.28](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.27...dataspace-models-v0.0.3-next.28) (2026-05-12)
+
+
+### Features
+
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+
+
+### Bug Fixes
+
+* docs ([652f4f2](https://github.com/iotaledger/twin-dataspace/commit/652f4f2fec8601bb3772e054b2c823f599ef68dc))
+
 ## [0.0.3-next.27](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.26...dataspace-models-v0.0.3-next.27) (2026-05-08)
 
 
