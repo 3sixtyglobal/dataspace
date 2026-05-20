@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-control-plane-service",
-	"version": "0.0.3-next.28",
+	"version": "0.0.3-next.29",
 	"description": "Implements agreement negotiation and transfer process lifecycle management for control plane operations.",
 	"repository": {
 		"type": "git",
@@ -32,7 +32,7 @@
 		"@twin.org/api-tenant-processor": "next",
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
-		"@twin.org/dataspace-models": "0.0.3-next.28",
+		"@twin.org/dataspace-models": "0.0.3-next.29",
 		"@twin.org/entity": "next",
 		"@twin.org/entity-storage-models": "next",
 		"@twin.org/federated-catalogue-models": "next",
