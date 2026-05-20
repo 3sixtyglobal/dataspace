@@ -1520,7 +1520,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				startDate: new Date(now).toISOString(),
 				endDate: new Date(now).toISOString(),
 				status: Is.empty(taskError) ? ActivityTaskStatus.Success : ActivityTaskStatus.Failed,
-				error: taskError
+				error: taskError?.toJsonObject()
 			};
 			taskEntries.push(taskEntry);
 

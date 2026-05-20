@@ -35,14 +35,14 @@
 		"prepare": "husky"
 	},
 	"devDependencies": {
-		"@commitlint/cli": "21.0.0",
-		"@commitlint/config-conventional": "21.0.0",
+		"@commitlint/cli": "21.0.1",
+		"@commitlint/config-conventional": "21.0.1",
 		"@eslint/eslintrc": "3.3.5",
 		"@eslint/js": "10.0.1",
 		"@stylistic/eslint-plugin": "5.10.0",
-		"@typescript-eslint/eslint-plugin": "8.59.3",
+		"@typescript-eslint/eslint-plugin": "8.59.4",
 		"cspell": "10.0.0",
-		"eslint": "10.3.0",
+		"eslint": "10.4.0",
 		"eslint-config-prettier": "10.1.8",
 		"@tony.ganchev/eslint-plugin-header": "3.4.4",
 		"eslint-plugin-import-x": "4.16.2",
@@ -88,7 +88,7 @@
 		"pathe": "^2.0.3",
 		"picomatch": "^4.0.4",
 		"std-env": "^4.1.0",
-		"tinybench": "^6.0.1",
+		"tinybench": "^6.0.2",
 		"tinyexec": "^1.1.2",
 		"tinyglobby": "^0.2.16",
 		"tinyrainbow": "^3.1.0"
