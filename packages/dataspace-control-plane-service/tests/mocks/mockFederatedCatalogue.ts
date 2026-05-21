@@ -102,15 +102,15 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 
 	/**
 	 * Query the catalog.
-	 * @param _filter Optional filter (not used in mock - returns all datasets).
-	 * @param _cursor Optional cursor for pagination (not used in mock).
-	 * @param _limit Optional limit for pagination (not used in mock).
+	 * @param filter Optional filter (not used in mock - returns all datasets).
+	 * @param cursor Optional cursor for pagination (not used in mock).
+	 * @param limit Optional limit for pagination (not used in mock).
 	 * @returns The catalog result with all datasets.
 	 */
 	public async query(
-		_filter?: unknown[],
-		_cursor?: string,
-		_limit?: number
+		filter?: unknown[],
+		cursor?: string,
+		limit?: number
 	): Promise<{
 		result: IDataspaceProtocolCatalog | IDataspaceProtocolCatalogError;
 		cursor?: string;

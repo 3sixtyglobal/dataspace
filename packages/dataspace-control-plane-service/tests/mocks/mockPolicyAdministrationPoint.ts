@@ -46,10 +46,10 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 
 	/**
 	 * Bootstrap the component (no-op for mock).
-	 * @param _nodeLoggingComponentType Optional logging component type.
+	 * @param nodeLoggingComponentType Optional logging component type.
 	 * @returns Promise that resolves to true.
 	 */
-	public async bootstrap(_nodeLoggingComponentType?: string): Promise<boolean> {
+	public async bootstrap(nodeLoggingComponentType?: string): Promise<boolean> {
 		// No-op for mock
 		return true;
 	}

@@ -2438,7 +2438,7 @@ describe("DataspaceControlPlaneService", () => {
 		test("should invoke full callback sequence in correct order", async () => {
 			const callOrder: string[] = [];
 			const callbackSpy: INegotiationCallback = {
-				onStateChanged: vi.fn().mockImplementation(async (_negId, state) => {
+				onStateChanged: vi.fn().mockImplementation(async (negId, state) => {
 					callOrder.push(`stateChanged:${state}`);
 				}),
 				onCompleted: vi.fn().mockImplementation(async () => {

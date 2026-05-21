@@ -2164,7 +2164,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		await Promise.race([
 			bothStartedPromise,
-			new Promise((_resolve, reject) => {
+			new Promise((resolve, reject) => {
 				setTimeout(() => reject(new Error("Timed out waiting for parallel task start")), 3000);
 			})
 		]);

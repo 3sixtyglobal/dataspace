@@ -49,11 +49,11 @@ export function createMockPolicyEnforcementPoint<D = unknown>(
 ): IPolicyEnforcementPointComponent {
 	return {
 		className: () => "MockPolicyEnforcementPoint",
-		interceptWithPolicy: async <T = unknown>(_agreement: unknown, data?: T): Promise<T> =>
+		interceptWithPolicy: async <T = unknown>(agreement: unknown, data?: T): Promise<T> =>
 			(interceptResult as T) ?? (data as T),
-		interceptWithId: async <T = unknown>(_uid: string, data?: T): Promise<T> =>
+		interceptWithId: async <T = unknown>(uid: string, data?: T): Promise<T> =>
 			(interceptResult as T) ?? (data as T),
-		interceptWithLocator: async <T = unknown>(_locator: unknown, data?: T): Promise<T> =>
+		interceptWithLocator: async <T = unknown>(locator: unknown, data?: T): Promise<T> =>
 			(interceptResult as T) ?? (data as T)
 	} as unknown as IPolicyEnforcementPointComponent;
 }
