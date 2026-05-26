@@ -5,6 +5,7 @@
 - [DataspaceDataPlaneService](classes/DataspaceDataPlaneService.md)
 - [ActivityLogDetails](classes/ActivityLogDetails.md)
 - [ActivityTask](classes/ActivityTask.md)
+- [PushSubscription](classes/PushSubscription.md)
 
 ## Interfaces
 

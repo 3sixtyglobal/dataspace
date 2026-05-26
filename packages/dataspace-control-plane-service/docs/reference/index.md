@@ -11,9 +11,14 @@
 - [IDataspaceControlPlaneServiceConstructorOptions](interfaces/IDataspaceControlPlaneServiceConstructorOptions.md)
 - [INegotiationState](interfaces/INegotiationState.md)
 
+## Type Aliases
+
+- [EndpointProperties](type-aliases/EndpointProperties.md)
+
 ## Variables
 
 - [tagsDataspaceControlPlane](variables/tagsDataspaceControlPlane.md)
+- [EndpointProperties](variables/EndpointProperties.md)
 - [restEntryPoints](variables/restEntryPoints.md)
 
 ## Functions

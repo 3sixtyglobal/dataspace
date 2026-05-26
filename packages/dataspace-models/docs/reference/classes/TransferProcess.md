@@ -106,6 +106,17 @@ Callback address for Consumer notifications.
 
 ***
 
+### tenantId? {#tenantid}
+
+> `optional` **tenantId?**: `string`
+
+The tenant that owns this transfer process, captured from the request context
+at write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`) register
+transfers without a tenant context. Persisted so async push delivery tasks and
+setTimeout-delayed state transitions can re-enter the right tenant context.
+
+***
+
 ### dateCreated {#datecreated}
 
 > **dateCreated**: `string`

@@ -34,6 +34,14 @@ The options for the data plane.
 
 Runtime name for the class.
 
+***
+
+### PUSH\_DELIVERY\_TASK\_TYPE {#push_delivery_task_type}
+
+> `readonly` `static` **PUSH\_DELIVERY\_TASK\_TYPE**: `"push-delivery"` = `"push-delivery"`
+
+Background task type identifier for push delivery tasks.
+
 ## Methods
 
 ### className() {#classname}
@@ -80,7 +88,7 @@ The node logging component type.
 
 ### notifyActivity() {#notifyactivity}
 
-> **notifyActivity**(`activity`): `Promise`\<`string` \| `IActivityLogEntry`\>
+> **notifyActivity**(`activity`, `trustPayload?`): `Promise`\<`string` \| `IActivityLogEntry`\>
 
 Notify an Activity.
 
@@ -91,6 +99,12 @@ Notify an Activity.
 `IActivityStreamsActivity`
 
 The Activity notified.
+
+##### trustPayload?
+
+`unknown`
+
+Optional trust payload to verify the requester's identity.
 
 #### Returns
 
@@ -334,3 +348,128 @@ UnauthorizedError if trust verification fails.
 #### Throws
 
 GeneralError if transfer is not in STARTED state.
+
+***
+
+### setupPushSubscription() {#setuppushsubscription}
+
+> **setupPushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Set up a push subscription after a transfer enters STARTED from REQUESTED.
+Reads the TransferProcess, builds an IFollowActivity, calls the app's
+subscribeToData, and persists a PushSubscription entity.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+The consumer process ID identifying the transfer.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.setupPushSubscription`
+
+***
+
+### suspendPushSubscription() {#suspendpushsubscription}
+
+> **suspendPushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Pause deliveries for a push subscription. The subscription entity stays
+alive with status=Paused. No app unsubscribe call.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+The consumer process ID identifying the transfer.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.suspendPushSubscription`
+
+***
+
+### resumePushSubscription() {#resumepushsubscription}
+
+> **resumePushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Resume deliveries after a SUSPENDED → STARTED transition. Flips status
+back to Active. No app subscribeToData call.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+The consumer process ID identifying the transfer.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.resumePushSubscription`
+
+***
+
+### teardownPushSubscription() {#teardownpushsubscription}
+
+> **teardownPushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Tear down a push subscription. Builds an IUndoActivity, calls the app's
+unsubscribeToData, and deletes the PushSubscription entity.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+The consumer process ID identifying the transfer.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.teardownPushSubscription`
+
+***
+
+### processOutboxActivity() {#processoutboxactivity}
+
+> **processOutboxActivity**(`activity`): `Promise`\<`void`\>
+
+Schedule a push delivery when the app has new outbound data.
+
+#### Parameters
+
+##### activity
+
+`IActivityStreamsActivity`
+
+The outbound activity carrying the data payload.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.processOutboxActivity`

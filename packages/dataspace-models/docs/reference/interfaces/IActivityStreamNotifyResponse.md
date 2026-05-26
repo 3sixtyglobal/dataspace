@@ -6,11 +6,11 @@ Activity Stream Notify Response.
 
 ### statusCode {#statuscode}
 
-> **statusCode**: `102` \| `201`
+> **statusCode**: `201` \| `202`
 
 The status code indicating the result of the notification processing. It can be either:
 - `201 Created` if the notification was processed inline and a new activity log entry was created.
-- `102 Processing` if the notification was accepted for processing but has not been completed yet.
+- `202 Accepted` if the notification was accepted for async processing but has not been completed yet.
 
 ***
 

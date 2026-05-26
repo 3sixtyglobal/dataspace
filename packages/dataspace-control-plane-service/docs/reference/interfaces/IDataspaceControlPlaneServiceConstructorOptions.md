@@ -167,11 +167,25 @@ task-scheduler
 
 ***
 
+### dataPlaneComponentType? {#dataplanecomponenttype}
+
+> `optional` **dataPlaneComponentType?**: `string`
+
+Data Plane component type, used to invoke push subscription lifecycle methods.
+
+#### Default
+
+```ts
+dataspace-data-plane
+```
+
+***
+
 ### urlTransformerComponentType? {#urltransformercomponenttype}
 
 > `optional` **urlTransformerComponentType?**: `string`
 
-URL Transformer component type used to encrypt the tenant token into the data-plane..
+URL Transformer component type used to encrypt the tenant token into the data-plane.
 
 #### Default
 

@@ -64,7 +64,7 @@ The class name of the component.
 
 ### notifyActivity() {#notifyactivity}
 
-> **notifyActivity**(`activity`): `Promise`\<`string` \| `IActivityLogEntry`\>
+> **notifyActivity**(`activity`, `trustPayload?`): `Promise`\<`string` \| `IActivityLogEntry`\>
 
 Notify an Activity to the Dataspace Activity Stream - implemented in REST Client.
 
@@ -76,6 +76,12 @@ Notify an Activity to the Dataspace Activity Stream - implemented in REST Client
 
 The Activity notified.
 
+##### trustPayload?
+
+`unknown`
+
+Optional trust payload (unused in socket client).
+
 #### Returns
 
 `Promise`\<`string` \| `IActivityLogEntry`\>
@@ -85,6 +91,126 @@ The activity's id or entry.
 #### Implementation of
 
 `IDataspaceDataPlaneComponent.notifyActivity`
+
+***
+
+### setupPushSubscription() {#setuppushsubscription}
+
+> **setupPushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Not supported on socket client — push subscriptions are server-side only.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.setupPushSubscription`
+
+***
+
+### suspendPushSubscription() {#suspendpushsubscription}
+
+> **suspendPushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Not supported on socket client — push subscriptions are server-side only.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.suspendPushSubscription`
+
+***
+
+### resumePushSubscription() {#resumepushsubscription}
+
+> **resumePushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Not supported on socket client — push subscriptions are server-side only.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.resumePushSubscription`
+
+***
+
+### teardownPushSubscription() {#teardownpushsubscription}
+
+> **teardownPushSubscription**(`consumerPid`): `Promise`\<`void`\>
+
+Not supported on socket client — push subscriptions are server-side only.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.teardownPushSubscription`
+
+***
+
+### processOutboxActivity() {#processoutboxactivity}
+
+> **processOutboxActivity**(`activity`): `Promise`\<`void`\>
+
+Not supported on socket client — processOutboxActivity is server-side only.
+
+#### Parameters
+
+##### activity
+
+`IActivityStreamsActivity`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.processOutboxActivity`
 
 ***
 

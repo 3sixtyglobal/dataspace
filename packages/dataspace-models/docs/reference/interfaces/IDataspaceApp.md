@@ -141,3 +141,48 @@ Maximum number of entries retrieved or to be retrieved.
 `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
 
 Data as JSON-Ld.
+
+***
+
+### subscribeToData()? {#subscribetodata}
+
+> `optional` **subscribeToData**(`followActivity`): `Promise`\<`void`\>
+
+Subscribe the app to produce data for a follower. Called by the
+DS Connector after a push transfer enters STARTED state.
+
+#### Parameters
+
+##### followActivity
+
+[`IFollowActivity`](IFollowActivity.md)
+
+The Follow activity describing the follower + filter.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Promise that resolves when the subscription is set up.
+
+***
+
+### unsubscribeToData()? {#unsubscribetodata}
+
+> `optional` **unsubscribeToData**(`undoActivity`): `Promise`\<`void`\>
+
+Undo a previous subscription. Called on transfer complete/terminate.
+
+#### Parameters
+
+##### undoActivity
+
+[`IUndoActivity`](IUndoActivity.md)
+
+The Undo activity referencing the original Follow.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Promise that resolves when the subscription is torn down.

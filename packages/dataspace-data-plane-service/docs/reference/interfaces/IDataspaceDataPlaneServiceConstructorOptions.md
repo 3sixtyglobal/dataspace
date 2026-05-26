@@ -89,6 +89,20 @@ transfer-process
 
 ***
 
+### pushSubscriptionEntityStorageType? {#pushsubscriptionentitystoragetype}
+
+> `optional` **pushSubscriptionEntityStorageType?**: `string`
+
+The entity storage type for PushSubscription entities.
+
+#### Default
+
+```ts
+push-subscription
+```
+
+***
+
 ### dataspaceAppDatasetEntityStorageType? {#dataspaceappdatasetentitystoragetype}
 
 > `optional` **dataspaceAppDatasetEntityStorageType?**: `string`

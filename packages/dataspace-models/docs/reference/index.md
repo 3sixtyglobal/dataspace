@@ -19,6 +19,7 @@
 - [IEntitySet](interfaces/IEntitySet.md)
 - [IExecutionPayload](interfaces/IExecutionPayload.md)
 - [IFilteringQuery](interfaces/IFilteringQuery.md)
+- [IPushDeliveryPayload](interfaces/IPushDeliveryPayload.md)
 - [IActivityLogEntryGetRequest](interfaces/IActivityLogEntryGetRequest.md)
 - [IActivityLogEntryGetResponse](interfaces/IActivityLogEntryGetResponse.md)
 - [IActivityLogStatusNotificationPayload](interfaces/IActivityLogStatusNotificationPayload.md)
@@ -52,8 +53,10 @@
 - [IDataAssetEntitiesRequest](interfaces/IDataAssetEntitiesRequest.md)
 - [IDataAssetQuery](interfaces/IDataAssetQuery.md)
 - [IDataspaceApp](interfaces/IDataspaceApp.md)
+- [IFollowActivity](interfaces/IFollowActivity.md)
 - [IProcessingGroupOptions](interfaces/IProcessingGroupOptions.md)
 - [IQueryDataAssetRequest](interfaces/IQueryDataAssetRequest.md)
+- [IUndoActivity](interfaces/IUndoActivity.md)
 - [IDataspaceAppDataset](interfaces/IDataspaceAppDataset.md)
 - [IDataspaceControlPlaneComponent](interfaces/IDataspaceControlPlaneComponent.md)
 - [IDataspaceControlPlaneResolverComponent](interfaces/IDataspaceControlPlaneResolverComponent.md)
@@ -84,3 +87,8 @@
 - [DataspaceContexts](variables/DataspaceContexts.md)
 - [DataspaceTransferFormat](variables/DataspaceTransferFormat.md)
 - [DataspaceTypes](variables/DataspaceTypes.md)
+
+## Functions
+
+- [getJsonLdId](functions/getJsonLdId.md)
+- [getJsonLdType](functions/getJsonLdType.md)
