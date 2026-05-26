@@ -118,10 +118,11 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>()
 		});
 
-		// Mock ContextIdStore to return test organization ID
+		// Agreement fixtures in this file all use a bare DID
+		// (`did:iota:provider-node-xyz`) as the assigner. Pin the context to a
+		// single-tenant shape so the caller composite matches.
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
-			[ContextIdKeys.Node]: "did:iota:test-node",
-			[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+			[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
 			[ContextIdKeys.User]: "did:iota:test-user"
 		});

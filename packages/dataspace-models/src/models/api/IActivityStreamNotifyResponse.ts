@@ -10,9 +10,9 @@ export interface IActivityStreamNotifyResponse {
 	/**
 	 * The status code indicating the result of the notification processing. It can be either:
 	 * - `201 Created` if the notification was processed inline and a new activity log entry was created.
-	 * - `102 Processing` if the notification was accepted for processing but has not been completed yet.
+	 * - `202 Accepted` if the notification was accepted for async processing but has not been completed yet.
 	 */
-	statusCode: typeof HttpStatusCode.created | typeof HttpStatusCode.processing;
+	statusCode: typeof HttpStatusCode.created | typeof HttpStatusCode.accepted;
 
 	/**
 	 * Optional headers.

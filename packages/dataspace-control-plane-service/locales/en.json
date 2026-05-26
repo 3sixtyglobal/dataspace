@@ -21,7 +21,8 @@
 			"negotiationStateRetrieved": "Negotiation state retrieved successfully",
 			"getNegotiationHistory": "Retrieving negotiation history",
 			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
-			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})"
+			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})",
+			"pushTransferStarted": "PUSH transfer started (consumerPid: {consumerPid}, providerPid: {providerPid}, endpoint: {endpoint})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"offerReceived": "Offer received from provider (negotiationId: {negotiationId}, offerId: {offerId})",
@@ -40,7 +41,6 @@
 	"warn": {
 		"dataspaceControlPlaneService": {
 			"catalogDatasetHasNoOffers": "Dataset has no Offers (odrl:hasPolicy) in Federated Catalogue",
-			"pushTransferModeNotImplemented": "PUSH transfer mode requested but not implemented. Consumer provided dataAddress endpoint but data push is not yet supported.",
 			"stalledNegotiationCleanedUp": "Stalled negotiation cleaned up (negotiationId: {negotiationId})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
@@ -73,8 +73,9 @@
 			"agreementNotMatchingOffer": "Agreement \"{agreementId}\" does not match any Catalog Offer for dataset {datasetId}. Available Offers: {availableOffers}",
 			"organizationContextMissing": "Organization context is missing. Cannot verify Agreement authorization for consumerPid: {consumerPid}",
 			"organizationContextMissingProvider": "Organization context is missing. Cannot verify Agreement authorization for providerPid: {providerPid}",
-			"agreementAssignerMismatch": "Agreement assigner does not match current organization. Agreement: {agreementId}, consumerPid: {consumerPid}, expected: {expectedOrgId}, actual: {actualAssigner}",
-			"agreementAssignerMismatchProvider": "Agreement assigner does not match current organization. Agreement: {agreementId}, providerPid: {providerPid}, expected: {expectedOrgId}, actual: {actualAssigner}",
+			"agreementAssignerMismatch": "Agreement assigner does not match current caller identity. Agreement: {agreementId}, consumerPid: {consumerPid}, expected: {expectedComposite}, actual: {actualAssigner}",
+			"agreementAssignerMismatchProvider": "Agreement assigner does not match current caller identity. Agreement: {agreementId}, providerPid: {providerPid}, expected: {expectedComposite}, actual: {actualAssigner}",
+			"invalidCompositeIdentifier": "Composite tenant identifier is not in a recognised shape (expected `nodeDid` or `nodeDid:tenantIdHash`, where `nodeDid` starts with `did:`). Got: \"{composite}\"",
 			"agreementAssigneeMismatch": "Agreement assignee does not match expected consumer identity. Agreement: {agreementId}, providerPid: {providerPid}, expected: {expectedConsumerIdentity}, actual: {actualAssignee}",
 			"negotiationInitiationFailed": "Failed to initiate contract negotiation",
 			"datasetNotFoundInCatalog": "Dataset/Offer \"{offerId}\" not found in Federated Catalogue. Cannot initiate negotiation for non-existent offer.",
@@ -91,11 +92,15 @@
 			"callerNotAuthorizedAsProvider": "The caller's verified identity does not match the provider for this transfer process",
 			"callerNotAuthorizedForTransfer": "The caller's verified identity does not match the consumer or provider for this transfer process",
 			"multipleAssignersNotSupported": "Multiple assigners found in agreement, which is not supported. Only single assigner agreements are supported.",
+			"invalidPushDataAddress": "PUSH transfer cannot start: consumer dataAddress is missing endpoint or endpointType (consumerPid: {consumerPid})",
+			"pushTransferDataPathNotConfigured": "PUSH transfer cannot start: dataPlanePath is not configured (consumerPid: {consumerPid})",
+			"dataPlaneNotRegistered": "Push-mode transfer requires the data plane component to be registered (factory key: \"dataspace-data-plane\"). This deployment was configured without a data plane — register one to enable push, or use pull-mode transfers only.",
 			"datasetPublishFailed": "Failed to publish dataset {datasetRecordId} for app {appId} (tenant: {tenantId})",
 			"datasetNodeContextRequired": "A node context is required to register a dataset.",
 			"datasetAlreadyExists": "A dataset with id \"{id}\" already exists.",
 			"datasetNotFound": "Dataset not found",
-			"datasetWrongTenant": "The calling tenant does not own this dataset."
+			"datasetWrongTenant": "The calling tenant does not own this dataset.",
+			"transferWrongTenant": "The calling tenant does not own this transfer."
 		},
 		"dataspaceControlPlanePolicyRequester": {}
 	}

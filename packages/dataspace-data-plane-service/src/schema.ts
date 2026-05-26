@@ -4,6 +4,7 @@ import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
 import { nameof } from "@twin.org/nameof";
 import { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import { ActivityTask } from "./entities/activityTask.js";
+import { PushSubscription } from "./entities/pushSubscription.js";
 
 /**
  * Inits schemas.
@@ -15,5 +16,9 @@ export function initSchema(): void {
 
 	EntitySchemaFactory.register(nameof<ActivityTask>(), () =>
 		EntitySchemaHelper.getSchema(ActivityTask)
+	);
+
+	EntitySchemaFactory.register(nameof<PushSubscription>(), () =>
+		EntitySchemaHelper.getSchema(PushSubscription)
 	);
 }

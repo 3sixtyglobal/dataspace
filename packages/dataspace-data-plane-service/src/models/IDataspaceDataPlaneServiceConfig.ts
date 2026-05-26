@@ -22,4 +22,29 @@ export interface IDataspaceDataPlaneServiceConfig {
 	 * @default undefined.
 	 */
 	retryCount?: number;
+
+	/**
+	 * Max HTTP retry attempts per push delivery task execution.
+	 * @default 3
+	 */
+	pushRetryCount?: number;
+
+	/**
+	 * Base delay (ms) for exponential backoff between push HTTP retries.
+	 * Effective delay = baseDelayMs * 2^attempt.
+	 * @default 1000
+	 */
+	pushRetryBaseDelayMs?: number;
+
+	/**
+	 * Timeout (ms) for each push delivery HTTP POST request.
+	 * @default 30000
+	 */
+	pushTimeoutMs?: number;
+
+	/**
+	 * Interval (ms) between orphaned PushSubscription cleanup scans.
+	 * @default 3600000 (1 hour)
+	 */
+	pushSubscriptionCleanupIntervalMs?: number;
 }

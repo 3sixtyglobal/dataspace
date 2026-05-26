@@ -1,10 +1,10 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Converter, I18n } from "@twin.org/core";
+import { Converter, ComponentFactory, I18n } from "@twin.org/core";
 import {
 	DataspaceAppDataset,
 	TransferProcess,
-	type IDataspaceApp
+	type IDataspaceDataPlaneComponent
 } from "@twin.org/dataspace-models";
 import type { IEngineCore } from "@twin.org/engine-models";
 import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
@@ -12,6 +12,7 @@ import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { DataspaceProtocolDataTypes } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { ITrustComponent } from "@twin.org/trust-models";
+import { vi } from "vitest";
 import locales from "../locales/en.json" with { type: "json" };
 
 /**
@@ -97,6 +98,29 @@ export const DEFAULT_SERVICE_OPTIONS = {
 };
 
 /**
+ * Creates a mock IDataspaceDataPlaneComponent with vi.fn() stubs.
+ * Register this under a component type name before constructing DataspaceControlPlaneService,
+ * since the service now requires the component via ComponentFactory.get().
+ * @returns A mock IDataspaceDataPlaneComponent.
+ */
+export function createMockDataspaceDataPlaneComponent(): IDataspaceDataPlaneComponent {
+	return {
+		className: () => "MockDataspaceDataPlaneComponent",
+		setupPushSubscription: vi.fn().mockResolvedValue(undefined),
+		resumePushSubscription: vi.fn().mockResolvedValue(undefined),
+		suspendPushSubscription: vi.fn().mockResolvedValue(undefined),
+		teardownPushSubscription: vi.fn().mockResolvedValue(undefined),
+		getDataAssetEntities: vi.fn().mockResolvedValue({ itemList: [] }),
+		queryDataAsset: vi.fn().mockResolvedValue({ itemList: [] }),
+		notifyActivity: vi.fn().mockResolvedValue("mock-activity-id"),
+		subscribeToActivityLog: vi.fn().mockResolvedValue("mock-sub-id"),
+		unSubscribeToActivityLog: vi.fn().mockResolvedValue(undefined),
+		processOutboxActivity: vi.fn().mockResolvedValue(undefined),
+		getActivityLogEntry: vi.fn().mockResolvedValue(undefined)
+	};
+}
+
+/**
  * Setup the test environment for Dataspace Control Plane Service tests.
  * Registers schemas, contexts, and locales required for all tests.
  * Call this in beforeAll() of test suites.
@@ -118,28 +142,12 @@ export async function setupTestEnv(): Promise<void> {
 	EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
 		EntitySchemaHelper.getSchema(DataspaceAppDataset)
 	);
-}
 
-/**
- * Creates a mock Dataspace App for testing.
- * @param datasets The datasets to return from datasetsHandled().
- * @returns A mock IDataspaceApp.
- */
-export function createMockDataspaceApp(
-	datasets: {
-		"@context": unknown;
-		"@type": string;
-		"@id": string;
-		"dcterms:title": string;
-		"dcterms:publisher"?: string;
-	}[]
-): IDataspaceApp {
-	return {
-		className: () => "MockDataspaceApp",
-		datasetsHandled: () => datasets,
-		activitiesHandled: () => [],
-		supportedQueryTypes: () => []
-	} as unknown as IDataspaceApp;
+	// Register a default mock data plane component so all test suites can construct
+	// DataspaceControlPlaneService without specifying dataPlaneComponentType.
+	ComponentFactory.register("dataspace-data-plane-service", () =>
+		createMockDataspaceDataPlaneComponent()
+	);
 }
 
 /**

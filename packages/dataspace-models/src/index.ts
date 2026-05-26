@@ -28,6 +28,8 @@ export * from "./dataTypes/dataspaceDataTypes.js";
 // App exports
 export * from "./factories/dataspaceAppFactory.js";
 export * from "./models/app/IDataspaceApp.js";
+export * from "./models/app/IFollowActivity.js";
+export * from "./models/app/IUndoActivity.js";
 export * from "./models/app/IProcessingGroupOptions.js";
 
 // Other exports
@@ -81,3 +83,7 @@ export * from "./models/IDataAssetItemListResult.js";
 export * from "./models/IEntitySet.js";
 export * from "./models/IExecutionPayload.js";
 export * from "./models/IFilteringQuery.js";
+export * from "./models/IPushDeliveryPayload.js";
+
+// Utility exports
+export * from "./utils/jsonLdUtils.js";

@@ -3,14 +3,18 @@
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	ComponentFactory,
+	Converter,
 	GeneralError,
 	Is,
 	NotFoundError,
 	RandomHelper,
 	UnauthorizedError
 } from "@twin.org/core";
+import { Blake2b } from "@twin.org/crypto";
+import type { IJsonLdNodeObject } from "@twin.org/data-json-ld";
 import {
 	DataspaceAppFactory,
+	DataspaceTransferFormat,
 	type INegotiationCallback,
 	type DataspaceAppDataset,
 	type TransferProcess
@@ -38,6 +42,8 @@ import {
 	type IDataspaceProtocolTransferSuspensionMessage,
 	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
+import { JwtVerifiableCredentialGenerator } from "@twin.org/trust-generators";
+import type { ITrustComponent } from "@twin.org/trust-models";
 import type { DataspaceControlPlanePolicyRequester } from "../src/dataspaceControlPlanePolicyRequester.js";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
@@ -46,6 +52,7 @@ import { MockPolicyNegotiationAdminPointComponent } from "./mocks/mockPolicyNego
 import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiationPoint.js";
 import {
 	createFailingMockTrustComponent,
+	createMockDataspaceDataPlaneComponent,
 	createMockEngineCore,
 	createMockTrustComponent,
 	DEFAULT_SERVICE_OPTIONS,
@@ -237,6 +244,25 @@ describe("DataspaceControlPlaneService", () => {
 			);
 		});
 
+		test("captures tenantId from ContextIdStore at requestTransfer time", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const consumerGeneratedPid = `urn:uuid:${RandomHelper.generateUuidV7()}`;
+			const request: IDataspaceProtocolTransferRequestMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferRequestMessage",
+				consumerPid: consumerGeneratedPid,
+				agreementId: "agreement-123",
+				callbackAddress: "https://consumer.example.com/callback",
+				format: "application/json"
+			};
+
+			await service.requestTransfer(request, "valid-trust-payload");
+
+			const stored = await transferProcessStorage.get(consumerGeneratedPid);
+			expect(stored?.tenantId).toBe("did:iota:test-tenant");
+		});
+
 		test("should allow retrieving the created Transfer Process", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
@@ -345,6 +371,308 @@ describe("DataspaceControlPlaneService", () => {
 			}
 		});
 
+		test("should return TransferStartMessage with HttpsActivityStreamEndpoint for PUSH transfer (REQUESTED → STARTED)", async () => {
+			const setupPushCalls: string[] = [];
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				setupPushSubscription: async (consumerPid: string) => {
+					setupPushCalls.push(consumerPid);
+				}
+			};
+			ComponentFactory.register("test-data-plane-push", () => mockDataPlane);
+			ComponentFactory.register("test-trust-provider-push", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-provider-push",
+				dataPlaneComponentType: "test-data-plane-push"
+			});
+
+			// Seed a REQUESTED PUSH transfer process with provider identity matching trust component
+			await transferProcessStorage.set({
+				consumerPid: "push-consumer-pid-req",
+				id: "push-internal-id-req",
+				providerPid: "push-provider-pid-req",
+				agreementId: "agreement-push-req",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-push-req",
+				offerId: "offer-push-req",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "push-consumer-pid-req",
+					providerPid: "push-provider-pid-req"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (response["@type"] !== DataspaceProtocolTransferProcessTypes.TransferError) {
+				const startMsg = response;
+				expect(startMsg["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferStartMessage);
+				expect(startMsg.dataAddress).toBeDefined();
+				expect(startMsg.dataAddress?.endpointType).toBe(
+					DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint
+				);
+				expect(startMsg.dataAddress?.endpoint).toBe(
+					"https://test-origin.com/data-plane/data/inbox"
+				);
+			}
+			expect(setupPushCalls).toEqual(["push-consumer-pid-req"]);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-push");
+				ComponentFactory.unregister("test-trust-provider-push");
+			} catch {}
+		});
+
+		test("should call resumePushSubscription for SUSPENDED → STARTED PUSH transfer", async () => {
+			const resumePushCalls: string[] = [];
+			const setupPushCalls: string[] = [];
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				setupPushSubscription: async (consumerPid: string) => {
+					setupPushCalls.push(consumerPid);
+				},
+				resumePushSubscription: async (consumerPid: string) => {
+					resumePushCalls.push(consumerPid);
+				}
+			};
+			ComponentFactory.register("test-data-plane-resume", () => mockDataPlane);
+			ComponentFactory.register("test-trust-provider-resume", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-provider-resume",
+				dataPlaneComponentType: "test-data-plane-resume"
+			});
+
+			// Seed a SUSPENDED PUSH transfer process
+			await transferProcessStorage.set({
+				consumerPid: "push-consumer-pid-susp",
+				id: "push-internal-id-susp",
+				providerPid: "push-provider-pid-susp",
+				agreementId: "agreement-push-susp",
+				state: DataspaceProtocolTransferProcessStateType.SUSPENDED,
+				datasetId: "dataset-push-susp",
+				offerId: "offer-push-susp",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "push-consumer-pid-susp",
+					providerPid: "push-provider-pid-susp"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(resumePushCalls).toEqual(["push-consumer-pid-susp"]);
+			expect(setupPushCalls).toHaveLength(0);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-resume");
+				ComponentFactory.unregister("test-trust-provider-resume");
+			} catch {}
+		});
+
+		test("should return TransferError for PUSH transfer with missing dataAddress endpoint", async () => {
+			ComponentFactory.register("test-trust-provider-bad", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-provider-bad"
+			});
+
+			// Seed a REQUESTED PUSH transfer process without a valid dataAddress
+			await transferProcessStorage.set({
+				consumerPid: "push-consumer-pid-bad",
+				id: "push-internal-id-bad",
+				providerPid: "push-provider-pid-bad",
+				agreementId: "agreement-push-bad",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-push-bad",
+				offerId: "offer-push-bad",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: "",
+					endpoint: ""
+				}
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "push-consumer-pid-bad",
+					providerPid: "push-provider-pid-bad"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(response.code).toMatch(/invalidPushDataAddress/);
+			}
+
+			try {
+				ComponentFactory.unregister("test-trust-provider-bad");
+			} catch {}
+		});
+
+		test("should revert state to REQUESTED if setupPushSubscription throws (atomicity)", async () => {
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				setupPushSubscription: vi
+					.fn()
+					.mockRejectedValue(new GeneralError("MockDataPlane", "setupFailed"))
+			};
+			ComponentFactory.register("test-data-plane-atomicity-req", () => mockDataPlane);
+			ComponentFactory.register("test-trust-atomicity-req", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-atomicity-req",
+				dataPlaneComponentType: "test-data-plane-atomicity-req"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-consumer-pid-atomicity-req",
+				id: "push-internal-id-atomicity-req",
+				providerPid: "push-provider-pid-atomicity-req",
+				agreementId: "agreement-atomicity-req",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-atomicity-req",
+				offerId: "offer-atomicity-req",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "push-consumer-pid-atomicity-req",
+					providerPid: "push-provider-pid-atomicity-req"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("push-consumer-pid-atomicity-req");
+			expect((stored as TransferProcess).state).toBe(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-atomicity-req");
+				ComponentFactory.unregister("test-trust-atomicity-req");
+			} catch {}
+		});
+
+		test("should revert state to SUSPENDED if resumePushSubscription throws (atomicity)", async () => {
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				setupPushSubscription: vi.fn(),
+				resumePushSubscription: vi
+					.fn()
+					.mockRejectedValue(new GeneralError("MockDataPlane", "resumeFailed"))
+			};
+			ComponentFactory.register("test-data-plane-atomicity-susp", () => mockDataPlane);
+			ComponentFactory.register("test-trust-atomicity-susp", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-atomicity-susp",
+				dataPlaneComponentType: "test-data-plane-atomicity-susp"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-consumer-pid-atomicity-susp",
+				id: "push-internal-id-atomicity-susp",
+				providerPid: "push-provider-pid-atomicity-susp",
+				agreementId: "agreement-atomicity-susp",
+				state: DataspaceProtocolTransferProcessStateType.SUSPENDED,
+				datasetId: "dataset-atomicity-susp",
+				offerId: "offer-atomicity-susp",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "push-consumer-pid-atomicity-susp",
+					providerPid: "push-provider-pid-atomicity-susp"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("push-consumer-pid-atomicity-susp");
+			expect((stored as TransferProcess).state).toBe(
+				DataspaceProtocolTransferProcessStateType.SUSPENDED
+			);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-atomicity-susp");
+				ComponentFactory.unregister("test-trust-atomicity-susp");
+			} catch {}
+		});
 		describe("tenant token URL handling", () => {
 			// Mock trust component returns identity "did:iota:consumer-node-abc" by default; seed the
 			// transfer with providerIdentity matching so validateCallerIsProvider passes, and an
@@ -465,7 +793,311 @@ describe("DataspaceControlPlaneService", () => {
 
 				ComponentFactory.unregister("test-url-transformer-no-tenant");
 			});
+
+			test("startTransfer accessToken does NOT auto-flow tenant/org context (caller must pass explicitly)", async () => {
+				const message = await seedPullTransfer();
+
+				const verifiableCredentialCreate = vi
+					.fn()
+					.mockImplementation(async (vmId, credId, subject, meta, signer) => ({
+						jwt: `mock-jwt.${Converter.bytesToBase64(Converter.utf8ToBytes(JSON.stringify(subject)))}.sig`,
+						verifiableCredential: {
+							issuer: "did:iota:consumer-node-abc",
+							credentialSubject: subject
+						}
+					}));
+				ComponentFactory.register("s3-identity", () => ({
+					className: () => "S3MockIdentityComponent",
+					verifiableCredentialCreate
+				}));
+
+				const realGenerator = new JwtVerifiableCredentialGenerator({
+					identityComponentType: "s3-identity",
+					config: { verificationMethodId: "trust-assertion" }
+				});
+
+				const hybridTrustComponent: ITrustComponent = {
+					className: () => "S3HybridTrustComponent",
+					verify: async (payload: unknown) => ({
+						verified: true,
+						info: { identity: "did:iota:consumer-node-abc", token: payload as string }
+					}),
+					generate: async (
+						issuerIdentity: string,
+						generatorType?: string,
+						info?: { subject?: { [key: string]: unknown } },
+						tenantId?: string,
+						organizationId?: string
+					) =>
+						realGenerator.generate(
+							issuerIdentity,
+							info as { subject?: IJsonLdNodeObject } | undefined,
+							tenantId,
+							organizationId
+						)
+				};
+				ComponentFactory.register("s3-real-trust", () => hybridTrustComponent);
+
+				const service = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					trustComponentType: "s3-real-trust"
+				});
+
+				const response = await service.startTransfer(
+					message,
+					"https://test-origin.com",
+					"valid-trust-payload"
+				);
+				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+					throw new Error(`unexpected TransferError: ${response.code}`);
+				}
+
+				expect(verifiableCredentialCreate).toHaveBeenCalled();
+				const lastCall =
+					verifiableCredentialCreate.mock.calls[verifiableCredentialCreate.mock.calls.length - 1];
+				const subjectArg = lastCall[2] as { [key: string]: unknown };
+				const optionsArg = lastCall[3] as { [key: string]: unknown } | undefined;
+
+				// credentialSubject stays domain-only — tenant/org are NOT merged in..
+				expect(subjectArg.tenantId).toBeUndefined();
+				expect(subjectArg.organizationId).toBeUndefined();
+				// jwtPayloadFields is always passed (empty here because the dataspace
+				// caller does not supply tenantId / organizationId
+				expect(optionsArg?.jwtPayloadFields).toEqual({});
+				// Original transfer claims still flow through unchanged.
+				expect(subjectArg.consumerPid).toBeDefined();
+				expect(subjectArg.providerPid).toBeDefined();
+				expect(subjectArg.agreementId).toBeDefined();
+				expect(subjectArg.datasetId).toBeDefined();
+
+				ComponentFactory.unregister("s3-real-trust");
+				ComponentFactory.unregister("s3-identity");
+			});
 		});
+	});
+
+	test("should return TransferStartMessage with /inbox endpoint and JWT for provider-initiated push (HttpPostActivityStreamFormat)", async () => {
+		const setupPushCalls: string[] = [];
+		const mockDataPlane = {
+			className: () => "MockDataPlane",
+			setupPushSubscription: async (consumerPid: string) => {
+				setupPushCalls.push(consumerPid);
+			}
+		};
+		ComponentFactory.register("test-data-plane-post-push", () => mockDataPlane);
+		ComponentFactory.register("test-trust-provider-post-push", () =>
+			createMockTrustComponent("did:iota:provider-node-xyz")
+		);
+
+		const service = new DataspaceControlPlaneService({
+			...DEFAULT_SERVICE_OPTIONS,
+			trustComponentType: "test-trust-provider-post-push",
+			dataPlaneComponentType: "test-data-plane-post-push"
+		});
+
+		// Seed a REQUESTED provider-initiated push transfer (no dataAddress, format=HttpPostActivityStreamFormat)
+		await transferProcessStorage.set({
+			consumerPid: "post-push-consumer-pid",
+			id: "post-push-internal-id",
+			providerPid: "post-push-provider-pid",
+			agreementId: "agreement-post-push",
+			state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+			datasetId: "dataset-post-push",
+			offerId: "offer-post-push",
+			providerIdentity: "did:iota:provider-node-xyz",
+			format: DataspaceTransferFormat.HttpProxyPost,
+			dateCreated: new Date().toISOString(),
+			dateModified: new Date().toISOString()
+		});
+
+		const response = await service.startTransfer(
+			{
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "post-push-consumer-pid",
+				providerPid: "post-push-provider-pid"
+			},
+			"https://test-origin.com",
+			"valid-trust-payload"
+		);
+
+		expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		if (response["@type"] !== DataspaceProtocolTransferProcessTypes.TransferError) {
+			expect(response.dataAddress?.endpointType).toBe(
+				DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint
+			);
+			expect(response.dataAddress?.endpoint).toBe("https://test-origin.com/data-plane/data/inbox");
+			// Provider-initiated push includes a JWT token in endpointProperties
+			const authProp = response.dataAddress?.endpointProperties?.find(
+				p => p.name === "authorization"
+			);
+			expect(authProp).toBeDefined();
+			expect(authProp?.value).toBeTruthy();
+		}
+		// Provider-initiated push: provider is the receiver, so setupPushSubscription must NOT be called
+		expect(setupPushCalls).toEqual([]);
+
+		try {
+			ComponentFactory.unregister("test-data-plane-post-push");
+			ComponentFactory.unregister("test-trust-provider-post-push");
+		} catch {}
+	});
+
+	test("should NOT call setupPushSubscription for HttpPostActivityStreamFormat on REQUESTED → STARTED", async () => {
+		const pushSubscriptionCalls: string[] = [];
+		const mockDataPlane = {
+			className: () => "MockDataPlane",
+			setupPushSubscription: async (pid: string) => {
+				pushSubscriptionCalls.push(`setup:${pid}`);
+			},
+			resumePushSubscription: async (pid: string) => {
+				pushSubscriptionCalls.push(`resume:${pid}`);
+			}
+		};
+		ComponentFactory.register("test-data-plane-pini-01", () => mockDataPlane);
+		ComponentFactory.register("test-trust-pini-01", () =>
+			createMockTrustComponent("did:iota:provider-node-xyz")
+		);
+
+		const service = new DataspaceControlPlaneService({
+			...DEFAULT_SERVICE_OPTIONS,
+			trustComponentType: "test-trust-pini-01",
+			dataPlaneComponentType: "test-data-plane-pini-01"
+		});
+
+		await transferProcessStorage.set({
+			consumerPid: "pini-01-consumer-pid",
+			id: "pini-01-internal-id",
+			providerPid: "pini-01-provider-pid",
+			agreementId: "agreement-pini-01",
+			state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+			datasetId: "dataset-pini-01",
+			offerId: "offer-pini-01",
+			providerIdentity: "did:iota:provider-node-xyz",
+			format: DataspaceTransferFormat.HttpProxyPost,
+			dateCreated: new Date().toISOString(),
+			dateModified: new Date().toISOString()
+		});
+
+		const response = await service.startTransfer(
+			{
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "pini-01-consumer-pid",
+				providerPid: "pini-01-provider-pid"
+			},
+			"https://test-origin.com",
+			"valid-trust-payload"
+		);
+
+		expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		expect(pushSubscriptionCalls).toEqual([]);
+
+		try {
+			ComponentFactory.unregister("test-data-plane-pini-01");
+			ComponentFactory.unregister("test-trust-pini-01");
+		} catch {}
+	});
+
+	test("should NOT call resumePushSubscription for HttpPostActivityStreamFormat on SUSPENDED → STARTED", async () => {
+		const pushSubscriptionCalls: string[] = [];
+		const mockDataPlane = {
+			className: () => "MockDataPlane",
+			setupPushSubscription: async (pid: string) => {
+				pushSubscriptionCalls.push(`setup:${pid}`);
+			},
+			resumePushSubscription: async (pid: string) => {
+				pushSubscriptionCalls.push(`resume:${pid}`);
+			}
+		};
+		ComponentFactory.register("test-data-plane-pini-02", () => mockDataPlane);
+		ComponentFactory.register("test-trust-pini-02", () =>
+			createMockTrustComponent("did:iota:provider-node-xyz")
+		);
+
+		const service = new DataspaceControlPlaneService({
+			...DEFAULT_SERVICE_OPTIONS,
+			trustComponentType: "test-trust-pini-02",
+			dataPlaneComponentType: "test-data-plane-pini-02"
+		});
+
+		await transferProcessStorage.set({
+			consumerPid: "pini-02-consumer-pid",
+			id: "pini-02-internal-id",
+			providerPid: "pini-02-provider-pid",
+			agreementId: "agreement-pini-02",
+			state: DataspaceProtocolTransferProcessStateType.SUSPENDED,
+			datasetId: "dataset-pini-02",
+			offerId: "offer-pini-02",
+			providerIdentity: "did:iota:provider-node-xyz",
+			format: DataspaceTransferFormat.HttpProxyPost,
+			dateCreated: new Date().toISOString(),
+			dateModified: new Date().toISOString()
+		});
+
+		const response = await service.startTransfer(
+			{
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "pini-02-consumer-pid",
+				providerPid: "pini-02-provider-pid"
+			},
+			"https://test-origin.com",
+			"valid-trust-payload"
+		);
+
+		expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		expect(pushSubscriptionCalls).toEqual([]);
+
+		try {
+			ComponentFactory.unregister("test-data-plane-pini-02");
+			ComponentFactory.unregister("test-trust-pini-02");
+		} catch {}
+	});
+
+	test("rejects startTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+		const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+		const ownerTenant = "did:iota:tenant-owner";
+		const otherTenant = "did:iota:tenant-other";
+
+		await transferProcessStorage.set({
+			consumerPid: "wrong-tenant-start-pid",
+			id: "wrong-tenant-start-id",
+			providerPid: "wrong-tenant-start-provider-pid",
+			agreementId: "agreement-wrong-tenant-start",
+			state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+			datasetId: "dataset-wrong-tenant-start",
+			offerId: "offer-wrong-tenant-start",
+			consumerIdentity: "did:iota:provider-node-xyz",
+			providerIdentity: "did:iota:consumer-node-abc",
+			tenantId: ownerTenant,
+			dateCreated: new Date().toISOString(),
+			dateModified: new Date().toISOString()
+		});
+
+		// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+			[ContextIdKeys.Node]: "did:iota:test-node",
+			[ContextIdKeys.Tenant]: otherTenant
+		});
+
+		const response = await service.startTransfer(
+			{
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "wrong-tenant-start-pid",
+				providerPid: "wrong-tenant-start-provider-pid"
+			},
+			"https://test-origin.com",
+			"valid-trust-payload"
+		);
+
+		expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+			expect(response.code).toMatch(/^UnauthorizedError:/);
+			expect(response.code).toContain("transferWrongTenant");
+		}
 	});
 
 	describe("completeTransfer()", () => {
@@ -506,6 +1138,198 @@ describe("DataspaceControlPlaneService", () => {
 				const transferError = result;
 				// Semantic error code format: "ErrorName:message"
 				expect(transferError.code).toMatch(/^NotFoundError:/);
+			}
+		});
+
+		test("should call teardownPushSubscription when completing a PUSH transfer", async () => {
+			const teardownCalls: string[] = [];
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				teardownPushSubscription: async (consumerPid: string) => {
+					teardownCalls.push(consumerPid);
+				}
+			};
+			ComponentFactory.register("test-data-plane-complete-push", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-complete-push"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-complete-pid",
+				id: "push-complete-internal-id",
+				providerPid: "push-complete-provider-pid",
+				agreementId: "agreement-push-complete",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-push-complete",
+				offerId: "offer-push-complete",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.completeTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferCompletionMessage",
+					consumerPid: "push-complete-pid",
+					providerPid: "push-complete-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(teardownCalls).toEqual(["push-complete-pid"]);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-complete-push");
+			} catch {}
+		});
+
+		test("rolls back to STARTED if teardownPushSubscription throws (PUSH transfer)", async () => {
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				teardownPushSubscription: async () => {
+					throw new Error("teardown blew up");
+				}
+			};
+			ComponentFactory.register("test-data-plane-complete-rollback", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-complete-rollback"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-complete-rollback-pid",
+				id: "push-complete-rollback-internal-id",
+				providerPid: "push-complete-rollback-provider-pid",
+				agreementId: "agreement-push-complete-rollback",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-push-complete-rollback",
+				offerId: "offer-push-complete-rollback",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.completeTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferCompletionMessage",
+					consumerPid: "push-complete-rollback-pid",
+					providerPid: "push-complete-rollback-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const persisted = await transferProcessStorage.get("push-complete-rollback-pid");
+			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-complete-rollback");
+			} catch {}
+		});
+
+		test("is idempotent: re-completing an already-COMPLETED transfer returns success", async () => {
+			let teardownCallCount = 0;
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				teardownPushSubscription: async () => {
+					teardownCallCount++;
+				}
+			};
+			ComponentFactory.register("test-data-plane-complete-idempotent", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-complete-idempotent"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-complete-idempotent-pid",
+				id: "push-complete-idempotent-internal-id",
+				providerPid: "push-complete-idempotent-provider-pid",
+				agreementId: "agreement-push-complete-idempotent",
+				state: DataspaceProtocolTransferProcessStateType.COMPLETED,
+				datasetId: "dataset-push-complete-idempotent",
+				offerId: "offer-push-complete-idempotent",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.completeTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferCompletionMessage",
+					consumerPid: "push-complete-idempotent-pid",
+					providerPid: "push-complete-idempotent-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferProcess);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferProcess) {
+				expect(response.state).toBe(DataspaceProtocolTransferProcessStateType.COMPLETED);
+			}
+			// No second data-plane teardown — the first attempt already ran it.
+			expect(teardownCallCount).toBe(0);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-complete-idempotent");
+			} catch {}
+		});
+
+		test("rejects completeTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const ownerTenant = "did:iota:tenant-owner";
+			const otherTenant = "did:iota:tenant-other";
+
+			await transferProcessStorage.set({
+				consumerPid: "wrong-tenant-complete-pid",
+				id: "wrong-tenant-complete-id",
+				providerPid: "wrong-tenant-complete-provider-pid",
+				agreementId: "agreement-wrong-tenant-complete",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-wrong-tenant-complete",
+				offerId: "offer-wrong-tenant-complete",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				tenantId: ownerTenant,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: "did:iota:test-node",
+				[ContextIdKeys.Tenant]: otherTenant
+			});
+
+			const response = await service.completeTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferCompletionMessage",
+					consumerPid: "wrong-tenant-complete-pid",
+					providerPid: "wrong-tenant-complete-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(response.code).toMatch(/^UnauthorizedError:/);
+				expect(response.code).toContain("transferWrongTenant");
 			}
 		});
 	});
@@ -550,6 +1374,200 @@ describe("DataspaceControlPlaneService", () => {
 				expect(transferError.code).toMatch(/^NotFoundError:/);
 			}
 		});
+
+		test("should call suspendPushSubscription when suspending a PUSH transfer", async () => {
+			const suspendCalls: string[] = [];
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				suspendPushSubscription: async (consumerPid: string) => {
+					suspendCalls.push(consumerPid);
+				}
+			};
+			ComponentFactory.register("test-data-plane-suspend-push", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-suspend-push"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-suspend-pid",
+				id: "push-suspend-internal-id",
+				providerPid: "push-suspend-provider-pid",
+				agreementId: "agreement-push-suspend",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-push-suspend",
+				offerId: "offer-push-suspend",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.suspendTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferSuspensionMessage",
+					consumerPid: "push-suspend-pid",
+					providerPid: "push-suspend-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(suspendCalls).toEqual(["push-suspend-pid"]);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-suspend-push");
+			} catch {}
+		});
+
+		test("rolls back to STARTED if suspendPushSubscription throws (PUSH transfer)", async () => {
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				suspendPushSubscription: async () => {
+					throw new Error("suspend blew up");
+				}
+			};
+			ComponentFactory.register("test-data-plane-suspend-rollback", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-suspend-rollback"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-suspend-rollback-pid",
+				id: "push-suspend-rollback-internal-id",
+				providerPid: "push-suspend-rollback-provider-pid",
+				agreementId: "agreement-push-suspend-rollback",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-push-suspend-rollback",
+				offerId: "offer-push-suspend-rollback",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.suspendTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferSuspensionMessage",
+					consumerPid: "push-suspend-rollback-pid",
+					providerPid: "push-suspend-rollback-provider-pid",
+					reason: ["transient failure"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const persisted = await transferProcessStorage.get("push-suspend-rollback-pid");
+			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-suspend-rollback");
+			} catch {}
+		});
+
+		test("is idempotent: re-suspending an already-SUSPENDED transfer returns success", async () => {
+			let suspendCallCount = 0;
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				suspendPushSubscription: async () => {
+					suspendCallCount++;
+				}
+			};
+			ComponentFactory.register("test-data-plane-suspend-idempotent", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-suspend-idempotent"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-suspend-idempotent-pid",
+				id: "push-suspend-idempotent-internal-id",
+				providerPid: "push-suspend-idempotent-provider-pid",
+				agreementId: "agreement-push-suspend-idempotent",
+				state: DataspaceProtocolTransferProcessStateType.SUSPENDED,
+				datasetId: "dataset-push-suspend-idempotent",
+				offerId: "offer-push-suspend-idempotent",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.suspendTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferSuspensionMessage",
+					consumerPid: "push-suspend-idempotent-pid",
+					providerPid: "push-suspend-idempotent-provider-pid",
+					reason: ["resend"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferProcess);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferProcess) {
+				expect(response.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
+			}
+			expect(suspendCallCount).toBe(0);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-suspend-idempotent");
+			} catch {}
+		});
+
+		test("rejects suspendTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const ownerTenant = "did:iota:tenant-owner";
+			const otherTenant = "did:iota:tenant-other";
+
+			await transferProcessStorage.set({
+				consumerPid: "wrong-tenant-suspend-pid",
+				id: "wrong-tenant-suspend-id",
+				providerPid: "wrong-tenant-suspend-provider-pid",
+				agreementId: "agreement-wrong-tenant-suspend",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-wrong-tenant-suspend",
+				offerId: "offer-wrong-tenant-suspend",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				tenantId: ownerTenant,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: "did:iota:test-node",
+				[ContextIdKeys.Tenant]: otherTenant
+			});
+
+			const response = await service.suspendTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferSuspensionMessage",
+					consumerPid: "wrong-tenant-suspend-pid",
+					providerPid: "wrong-tenant-suspend-provider-pid",
+					reason: ["wrong tenant attempt"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(response.code).toMatch(/^UnauthorizedError:/);
+				expect(response.code).toContain("transferWrongTenant");
+			}
+		});
 	});
 
 	describe("terminateTransfer()", () => {
@@ -590,6 +1608,200 @@ describe("DataspaceControlPlaneService", () => {
 				const transferError = result;
 				// Semantic error code format: "ErrorName:message"
 				expect(transferError.code).toMatch(/^NotFoundError:/);
+			}
+		});
+
+		test("should call teardownPushSubscription when terminating a PUSH transfer", async () => {
+			const teardownCalls: string[] = [];
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				teardownPushSubscription: async (consumerPid: string) => {
+					teardownCalls.push(consumerPid);
+				}
+			};
+			ComponentFactory.register("test-data-plane-terminate-push", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-terminate-push"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-terminate-pid",
+				id: "push-terminate-internal-id",
+				providerPid: "push-terminate-provider-pid",
+				agreementId: "agreement-push-terminate",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-push-terminate",
+				offerId: "offer-push-terminate",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "push-terminate-pid",
+					providerPid: "push-terminate-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(teardownCalls).toEqual(["push-terminate-pid"]);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-terminate-push");
+			} catch {}
+		});
+
+		test("rolls back to previous state if teardownPushSubscription throws (PUSH transfer)", async () => {
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				teardownPushSubscription: async () => {
+					throw new Error("teardown blew up");
+				}
+			};
+			ComponentFactory.register("test-data-plane-terminate-rollback", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-terminate-rollback"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-terminate-rollback-pid",
+				id: "push-terminate-rollback-internal-id",
+				providerPid: "push-terminate-rollback-provider-pid",
+				agreementId: "agreement-push-terminate-rollback",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-push-terminate-rollback",
+				offerId: "offer-push-terminate-rollback",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "push-terminate-rollback-pid",
+					providerPid: "push-terminate-rollback-provider-pid",
+					reason: ["transient failure"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const persisted = await transferProcessStorage.get("push-terminate-rollback-pid");
+			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-terminate-rollback");
+			} catch {}
+		});
+
+		test("is idempotent: re-terminating an already-TERMINATED transfer returns success", async () => {
+			let teardownCallCount = 0;
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				teardownPushSubscription: async () => {
+					teardownCallCount++;
+				}
+			};
+			ComponentFactory.register("test-data-plane-terminate-idempotent", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-data-plane-terminate-idempotent"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-terminate-idempotent-pid",
+				id: "push-terminate-idempotent-internal-id",
+				providerPid: "push-terminate-idempotent-provider-pid",
+				agreementId: "agreement-push-terminate-idempotent",
+				state: DataspaceProtocolTransferProcessStateType.TERMINATED,
+				datasetId: "dataset-push-terminate-idempotent",
+				offerId: "offer-push-terminate-idempotent",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "push-terminate-idempotent-pid",
+					providerPid: "push-terminate-idempotent-provider-pid",
+					reason: ["resend"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferProcess);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferProcess) {
+				expect(response.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+			}
+			expect(teardownCallCount).toBe(0);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-terminate-idempotent");
+			} catch {}
+		});
+
+		test("rejects terminateTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const ownerTenant = "did:iota:tenant-owner";
+			const otherTenant = "did:iota:tenant-other";
+
+			await transferProcessStorage.set({
+				consumerPid: "wrong-tenant-terminate-pid",
+				id: "wrong-tenant-terminate-id",
+				providerPid: "wrong-tenant-terminate-provider-pid",
+				agreementId: "agreement-wrong-tenant-terminate",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-wrong-tenant-terminate",
+				offerId: "offer-wrong-tenant-terminate",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				tenantId: ownerTenant,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: "did:iota:test-node",
+				[ContextIdKeys.Tenant]: otherTenant
+			});
+
+			const response = await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "wrong-tenant-terminate-pid",
+					providerPid: "wrong-tenant-terminate-provider-pid",
+					reason: ["wrong tenant attempt"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(response.code).toMatch(/^UnauthorizedError:/);
+				expect(response.code).toContain("transferWrongTenant");
 			}
 		});
 	});
@@ -633,6 +1845,18 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("should resolve consumerPid to Transfer Context with Agreement", async () => {
+			// Caller-validation builds the caller's composite from the
+			// node+tenant context and matches against agreement.assigner. Pin
+			// the context to a single-tenant shape (no Tenant) so the composite
+			// collapses to the bare node DID and lines up with the fixture
+			// assigner below. This keeps the resolve-flow assertions independent
+			// of the BLAKE2b hash details.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
+			});
+
 			const service = new DataspaceControlPlaneService({
 				policyAdministrationPointComponentType: "test-pap-resolve",
 				policyNegotiationPointComponentType: "test-pnp",
@@ -997,6 +2221,15 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("should include dataAddress when present in transfer process", async () => {
+			// Same single-tenant context override as the parent test — collapses
+			// the caller composite to the bare node DID so it lines up with the
+			// fixture assigner below.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
+			});
+
 			const service = new DataspaceControlPlaneService({
 				policyAdministrationPointComponentType: "test-pap-resolve",
 				policyNegotiationPointComponentType: "test-pnp",
@@ -1023,7 +2256,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push",
 					agreementId: "agreement-push",
-					format: "Http-Push-Activity-Stream-Format",
+					format: DataspaceTransferFormat.HttpProxyPush,
 					callbackAddress: "https://consumer.example.com/callback",
 					dataAddress: {
 						"@type": "DataAddress",
@@ -1117,6 +2350,15 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("should resolve providerPid to Transfer Context with Agreement", async () => {
+			// Caller-validation builds the caller's composite from
+			// node+tenant. Pin the context to a single-tenant shape so the
+			// composite matches the bare-DID assigner below.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
+			});
+
 			const service = new DataspaceControlPlaneService({
 				policyAdministrationPointComponentType: "test-pap-resolve-provider",
 				policyNegotiationPointComponentType: "test-pnp",
@@ -1143,7 +2385,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-001",
 					agreementId: "agreement-push-001",
-					format: "Http-Push-Activity-Stream-Format",
+					format: DataspaceTransferFormat.HttpProxyPush,
 					callbackAddress: "https://consumer.example.com/callback",
 					dataAddress: {
 						"@type": "DataAddress",
@@ -1253,7 +2495,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-trust-fail",
 					agreementId: "agreement-push-trust-fail",
-					format: "Http-Push-Activity-Stream-Format",
+					format: DataspaceTransferFormat.HttpProxyPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -1331,7 +2573,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-terminate",
 					agreementId: "agreement-push-terminate",
-					format: "Http-Push-Activity-Stream-Format",
+					format: DataspaceTransferFormat.HttpProxyPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -1396,7 +2638,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-no-org",
 					agreementId: "agreement-push-no-org",
-					format: "Http-Push-Activity-Stream-Format",
+					format: DataspaceTransferFormat.HttpProxyPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -1450,7 +2692,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-mismatch",
 					agreementId: "agreement-push-mismatch",
-					format: "Http-Push-Activity-Stream-Format",
+					format: DataspaceTransferFormat.HttpProxyPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -1505,7 +2747,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-assignee",
 					agreementId: "agreement-push-assignee",
-					format: "Http-Push-Activity-Stream-Format",
+					format: DataspaceTransferFormat.HttpProxyPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -1569,9 +2811,10 @@ describe("DataspaceControlPlaneService", () => {
 				createMockTrustComponent("did:iota:provider-node-xyz")
 			);
 
+			// Pin context to single-tenant shape so the composite
+			// matches the bare-DID assigner fixture below.
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
-				[ContextIdKeys.Node]: "did:iota:test-node",
-				[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
 				[ContextIdKeys.User]: "did:iota:test-user"
 			});
@@ -3026,6 +4269,162 @@ describe("DataspaceControlPlaneService", () => {
 		});
 	});
 
+	describe("data plane component (optional, push-only)", () => {
+		test("constructor does NOT throw when the data plane component type is not registered (pull-only deployments)", () => {
+			expect(
+				() =>
+					new DataspaceControlPlaneService({
+						...DEFAULT_SERVICE_OPTIONS,
+						dataPlaneComponentType: "not-a-registered-component"
+					})
+			).not.toThrow();
+		});
+
+		test("setupPushSubscription is called with consumerPid on REQUESTED → STARTED (HttpProxy-PUSH)", async () => {
+			const mockDataPlane = createMockDataspaceDataPlaneComponent();
+			ComponentFactory.register("test-dp-required-start", () => mockDataPlane);
+			ComponentFactory.register("test-trust-dp-required-start", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-dp-required-start",
+				dataPlaneComponentType: "test-dp-required-start"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "g14-start-consumer-pid",
+				id: "g14-start-id",
+				providerPid: "g14-start-provider-pid",
+				agreementId: "g14-start-agreement",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-g14-start",
+				offerId: "offer-g14-start",
+				providerIdentity: "did:iota:provider-node-xyz",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "g14-start-consumer-pid",
+					providerPid: "g14-start-provider-pid"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(mockDataPlane.setupPushSubscription).toHaveBeenCalledOnce();
+			expect(mockDataPlane.setupPushSubscription).toHaveBeenCalledWith("g14-start-consumer-pid");
+			expect(mockDataPlane.resumePushSubscription).not.toHaveBeenCalled();
+
+			try {
+				ComponentFactory.unregister("test-dp-required-start");
+				ComponentFactory.unregister("test-trust-dp-required-start");
+			} catch {}
+		});
+
+		test("teardownPushSubscription is called with consumerPid on STARTED → TERMINATED (HttpProxy-PUSH)", async () => {
+			const mockDataPlane = createMockDataspaceDataPlaneComponent();
+			ComponentFactory.register("test-dp-required-terminate", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-dp-required-terminate"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "g14-terminate-consumer-pid",
+				id: "g14-terminate-id",
+				providerPid: "g14-terminate-provider-pid",
+				agreementId: "g14-terminate-agreement",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-g14-terminate",
+				offerId: "offer-g14-terminate",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "g14-terminate-consumer-pid",
+					providerPid: "g14-terminate-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(mockDataPlane.teardownPushSubscription).toHaveBeenCalledOnce();
+			expect(mockDataPlane.teardownPushSubscription).toHaveBeenCalledWith(
+				"g14-terminate-consumer-pid"
+			);
+
+			try {
+				ComponentFactory.unregister("test-dp-required-terminate");
+			} catch {}
+		});
+
+		test("suspendPushSubscription is called with consumerPid on STARTED → SUSPENDED (HttpProxy-PUSH)", async () => {
+			const mockDataPlane = createMockDataspaceDataPlaneComponent();
+			ComponentFactory.register("test-dp-required-suspend", () => mockDataPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				dataPlaneComponentType: "test-dp-required-suspend"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "g14-suspend-consumer-pid",
+				id: "g14-suspend-id",
+				providerPid: "g14-suspend-provider-pid",
+				agreementId: "g14-suspend-agreement",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-g14-suspend",
+				offerId: "offer-g14-suspend",
+				format: DataspaceTransferFormat.HttpProxyPush,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.suspendTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferSuspensionMessage",
+					consumerPid: "g14-suspend-consumer-pid",
+					providerPid: "g14-suspend-provider-pid"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(mockDataPlane.suspendPushSubscription).toHaveBeenCalledOnce();
+			expect(mockDataPlane.suspendPushSubscription).toHaveBeenCalledWith(
+				"g14-suspend-consumer-pid"
+			);
+
+			try {
+				ComponentFactory.unregister("test-dp-required-suspend");
+			} catch {}
+		});
+	});
+
 	describe("Dataset CRUD (tenant-scoped admin surface)", () => {
 		const TEST_TENANT_A = "did:iota:test-tenant";
 		const TEST_TENANT_B = "did:iota:other-tenant";
@@ -3134,6 +4533,61 @@ describe("DataspaceControlPlaneService", () => {
 			expect(setSpy).toHaveBeenCalledTimes(1);
 			const publishedDataset = setSpy.mock.calls[0][0] as { "@id"?: string };
 			expect(publishedDataset["@id"]).toBe("https://twin.example.org/ds-publish");
+		});
+
+		test("populateDefaults stamps composite (nodeDid:hash(tenantId)) as publisher in multi-tenant context", async () => {
+			// Publisher attribution is always the composite identifier
+			// (`nodeDid:hash(tenantId)`), independent of whether a user session
+			// is active. The plaintext tenantId never appears in the published
+			// dataset — it is hashed via unkeyed BLAKE2b-256, base64url-encoded.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: TEST_NODE_ID,
+				[ContextIdKeys.Tenant]: TEST_TENANT_A
+			});
+
+			const setSpy = vi.spyOn(mockFedCat, "set");
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await service.createAppDataset(
+				"https://twin.example.org/ds-composite",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-composite") as never
+			);
+
+			expect(setSpy).toHaveBeenCalledTimes(1);
+			const publishedDataset = setSpy.mock.calls[0][0] as {
+				"dcterms:publisher"?: string;
+			};
+			const expectedHash = Converter.bytesToBase64Url(
+				Blake2b.sum256(Converter.utf8ToBytes(TEST_TENANT_A))
+			);
+			expect(publishedDataset["dcterms:publisher"]).toBe(`${TEST_NODE_ID}:${expectedHash}`);
+			// And specifically: the plaintext tenantId does NOT appear in the
+			// stamped identifier — guards the confidentiality property.
+			expect(publishedDataset["dcterms:publisher"]).not.toContain(TEST_TENANT_A);
+		});
+
+		test("populateDefaults stamps composite even when an org context is present (org no longer wins)", async () => {
+			// The file-level beforeEach mock includes Organization. That's audit-only — publisher attribution still comes from the
+			// node/tenant composite.
+			const setSpy = vi.spyOn(mockFedCat, "set");
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await service.createAppDataset(
+				"https://twin.example.org/ds-composite-with-org",
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-composite-with-org") as never
+			);
+
+			expect(setSpy).toHaveBeenCalledTimes(1);
+			const publishedDataset = setSpy.mock.calls[0][0] as {
+				"dcterms:publisher"?: string;
+			};
+			const expectedHash = Converter.bytesToBase64Url(
+				Blake2b.sum256(Converter.utf8ToBytes("did:iota:test-tenant"))
+			);
+			expect(publishedDataset["dcterms:publisher"]).toBe(`did:iota:test-node:${expectedHash}`);
+			expect(publishedDataset["dcterms:publisher"]).not.toBe("did:iota:provider-node-xyz");
 		});
 
 		test("getAppDataset returns the app when the calling tenant owns it", async () => {
@@ -3360,8 +4814,8 @@ describe("DataspaceControlPlaneService", () => {
 
 		test("publishDataset calls populateDefaults even when app overrides datasetsHandled", async () => {
 			// Register an app whose datasetsHandled returns a dataset WITHOUT
-			// `dcterms:publisher`. The framework should stamp publisher from
-			// the org context regardless of which path produced the dataset.
+			// `dcterms:publisher`. The framework should stamp publisher from the
+			// node/tenant composite regardless of which path produced the dataset.
 			const APP_WITH_OVERRIDE = "https://twin.example.org/app-with-override";
 			DataspaceAppFactory.register(APP_WITH_OVERRIDE, () => ({
 				className: () => "MockAppWithOverride",
@@ -3390,7 +4844,10 @@ describe("DataspaceControlPlaneService", () => {
 
 				expect(setSpy).toHaveBeenCalledTimes(1);
 				const publishedDataset = setSpy.mock.calls[0][0] as { "dcterms:publisher"?: string };
-				expect(publishedDataset["dcterms:publisher"]).toBe("did:iota:provider-node-xyz");
+				const expectedHash = Converter.bytesToBase64Url(
+					Blake2b.sum256(Converter.utf8ToBytes("did:iota:test-tenant"))
+				);
+				expect(publishedDataset["dcterms:publisher"]).toBe(`did:iota:test-node:${expectedHash}`);
 			} finally {
 				DataspaceAppFactory.unregister(APP_WITH_OVERRIDE);
 			}

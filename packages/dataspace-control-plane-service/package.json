@@ -32,6 +32,7 @@
 		"@twin.org/api-tenant-processor": "next",
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
+		"@twin.org/crypto": "next",
 		"@twin.org/dataspace-models": "0.0.3-next.29",
 		"@twin.org/entity": "next",
 		"@twin.org/entity-storage-models": "next",

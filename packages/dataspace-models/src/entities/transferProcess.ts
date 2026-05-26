@@ -83,6 +83,15 @@ export class TransferProcess {
 	public callbackAddress?: string;
 
 	/**
+	 * The tenant that owns this transfer process, captured from the request context
+	 * at write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`) register
+	 * transfers without a tenant context. Persisted so async push delivery tasks and
+	 * setTimeout-delayed state transitions can re-enter the right tenant context.
+	 */
+	@property({ type: "string", optional: true })
+	public tenantId?: string;
+
+	/**
 	 * Creation timestamp (ISO string format).
 	 */
 	@property({ type: "string", format: "date-time", sortDirection: SortDirection.Descending })

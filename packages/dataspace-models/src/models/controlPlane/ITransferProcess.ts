@@ -81,15 +81,23 @@ export interface ITransferProcess {
 	callbackAddress?: string;
 
 	/**
+	 * The tenant that owns this transfer process, captured at write time so async
+	 * delivery tasks and delayed state transitions can re-enter the right tenant context.
+	 * Optional — single-tenant nodes operate without a tenant context.
+	 */
+	tenantId?: string;
+
+	/**
 	 * Data format from the Dataset Distribution.
 	 * Specified by a Distribution for the Dataset associated with the Agreement.
 	 */
 	format?: string;
 
 	/**
-	 * Data address for push mode transfers.
-	 * Contains endpoint information where data should be pushed (for Activity Stream push mode).
-	 * Only present when format is Http-Push-Activity-Stream-Format or Http-Post-Activity-Stream-Format.
+	 * Data address for consumer-initiated push transfers (HttpProxy-PUSH).
+	 * Contains the consumer's /inbox endpoint as supplied in the TransferRequestMessage.
+	 * Absent for PULL (HttpProxy-PULL) and provider-initiated push (HttpProxy-POST),
+	 * where the consumer deliberately omits a dataAddress.
 	 */
 	dataAddress?: IDataspaceProtocolDataAddress;
 

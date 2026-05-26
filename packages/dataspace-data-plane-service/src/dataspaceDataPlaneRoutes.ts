@@ -34,7 +34,7 @@ const ROUTES_SOURCE = "dataspaceDataPlaneRoutes";
 /**
  * Activity stream route.
  */
-const ACTIVITY_STREAM_ROUTE = "notify";
+const ACTIVITY_STREAM_ROUTE = "inbox";
 
 /**
  * Activity processing details route.
@@ -135,7 +135,12 @@ export function generateRestRoutesDataspaceDataPlane(
 				type: nameof<IActivityStreamNotifyResponse>()
 			},
 			{ type: nameof<IUnprocessableEntityResponse>() }
-		]
+		],
+		// Cross-node push deliveries authenticate via JWT-VC verified inside notifyActivity.
+		// Skip framework auth so external providers can POST without a session token.
+		// Tenant context is required and comes from the URL-baked encrypted tenant token
+		// (decoded by TenantProcessor before the handler runs).
+		skipAuth: true
 	};
 
 	const getActivityLogEntryRoute: IRestRoute<
@@ -286,14 +291,19 @@ export async function activityStreamNotify(
 	Guards.object<IActivityStreamsActivity>(ROUTES_SOURCE, nameof(request.body), request.body);
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
-	const result = await component.notifyActivity(request.body);
+
+	// Extract JWT from Authorization header for cross-node push deliveries (P5.3).
+	// Internal activities sent without a header still work — trustPayload will be undefined.
+	const extractedBearer = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
+	const trustPayload = Is.stringValue(extractedBearer) ? extractedBearer : undefined;
+	const result = await component.notifyActivity(request.body, trustPayload);
 
 	if (Is.string(result)) {
 		return {
 			headers: {
 				location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result}`
 			},
-			statusCode: HttpStatusCode.processing
+			statusCode: HttpStatusCode.accepted
 		};
 	}
 

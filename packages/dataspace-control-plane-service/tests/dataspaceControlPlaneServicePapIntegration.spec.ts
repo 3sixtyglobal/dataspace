@@ -96,10 +96,13 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 			dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>()
 		});
 
-		// Mock ContextIdStore to return test organization ID
+		// Caller-validation builds the caller's composite from
+		// node+tenant. This file's fixtures all use a bare DID
+		// (`did:iota:provider-node-xyz`) as the agreement assigner, so we pin
+		// the context to a single-tenant shape (no Tenant) and Node = same DID
+		// — making the composite collapse to the bare DID and line up.
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
-			[ContextIdKeys.Node]: "did:iota:test-node",
-			[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+			[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
 			[ContextIdKeys.User]: "did:iota:test-user"
 		});

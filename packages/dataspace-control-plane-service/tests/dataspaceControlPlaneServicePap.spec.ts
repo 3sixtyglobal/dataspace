@@ -87,11 +87,12 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		// Mock PAP retains its pre-initialized test agreements
 		// Individual tests can add more as needed
 
-		// Mock ContextIdStore to return test organization ID
+		// Caller composite is built from node+tenant context. Pin to
+		// single-tenant shape with Node = the DID used in all assigner fixtures
+		// below, so the composite collapses to the bare DID and matches.
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
-			[ContextIdKeys.Node]: "did:iota:test-node",
-			[ContextIdKeys.Tenant]: "did:iota:test-tenant",
-			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz", // Matches assigner in test agreements
+			[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
 			[ContextIdKeys.User]: "did:iota:test-user"
 		});
 	});

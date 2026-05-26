@@ -8,7 +8,7 @@ import {
 	type IActivityStreamNotifyRequest,
 	type IDataspaceDataPlaneComponent
 } from "@twin.org/dataspace-models";
-import { HttpStatusCode } from "@twin.org/web";
+import { HeaderTypes, HttpStatusCode } from "@twin.org/web";
 import {
 	activityStreamNotify,
 	generateRestRoutesDataspaceDataPlane
@@ -66,7 +66,9 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 	test("internal activity routes do not set skipAuth or skipTenant", () => {
 		const routes = generateRestRoutesDataspaceDataPlane(BASE_ROUTE, COMPONENT_NAME);
 
-		const internalOperationIds = ["activityStreamNotify", "dataspaceDataPlaneGetActivityLogEntry"];
+		// /inbox (activityStreamNotify) is intentionally public (skipAuth/skipTenant) to allow
+		// cross-node push deliveries. Only the activity-log route is internal here.
+		const internalOperationIds = ["dataspaceDataPlaneGetActivityLogEntry"];
 
 		for (const operationId of internalOperationIds) {
 			const route = routes.find(r => r.operationId === operationId);
@@ -76,7 +78,7 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 		}
 	});
 
-	test("activityStreamNotify returns 102 with location when processing is queued", async () => {
+	test("activityStreamNotify returns 202 with location when processing is queued", async () => {
 		const mockComponent: Pick<IDataspaceDataPlaneComponent, "notifyActivity"> & {
 			className(): string;
 		} = {
@@ -93,7 +95,7 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 			ACTIVITY_NOTIFY_REQUEST
 		);
 
-		expect(response.statusCode).toBe(HttpStatusCode.processing);
+		expect(response.statusCode).toBe(HttpStatusCode.accepted);
 		expect(response.headers?.location).toBe(
 			`${BASE_ROUTE}/activity-logs/urn:x-activity-log:queued-1`
 		);
@@ -129,5 +131,50 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 		expect(response.statusCode).toBe(HttpStatusCode.created);
 		expect(response.headers?.location).toBe(`${BASE_ROUTE}/activity-logs/${inlineLogEntry.id}`);
 		expect(response.body).toEqual(inlineLogEntry);
+	});
+
+	test("activityStreamNotify passes Bearer token as trustPayload to notifyActivity", async () => {
+		const notifyFn = vi.fn().mockResolvedValue("urn:x-activity-log:bearer-1");
+		const mockComponent: Pick<IDataspaceDataPlaneComponent, "notifyActivity"> & {
+			className(): string;
+		} = {
+			className: () => "MockDataspaceDataPlane",
+			notifyActivity: notifyFn
+		};
+		vi.spyOn(ComponentFactory, "get").mockReturnValue(mockComponent);
+
+		const requestWithAuth: IActivityStreamNotifyRequest = {
+			headers: { [HeaderTypes.Authorization]: "Bearer my-test-jwt" },
+			body: ACTIVITY_NOTIFY_REQUEST.body
+		};
+
+		await activityStreamNotify(
+			BASE_ROUTE,
+			{} as IHttpRequestContext,
+			COMPONENT_NAME,
+			requestWithAuth
+		);
+
+		expect(notifyFn).toHaveBeenCalledWith(requestWithAuth.body, "my-test-jwt");
+	});
+
+	test("activityStreamNotify passes undefined trustPayload when no Authorization header", async () => {
+		const notifyFn = vi.fn().mockResolvedValue("urn:x-activity-log:no-auth-1");
+		const mockComponent: Pick<IDataspaceDataPlaneComponent, "notifyActivity"> & {
+			className(): string;
+		} = {
+			className: () => "MockDataspaceDataPlane",
+			notifyActivity: notifyFn
+		};
+		vi.spyOn(ComponentFactory, "get").mockReturnValue(mockComponent);
+
+		await activityStreamNotify(
+			BASE_ROUTE,
+			{} as IHttpRequestContext,
+			COMPONENT_NAME,
+			ACTIVITY_NOTIFY_REQUEST
+		);
+
+		expect(notifyFn).toHaveBeenCalledWith(ACTIVITY_NOTIFY_REQUEST.body, undefined);
 	});
 });

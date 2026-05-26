@@ -58,9 +58,10 @@ export interface ITransferContext {
 	providerIdentity?: string;
 
 	/**
-	 * Data address for push mode transfers.
-	 * Contains endpoint information where data should be pushed (for Activity Stream push mode).
-	 * Only present when format is Http-Push-Activity-Stream-Format or Http-Post-Activity-Stream-Format.
+	 * Data address for consumer-initiated push transfers (HttpProxy-PUSH).
+	 * Contains the consumer's /inbox endpoint as supplied in the TransferRequestMessage.
+	 * Absent for PULL (HttpProxy-PULL) and provider-initiated push (HttpProxy-POST),
+	 * where the consumer deliberately omits a dataAddress.
 	 */
 	dataAddress?: IDataspaceProtocolDataAddress;
 }

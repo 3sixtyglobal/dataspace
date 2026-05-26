@@ -25,10 +25,13 @@ import {
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IDataRequest,
-	type IDataspaceActivity
+	type IDataspaceActivity,
+	type IFollowActivity,
+	type IPushDeliveryPayload,
+	type IUndoActivity
 } from "@twin.org/dataspace-models";
 import { TestDataspaceDataPlaneApp } from "@twin.org/dataspace-test-app";
-import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
+import { ComparisonOperator, EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { ModuleHelper } from "@twin.org/modules";
@@ -36,7 +39,8 @@ import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolDataTypes,
-	DataspaceProtocolTransferProcessStateType
+	DataspaceProtocolTransferProcessStateType,
+	type IDataspaceProtocolDataset
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -55,6 +59,7 @@ import {
 import { DataspaceDataPlaneService } from "../src/dataspaceDataPlaneService.js";
 import type { ActivityLogDetails } from "../src/entities/activityLogDetails.js";
 import type { ActivityTask } from "../src/entities/activityTask.js";
+import type { PushSubscription } from "../src/entities/pushSubscription.js";
 import type { IDataspaceDataPlaneServiceConstructorOptions } from "../src/models/IDataspaceDataPlaneServiceConstructorOptions.js";
 import { initSchema } from "../src/schema.js";
 
@@ -181,6 +186,7 @@ describe("DataspaceDataPlaneService", () => {
 	let activityTaskStorage: MemoryEntityStorageConnector<ActivityTask>;
 	let backgroundTaskStorage: MemoryEntityStorageConnector<BackgroundTask>;
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
+	let pushSubscriptionStorage: MemoryEntityStorageConnector<PushSubscription>;
 	let dataspaceAppDatasetStorage: MemoryEntityStorageConnector<DataspaceAppDataset>;
 	let backgroundTaskService: BackgroundTaskService;
 	let taskScheduler: TaskSchedulerService;
@@ -270,6 +276,8 @@ describe("DataspaceDataPlaneService", () => {
 			EntitySchemaHelper.getSchema(TransferProcess)
 		);
 
+		// PushSubscription schema is registered by initSchema() above
+
 		// Load all JSON-LD contexts
 		await addAllContextsToDocumentCache();
 
@@ -343,6 +351,14 @@ describe("DataspaceDataPlaneService", () => {
 			() => transferProcessStorage
 		);
 
+		pushSubscriptionStorage = new MemoryEntityStorageConnector<PushSubscription>({
+			entitySchema: nameof<PushSubscription>()
+		});
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<PushSubscription>(),
+			() => pushSubscriptionStorage
+		);
+
 		EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
 			EntitySchemaHelper.getSchema(DataspaceAppDataset)
 		);
@@ -355,7 +371,7 @@ describe("DataspaceDataPlaneService", () => {
 		);
 
 		// Mock context IDs (only Node is needed for TestDataspaceDataPlaneApp.start())
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -411,6 +427,13 @@ describe("DataspaceDataPlaneService", () => {
 			}
 		}
 
+		const allPushSubscriptions = await pushSubscriptionStorage.query();
+		for (const sub of allPushSubscriptions.entities) {
+			if (sub.consumerPid) {
+				await pushSubscriptionStorage.remove(sub.consumerPid);
+			}
+		}
+
 		const allDataspaceAppDatasets = await dataspaceAppDatasetStorage.query();
 		for (const dataset of allDataspaceAppDatasets.entities) {
 			if (dataset.id) {
@@ -436,7 +459,8 @@ describe("DataspaceDataPlaneService", () => {
 			loggingComponentType: "logging",
 			backgroundTaskComponentType: "background-task",
 			taskSchedulerComponentType: "task-scheduler",
-			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+			pushSubscriptionEntityStorageType: nameofKebabCase<PushSubscription>()
 		};
 		backgroundTaskModeEnabled = false;
 	});
@@ -450,9 +474,1149 @@ describe("DataspaceDataPlaneService", () => {
 		EntityStorageConnectorFactory.clear();
 	});
 
+	// ============================================================================
+	// Push subscription lifecycle tests (Phase 3)
+	// ============================================================================
+
+	describe("setupPushSubscription()", () => {
+		test("creates PushSubscription with Active status and calls app.subscribeToData", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			const subscribeCalls: IFollowActivity[] = [];
+			const mockApp = {
+				className: () => "MockApp",
+				datasetsHandled: async () =>
+					[
+						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
+					] as unknown as IDataspaceProtocolDataset[],
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => [],
+				subscribeToData: async (activity: IFollowActivity) => {
+					subscribeCalls.push(activity);
+				}
+			};
+			DataspaceAppFactory.register("mock-push-app", () => mockApp);
+
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: SERVICE_DATASET_ID,
+				nodeIdentity: TEST_NODE_IDENTITY,
+				appId: "mock-push-app",
+				dataset: { "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" },
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			await service.setupPushSubscription(TEST_CONSUMER_PID);
+
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored).toBeDefined();
+			expect(stored?.paused).toBe(false);
+			expect(stored?.followActivityId).toMatch(/^urn:x-follow:/);
+
+			expect(subscribeCalls).toHaveLength(1);
+			expect(subscribeCalls[0].type).toBe("Follow");
+			expect(subscribeCalls[0].generator).toBe(TEST_CONSUMER_PID);
+		});
+
+		test("captures tenantId from ContextIdStore at setup time", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			DataspaceAppFactory.register("mock-tenant-capture-app", () => ({
+				className: () => "MockApp",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => []
+			}));
+
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: SERVICE_DATASET_ID,
+				nodeIdentity: TEST_NODE_IDENTITY,
+				appId: "mock-tenant-capture-app",
+				dataset: { "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" },
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			// Override the beforeEach mock for this test — emulate a tenant-aware request context.
+			const tenantA = "did:iota:tenant-a";
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+				[ContextIdKeys.Tenant]: tenantA
+			});
+
+			await service.setupPushSubscription(TEST_CONSUMER_PID);
+
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.tenantId).toBe(tenantA);
+		});
+
+		test("leaves tenantId undefined when no Tenant in ContextIdStore", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			DataspaceAppFactory.register("mock-no-tenant-app", () => ({
+				className: () => "MockApp",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => []
+			}));
+
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: SERVICE_DATASET_ID,
+				nodeIdentity: TEST_NODE_IDENTITY,
+				appId: "mock-no-tenant-app",
+				dataset: { "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" },
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			// Explicitly Node-only mock (single-tenant node case) — defensive against leakage from prior test.
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: TEST_NODE_IDENTITY
+			});
+
+			await service.setupPushSubscription(TEST_CONSUMER_PID);
+
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.tenantId).toBeUndefined();
+		});
+
+		test("rejects setup on multi-tenant publisher when consumer endpoint lacks x-enc-tenant-token", async () => {
+			const multiTenantOptions = {
+				...options,
+				partitionContextIds: [ContextIdKeys.Tenant]
+			};
+			const service = new DataspaceDataPlaneService(multiTenantOptions);
+
+			DataspaceAppFactory.register("mock-mt-reject-app", () => ({
+				className: () => "MockApp",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => []
+			}));
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			await expect(service.setupPushSubscription(TEST_CONSUMER_PID)).rejects.toMatchObject({
+				message: "dataspaceDataPlaneService.pushSubscriptionMissingTenantToken"
+			});
+		});
+
+		test("accepts setup on multi-tenant publisher when consumer endpoint carries x-enc-tenant-token", async () => {
+			const multiTenantOptions = {
+				...options,
+				partitionContextIds: [ContextIdKeys.Tenant]
+			};
+			const service = new DataspaceDataPlaneService(multiTenantOptions);
+
+			DataspaceAppFactory.register("mock-mt-accept-app", () => ({
+				className: () => "MockApp",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => []
+			}));
+
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: SERVICE_DATASET_ID,
+				nodeIdentity: TEST_NODE_IDENTITY,
+				appId: "mock-mt-accept-app",
+				dataset: { "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" },
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox?x-enc-tenant-token=stub-encrypted-value"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			await expect(service.setupPushSubscription(TEST_CONSUMER_PID)).resolves.toBeUndefined();
+		});
+
+		test("app.subscribeToData hook inherits the current tenant context (no manual wrap needed)", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			let hookTenantId: string | undefined;
+			DataspaceAppFactory.register("mock-hook-tenant-app", () => ({
+				className: () => "MockApp",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => [],
+				subscribeToData: async (activity: IFollowActivity) => {
+					const ctx = await ContextIdStore.getContextIds();
+					hookTenantId = ctx?.[ContextIdKeys.Tenant];
+				}
+			}));
+
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: SERVICE_DATASET_ID,
+				nodeIdentity: TEST_NODE_IDENTITY,
+				appId: "mock-hook-tenant-app",
+				dataset: { "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" },
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			const tenantC = "did:iota:tenant-c";
+			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+				[ContextIdKeys.Node]: TEST_NODE_IDENTITY,
+				[ContextIdKeys.Tenant]: tenantC
+			});
+
+			await service.setupPushSubscription(TEST_CONSUMER_PID);
+
+			expect(hookTenantId).toBe(tenantC);
+		});
+
+		test("accepts setup on single-tenant publisher without x-enc-tenant-token in endpoint", async () => {
+			// Default `options` has no partitionContextIds → single-tenant config; no token required.
+			const service = new DataspaceDataPlaneService(options);
+
+			DataspaceAppFactory.register("mock-st-app", () => ({
+				className: () => "MockApp",
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => []
+			}));
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			await expect(service.setupPushSubscription(TEST_CONSUMER_PID)).resolves.toBeUndefined();
+		});
+
+		test("works when app does not implement subscribeToData", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			DataspaceAppFactory.register("mock-no-subscribe-app", () => ({
+				className: () => "MockApp",
+				datasetsHandled: async () =>
+					[
+						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
+					] as unknown as IDataspaceProtocolDataset[],
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => []
+			}));
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			await expect(service.setupPushSubscription(TEST_CONSUMER_PID)).resolves.toBeUndefined();
+
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.paused).toBe(false);
+		});
+
+		test("throws NotFoundError when TransferProcess not found", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await expect(service.setupPushSubscription("urn:uuid:nonexistent")).rejects.toMatchObject({
+				name: "NotFoundError"
+			});
+		});
+
+		test("throws GeneralError when TransferProcess is not in STARTED state", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const transferProcess = createTestTransferProcess({
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			await expect(service.setupPushSubscription(TEST_CONSUMER_PID)).rejects.toMatchObject({
+				message: expect.stringContaining("transferNotInStartedState")
+			});
+		});
+
+		test("throws GeneralError when dataAddress endpoint is missing", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const transferProcess = createTestTransferProcess({ dataAddress: undefined });
+			await transferProcessStorage.set(transferProcess);
+
+			await expect(service.setupPushSubscription(TEST_CONSUMER_PID)).rejects.toMatchObject({
+				message: expect.stringContaining("transferMissingDataAddress")
+			});
+		});
+
+		test("calls compensating unsubscribeToData if storage write fails after subscribeToData succeeded", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			const subscribeCalls: IFollowActivity[] = [];
+			const unsubscribeCalls: IUndoActivity[] = [];
+			DataspaceAppFactory.register("mock-compensation-app", () => ({
+				className: () => "MockApp",
+				datasetsHandled: async () =>
+					[
+						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
+					] as unknown as IDataspaceProtocolDataset[],
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => [],
+				subscribeToData: async (activity: IFollowActivity) => {
+					subscribeCalls.push(activity);
+				},
+				unsubscribeToData: async (activity: IUndoActivity) => {
+					unsubscribeCalls.push(activity);
+				}
+			}));
+
+			const now = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: SERVICE_DATASET_ID,
+				nodeIdentity: TEST_NODE_IDENTITY,
+				appId: "mock-compensation-app",
+				dataset: { "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" },
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const transferProcess = createTestTransferProcess({
+				dataAddress: {
+					"@type": "DataAddress",
+					endpointType: "https",
+					endpoint: "https://consumer.example.com/inbox"
+				}
+			});
+			await transferProcessStorage.set(transferProcess);
+
+			// Force the storage write to fail after subscribeToData has succeeded.
+			const setSpy = vi
+				.spyOn(pushSubscriptionStorage, "set")
+				.mockRejectedValueOnce(new Error("storage write blew up"));
+
+			await expect(service.setupPushSubscription(TEST_CONSUMER_PID)).rejects.toThrow(
+				"storage write blew up"
+			);
+
+			// Compensating Undo must reference the same followActivityId so the app can match it.
+			expect(subscribeCalls).toHaveLength(1);
+			expect(unsubscribeCalls).toHaveLength(1);
+			expect(unsubscribeCalls[0].object).toBe(subscribeCalls[0].id);
+			expect(unsubscribeCalls[0].type).toBe("Undo");
+
+			setSpy.mockRestore();
+		});
+	});
+
+	describe("suspendPushSubscription()", () => {
+		test("flips status to Paused without calling any app method", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			const subscription: PushSubscription = {
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await pushSubscriptionStorage.set(subscription);
+
+			await service.suspendPushSubscription(TEST_CONSUMER_PID);
+
+			const updated = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(updated?.paused).toBe(true);
+		});
+
+		test("is a no-op when already Paused", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			const subscription: PushSubscription = {
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: true,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await pushSubscriptionStorage.set(subscription);
+
+			await expect(service.suspendPushSubscription(TEST_CONSUMER_PID)).resolves.toBeUndefined();
+		});
+
+		test("throws NotFoundError when subscription not found", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await expect(service.suspendPushSubscription("urn:uuid:nonexistent")).rejects.toMatchObject({
+				name: "NotFoundError"
+			});
+		});
+	});
+
+	describe("resumePushSubscription()", () => {
+		test("flips status back to Active", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			const subscription: PushSubscription = {
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: true,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await pushSubscriptionStorage.set(subscription);
+
+			await service.resumePushSubscription(TEST_CONSUMER_PID);
+
+			const updated = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(updated?.paused).toBe(false);
+		});
+
+		test("is a no-op when already active", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			const subscription: PushSubscription = {
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await pushSubscriptionStorage.set(subscription);
+
+			await expect(service.resumePushSubscription(TEST_CONSUMER_PID)).resolves.toBeUndefined();
+		});
+
+		test("throws NotFoundError when subscription not found", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await expect(service.resumePushSubscription("urn:uuid:nonexistent")).rejects.toMatchObject({
+				name: "NotFoundError"
+			});
+		});
+	});
+
+	describe("teardownPushSubscription()", () => {
+		test("calls app.unsubscribeToData with matching followActivityId and deletes subscription", async () => {
+			const service = new DataspaceDataPlaneService(options);
+
+			const undoCalls: IUndoActivity[] = [];
+			DataspaceAppFactory.register("mock-teardown-app", () => ({
+				className: () => "MockApp",
+				datasetsHandled: async () =>
+					[
+						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
+					] as unknown as IDataspaceProtocolDataset[],
+				activitiesHandled: () => [],
+				supportedQueryTypes: () => [],
+				unsubscribeToData: async (activity: IUndoActivity) => {
+					undoCalls.push(activity);
+				}
+			}));
+
+			const teardownNow = new Date().toISOString();
+			await dataspaceAppDatasetStorage.set({
+				id: SERVICE_DATASET_ID,
+				nodeIdentity: TEST_NODE_IDENTITY,
+				appId: "mock-teardown-app",
+				dataset: { "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" },
+				dateCreated: teardownNow,
+				dateModified: teardownNow
+			});
+
+			const followActivityId = "urn:x-follow:abc123";
+			const subscription: PushSubscription = {
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId,
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await pushSubscriptionStorage.set(subscription);
+
+			await service.teardownPushSubscription(TEST_CONSUMER_PID);
+
+			expect(undoCalls).toHaveLength(1);
+			expect(undoCalls[0].type).toBe("Undo");
+			expect(undoCalls[0].object).toBe(followActivityId);
+
+			const deleted = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(deleted).toBeUndefined();
+		});
+
+		test("is a no-op (no throw) when subscription not found", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await expect(
+				service.teardownPushSubscription("urn:uuid:nonexistent")
+			).resolves.toBeUndefined();
+		});
+	});
+
+	describe("start() — handler registration", () => {
+		test("registers push-delivery handler before engine clone check", async () => {
+			await startBackgroundTaskService();
+			const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
+
+			const service = new DataspaceDataPlaneService(options);
+			await service.start();
+
+			const pushDeliveryCall = registerHandlerSpy.mock.calls.find(
+				call => call[0] === DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE
+			);
+			expect(pushDeliveryCall).toBeDefined();
+			expect(pushDeliveryCall?.[2]).toBe("pushDeliveryRunner");
+			expect(pushDeliveryCall?.[4]).toMatchObject({
+				initialiseMethod: "pushDeliveryRunnerStart",
+				shutdownMethod: "pushDeliveryRunnerEnd",
+				idleShutdownTimeout: -1
+			});
+		});
+	});
+
+	describe("processOutboxActivity()", () => {
+		function seedActiveSubscription(): PushSubscription {
+			return {
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:abc",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+		}
+
+		test("schedules push-delivery background task for active subscription", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: TEST_CONSUMER_PID,
+				object: { "@type": "SomeEntity", "@id": "urn:x:1" }
+			} as unknown as IActivityStreamsActivity;
+
+			await service.processOutboxActivity(activity);
+
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(1);
+			const task = tasks.entities[0];
+			expect(task.type).toBe("push-delivery");
+			const payload = task.payload as IPushDeliveryPayload;
+			expect(payload.consumerPid).toBe(TEST_CONSUMER_PID);
+			expect(payload.generatorPid).toBe(TEST_PROVIDER_PID);
+			expect(payload.consumerEndpoint).toBe("https://consumer.example.com/inbox");
+			expect(payload.pushTimeoutMs).toBe(30000);
+		});
+
+		test("packages custom pushTimeoutMs from config into payload", async () => {
+			const service = new DataspaceDataPlaneService({
+				...options,
+				config: { pushTimeoutMs: 5000 }
+			});
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: TEST_CONSUMER_PID,
+				object: {}
+			} as unknown as IActivityStreamsActivity;
+
+			await service.processOutboxActivity(activity);
+
+			const tasks = await backgroundTaskStorage.query();
+			const payload = tasks.entities[0].payload as IPushDeliveryPayload;
+			expect(payload.pushTimeoutMs).toBe(5000);
+		});
+
+		test("resolves without task when activity.to is missing", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				object: {}
+			} as unknown as IActivityStreamsActivity;
+			await expect(service.processOutboxActivity(activity)).resolves.toBeUndefined();
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(0);
+		});
+
+		test("throws GeneralError when activity.to has multiple recipients", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: [TEST_CONSUMER_PID, "urn:uuid:another-consumer"] as unknown as string,
+				object: {}
+			} as unknown as IActivityStreamsActivity;
+			await expect(service.processOutboxActivity(activity)).rejects.toMatchObject({
+				message: expect.stringContaining("processOutboxActivityMultipleTo")
+			});
+		});
+
+		test("accepts activity.to as single-element array", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: [TEST_CONSUMER_PID] as unknown as string,
+				object: { "@type": "SomeEntity", "@id": "urn:x:1" }
+			} as unknown as IActivityStreamsActivity;
+
+			await service.processOutboxActivity(activity);
+
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(1);
+		});
+
+		test("resolves without task when subscription not found", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: "urn:uuid:unknown-consumer",
+				object: {}
+			} as unknown as IActivityStreamsActivity;
+			await expect(service.processOutboxActivity(activity)).resolves.toBeUndefined();
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(0);
+		});
+
+		test("resolves without task when subscription is Paused", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const paused = seedActiveSubscription();
+			paused.paused = true;
+			await pushSubscriptionStorage.set(paused);
+
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: TEST_CONSUMER_PID,
+				object: {}
+			} as unknown as IActivityStreamsActivity;
+
+			await expect(service.processOutboxActivity(activity)).resolves.toBeUndefined();
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(0);
+		});
+
+		test("resolves without task when TransferProcess is not STARTED", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(
+				createTestTransferProcess({
+					state: DataspaceProtocolTransferProcessStateType.COMPLETED
+				})
+			);
+
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: TEST_CONSUMER_PID,
+				object: {}
+			} as unknown as IActivityStreamsActivity;
+
+			await expect(service.processOutboxActivity(activity)).resolves.toBeUndefined();
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(0);
+		});
+
+		test("wraps string IRI object in @id rather than dropping it", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: TEST_CONSUMER_PID,
+				object: "urn:example:entity:abc"
+			} as unknown as IActivityStreamsActivity;
+
+			await service.processOutboxActivity(activity);
+
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(1);
+			const payload = tasks.entities[0].payload as IPushDeliveryPayload;
+			expect(payload.data).toEqual({ "@id": "urn:example:entity:abc" });
+			expect(payload.entityType).toBe("");
+		});
+
+		test("delivers after suspend-then-resume cycle (paused → active)", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			// Suspend: paused becomes true
+			await service.suspendPushSubscription(TEST_CONSUMER_PID);
+			let sub = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(sub?.paused).toBe(true);
+
+			// Resume: paused becomes false
+			await service.resumePushSubscription(TEST_CONSUMER_PID);
+			sub = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(sub?.paused).toBe(false);
+
+			// Delivery should now be scheduled
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: TEST_CONSUMER_PID,
+				object: { "@type": "SomeEntity", "@id": "urn:x:round-trip" }
+			} as unknown as IActivityStreamsActivity;
+
+			await service.processOutboxActivity(activity);
+
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(1);
+			expect((tasks.entities[0].payload as IPushDeliveryPayload).consumerPid).toBe(
+				TEST_CONSUMER_PID
+			);
+		});
+
+		test("skips delivery when paused, no task is queued", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const sub = seedActiveSubscription();
+			sub.paused = true;
+			await pushSubscriptionStorage.set(sub);
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const activity: IActivityStreamsActivity = {
+				type: "Create",
+				to: TEST_CONSUMER_PID,
+				object: {}
+			} as unknown as IActivityStreamsActivity;
+
+			await service.processOutboxActivity(activity);
+
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities).toHaveLength(0);
+		});
+	});
+
+	describe("PushSubscription paused flag", () => {
+		test("setupPushSubscription stores paused=false", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await transferProcessStorage.set(
+				createTestTransferProcess({
+					dataAddress: {
+						"@type": "DataAddress",
+						endpointType: "https",
+						endpoint: "https://consumer.example.com/inbox"
+					}
+				})
+			);
+
+			await service.setupPushSubscription(TEST_CONSUMER_PID);
+
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.paused).toBe(false);
+		});
+
+		test("suspendPushSubscription sets paused=true", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set({
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:flag-test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			await service.suspendPushSubscription(TEST_CONSUMER_PID);
+
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.paused).toBe(true);
+		});
+
+		test("resumePushSubscription sets paused=false", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set({
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:flag-test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: true,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			await service.resumePushSubscription(TEST_CONSUMER_PID);
+
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.paused).toBe(false);
+		});
+
+		test("suspendPushSubscription is no-op when already paused=true", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set({
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:flag-test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: true,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			await expect(service.suspendPushSubscription(TEST_CONSUMER_PID)).resolves.toBeUndefined();
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.paused).toBe(true);
+		});
+
+		test("resumePushSubscription is no-op when already paused=false", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set({
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:flag-test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			await expect(service.resumePushSubscription(TEST_CONSUMER_PID)).resolves.toBeUndefined();
+			const stored = await pushSubscriptionStorage.get(TEST_CONSUMER_PID);
+			expect(stored?.paused).toBe(false);
+		});
+	});
+
+	describe("cleanupOrphanedPushSubscriptions() — P6.10", () => {
+		function seedActiveSubscription(): PushSubscription {
+			return {
+				consumerPid: TEST_CONSUMER_PID,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: "urn:x-follow:cleanup-test",
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+		}
+
+		test("deletes orphaned PushSubscription when TransferProcess is COMPLETED", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(
+				createTestTransferProcess({
+					state: DataspaceProtocolTransferProcessStateType.COMPLETED
+				})
+			);
+
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			const remaining = await pushSubscriptionStorage.query();
+			expect(remaining.entities).toHaveLength(0);
+		});
+
+		test("deletes orphaned PushSubscription when TransferProcess is TERMINATED", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(
+				createTestTransferProcess({
+					state: DataspaceProtocolTransferProcessStateType.TERMINATED
+				})
+			);
+
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			const remaining = await pushSubscriptionStorage.query();
+			expect(remaining.entities).toHaveLength(0);
+		});
+
+		test("deletes orphaned PushSubscription when TransferProcess is absent", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			// No TransferProcess seeded — simulates orphan
+
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			const remaining = await pushSubscriptionStorage.query();
+			expect(remaining.entities).toHaveLength(0);
+		});
+
+		test("preserves PushSubscription when TransferProcess is STARTED", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			await pushSubscriptionStorage.set(seedActiveSubscription());
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			const remaining = await pushSubscriptionStorage.query();
+			expect(remaining.entities).toHaveLength(1);
+		});
+
+		test("uses a single bulk query per page instead of one get per subscription", async () => {
+			const makeSubscription = (consumerPid: string): PushSubscription => ({
+				consumerPid,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: `urn:x-follow:${consumerPid}`,
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			await pushSubscriptionStorage.set(makeSubscription("urn:uuid:sub-1"));
+			await pushSubscriptionStorage.set(makeSubscription("urn:uuid:sub-2"));
+			await pushSubscriptionStorage.set(makeSubscription("urn:uuid:sub-3"));
+			await transferProcessStorage.set(
+				createTestTransferProcess({ consumerPid: "urn:uuid:sub-1" })
+			);
+			// sub-2 and sub-3 have no matching TransferProcess — orphans
+
+			const querySpy = vi.spyOn(transferProcessStorage, "query");
+
+			const service = new DataspaceDataPlaneService(options);
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			// One bulk query with ComparisonOperator.In replaces three individual .get() calls
+			expect(querySpy).toHaveBeenCalledTimes(1);
+			const bulkCall = querySpy.mock.calls[0][0] as { comparison: string; value: string[] };
+			expect(bulkCall.comparison).toBe(ComparisonOperator.In);
+			expect(bulkCall.value).toEqual(
+				expect.arrayContaining(["urn:uuid:sub-1", "urn:uuid:sub-2", "urn:uuid:sub-3"])
+			);
+
+			// sub-1 (STARTED) preserved; sub-2 and sub-3 (orphans) deleted
+			const remaining = await pushSubscriptionStorage.query();
+			expect(remaining.entities).toHaveLength(1);
+			expect((remaining.entities[0] as PushSubscription).consumerPid).toBe("urn:uuid:sub-1");
+		});
+
+		test("completes all pagination before deleting any subscription (cursor-drift safety)", async () => {
+			// Simulate two pages: sub-a on page 1, sub-b on page 2 — both orphans
+			const makeSubscription = (consumerPid: string): PushSubscription => ({
+				consumerPid,
+				providerPid: TEST_PROVIDER_PID,
+				followActivityId: `urn:x-follow:${consumerPid}`,
+				datasetId: SERVICE_DATASET_ID,
+				consumerEndpoint: "https://consumer.example.com/inbox",
+				paused: false,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const subA = makeSubscription("urn:uuid:cursor-a");
+			const subB = makeSubscription("urn:uuid:cursor-b");
+
+			const callOrder: string[] = [];
+
+			// Mock subscription query to simulate two pages
+			let queryCallCount = 0;
+			vi.spyOn(pushSubscriptionStorage, "query").mockImplementation(async () => {
+				queryCallCount++;
+				callOrder.push(`subscriptionQuery-${queryCallCount}`);
+				if (queryCallCount === 1) {
+					return { entities: [subA], cursor: "page-2-cursor" };
+				}
+				return { entities: [subB], cursor: undefined };
+			});
+
+			// Mock get so teardownPushSubscription can find each subscription
+			vi.spyOn(pushSubscriptionStorage, "get").mockImplementation(async pid => {
+				if (pid === "urn:uuid:cursor-a") {
+					return subA;
+				}
+				if (pid === "urn:uuid:cursor-b") {
+					return subB;
+				}
+				return undefined;
+			});
+
+			// Mock TP query: no matching TPs — all orphans
+			vi.spyOn(transferProcessStorage, "query").mockResolvedValue({ entities: [] });
+
+			// Spy on remove to track when deletes happen
+			vi.spyOn(pushSubscriptionStorage, "remove").mockImplementation(async pid => {
+				callOrder.push(`remove:${pid}`);
+			});
+
+			const service = new DataspaceDataPlaneService(options);
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			// Two-pass: both query pages complete before any remove fires
+			expect(callOrder).toEqual([
+				"subscriptionQuery-1",
+				"subscriptionQuery-2",
+				"remove:urn:uuid:cursor-a",
+				"remove:urn:uuid:cursor-b"
+			]);
+		});
+
+		test("multi-tenant cleanup iterates each registered tenant and runs partition cleanup per tenant", async () => {
+			// Configure service in multi-tenant mode (partitionContextIds includes Tenant).
+			// Register a mock tenantAdmin that returns two tenants in one page.
+			const tenantA = "did:iota:tenant-a-mt";
+			const tenantB = "did:iota:tenant-b-mt";
+			const tenantAdminQuery = vi.fn().mockResolvedValue({
+				tenants: [{ id: tenantA }, { id: tenantB }],
+				cursor: undefined
+			});
+			const mockTenantAdmin = {
+				className: () => "MockTenantAdmin",
+				query: tenantAdminQuery
+			};
+			ComponentFactory.register("test-tenant-admin-mt", () => mockTenantAdmin);
+
+			const service = new DataspaceDataPlaneService({
+				...options,
+				partitionContextIds: [ContextIdKeys.Tenant],
+				tenantAdminType: "test-tenant-admin-mt"
+			});
+
+			// Spy on the partition body and capture the tenant context it ran under.
+			const observedTenants: (string | undefined)[] = [];
+			const partitionTarget: {
+				cleanupOrphanedPushSubscriptionsPartition: () => Promise<number>;
+			} = service as unknown as {
+				cleanupOrphanedPushSubscriptionsPartition: () => Promise<number>;
+			};
+			const partitionSpy = vi
+				.spyOn(partitionTarget, "cleanupOrphanedPushSubscriptionsPartition")
+				.mockImplementation(async () => {
+					const ctx = await ContextIdStore.getContextIds();
+					observedTenants.push(ctx?.[ContextIdKeys.Tenant]);
+					return 0;
+				});
+
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			expect(tenantAdminQuery).toHaveBeenCalledTimes(1);
+			expect(partitionSpy).toHaveBeenCalledTimes(2);
+			expect(observedTenants).toEqual([tenantA, tenantB]);
+		});
+
+		test("multi-tenant cleanup isolates failures: one bad tenant does not poison the rest", async () => {
+			const tenantBad = "did:iota:tenant-bad";
+			const tenantGood = "did:iota:tenant-good";
+			const tenantAdminQuery = vi.fn().mockResolvedValue({
+				tenants: [{ id: tenantBad }, { id: tenantGood }],
+				cursor: undefined
+			});
+			const mockTenantAdmin = {
+				className: () => "MockTenantAdmin",
+				query: tenantAdminQuery
+			};
+			ComponentFactory.register("test-tenant-admin-mt-fail", () => mockTenantAdmin);
+
+			const service = new DataspaceDataPlaneService({
+				...options,
+				partitionContextIds: [ContextIdKeys.Tenant],
+				tenantAdminType: "test-tenant-admin-mt-fail"
+			});
+
+			const observedTenants: (string | undefined)[] = [];
+			const partitionTarget: {
+				cleanupOrphanedPushSubscriptionsPartition: () => Promise<number>;
+			} = service as unknown as {
+				cleanupOrphanedPushSubscriptionsPartition: () => Promise<number>;
+			};
+			const partitionSpy = vi
+				.spyOn(partitionTarget, "cleanupOrphanedPushSubscriptionsPartition")
+				.mockImplementation(async () => {
+					const ctx = await ContextIdStore.getContextIds();
+					const tenant = ctx?.[ContextIdKeys.Tenant];
+					observedTenants.push(tenant);
+					if (tenant === tenantBad) {
+						throw new Error("transient storage failure for tenant-bad");
+					}
+					return 0;
+				});
+
+			// The whole cleanup pass should resolve cleanly — the bad tenant's failure is
+			// logged and swallowed; the good tenant still runs.
+			await expect(
+				(
+					service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+				).cleanupOrphanedPushSubscriptions()
+			).resolves.toBeUndefined();
+
+			// Both tenants must have been attempted, even though tenantBad threw.
+			expect(partitionSpy).toHaveBeenCalledTimes(2);
+			expect(observedTenants).toEqual([tenantBad, tenantGood]);
+		});
+	});
+
 	test("getDataAssetEntities() uses consumerPid flow", async () => {
 		// Mock context to provide both Node and Organization identity (needed for test app)
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -487,7 +1651,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("queryDataAsset() uses consumerPid flow", async () => {
 		// Mock context to provide both Node and Organization identity (needed for test app)
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -591,7 +1755,7 @@ describe("DataspaceDataPlaneService", () => {
 		await startBackgroundTaskService();
 
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -642,7 +1806,7 @@ describe("DataspaceDataPlaneService", () => {
 		await startBackgroundTaskService();
 
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -671,7 +1835,7 @@ describe("DataspaceDataPlaneService", () => {
 		await startBackgroundTaskService();
 
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -800,12 +1964,98 @@ describe("DataspaceDataPlaneService", () => {
 	});
 
 	// ============================================
+	// Push Auth Tests (Phase 5)
+	// ============================================
+
+	describe("notifyActivity() — push auth", () => {
+		function makePushAuthActivity(generatorPid: string): IActivityStreamsActivity {
+			return {
+				"@context": "https://www.w3.org/ns/activitystreams",
+				type: "Create",
+				generator: generatorPid,
+				object: {
+					"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+					type: "Consignment",
+					globalId: "24KEP051219453I002610796"
+				},
+				updated: new Date().toISOString()
+			} as unknown as IActivityStreamsActivity;
+		}
+
+		function makeTrustComponent(identity: string): ITrustComponent {
+			return {
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({ verified: true, info: { identity } }),
+				generate: vi.fn()
+			};
+		}
+
+		test("accepts activity when JWT is valid and identity matches a transfer party", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			// Auth passes — activity is accepted and a log entry ID is returned.
+			// Background task service not started so no async processing fires.
+			const result = await service.notifyActivity(
+				makePushAuthActivity(TEST_CONSUMER_PID),
+				"Bearer test-token"
+			);
+			expect(Is.stringValue(result)).toBe(true);
+			const logEntry = await service.getActivityLogEntry(result as string);
+			expect(logEntry.generator).toBe(TEST_CONSUMER_PID);
+		});
+
+		test("rejects when JWT verification fails", async () => {
+			ComponentFactory.register("trust", () => ({
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({ verified: false, errors: [] }),
+				generate: vi.fn()
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			await expect(
+				service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer bad-token")
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("rejects when no matching STARTED transfer exists for generator", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			// No TransferProcess seeded — any generatorPid will fail the lookup
+			await expect(
+				service.notifyActivity(
+					makePushAuthActivity("urn:uuid:unknown-generator"),
+					"Bearer test-token"
+				)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("rejects when JWT identity does not match either transfer party", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token")
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+	});
+
+	// ============================================
 	// Restored Data Asset Entity Tests
 	// ============================================
 
 	test("It should get data asset entities by entity type", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -836,7 +2086,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("It should get data asset entities by entity type with LD Context", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -868,7 +2118,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("It should get data asset entities by entity type - no entities", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -900,7 +2150,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("It should get data asset entities by entity id", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -936,7 +2186,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("It should query data asset if query type is supported", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -965,7 +2215,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("It should throw unprocessable if query type is not supported", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1003,7 +2253,7 @@ describe("DataspaceDataPlaneService", () => {
 		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
 
 		// Mock context (Node only needed for test app)
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1044,7 +2294,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("It should throw error if non qualified type is provided", async () => {
 		// Ensure context IDs are set
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1074,7 +2324,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("It should throw error if unexpandable type is provided", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1113,7 +2363,7 @@ describe("DataspaceDataPlaneService", () => {
 	// ============================================
 
 	test("cleanupActivityLog uses tenant admin pagination for tenant partitions", async () => {
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1160,7 +2410,7 @@ describe("DataspaceDataPlaneService", () => {
 	});
 
 	test("cleanupActivityLog skips partition cleanup when tenant admin returns no tenants", async () => {
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1197,7 +2447,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Service matches app by dataset @id", async () => {
 		// Ensure context IDs are set
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1232,7 +2482,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Dataset-centric data requests use IDataset", async () => {
 		// Ensure context IDs are set
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1284,7 +2534,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Query type validation against app's supportedQueryTypes()", async () => {
 		// Ensure context IDs are set
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1327,7 +2577,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Pagination cursor is passed through to app", async () => {
 		// Ensure context IDs are set
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1384,7 +2634,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("No Link header when cursor is undefined", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1422,7 +2672,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Link header present when cursor exists", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1478,7 +2728,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Link header format is RFC 8288 compliant", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1536,7 +2786,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Cursor NOT in response body", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1595,7 +2845,7 @@ describe("DataspaceDataPlaneService", () => {
 
 	test("Pagination flow with Link header for queryDataAsset", async () => {
 		// Ensure context IDs are set for test app
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1688,7 +2938,7 @@ describe("DataspaceDataPlaneService", () => {
 	test("It should allow resubmission of activity that previously resulted in error", async () => {
 		await startBackgroundTaskService();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1785,7 +3035,7 @@ describe("DataspaceDataPlaneService", () => {
 	test("It should reject resubmission if activity is still processing", async () => {
 		await startBackgroundTaskService();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1859,7 +3109,7 @@ describe("DataspaceDataPlaneService", () => {
 	test("It should reject resubmission if all tasks completed successfully", async () => {
 		await startBackgroundTaskService();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -1924,7 +3174,7 @@ describe("DataspaceDataPlaneService", () => {
 				processingGroupId: undefined
 			}));
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
@@ -1978,7 +3228,7 @@ describe("DataspaceDataPlaneService", () => {
 			return originalHandleActivity.call(testApp, activity) as Promise<T>;
 		};
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
@@ -2026,7 +3276,7 @@ describe("DataspaceDataPlaneService", () => {
 			notifications.push(notification);
 		});
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 		const testApp = new TestDataspaceDataPlaneApp();
@@ -2076,7 +3326,7 @@ describe("DataspaceDataPlaneService", () => {
 			return originalHandleActivity.call(testApp, activity) as Promise<T>;
 		};
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
@@ -2110,7 +3360,7 @@ describe("DataspaceDataPlaneService", () => {
 	test("Processing group runs tasks in parallel when concurrentTasks is greater than one", async () => {
 		await startBackgroundTaskService();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -2188,7 +3438,7 @@ describe("DataspaceDataPlaneService", () => {
 	test("Processing group forwards idleShutdownTimeout to background task handler", async () => {
 		await startBackgroundTaskService();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -2233,7 +3483,7 @@ describe("DataspaceDataPlaneService", () => {
 	test("Processing group leaves idleShutdownTimeout undefined when not configured", async () => {
 		await startBackgroundTaskService();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -2272,7 +3522,7 @@ describe("DataspaceDataPlaneService", () => {
 		).execModuleMethodThreadMessage;
 		threadFactoryMock.mockClear();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
@@ -2331,7 +3581,7 @@ describe("DataspaceDataPlaneService", () => {
 		).execModuleMethodThreadMessage;
 		threadFactoryMock.mockClear();
 
-		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 

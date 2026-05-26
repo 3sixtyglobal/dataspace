@@ -13,16 +13,34 @@
 			"transferProcessNotFound": "Transfer Process not found for consumerPid \"{notFoundId}\"",
 			"transferNotInStartedState": "Transfer Process is not in STARTED state. Current state: \"{currentState}\"",
 			"transferMissingDatasetId": "Transfer Process is missing datasetId",
+			"transferMissingDataAddress": "Transfer Process is missing a valid push dataAddress endpoint (consumerPid: {consumerPid})",
+			"pushSubscriptionMissingTenantToken": "Push subscription setup rejected: consumer endpoint does not carry an `x-enc-tenant-token` query parameter (consumerPid: {consumerPid}, endpoint: {endpoint}). On multi-tenant publishers the consumer must bake its tenant token before sending the dataAddress.",
+			"pushSubscriptionStorageNotRegistered": "Push-mode transfer requires push-subscription storage to be registered (entity-storage key: \"push-subscription\"). This deployment was configured without it — register the storage to enable push, or use pull-mode transfers only.",
 			"schemaNotFound": "Schema \"{schemaId}\" not found",
 			"cleanupFailed": "Error occurred during cleanup of activity logs",
 			"invalidProcessingGroupId": "Invalid processing group id \"{processingGroupId}\" specified in activity query",
-			"missingHandleActivity": "Handler App \"{dataspaceAppId}\" does not export a \"handleActivity\" function"
+			"missingHandleActivity": "Handler App \"{dataspaceAppId}\" does not export a \"handleActivity\" function",
+			"pushSubscriptionNotFound": "Push subscription not found for consumerPid \"{notFoundId}\"",
+			"pushActivityNotAuthorized": "Unauthorized push activity — no matching STARTED transfer found for the activity generator",
+			"processOutboxActivityMultipleTo": "processOutboxActivity does not support multiple recipients — activity.to contains {count} values, expected exactly one consumerPid",
+			"pushSubscriptionCompensationFailed": "Compensating unsubscribeToData failed after push-subscription storage write failed (consumerPid: {consumerPid}, providerPid: {providerPid}) — app may be left with a dangling Follow until orphan cleanup runs"
 		}
 	},
 	"info": {
 		"dataspaceDataPlaneService": {
 			"scheduledTask": "\"{taskId}\": Task scheduled for Dataspace App \"{dataspaceAppId}\" (isRetry: {isRetry})",
-			"policyObligationTriggered": "Policy obligation triggered for agreement \"{agreementId}\": action=\"{action}\", target=\"{target}\""
+			"policyObligationTriggered": "Policy obligation triggered for agreement \"{agreementId}\": action=\"{action}\", target=\"{target}\"",
+			"pushSubscriptionCreated": "Push subscription created (consumerPid: {consumerPid}, providerPid: {providerPid})",
+			"pushSubscriptionSuspended": "Push subscription suspended (consumerPid: {consumerPid})",
+			"pushSubscriptionResumed": "Push subscription resumed (consumerPid: {consumerPid})",
+			"pushSubscriptionTornDown": "Push subscription torn down (consumerPid: {consumerPid}, providerPid: {providerPid})",
+			"pushDeliveryTaskScheduled": "Push delivery task scheduled (taskId: {taskId}, consumerPid: {consumerPid})"
+		}
+	},
+	"warn": {
+		"dataspaceDataPlaneService": {
+			"pushSubscriptionNotFoundOnTeardown": "Push subscription not found for consumerPid \"{consumerPid}\" during teardown — treating as no-op",
+			"pushSubscriptionNotFoundForActivity": "Push subscription not found for outbound activity (consumerPid: {consumerPid})"
 		}
 	},
 	"debug": {
@@ -33,7 +51,9 @@
 			"engineCloneStart": "'start' method has been called from an engine clone. No task scheduler created",
 			"cleanUpOngoing": "There is an ongoing clean up of activity logs. Skipping",
 			"activityLogCleanedUp": "Activity Log has been cleaned up. \"{numRecordsDeleted}\" records deleted",
-			"replacingFailedTasks": "Retrying apps \"{appsToRetry}\" (successful: \"{successfulApps}\") for activity \"{activityLogEntryId}\""
+			"pushSubscriptionsCleanedUp": "Orphaned push subscriptions cleaned up. \"{numDeleted}\" records deleted",
+			"replacingFailedTasks": "Retrying apps \"{appsToRetry}\" (successful: \"{successfulApps}\") for activity \"{activityLogEntryId}\"",
+			"pushDeliverySkippedPaused": "Push delivery skipped — subscription is paused (consumerPid: {consumerPid})"
 		},
 		"dataspaceDataPlaneSocketRoutes": {
 			"activityLogStatusConnected": "Web Socket Connected: Socket Id: \"{socketId}\"",

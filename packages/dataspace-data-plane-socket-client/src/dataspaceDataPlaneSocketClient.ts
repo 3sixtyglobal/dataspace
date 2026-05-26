@@ -97,13 +97,65 @@ export class DataspaceDataPlaneSocketClient
 	/**
 	 * Notify an Activity to the Dataspace Activity Stream - implemented in REST Client.
 	 * @param activity The Activity notified.
+	 * @param trustPayload Optional trust payload (unused in socket client).
 	 * @returns The activity's id or entry.
 	 */
 	public async notifyActivity(
-		activity: IActivityStreamsActivity
+		activity: IActivityStreamsActivity,
+		trustPayload?: unknown
 	): Promise<string | IActivityLogEntry> {
 		// This method is in the REST client
 		throw new NotImplementedError(DataspaceDataPlaneSocketClient.CLASS_NAME, "notifyActivity");
+	}
+
+	/**
+	 * Not supported on socket client — push subscriptions are server-side only.
+	 * @param consumerPid Unused.
+	 */
+	public async setupPushSubscription(consumerPid: string): Promise<void> {
+		throw new NotSupportedError(DataspaceDataPlaneSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "setupPushSubscription"
+		});
+	}
+
+	/**
+	 * Not supported on socket client — push subscriptions are server-side only.
+	 * @param consumerPid Unused.
+	 */
+	public async suspendPushSubscription(consumerPid: string): Promise<void> {
+		throw new NotSupportedError(DataspaceDataPlaneSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "suspendPushSubscription"
+		});
+	}
+
+	/**
+	 * Not supported on socket client — push subscriptions are server-side only.
+	 * @param consumerPid Unused.
+	 */
+	public async resumePushSubscription(consumerPid: string): Promise<void> {
+		throw new NotSupportedError(DataspaceDataPlaneSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "resumePushSubscription"
+		});
+	}
+
+	/**
+	 * Not supported on socket client — push subscriptions are server-side only.
+	 * @param consumerPid Unused.
+	 */
+	public async teardownPushSubscription(consumerPid: string): Promise<void> {
+		throw new NotSupportedError(DataspaceDataPlaneSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "teardownPushSubscription"
+		});
+	}
+
+	/**
+	 * Not supported on socket client — processOutboxActivity is server-side only.
+	 * @param activity Unused.
+	 */
+	public async processOutboxActivity(activity: IActivityStreamsActivity): Promise<void> {
+		throw new NotSupportedError(DataspaceDataPlaneSocketClient.CLASS_NAME, "notSupportedOnClient", {
+			methodName: "processOutboxActivity"
+		});
 	}
 
 	/**

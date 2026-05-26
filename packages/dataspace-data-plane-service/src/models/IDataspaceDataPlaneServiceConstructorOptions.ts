@@ -44,6 +44,12 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	transferProcessEntityStorageType?: string;
 
 	/**
+	 * The entity storage type for PushSubscription entities.
+	 * @default push-subscription
+	 */
+	pushSubscriptionEntityStorageType?: string;
+
+	/**
 	 * The entity storage type for Dataspace App Dataset entities.
 	 * @default dataspace-app-dataset
 	 */

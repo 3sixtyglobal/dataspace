@@ -5,6 +5,8 @@ import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 import type { IDataspaceProtocolDataset } from "@twin.org/standards-dataspace-protocol";
 import type { IActivityQuery } from "./IActivityQuery.js";
 import type { IDataRequest } from "./IDataRequest.js";
+import type { IFollowActivity } from "./IFollowActivity.js";
+import type { IUndoActivity } from "./IUndoActivity.js";
 import type { IDataspaceActivity } from "../IDataspaceActivity.js";
 import type { IProcessingGroupOptions } from "./IProcessingGroupOptions.js";
 
@@ -64,4 +66,19 @@ export interface IDataspaceApp extends IComponent {
 		cursor?: string,
 		limit?: number
 	): Promise<{ data: IJsonLdDocument; cursor?: string }>;
+
+	/**
+	 * Subscribe the app to produce data for a follower. Called by the
+	 * DS Connector after a push transfer enters STARTED state.
+	 * @param followActivity The Follow activity describing the follower + filter.
+	 * @returns Promise that resolves when the subscription is set up.
+	 */
+	subscribeToData?(followActivity: IFollowActivity): Promise<void>;
+
+	/**
+	 * Undo a previous subscription. Called on transfer complete/terminate.
+	 * @param undoActivity The Undo activity referencing the original Follow.
+	 * @returns Promise that resolves when the subscription is torn down.
+	 */
+	unsubscribeToData?(undoActivity: IUndoActivity): Promise<void>;
 }

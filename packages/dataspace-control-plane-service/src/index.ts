@@ -3,6 +3,7 @@
 export * from "./dataspaceControlPlanePolicyRequester.js";
 export * from "./dataspaceControlPlaneRoutes.js";
 export * from "./dataspaceControlPlaneService.js";
+export * from "./models/endpointProperties.js";
 export * from "./models/IDataspaceControlPlaneServiceConfig.js";
 export * from "./models/IDataspaceControlPlaneServiceConstructorOptions.js";
 export * from "./models/INegotiationState.js";

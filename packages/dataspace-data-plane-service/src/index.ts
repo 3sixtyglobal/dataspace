@@ -5,6 +5,7 @@ export * from "./dataspaceDataPlaneSocketRoutes.js";
 export * from "./dataspaceDataPlaneService.js";
 export * from "./entities/activityLogDetails.js";
 export * from "./entities/activityTask.js";
+export * from "./entities/pushSubscription.js";
 export * from "./models/IDataspaceDataPlaneServiceConfig.js";
 export * from "./models/IDataspaceDataPlaneServiceConstructorOptions.js";
 export * from "./restEntryPoints.js";

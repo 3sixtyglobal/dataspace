@@ -35,7 +35,10 @@
 		"@twin.org/engine-models": "next",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/standards-w3c-activity-streams": "next"
+		"@twin.org/rights-management-models": "next",
+		"@twin.org/standards-w3c-activity-streams": "next",
+		"@twin.org/trust-models": "next",
+		"@twin.org/web": "next"
 	},
 	"peerDependencies": {
 		"@twin.org/engine-core": "next"

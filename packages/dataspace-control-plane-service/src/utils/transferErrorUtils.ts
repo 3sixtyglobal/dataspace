@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { HttpErrorHelper } from "@twin.org/api-models";
 import { BaseError, type IError, Is } from "@twin.org/core";
+import { getJsonLdType } from "@twin.org/dataspace-models";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolContexts,
@@ -10,7 +11,6 @@ import {
 	type IDataspaceProtocolTransferError
 } from "@twin.org/standards-dataspace-protocol";
 import { HttpStatusCode } from "@twin.org/web";
-import { getJsonLdType } from "./dataHelpers.js";
 
 /**
  * Fallback value used when PIDs cannot be extracted from a malformed message.

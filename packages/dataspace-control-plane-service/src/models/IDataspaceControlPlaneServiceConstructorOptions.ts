@@ -82,7 +82,13 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	taskSchedulerComponentType?: string;
 
 	/**
-	 * URL Transformer component type used to encrypt the tenant token into the data-plane..
+	 * Data Plane component type, used to invoke push subscription lifecycle methods.
+	 * @default dataspace-data-plane
+	 */
+	dataPlaneComponentType?: string;
+
+	/**
+	 * URL Transformer component type used to encrypt the tenant token into the data-plane.
 	 * @default url-transformer
 	 */
 	urlTransformerComponentType?: string;

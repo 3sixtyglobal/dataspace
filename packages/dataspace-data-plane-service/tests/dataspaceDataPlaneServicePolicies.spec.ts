@@ -37,6 +37,7 @@ import locales from "../locales/en.json" with { type: "json" };
 import { DataspaceDataPlaneService } from "../src/dataspaceDataPlaneService.js";
 import type { ActivityLogDetails } from "../src/entities/activityLogDetails.js";
 import type { ActivityTask } from "../src/entities/activityTask.js";
+import type { PushSubscription } from "../src/entities/pushSubscription.js";
 import { initSchema } from "../src/schema.js";
 
 const TEST_NODE_IDENTITY = "did:iota:testnet:provider-node";
@@ -91,6 +92,7 @@ function createTestTransferProcess(overrides?: Partial<TransferProcess>): Transf
 
 describe("DataspaceDataPlaneService Policy Tests", () => {
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
+	let pushSubscriptionStorage: MemoryEntityStorageConnector<PushSubscription>;
 	let activityLogStorage: MemoryEntityStorageConnector<ActivityLogDetails>;
 	let activityTaskStorage: MemoryEntityStorageConnector<ActivityTask>;
 	let backgroundTaskStorage: MemoryEntityStorageConnector<BackgroundTask>;
@@ -135,6 +137,10 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			entitySchema: nameof<BackgroundTask>()
 		});
 
+		pushSubscriptionStorage = new MemoryEntityStorageConnector<PushSubscription>({
+			entitySchema: nameof<PushSubscription>()
+		});
+
 		// Register all required entity storage connectors
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<TransferProcess>(),
@@ -173,6 +179,10 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			dateModified: now
 		});
 		EntityStorageConnectorFactory.register(
+			nameofKebabCase<PushSubscription>(),
+			() => pushSubscriptionStorage
+		);
+		EntityStorageConnectorFactory.register(
 			nameofKebabCase<ActivityLogDetails>(),
 			() => activityLogStorage
 		);
@@ -208,7 +218,8 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		// Create service with transfer process storage configured
 		service = new DataspaceDataPlaneService({
 			trustComponentType: "mock-trust",
-			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+			pushSubscriptionEntityStorageType: nameofKebabCase<PushSubscription>()
 		});
 	});
 
@@ -216,6 +227,11 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		// Cleanup all registrations
 		try {
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferProcess>());
+		} catch {
+			// Ignore
+		}
+		try {
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<PushSubscription>());
 		} catch {
 			// Ignore
 		}

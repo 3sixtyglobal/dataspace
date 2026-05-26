@@ -17,9 +17,13 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	/**
 	 * Notify an Activity to the Dataspace Data Plane Activity Stream.
 	 * @param activity The Activity notified.
+	 * @param trustPayload Optional trust payload to verify the requester's identity.
 	 * @returns The activity's entry.
 	 */
-	notifyActivity(activity: IActivityStreamsActivity): Promise<string | IActivityLogEntry>;
+	notifyActivity(
+		activity: IActivityStreamsActivity,
+		trustPayload?: unknown
+	): Promise<string | IActivityLogEntry>;
 
 	/**
 	 * Subscribes to the activity log.
@@ -85,4 +89,47 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 		limit?: number,
 		trustPayload?: unknown
 	): Promise<IDataAssetItemListResult>;
+
+	/**
+	 * Set up a push subscription after a transfer enters STARTED from REQUESTED.
+	 * Reads the TransferProcess, builds an IFollowActivity, calls the app's
+	 * subscribeToData, and persists a PushSubscription entity.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 * @returns Promise that resolves when the subscription is created.
+	 */
+	setupPushSubscription(consumerPid: string): Promise<void>;
+
+	/**
+	 * Pause deliveries for a push subscription. The subscription entity stays
+	 * alive with status=Paused. No app unsubscribe call.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 * @returns Promise that resolves when the subscription is paused.
+	 */
+	suspendPushSubscription(consumerPid: string): Promise<void>;
+
+	/**
+	 * Resume deliveries after a SUSPENDED → STARTED transition. Flips status
+	 * back to Active. No app subscribeToData call.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 * @returns Promise that resolves when the subscription is resumed.
+	 */
+	resumePushSubscription(consumerPid: string): Promise<void>;
+
+	/**
+	 * Tear down a push subscription. Builds an IUndoActivity, calls the app's
+	 * unsubscribeToData, and deletes the PushSubscription entity.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 * @returns Promise that resolves when the subscription is torn down.
+	 */
+	teardownPushSubscription(consumerPid: string): Promise<void>;
+
+	/**
+	 * Called by the app when new data is available for a follower.
+	 * The activity's `to` attribute contains the consumerPid URN. This method
+	 * looks up the matching PushSubscription, validates transfer state, and
+	 * schedules a Background Task that POSTs the activity to the consumer.
+	 * @param activity The outbound activity carrying the data payload.
+	 * @returns Promise that resolves when the delivery task is scheduled.
+	 */
+	processOutboxActivity(activity: IActivityStreamsActivity): Promise<void>;
 }

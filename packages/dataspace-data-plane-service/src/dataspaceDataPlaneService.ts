@@ -21,6 +21,7 @@ import {
 	JsonHelper,
 	NotFoundError,
 	RandomHelper,
+	UnauthorizedError,
 	UnprocessableError,
 	Validation,
 	type IValidationFailure
@@ -42,6 +43,7 @@ import {
 	DataspaceContexts,
 	DataspaceDataTypes,
 	DataspaceTypes,
+	getJsonLdType,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IActivityQuery,
@@ -55,7 +57,10 @@ import {
 	type IEntitySet,
 	type IExecutionPayload,
 	type IFilteringQuery,
+	type IFollowActivity,
+	type IPushDeliveryPayload,
 	type ITransferContext,
+	type IUndoActivity,
 	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
@@ -79,12 +84,22 @@ import {
 	SchemaOrgDataTypes,
 	SchemaOrgTypes
 } from "@twin.org/standards-schema-org";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
+import {
+	ActivityStreamsContexts,
+	ActivityStreamsTypes,
+	type IActivityStreamsActivity
+} from "@twin.org/standards-w3c-activity-streams";
+import { OdrlContexts, OdrlTypes } from "@twin.org/standards-w3c-odrl";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
+import type { PushSubscription } from "./entities/pushSubscription.js";
 import type { IDataspaceDataPlaneServiceConstructorOptions } from "./models/IDataspaceDataPlaneServiceConstructorOptions.js";
+
+const FOLLOW_ACTIVITY_URN_PREFIX = "urn:x-follow:";
+const TRANSFER_URN_PREFIX = "urn:x-transfer:";
+const UNDO_ACTIVITY_URN_PREFIX = "urn:x-undo:";
+const ACTIVITY_LOG_URN_PREFIX = "urn:x-activity-log:";
 
 /**
  * Dataspace Data Plane Service.
@@ -94,6 +109,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * Runtime name for the class.
 	 */
 	public static readonly CLASS_NAME: string = nameof<DataspaceDataPlaneService>();
+
+	/**
+	 * Background task type identifier for push delivery tasks.
+	 */
+	public static readonly PUSH_DELIVERY_TASK_TYPE = "push-delivery";
 
 	/**
 	 * Milliseconds per minute (60 * 1000).
@@ -182,10 +202,34 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _retryCount?: number;
 
 	/**
+	 * Max retry count for push delivery HTTP requests.
+	 * @internal
+	 */
+	private readonly _pushRetryCount: number;
+
+	/**
+	 * Base retry delay (ms) for push delivery HTTP requests.
+	 * @internal
+	 */
+	private readonly _pushRetryBaseDelayMs: number;
+
+	/**
+	 * Timeout (ms) for each push delivery HTTP POST request.
+	 * @internal
+	 */
+	private readonly _pushTimeoutMs: number;
+
+	/**
 	 * Clean up interval for activity logs.
 	 * @internal
 	 */
 	private readonly _activityLogCleanUpInterval: number;
+
+	/**
+	 * Interval in minutes between orphaned PushSubscription cleanup scans.
+	 * @internal
+	 */
+	private readonly _pushSubscriptionCleanupIntervalMinutes: number;
 
 	/**
 	 * Whether there is an ongoing clean up process.
@@ -229,6 +273,13 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private readonly _transferProcessStorage: IEntityStorageConnector<TransferProcess>;
+
+	/**
+	 * Factory key used to look up the push-subscription storage. Resolved lazily at call time
+	 * (not at construction) so the storage may register after the data plane is built.
+	 * @internal
+	 */
+	private readonly _pushSubscriptionStorageType: string;
 
 	/**
 	 * Entity storage for tenant-supplied Dataspace App Dataset entities.
@@ -278,6 +329,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			IEntityStorageConnector<TransferProcess>
 		>(options?.transferProcessEntityStorageType ?? nameofKebabCase<TransferProcess>());
 
+		// Push-subscription storage is optional and resolved lazily. The data plane is typically
+		// constructed before its dependent storages register, so caching the connector here would
+		// permanently miss it. We only need the factory key — every push call site re-resolves.
+		this._pushSubscriptionStorageType =
+			options?.pushSubscriptionEntityStorageType ?? nameofKebabCase<PushSubscription>();
+
 		this._dataspaceAppDatasetStorage = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<DataspaceAppDataset>
 		>(options?.dataspaceAppDatasetEntityStorageType ?? nameofKebabCase<DataspaceAppDataset>());
@@ -297,7 +354,14 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		this._retainActivityLogsFor =
 			DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL * DataspaceDataPlaneService._MS_PER_MINUTE;
 		this._retryCount = options?.config?.retryCount;
+		this._pushRetryCount = options?.config?.pushRetryCount ?? 3;
+		this._pushRetryBaseDelayMs = options?.config?.pushRetryBaseDelayMs ?? 1000;
+		this._pushTimeoutMs = options?.config?.pushTimeoutMs ?? 30000;
 		this._activityLogCleanUpInterval = DataspaceDataPlaneService._DEFAULT_CLEANUP_INTERVAL;
+		this._pushSubscriptionCleanupIntervalMinutes = Math.max(
+			1,
+			Math.round((options?.config?.pushSubscriptionCleanupIntervalMs ?? 3_600_000) / 60_000)
+		);
 		this._cleanUpProcessOngoing = false;
 
 		const validationErrors: IValidationFailure[] = [];
@@ -343,6 +407,23 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			);
 			this._activityLogCleanUpInterval = options.config.activityLogsCleanUpInterval;
 		}
+
+		if (!Is.empty(options?.config?.pushTimeoutMs)) {
+			Guards.integer(
+				DataspaceDataPlaneService.CLASS_NAME,
+				nameof(options.config.pushTimeoutMs),
+				options.config.pushTimeoutMs
+			);
+			Validation.integer(
+				nameof(options.config.pushTimeoutMs),
+				options.config.pushTimeoutMs,
+				validationErrors,
+				undefined,
+				{ minValue: 1 }
+			);
+			this._pushTimeoutMs = options.config.pushTimeoutMs;
+		}
+
 		Validation.asValidationError(
 			DataspaceDataPlaneService.CLASS_NAME,
 			nameof(options?.config),
@@ -363,6 +444,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @param nodeLoggingComponentType The node logging component type.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
+		await this._backgroundTaskComponent.registerHandler<IPushDeliveryPayload, unknown>(
+			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
+			"@twin.org/dataspace-app-runner",
+			"pushDeliveryRunner",
+			undefined,
+			{
+				initialiseMethod: "pushDeliveryRunnerStart",
+				shutdownMethod: "pushDeliveryRunnerEnd",
+				idleShutdownTimeout: -1
+			}
+		);
+
 		const engine = EngineCoreFactory.getIfExists("engine");
 		if (Is.empty(engine) || engine.isClone()) {
 			await this._logging?.log({
@@ -401,21 +494,103 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				}
 			});
 		}
+
+		const pushCleanupTaskTime: IScheduledTaskTime[] = [
+			{
+				nextTriggerTime: Date.now() + 10_000,
+				...this.calculateCleaningTaskSchedule(this._pushSubscriptionCleanupIntervalMinutes)
+			}
+		];
+
+		await this._taskScheduler.addTask(
+			"dataspace-push-subscription-cleanup",
+			pushCleanupTaskTime,
+			async () => {
+				await this.cleanupOrphanedPushSubscriptions();
+			}
+		);
 	}
 
 	/**
 	 * Notify an Activity.
 	 * @param activity The Activity notified.
+	 * @param trustPayload Optional trust payload to verify the requester's identity.
 	 * @returns The activity's id or entry.
 	 */
 	public async notifyActivity(
-		activity: IActivityStreamsActivity
+		activity: IActivityStreamsActivity,
+		trustPayload?: unknown
 	): Promise<string | IActivityLogEntry> {
 		Guards.object<IActivityStreamsActivity>(
 			DataspaceDataPlaneService.CLASS_NAME,
 			nameof(activity),
 			activity
 		);
+
+		// For cross-node push deliveries the caller presents a JWT. Verify it,
+		// confirm the referenced transfer is still in STARTED state, and assert
+		// the verified identity is one of the two parties on that transfer.
+		if (Is.stringValue(trustPayload)) {
+			const trustInfo = await TrustHelper.verifyTrust(
+				this._trustComponent,
+				trustPayload,
+				"notifyActivity"
+			);
+			const generatorPid = this.calculateActivityGeneratorIdentity(activity);
+			// Primary lookup: by consumerPid (the entity's primary key). If this hits, the
+			// generator's PID equals consumerPid — the generator is the consumer side.
+			let transferProcess = await this._transferProcessStorage.get(generatorPid);
+			const generatorIsConsumer = Boolean(transferProcess);
+
+			if (!transferProcess) {
+				// Fallback: generatorPid === providerPid. providerPid is a UUIDv7 so it's
+				// unique per transfer, but defensively reject any case where the secondary
+				// index returns more than one match — silent first-match would risk
+				// authorising the wrong transfer if the invariant ever breaks.
+				const result = await this._transferProcessStorage.query({
+					conditions: [
+						{
+							property: "providerPid",
+							value: generatorPid,
+							comparison: ComparisonOperator.Equals
+						}
+					]
+				});
+				if (result.entities.length > 1) {
+					throw new UnauthorizedError(
+						DataspaceDataPlaneService.CLASS_NAME,
+						"pushActivityNotAuthorized"
+					);
+				}
+				transferProcess = result.entities[0] as TransferProcess | undefined;
+				// generatorIsConsumer stays false → generator is the provider side.
+			}
+
+			if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
+				throw new UnauthorizedError(
+					DataspaceDataPlaneService.CLASS_NAME,
+					"pushActivityNotAuthorized"
+				);
+			}
+
+			// Bind the verified identity to the side of the transfer matching the claimed
+			// generator. Without this, a party with a valid token for transfer X can post
+			// an activity claiming to be the other party on the same transfer.
+			// Stored consumer/provider identities are composites
+			// (`nodeDid:hash(tenantId)`)
+			const expectedIdentity = generatorIsConsumer
+				? transferProcess.consumerIdentity
+				: transferProcess.providerIdentity;
+			const callerComposite = Is.stringValue(trustInfo.tenantId)
+				? `${trustInfo.identity}:${trustInfo.tenantId}`
+				: trustInfo.identity;
+			if (!Is.stringValue(expectedIdentity) || callerComposite !== expectedIdentity) {
+				throw new UnauthorizedError(
+					DataspaceDataPlaneService.CLASS_NAME,
+					"pushActivityNotAuthorized"
+				);
+			}
+		}
 
 		await this._logging?.log({
 			level: "debug",
@@ -447,7 +622,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const canonical = JsonHelper.canonicalize(activity);
 		const canonicalBytes = Converter.utf8ToBytes(canonical);
 		const activityLogId = Converter.bytesToHex(Blake2b.sum256(canonicalBytes));
-		const activityLogEntryId = `urn:x-activity-log:${activityLogId}`;
+		const activityLogEntryId = `${ACTIVITY_LOG_URN_PREFIX}${activityLogId}`;
 
 		// Check if entry already exists
 		let logEntry = await this._entityStorageActivityLogs.get(activityLogEntryId);
@@ -874,6 +1049,378 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		return this.buildTransferContext(transferProcess);
 	}
 
+	/**
+	 * Set up a push subscription after a transfer enters STARTED from REQUESTED.
+	 * Reads the TransferProcess, builds an IFollowActivity, calls the app's
+	 * subscribeToData, and persists a PushSubscription entity.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 */
+	public async setupPushSubscription(consumerPid: string): Promise<void> {
+		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
+
+		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		if (!transferProcess) {
+			throw new NotFoundError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"transferProcessNotFound",
+				consumerPid
+			);
+		}
+
+		if (transferProcess.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
+			throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "transferNotInStartedState", {
+				currentState: transferProcess.state
+			});
+		}
+
+		if (!Is.stringValue(transferProcess.dataAddress?.endpoint)) {
+			throw new GeneralError(DataspaceDataPlaneService.CLASS_NAME, "transferMissingDataAddress", {
+				consumerPid
+			});
+		}
+
+		// On multi-tenant publishers, the consumer must have baked its tenant token into the
+		// callback URL so the consumer's TenantProcessor can route inbound push deliveries.
+		// Reject at setup time rather than silently 401 every push.
+		// Parse as a real URL so we match on the actual query parameter, not a substring
+		// in a path segment / value position.
+		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
+			let hasTenantToken = false;
+			try {
+				hasTenantToken = new URL(transferProcess.dataAddress.endpoint).searchParams.has(
+					"x-enc-tenant-token"
+				);
+			} catch {
+				// Malformed URL — treat as missing token (will fail closed below).
+			}
+			if (!hasTenantToken) {
+				throw new GeneralError(
+					DataspaceDataPlaneService.CLASS_NAME,
+					"pushSubscriptionMissingTenantToken",
+					{ consumerPid, endpoint: transferProcess.dataAddress.endpoint }
+				);
+			}
+		}
+
+		const followActivityId = `${FOLLOW_ACTIVITY_URN_PREFIX}${RandomHelper.generateUuidV7("compact")}`;
+		const followActivity: IFollowActivity = {
+			"@context": ActivityStreamsContexts.Context,
+			id: followActivityId,
+			type: ActivityStreamsTypes.Follow,
+			generator: transferProcess.consumerPid,
+			actor: transferProcess.consumerIdentity ?? "",
+			object: { id: `${TRANSFER_URN_PREFIX}${transferProcess.consumerPid}` }
+		};
+
+		let appForCompensation: IDataspaceApp | undefined;
+		if (Is.stringValue(transferProcess.datasetId)) {
+			const appDataset = await this._dataspaceAppDatasetStorage.get(transferProcess.datasetId);
+			if (appDataset) {
+				const app = DataspaceAppFactory.get<IDataspaceApp>(appDataset.appId);
+				await app.subscribeToData?.(followActivity);
+				appForCompensation = app;
+			}
+		}
+
+		const setupContextIds = await ContextIdStore.getContextIds();
+		const setupTenantId = setupContextIds?.[ContextIdKeys.Tenant];
+		const subscription: PushSubscription = {
+			consumerPid: transferProcess.consumerPid,
+			providerPid: transferProcess.providerPid,
+			followActivityId,
+			datasetId: transferProcess.datasetId,
+			tenantId: Is.stringValue(setupTenantId) ? setupTenantId : undefined,
+			consumerEndpoint: transferProcess.dataAddress.endpoint,
+			consumerAuthToken: transferProcess.dataAddress.endpointProperties?.find(
+				p => p.name === "authorization"
+			)?.value,
+			paused: false,
+			dateCreated: new Date().toISOString(),
+			dateModified: new Date().toISOString()
+		};
+
+		try {
+			await this.requirePushSubscriptionStorage().set(subscription);
+		} catch (storageError) {
+			// Compensating Undo: the app's subscribeToData succeeded but the row didn't
+			// persist. Without compensation, a retry generates a new followActivityId and
+			// registers a second Follow on the app — with no persisted id to drive an Undo.
+			if (appForCompensation) {
+				const compensatingUndo: IUndoActivity = {
+					"@context": ActivityStreamsContexts.Context,
+					id: `${UNDO_ACTIVITY_URN_PREFIX}${RandomHelper.generateUuidV7("compact")}`,
+					type: ActivityStreamsTypes.Undo,
+					generator: transferProcess.consumerPid,
+					actor: transferProcess.consumerIdentity ?? "",
+					object: followActivityId
+				};
+				try {
+					await appForCompensation.unsubscribeToData?.(compensatingUndo);
+				} catch (compensationError) {
+					await this._logging?.log({
+						level: "error",
+						source: DataspaceDataPlaneService.CLASS_NAME,
+						ts: Date.now(),
+						message: "pushSubscriptionCompensationFailed",
+						data: { consumerPid, providerPid: transferProcess.providerPid },
+						error: BaseError.fromError(compensationError)
+					});
+				}
+			}
+			throw storageError;
+		}
+
+		await this._logging?.log({
+			level: "info",
+			source: DataspaceDataPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "pushSubscriptionCreated",
+			data: { consumerPid, providerPid: transferProcess.providerPid }
+		});
+	}
+
+	/**
+	 * Pause deliveries for a push subscription. The subscription entity stays
+	 * alive with status=Paused. No app unsubscribe call.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 */
+	public async suspendPushSubscription(consumerPid: string): Promise<void> {
+		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
+
+		const subscription = await this.requirePushSubscriptionStorage().get(consumerPid);
+		if (!subscription) {
+			throw new NotFoundError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"pushSubscriptionNotFound",
+				consumerPid
+			);
+		}
+
+		if (subscription.paused) {
+			return;
+		}
+
+		subscription.paused = true;
+		subscription.dateModified = new Date().toISOString();
+		await this.requirePushSubscriptionStorage().set(subscription);
+
+		await this._logging?.log({
+			level: "info",
+			source: DataspaceDataPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "pushSubscriptionSuspended",
+			data: { consumerPid }
+		});
+	}
+
+	/**
+	 * Resume deliveries after a SUSPENDED → STARTED transition. Flips status
+	 * back to Active. No app subscribeToData call.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 */
+	public async resumePushSubscription(consumerPid: string): Promise<void> {
+		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
+
+		const subscription = await this.requirePushSubscriptionStorage().get(consumerPid);
+		if (!subscription) {
+			throw new NotFoundError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"pushSubscriptionNotFound",
+				consumerPid
+			);
+		}
+
+		if (!subscription.paused) {
+			return;
+		}
+
+		subscription.paused = false;
+		subscription.dateModified = new Date().toISOString();
+		await this.requirePushSubscriptionStorage().set(subscription);
+
+		await this._logging?.log({
+			level: "info",
+			source: DataspaceDataPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "pushSubscriptionResumed",
+			data: { consumerPid }
+		});
+	}
+
+	/**
+	 * Tear down a push subscription. Builds an IUndoActivity, calls the app's
+	 * unsubscribeToData, and deletes the PushSubscription entity.
+	 * @param consumerPid The consumer process ID identifying the transfer.
+	 */
+	public async teardownPushSubscription(consumerPid: string): Promise<void> {
+		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
+
+		const subscription = await this.requirePushSubscriptionStorage().get(consumerPid);
+		if (!subscription) {
+			await this._logging?.log({
+				level: "warn",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "pushSubscriptionNotFoundOnTeardown",
+				data: { consumerPid }
+			});
+			return;
+		}
+
+		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+
+		const undoActivity: IUndoActivity = {
+			"@context": ActivityStreamsContexts.Context,
+			id: `${UNDO_ACTIVITY_URN_PREFIX}${RandomHelper.generateUuidV7("compact")}`,
+			type: ActivityStreamsTypes.Undo,
+			generator: subscription.consumerPid,
+			actor: transferProcess?.consumerIdentity ?? "",
+			object: subscription.followActivityId
+		};
+
+		if (Is.stringValue(subscription.datasetId)) {
+			const appDataset = await this._dataspaceAppDatasetStorage.get(subscription.datasetId);
+			if (appDataset) {
+				const app = DataspaceAppFactory.get<IDataspaceApp>(appDataset.appId);
+				await app.unsubscribeToData?.(undoActivity);
+			}
+		}
+
+		await this.requirePushSubscriptionStorage().remove(consumerPid);
+
+		await this._logging?.log({
+			level: "info",
+			source: DataspaceDataPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "pushSubscriptionTornDown",
+			data: { consumerPid, providerPid: subscription.providerPid }
+		});
+	}
+
+	/**
+	 * Schedule a push delivery when the app has new outbound data.
+	 * @param activity The outbound activity carrying the data payload.
+	 */
+	public async processOutboxActivity(activity: IActivityStreamsActivity): Promise<void> {
+		Guards.object<IActivityStreamsActivity>(
+			DataspaceDataPlaneService.CLASS_NAME,
+			nameof(activity),
+			activity
+		);
+
+		// Extract consumerPid from activity.to
+		let consumerPid: string | undefined;
+		if (Is.stringValue(activity.to)) {
+			consumerPid = activity.to;
+		} else if (Is.array(activity.to)) {
+			if (activity.to.length > 1) {
+				throw new GeneralError(
+					DataspaceDataPlaneService.CLASS_NAME,
+					"processOutboxActivityMultipleTo",
+					{ count: activity.to.length }
+				);
+			}
+			consumerPid = activity.to[0] as string | undefined;
+		}
+
+		if (!Is.stringValue(consumerPid)) {
+			await this._logging?.log({
+				level: "warn",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				message: "pushSubscriptionNotFoundForActivity",
+				data: { consumerPid }
+			});
+			return;
+		}
+
+		// Load PushSubscription
+		const subscription = await this.requirePushSubscriptionStorage().get(consumerPid);
+		if (!subscription) {
+			await this._logging?.log({
+				level: "warn",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				message: "pushSubscriptionNotFoundForActivity",
+				data: { consumerPid }
+			});
+			return;
+		}
+
+		// Skip delivery if subscription is paused
+		if (subscription.paused) {
+			await this._logging?.log({
+				level: "debug",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				message: "pushDeliverySkippedPaused",
+				data: { consumerPid }
+			});
+			return;
+		}
+
+		// Load TransferProcess and validate it is STARTED
+		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
+			await this._logging?.log({
+				level: "warn",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				message: "pushSubscriptionNotFoundForActivity",
+				data: { consumerPid }
+			});
+			return;
+		}
+
+		// Build agreement from stored transfer context
+		const { agreement } = this.buildTransferContext(transferProcess);
+
+		// Extract data object from activity; a string value is an IRI reference — wrap it so the IRI is preserved.
+		let data: IJsonLdNodeObject;
+		if (Is.object(activity.object)) {
+			data = activity.object;
+		} else if (Is.stringValue(activity.object)) {
+			data = { "@id": activity.object };
+		} else {
+			data = {};
+		}
+		const entityType = Is.object(activity.object) ? (getJsonLdType(activity.object) ?? "") : "";
+
+		// Capture the subscription's tenantId so the background-task runner can re-enter the
+		// owning tenant's context before any tenant-scoped operation (PEP, trust signing).
+		// Falls back to the current request context if the subscription pre-dates tenantId capture.
+		let payloadTenantId: string | undefined = subscription.tenantId;
+		if (!Is.stringValue(payloadTenantId)) {
+			const ctxIds = await ContextIdStore.getContextIds();
+			const ctxTenant = ctxIds?.[ContextIdKeys.Tenant];
+			payloadTenantId = Is.stringValue(ctxTenant) ? ctxTenant : undefined;
+		}
+
+		const payload: IPushDeliveryPayload = {
+			consumerPid,
+			providerPid: transferProcess.providerPid,
+			generatorPid: transferProcess.providerPid,
+			consumerEndpoint: subscription.consumerEndpoint,
+			consumerAuthToken: subscription.consumerAuthToken,
+			agreement,
+			data,
+			entityType,
+			tenantId: payloadTenantId,
+			pushTimeoutMs: this._pushTimeoutMs,
+			pushRetryCount: this._pushRetryCount,
+			pushRetryBaseDelayMs: this._pushRetryBaseDelayMs
+		};
+
+		const taskId = await this._backgroundTaskComponent.create<IPushDeliveryPayload>(
+			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
+			payload,
+			{ retainFor: this._retainTasksFor, retryCount: this._retryCount }
+		);
+
+		await this._logging?.log({
+			level: "info",
+			source: DataspaceDataPlaneService.CLASS_NAME,
+			message: "pushDeliveryTaskScheduled",
+			data: { taskId, consumerPid }
+		});
+	}
+
 	// ============================================================================
 	// PRIVATE HELPER METHODS
 	// ============================================================================
@@ -1153,6 +1700,158 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
+	 * Resolve the push-subscription storage or throw if it isn't registered. Pull-only
+	 * deployments may run the data plane without it.
+	 * @returns The push-subscription storage connector.
+	 * @throws GeneralError if the storage isn't registered.
+	 * @internal
+	 */
+	private requirePushSubscriptionStorage(): IEntityStorageConnector<PushSubscription> {
+		const storage = EntityStorageConnectorFactory.getIfExists<
+			IEntityStorageConnector<PushSubscription>
+		>(this._pushSubscriptionStorageType);
+		if (!storage) {
+			throw new GeneralError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"pushSubscriptionStorageNotRegistered"
+			);
+		}
+		return storage;
+	}
+
+	/**
+	 * Deletes PushSubscription entities whose TransferProcess is absent, COMPLETED, or TERMINATED.
+	 * On multi-tenant nodes (`partitionContextIds` includes `Tenant`), iterates each registered tenant
+	 * and runs the cleanup inside that tenant's context so partitioned storage queries scope correctly.
+	 * @internal
+	 */
+	private async cleanupOrphanedPushSubscriptions(): Promise<void> {
+		// Pull-only deployments may run the data plane without push-subscription storage —
+		// the scheduled cleanup task fires regardless, so silent no-op is the right behaviour.
+		const storage = EntityStorageConnectorFactory.getIfExists<
+			IEntityStorageConnector<PushSubscription>
+		>(this._pushSubscriptionStorageType);
+		if (!storage) {
+			return;
+		}
+
+		let numDeleted = 0;
+
+		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
+			// Per-tenant try/catch — a transient failure on one tenant must not poison the rest
+			// of the cleanup pass. Each tenant gets its own attempt; failures are logged with the
+			// offending tenantId so operators can triage.
+			let cursor;
+			do {
+				let result: { tenants: ITenant[]; cursor?: string } | undefined;
+				try {
+					result = await this._tenantAdmin?.query(undefined, cursor);
+				} catch (error) {
+					await this._logging?.log({
+						level: "error",
+						message: "cleanupFailed",
+						ts: Date.now(),
+						source: DataspaceDataPlaneService.CLASS_NAME,
+						error: BaseError.fromError(error)
+					});
+					break;
+				}
+				cursor = result?.cursor;
+				if (!Is.empty(result)) {
+					for (const tenantId of result.tenants.map(t => t.id)) {
+						try {
+							const localContextIds = (await ContextIdStore.getContextIds()) ?? {};
+							localContextIds[ContextIdKeys.Tenant] = tenantId;
+
+							await ContextIdStore.run(localContextIds, async () => {
+								numDeleted += await this.cleanupOrphanedPushSubscriptionsPartition();
+							});
+						} catch (error) {
+							await this._logging?.log({
+								level: "error",
+								message: "cleanupFailed",
+								ts: Date.now(),
+								source: DataspaceDataPlaneService.CLASS_NAME,
+								data: { tenantId },
+								error: BaseError.fromError(error)
+							});
+						}
+					}
+				}
+			} while (Is.stringValue(cursor));
+		} else {
+			numDeleted += await this.cleanupOrphanedPushSubscriptionsPartition();
+		}
+
+		await this._logging?.log({
+			level: "debug",
+			message: "pushSubscriptionsCleanedUp",
+			source: DataspaceDataPlaneService.CLASS_NAME,
+			data: { numDeleted }
+		});
+	}
+
+	/**
+	 * Per-partition cleanup body for orphaned PushSubscriptions. Must run inside the
+	 * target tenant's context on multi-tenant nodes (caller wraps `ContextIdStore.run`).
+	 * @returns The number of subscriptions deleted in this partition.
+	 * @internal
+	 */
+	private async cleanupOrphanedPushSubscriptionsPartition(): Promise<number> {
+		let numDeleted = 0;
+
+		try {
+			// First pass: read all pages without modifying storage to avoid cursor drift
+			const toDelete: string[] = [];
+			let cursor: string | undefined;
+			do {
+				const result = await this.requirePushSubscriptionStorage().query(
+					undefined,
+					undefined,
+					undefined,
+					cursor
+				);
+				cursor = result.cursor;
+
+				const pids = (result.entities as PushSubscription[]).map(s => s.consumerPid);
+				const tpResult = await this._transferProcessStorage.query({
+					property: "consumerPid",
+					value: pids,
+					comparison: ComparisonOperator.In
+				});
+				const tpMap = new Map(tpResult.entities.map(tp => [tp.consumerPid, tp.state]));
+
+				for (const sub of result.entities as PushSubscription[]) {
+					const state = tpMap.get(sub.consumerPid);
+					if (
+						!state ||
+						state === DataspaceProtocolTransferProcessStateType.COMPLETED ||
+						state === DataspaceProtocolTransferProcessStateType.TERMINATED
+					) {
+						toDelete.push(sub.consumerPid);
+					}
+				}
+			} while (Is.stringValue(cursor));
+
+			// Second pass: delete after all reads are complete
+			for (const pid of toDelete) {
+				await this.teardownPushSubscription(pid);
+				numDeleted++;
+			}
+		} catch (error) {
+			await this._logging?.log({
+				level: "error",
+				message: "cleanupFailed",
+				ts: Date.now(),
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				error: BaseError.fromError(error)
+			});
+		}
+
+		return numDeleted;
+	}
+
+	/**
 	 * Calculates the cleaning task schedule.
 	 * @param minutes The period in minutes.
 	 * @returns The cleaning task schedule.
@@ -1226,9 +1925,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const fromAppDataset = await this._dataspaceAppDatasetStorage.get(datasetId);
 		if (!Is.empty(fromAppDataset)) {
 			return {
-				...fromAppDataset.dataset,
+				...(fromAppDataset.dataset as unknown as IDataspaceProtocolDataset),
 				"@id": datasetId
-			} as unknown as IDataspaceProtocolDataset;
+			};
 		}
 
 		throw new NotFoundError(DataspaceDataPlaneService.CLASS_NAME, "noAppRegistered", datasetId, {
@@ -1369,7 +2068,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// This would ensure policies are always up-to-date and support dynamic policy updates.
 		const agreement: IDataspaceProtocolAgreement = {
 			"@context": OdrlContexts.Context,
-			"@type": "Agreement",
+			"@type": OdrlTypes.Agreement,
 			"@id": transferProcess.agreementId,
 			target: transferProcess.datasetId,
 			// Provider is the assigner, consumer is the assignee
