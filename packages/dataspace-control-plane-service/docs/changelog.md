@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.31](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.30...dataspace-control-plane-service-v0.0.3-next.31) (2026-05-27)
+
+
+### Miscellaneous Chores
+
+* **dataspace-control-plane-service:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.30 to 0.0.3-next.31
+
 ## [0.0.3-next.30](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.29...dataspace-control-plane-service-v0.0.3-next.30) (2026-05-26)
 
 

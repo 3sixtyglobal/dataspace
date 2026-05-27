@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.31](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.0.3-next.30...dataspace-app-runner-v0.0.3-next.31) (2026-05-27)
+
+
+### Bug Fixes
+
+* await startup promise before accessing factories ([#131](https://github.com/iotaledger/twin-dataspace/issues/131)) ([975e5bf](https://github.com/iotaledger/twin-dataspace/commit/975e5bfd39b2278e7e37ee9b8b370ff44117c800))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.30 to 0.0.3-next.31
+
 ## [0.0.3-next.30](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.0.3-next.29...dataspace-app-runner-v0.0.3-next.30) (2026-05-26)
 
 
