@@ -23,19 +23,26 @@ const PUSH_DELIVERY_RUNNER_SOURCE = "pushDeliveryRunner";
 
 let engine: IEngineCore | undefined;
 
+// Serialises concurrent startup+task dispatch: Node.js EventEmitter doesn't await async
+// listeners, so pushDeliveryRunnerStart and pushDeliveryRunner can run concurrently in the worker thread.
+let startupPromise: Promise<void> | undefined;
+
 /**
  * Push Delivery Task Startup Method.
  * @param engineCloneData The Engine.
  * @returns Nothing.
  */
 export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone): Promise<void> {
-	if (!Is.empty(engineCloneData)) {
-		const newEngine = new EngineCore();
-		EngineCoreFactory.register("engine", () => newEngine);
-		newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), true);
-		await newEngine.start();
-		engine = newEngine;
-	}
+	startupPromise = (async () => {
+		if (!Is.empty(engineCloneData)) {
+			const newEngine = new EngineCore();
+			EngineCoreFactory.register("engine", () => newEngine);
+			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), true);
+			await newEngine.start();
+			engine = newEngine;
+		}
+	})();
+	await startupPromise;
 }
 
 /**
@@ -47,6 +54,7 @@ export async function pushDeliveryRunnerEnd(): Promise<void> {
 		await engine.stop();
 		engine = undefined;
 	}
+	startupPromise = undefined;
 }
 
 /**
@@ -59,6 +67,13 @@ export async function pushDeliveryRunner(
 	engineCloneData: IEngineCoreClone,
 	payload: IPushDeliveryPayload
 ): Promise<unknown> {
+	// startupPromise is assigned as the first synchronous statement of pushDeliveryRunnerStart
+	// (before any await) and MessagePort dispatch is FIFO, so it is always set by the time
+	// this runs when both messages are dispatched from the same worker initialisation sequence.
+	if (startupPromise) {
+		await startupPromise;
+	}
+
 	Guards.objectValue<IPushDeliveryPayload>(PUSH_DELIVERY_RUNNER_SOURCE, nameof(payload), payload);
 	Guards.stringValue(PUSH_DELIVERY_RUNNER_SOURCE, nameof(payload.consumerPid), payload.consumerPid);
 	Guards.stringValue(
