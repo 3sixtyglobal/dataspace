@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.32](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.31...dataspace-data-plane-service-v0.0.3-next.32) (2026-05-29)
+
+
+### Bug Fixes
+
+* return 422/500 when inline activity processing fails ([#135](https://github.com/iotaledger/twin-dataspace/issues/135)) ([8635187](https://github.com/iotaledger/twin-dataspace/commit/863518724cb90af15edc5f456d9a93c6cad7d661))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.31 to 0.0.3-next.32
+    * @twin.org/dataspace-models bumped from 0.0.3-next.31 to 0.0.3-next.32
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.31 to 0.0.3-next.32
+
 ## [0.0.3-next.31](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.30...dataspace-data-plane-service-v0.0.3-next.31) (2026-05-27)
 
 

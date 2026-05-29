@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.32](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.31...dataspace-control-plane-service-v0.0.3-next.32) (2026-05-29)
+
+
+### Bug Fixes
+
+* validate dataset-id ([#138](https://github.com/iotaledger/twin-dataspace/issues/138)) ([92a6a9b](https://github.com/iotaledger/twin-dataspace/commit/92a6a9b7b82c3dd5c652a3685892f7e9156d458b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.31 to 0.0.3-next.32
+
 ## [0.0.3-next.31](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.30...dataspace-control-plane-service-v0.0.3-next.31) (2026-05-27)
 
 

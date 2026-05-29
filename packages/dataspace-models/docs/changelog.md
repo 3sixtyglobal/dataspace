@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.32](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.31...dataspace-models-v0.0.3-next.32) (2026-05-29)
+
+
+### Bug Fixes
+
+* return 422/500 when inline activity processing fails ([#135](https://github.com/iotaledger/twin-dataspace/issues/135)) ([8635187](https://github.com/iotaledger/twin-dataspace/commit/863518724cb90af15edc5f456d9a93c6cad7d661))
+
 ## [0.0.3-next.31](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.30...dataspace-models-v0.0.3-next.31) (2026-05-27)
 
 
