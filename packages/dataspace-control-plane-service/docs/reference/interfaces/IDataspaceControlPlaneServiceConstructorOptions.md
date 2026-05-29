@@ -40,7 +40,6 @@ policy-negotiation-point
 
 Policy Negotiation Admin Point component type.
 Used for querying negotiation history.
-Optional - if not provided, negotiation history will not be available.
 
 #### Default
 

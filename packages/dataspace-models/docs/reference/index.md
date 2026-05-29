@@ -22,6 +22,7 @@
 - [IPushDeliveryPayload](interfaces/IPushDeliveryPayload.md)
 - [IActivityLogEntryGetRequest](interfaces/IActivityLogEntryGetRequest.md)
 - [IActivityLogEntryGetResponse](interfaces/IActivityLogEntryGetResponse.md)
+- [IActivityLogEntryWithError](interfaces/IActivityLogEntryWithError.md)
 - [IActivityLogStatusNotificationPayload](interfaces/IActivityLogStatusNotificationPayload.md)
 - [IActivityLogStatusRequest](interfaces/IActivityLogStatusRequest.md)
 - [IActivityStreamNotifyRequest](interfaces/IActivityStreamNotifyRequest.md)
