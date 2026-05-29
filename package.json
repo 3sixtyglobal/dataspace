@@ -4,7 +4,7 @@
 	"description": "Provides coordinated components for secure dataspace data exchange.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/dataspace.git"
+		"url": "git+https://github.com/iotaledger/twin-dataspace.git"
 	},
 	"author": "jose.cantera@iota.org",
 	"contributors": [
@@ -79,7 +79,7 @@
 		"dataspace"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
 	},
 	"homepage": "https://twindev.org",
 	"dependencies": {
