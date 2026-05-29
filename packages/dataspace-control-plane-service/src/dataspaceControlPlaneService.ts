@@ -16,6 +16,8 @@ import {
 	RandomHelper,
 	StringHelper,
 	UnauthorizedError,
+	Url,
+	Urn,
 	ValidationError
 } from "@twin.org/core";
 import { JsonLdHelper, type JsonLdObjectWithNoContext } from "@twin.org/data-json-ld";
@@ -148,10 +150,9 @@ export class DataspaceControlPlaneService
 
 	/**
 	 * Policy Negotiation Admin Point component for negotiation history.
-	 * Optional - if not configured, history queries will fail gracefully.
 	 * @internal
 	 */
-	private readonly _policyNegotiationAdminPointComponent?: IPolicyNegotiationAdminPointComponent;
+	private readonly _policyNegotiationAdminPointComponent: IPolicyNegotiationAdminPointComponent;
 
 	/**
 	 * Federated Catalogue component for dataset validation.
@@ -244,9 +245,9 @@ export class DataspaceControlPlaneService
 			options?.policyNegotiationPointComponentType ?? "policy-negotiation-point"
 		);
 
-		// Retrieve PNAP component (optional) for negotiation history
+		// Retrieve PNAP component for negotiation history
 		this._policyNegotiationAdminPointComponent =
-			ComponentFactory.getIfExists<IPolicyNegotiationAdminPointComponent>(
+			ComponentFactory.get<IPolicyNegotiationAdminPointComponent>(
 				options?.policyNegotiationAdminPointComponentType ?? "policy-negotiation-admin-point"
 			);
 
@@ -1622,14 +1623,6 @@ export class DataspaceControlPlaneService
 			data: { state, cursor }
 		});
 
-		if (!this._policyNegotiationAdminPointComponent) {
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "pnapNotConfigured", {
-				message:
-					"Policy Negotiation Admin Point not configured. " +
-					"Set policyNegotiationAdminPointComponentType in constructor options."
-			});
-		}
-
 		const { items: pnapNegotiations, cursor: nextCursor } =
 			await this._policyNegotiationAdminPointComponent.query(
 				state as DataspaceProtocolContractNegotiationStateType | undefined,
@@ -1905,9 +1898,21 @@ export class DataspaceControlPlaneService
 			dataset
 		);
 
-		const resolvedId =
-			id ??
-			(Is.stringValue(dataset["@id"]) ? dataset["@id"] : RandomHelper.generateUuidV7("compact"));
+		let resolvedId;
+
+		if (Is.stringValue(id)) {
+			resolvedId = id;
+		} else if (Is.stringValue(dataset["@id"])) {
+			resolvedId = dataset["@id"];
+		} else {
+			resolvedId = `dataset:${RandomHelper.generateUuidV7("compact")}`;
+		}
+
+		if (!Urn.tryParseExact(resolvedId) || !Url.tryParseExact(resolvedId)) {
+			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "invalidDatasetId", {
+				id: resolvedId
+			});
+		}
 
 		const tenantId = await this.resolveCallingTenantId();
 		const nodeIdentity = await this.resolveNodeIdentity();

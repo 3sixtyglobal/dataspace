@@ -23,7 +23,6 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	/**
 	 * Policy Negotiation Admin Point component type.
 	 * Used for querying negotiation history.
-	 * Optional - if not provided, negotiation history will not be available.
 	 * @default policy-negotiation-admin-point
 	 */
 	policyNegotiationAdminPointComponentType?: string;

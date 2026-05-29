@@ -13,6 +13,7 @@ import { DataspaceProtocolDataTypes } from "@twin.org/standards-dataspace-protoc
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { ITrustComponent } from "@twin.org/trust-models";
 import { vi } from "vitest";
+import { MockPolicyNegotiationAdminPointComponent } from "./mocks/mockPolicyNegotiationAdminPoint.js";
 import locales from "../locales/en.json" with { type: "json" };
 
 /**
@@ -87,6 +88,7 @@ export function createFailingMockTrustComponent(): ITrustComponent {
 export const DEFAULT_SERVICE_OPTIONS = {
 	policyAdministrationPointComponentType: "test-pap",
 	policyNegotiationPointComponentType: "test-pnp",
+	policyNegotiationAdminPointComponentType: "test-pnap-admin",
 	federatedCatalogueComponentType: "test-fedcat",
 	trustComponentType: "test-trust",
 	transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
@@ -147,6 +149,14 @@ export async function setupTestEnv(): Promise<void> {
 	// DataspaceControlPlaneService without specifying dataPlaneComponentType.
 	ComponentFactory.register("dataspace-data-plane-service", () =>
 		createMockDataspaceDataPlaneComponent()
+	);
+
+	// Register a default mock PNAP admin component so all test suites can construct
+	// DataspaceControlPlaneService without specifying policyNegotiationAdminPointComponentType.
+	// PNAP is now required (get vs getIfExists), so a default must always be present.
+	ComponentFactory.register(
+		"policy-negotiation-admin-point",
+		() => new MockPolicyNegotiationAdminPointComponent()
 	);
 }
 

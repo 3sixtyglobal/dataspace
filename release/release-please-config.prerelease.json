@@ -45,9 +45,7 @@
 		"apps/dataspace-rest-server": {
 			"package-name": "dataspace-rest-server",
 			"changelog-path": "docs/changelog.md",
-			"extra-files": [
-				"src/index.ts"
-			]
+			"extra-files": ["src/index.ts"]
 		}
 	},
 	"plugins": [

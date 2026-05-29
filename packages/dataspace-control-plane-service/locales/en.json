@@ -83,7 +83,6 @@
 			"datasetHasNoOffers": "Dataset \"{datasetId}\" has no ODRL offers (odrl:hasPolicy). Cannot negotiate without an offer.",
 			"datasetHasNoValidOffers": "Dataset \"{datasetId}\" has no valid ODRL offer objects. Cannot negotiate without a valid offer.",
 			"offerNotFoundInDataset": "Offer \"{offerId}\" not found in dataset \"{datasetId}\". Available offers: {availableOffers}",
-			"pnapNotConfigured": "Policy Negotiation Admin Point not configured. Cannot retrieve negotiation history without PNAP.",
 			"negotiationCallbackError": "Negotiation callback \"{key}\" threw an error during {method} for negotiation {negotiationId}",
 			"catalogDatasetMissingId": "Catalog dataset is missing a required @id identifier",
 			"providerIdentityMissing": "Provider identity (DID) is required to sign data access tokens but was not set on the Transfer Process",
@@ -100,7 +99,8 @@
 			"datasetAlreadyExists": "A dataset with id \"{id}\" already exists.",
 			"datasetNotFound": "Dataset not found",
 			"datasetWrongTenant": "The calling tenant does not own this dataset.",
-			"transferWrongTenant": "The calling tenant does not own this transfer."
+			"transferWrongTenant": "The calling tenant does not own this transfer.",
+			"invalidDatasetId": "Dataset ID \"{id}\" is not a valid URN or URL"
 		},
 		"dataspaceControlPlanePolicyRequester": {}
 	}

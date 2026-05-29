@@ -109,13 +109,17 @@ describe("DataspaceControlPlaneService", () => {
 			() => dataspaceAppDatasetStorage
 		);
 
-		// Create and register mock PAP, PNP, and FedCat components
+		// Create and register mock PAP, PNP, FedCat and PNAP admin components
 		mockPap = new MockPolicyAdministrationPointComponent();
 		mockPnp = new MockPolicyNegotiationPointComponent();
 		mockFedCat = new MockFederatedCatalogueComponent();
 		ComponentFactory.register("test-pap", () => mockPap);
 		ComponentFactory.register("test-pnp", () => mockPnp);
 		ComponentFactory.register("test-fedcat", () => mockFedCat);
+		ComponentFactory.register(
+			"test-pnap-admin",
+			() => new MockPolicyNegotiationAdminPointComponent()
+		);
 
 		// Register mock trust component
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
@@ -153,6 +157,7 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-pap");
 			ComponentFactory.unregister("test-pnp");
 			ComponentFactory.unregister("test-fedcat");
+			ComponentFactory.unregister("test-pnap-admin");
 			ComponentFactory.unregister("test-trust");
 			ComponentFactory.unregister("test-url-transformer");
 			ComponentFactory.unregister("url-transformer");
@@ -4030,12 +4035,14 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-pnap-empty");
 		});
 
-		test("should throw error when PNAP not configured", async () => {
-			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
-
-			await expect(
-				service.getNegotiationHistory(undefined, undefined, "trust-payload")
-			).rejects.toThrow();
+		test("should throw when PNAP component type is not registered", async () => {
+			expect(
+				() =>
+					new DataspaceControlPlaneService({
+						...DEFAULT_SERVICE_OPTIONS,
+						policyNegotiationAdminPointComponentType: "not-a-registered-pnap"
+					})
+			).toThrow();
 		});
 	});
 
@@ -4482,14 +4489,14 @@ describe("DataspaceControlPlaneService", () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			await service.createAppDataset(
-				"ds-1",
+				"urn:test:ds-1",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/data-service-1") as never
 			);
 
-			const stored = await dataspaceAppDatasetStorage.get("ds-1");
+			const stored = await dataspaceAppDatasetStorage.get("urn:test:ds-1");
 			expect(stored).toBeDefined();
-			expect(stored?.id).toBe("ds-1");
+			expect(stored?.id).toBe("urn:test:ds-1");
 			expect(stored?.appId).toBe(TEST_APP_ID);
 			expect(stored?.tenantId).toBe(TEST_TENANT_A);
 			expect(stored?.nodeIdentity).toBe(TEST_NODE_ID);
@@ -4502,20 +4509,35 @@ describe("DataspaceControlPlaneService", () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			await service.createAppDataset(
-				"ds-dup",
+				"urn:test:ds-dup",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/data-service-dup") as never
 			);
 
 			await expect(
 				service.createAppDataset(
-					"ds-dup",
+					"urn:test:ds-dup",
 					TEST_APP_ID,
 					buildDataset("https://twin.example.org/data-service-dup") as never
 				)
 			).rejects.toMatchObject({
 				name: "GeneralError",
 				message: expect.stringContaining("datasetAlreadyExists")
+			});
+		});
+
+		test("createAppDataset rejects plain-string ids that are not a URN or URL", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await expect(
+				service.createAppDataset(
+					"plain-string-id",
+					TEST_APP_ID,
+					buildDataset("https://twin.example.org/ignored") as never
+				)
+			).rejects.toMatchObject({
+				name: "GeneralError",
+				message: expect.stringContaining("invalidDatasetId")
 			});
 		});
 
@@ -4594,13 +4616,13 @@ describe("DataspaceControlPlaneService", () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			await service.createAppDataset(
-				"ds-get",
+				"urn:test:ds-get",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-get") as never
 			);
 
-			const result = await service.getAppDataset("ds-get");
-			expect(result.id).toBe("ds-get");
+			const result = await service.getAppDataset("urn:test:ds-get");
+			expect(result.id).toBe("urn:test:ds-get");
 			expect(result.appId).toBe(TEST_APP_ID);
 		});
 
@@ -4617,7 +4639,7 @@ describe("DataspaceControlPlaneService", () => {
 			// Create as Tenant A.
 			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 			await serviceA.createAppDataset(
-				"ds-cross",
+				"urn:test:ds-cross",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-cross") as never
 			);
@@ -4629,7 +4651,7 @@ describe("DataspaceControlPlaneService", () => {
 				[ContextIdKeys.Organization]: "did:iota:other-org"
 			});
 
-			await expect(serviceA.getAppDataset("ds-cross")).rejects.toMatchObject({
+			await expect(serviceA.getAppDataset("urn:test:ds-cross")).rejects.toMatchObject({
 				name: "UnauthorizedError",
 				message: expect.stringContaining("datasetWrongTenant")
 			});
@@ -4640,12 +4662,12 @@ describe("DataspaceControlPlaneService", () => {
 
 			// Two records under Tenant A.
 			await service.createAppDataset(
-				"ds-a-1",
+				"urn:test:ds-a-1",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-a-1") as never
 			);
 			await service.createAppDataset(
-				"ds-a-2",
+				"urn:test:ds-a-2",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-a-2") as never
 			);
@@ -4664,21 +4686,21 @@ describe("DataspaceControlPlaneService", () => {
 			});
 
 			const page = await service.listAppDatasets();
-			expect(page.entities.map(e => e.id).sort()).toEqual(["ds-a-1", "ds-a-2"]);
+			expect(page.entities.map(e => e.id).sort()).toEqual(["urn:test:ds-a-1", "urn:test:ds-a-2"]);
 		});
 
 		test("updateAppDataset rewrites the app dataset and re-publishes to fedcat", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			await service.createAppDataset(
-				"ds-upd",
+				"urn:test:ds-upd",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-upd-v1") as never
 			);
 
 			const setSpy = vi.spyOn(mockFedCat, "set");
 			await service.updateAppDataset(
-				"ds-upd",
+				"urn:test:ds-upd",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-upd-v2") as never
 			);
@@ -4686,16 +4708,16 @@ describe("DataspaceControlPlaneService", () => {
 			// updateAppDataset publishes once (the spy was attached AFTER the
 			// initial create's publish).
 			expect(setSpy).toHaveBeenCalledTimes(1);
-			const stored = await dataspaceAppDatasetStorage.get("ds-upd");
+			const stored = await dataspaceAppDatasetStorage.get("urn:test:ds-upd");
 			// `@id` is stripped from the stored blob; entity.id is the source of truth.
 			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
-			expect(stored?.id).toBe("ds-upd");
+			expect(stored?.id).toBe("urn:test:ds-upd");
 		});
 
 		test("updateAppDataset rejects cross-tenant writes with datasetWrongTenant", async () => {
 			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 			await serviceA.createAppDataset(
-				"ds-upd-cross",
+				"urn:test:ds-upd-cross",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-upd-cross") as never
 			);
@@ -4708,7 +4730,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await expect(
 				serviceA.updateAppDataset(
-					"ds-upd-cross",
+					"urn:test:ds-upd-cross",
 					TEST_APP_ID,
 					buildDataset("https://twin.example.org/ds-upd-cross-hijack") as never
 				)
@@ -4738,7 +4760,7 @@ describe("DataspaceControlPlaneService", () => {
 		test("deleteAppDataset rejects cross-tenant deletes with datasetWrongTenant", async () => {
 			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 			await serviceA.createAppDataset(
-				"ds-del-cross",
+				"urn:test:ds-del-cross",
 				TEST_APP_ID,
 				buildDataset("https://twin.example.org/ds-del-cross") as never
 			);
@@ -4749,13 +4771,13 @@ describe("DataspaceControlPlaneService", () => {
 				[ContextIdKeys.Organization]: "did:iota:other-org"
 			});
 
-			await expect(serviceA.deleteAppDataset("ds-del-cross")).rejects.toMatchObject({
+			await expect(serviceA.deleteAppDataset("urn:test:ds-del-cross")).rejects.toMatchObject({
 				name: "UnauthorizedError",
 				message: expect.stringContaining("datasetWrongTenant")
 			});
 
 			// The record must still be present — denied delete shouldn't side-effect.
-			const stored = await dataspaceAppDatasetStorage.get("ds-del-cross");
+			const stored = await dataspaceAppDatasetStorage.get("urn:test:ds-del-cross");
 			expect(stored).toBeDefined();
 		});
 
@@ -4886,8 +4908,8 @@ describe("DataspaceControlPlaneService", () => {
 				datasetWithoutId as never
 			);
 
-			// UUID v7 (compact) is a 32-char lowercase hex string.
-			expect(resolvedId).toMatch(/^[\da-f]{32}$/);
+			// Auto-generated ID is `dataset:<compact-uuidv7>` (32-char lowercase hex).
+			expect(resolvedId).toMatch(/^dataset:[\da-f]{32}$/);
 			const stored = await dataspaceAppDatasetStorage.get(resolvedId);
 			expect(stored?.id).toBe(resolvedId);
 		});
@@ -4895,7 +4917,7 @@ describe("DataspaceControlPlaneService", () => {
 		test("createAppDataset: explicit id wins when explicit id and dataset @id differ", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			const explicitId = "explicit-storage-id";
+			const explicitId = "urn:test:explicit-storage-id";
 			const datasetAtId = "https://twin.example.org/payload-at-id";
 
 			const resolvedId = await service.createAppDataset(
@@ -4943,7 +4965,7 @@ describe("DataspaceControlPlaneService", () => {
 		test("updateAppDataset strips @id from new payload — path id stays authoritative", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			const pathId = "ds-immutable-id";
+			const pathId = "urn:test:ds-immutable-id";
 			await service.createAppDataset(
 				pathId,
 				TEST_APP_ID,
