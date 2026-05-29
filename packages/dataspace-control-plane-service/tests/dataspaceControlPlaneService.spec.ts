@@ -4991,4 +4991,72 @@ describe("DataspaceControlPlaneService", () => {
 			expect(storedAtId).toBeUndefined();
 		});
 	});
+
+	describe("negotiateAgreement trust check", () => {
+		test("negotiateAgreement should declare 5 parameters (trustPayload retained)", () => {
+			// The implementation now enforces a real TrustHelper.verifyTrust() check.
+			// Function.length counts formal parameters declared before any default/rest.
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			expect(service.negotiateAgreement.length).toBe(5);
+		});
+
+		test("getNegotiation should declare 2 parameters (regression lock-in)", () => {
+			// getNegotiation correctly uses trustPayload today. This assertion locks
+			// its current shape so a future refactor cannot silently change it.
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			expect(service.getNegotiation.length).toBe(2);
+		});
+
+		test("negotiateAgreement should call TrustHelper.verifyTrust on the trust payload", async () => {
+			const verifySpy = vi.fn().mockResolvedValue({
+				verified: true,
+				info: { token: "the-trust-payload-under-test", identity: "did:iota:consumer-spy" }
+			});
+
+			ComponentFactory.register("test-trust-spy", () => ({
+				className: () => "TestTrustSpy",
+				verify: verifySpy
+			}));
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-spy"
+			});
+			mockPnpToReturnNegotiationId(mockPnp);
+
+			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"http://consumer.example.com",
+				"the-trust-payload-under-test"
+			);
+
+			expect(verifySpy).toHaveBeenCalledOnce();
+			expect(verifySpy.mock.calls[0][0]).toBe("the-trust-payload-under-test");
+
+			ComponentFactory.unregister("test-trust-spy");
+		});
+
+		test("negotiateAgreement should reject when trust verification fails", async () => {
+			ComponentFactory.register("test-trust-failing", () => createFailingMockTrustComponent());
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-failing"
+			});
+
+			await expect(
+				service.negotiateAgreement(
+					"urn:uuid:dataset-negotiation-valid",
+					"offer-negotiation-valid",
+					"http://provider.example.com",
+					"http://consumer.example.com",
+					"invalid-trust-payload"
+				)
+			).rejects.toThrow();
+
+			ComponentFactory.unregister("test-trust-failing");
+		});
+	});
 });
