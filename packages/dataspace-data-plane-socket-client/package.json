@@ -4,7 +4,7 @@
 	"description": "Provides a WebSocket client for subscribing to activity log status notifications.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/dataspace.git",
+		"url": "git+https://github.com/iotaledger/twin-dataspace.git",
 		"directory": "packages/dataspace-data-plane-socket-client"
 	},
 	"author": "martyn.janes@iota.org",
@@ -77,7 +77,7 @@
 		"integration"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }

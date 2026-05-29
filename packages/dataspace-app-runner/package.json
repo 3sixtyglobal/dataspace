@@ -4,7 +4,7 @@
 	"description": "Runs dataspace app activity handlers in background execution contexts.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/dataspace.git",
+		"url": "git+https://github.com/iotaledger/twin-dataspace.git",
 		"directory": "packages/dataspace-app-runner"
 	},
 	"author": "jose.cantera@iota.org",
@@ -84,7 +84,7 @@
 		"integration"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }

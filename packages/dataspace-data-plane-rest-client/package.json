@@ -4,7 +4,7 @@
 	"description": "Provides an HTTP client for querying data assets and activity logs from data plane endpoints.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/dataspace.git",
+		"url": "git+https://github.com/iotaledger/twin-dataspace.git",
 		"directory": "packages/dataspace-data-plane-rest-client"
 	},
 	"author": "martyn.janes@iota.org",
@@ -77,7 +77,7 @@
 		"integration"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }

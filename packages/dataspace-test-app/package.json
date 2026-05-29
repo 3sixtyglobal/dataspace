@@ -4,7 +4,7 @@
 	"description": "Provides a sample dataspace app for local integration tests and development workflows.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/dataspace.git",
+		"url": "git+https://github.com/iotaledger/twin-dataspace.git",
 		"directory": "packages/dataspace-test-app"
 	},
 	"author": "jose.cantera@iota.org",
@@ -84,7 +84,7 @@
 		"integration"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/dataspace/issues"
+		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }
