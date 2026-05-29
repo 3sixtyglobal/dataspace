@@ -23,7 +23,8 @@
 			"pushSubscriptionNotFound": "Push subscription not found for consumerPid \"{notFoundId}\"",
 			"pushActivityNotAuthorized": "Unauthorized push activity — no matching STARTED transfer found for the activity generator",
 			"processOutboxActivityMultipleTo": "processOutboxActivity does not support multiple recipients — activity.to contains {count} values, expected exactly one consumerPid",
-			"pushSubscriptionCompensationFailed": "Compensating unsubscribeToData failed after push-subscription storage write failed (consumerPid: {consumerPid}, providerPid: {providerPid}) — app may be left with a dangling Follow until orphan cleanup runs"
+			"pushSubscriptionCompensationFailed": "Compensating unsubscribeToData failed after push-subscription storage write failed (consumerPid: {consumerPid}, providerPid: {providerPid}) — app may be left with a dangling Follow until orphan cleanup runs",
+			"activitySemanticError": "Activity could not be processed due to a semantic error in the provided Activity"
 		}
 	},
 	"info": {

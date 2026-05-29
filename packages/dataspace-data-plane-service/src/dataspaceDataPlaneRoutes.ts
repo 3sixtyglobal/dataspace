@@ -1,26 +1,28 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import {
+	HttpErrorHelper,
 	HttpParameterHelper,
 	type IHostingComponent,
 	type IHttpRequestContext,
 	type IRestRoute,
-	type ITag,
-	type IUnprocessableEntityResponse
+	type ITag
 } from "@twin.org/api-models";
 import { Coerce, ComponentFactory, Guards, Is } from "@twin.org/core";
-import type {
-	IActivityLogEntry,
-	IActivityLogEntryGetRequest,
-	IActivityLogEntryGetResponse,
-	IActivityStreamNotifyRequest,
-	IActivityStreamNotifyResponse,
-	IDataAssetEntitiesResponse,
-	IDataAssetGetEntitiesRequest,
-	IDataAssetItemList,
-	IDataAssetQueryRequest,
-	IDataspaceDataPlaneComponent,
-	IFilteringQuery
+import {
+	ActivityProcessingStatus,
+	ActivityTaskStatus,
+	type IActivityLogEntry,
+	type IActivityLogEntryGetRequest,
+	type IActivityLogEntryGetResponse,
+	type IActivityStreamNotifyRequest,
+	type IActivityStreamNotifyResponse,
+	type IDataAssetEntitiesResponse,
+	type IDataAssetGetEntitiesRequest,
+	type IDataAssetItemList,
+	type IDataAssetQueryRequest,
+	type IDataspaceDataPlaneComponent,
+	type IFilteringQuery
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -133,8 +135,7 @@ export function generateRestRoutesDataspaceDataPlane(
 		responseType: [
 			{
 				type: nameof<IActivityStreamNotifyResponse>()
-			},
-			{ type: nameof<IUnprocessableEntityResponse>() }
+			}
 		],
 		// Cross-node push deliveries authenticate via JWT-VC verified inside notifyActivity.
 		// Skip framework auth so external providers can POST without a session token.
@@ -304,6 +305,34 @@ export async function activityStreamNotify(
 				location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result}`
 			},
 			statusCode: HttpStatusCode.accepted
+		};
+	}
+
+	if (result.status === ActivityProcessingStatus.Error) {
+		const failedErrors = (result.tasks ?? []).flatMap(t => {
+			if (t.status === ActivityTaskStatus.Failed && t.error) {
+				return [t.error];
+			}
+			return [];
+		});
+		const semanticError = failedErrors.find(
+			e =>
+				HttpErrorHelper.processError(e, false).httpStatusCode === HttpStatusCode.unprocessableEntity
+		);
+		const failedTaskError = semanticError ?? failedErrors[0];
+		const { httpStatusCode, error } = failedTaskError
+			? HttpErrorHelper.processError(failedTaskError, false)
+			: { httpStatusCode: HttpStatusCode.internalServerError, error: undefined };
+		const statusCode =
+			httpStatusCode === HttpStatusCode.unprocessableEntity
+				? HttpStatusCode.unprocessableEntity
+				: HttpStatusCode.internalServerError;
+		return {
+			headers: {
+				location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result.id}`
+			},
+			statusCode,
+			body: { ...result, error }
 		};
 	}
 

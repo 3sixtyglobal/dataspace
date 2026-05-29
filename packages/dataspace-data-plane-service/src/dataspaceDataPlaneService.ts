@@ -24,6 +24,7 @@ import {
 	UnauthorizedError,
 	UnprocessableError,
 	Validation,
+	ValidationError,
 	type IValidationFailure
 } from "@twin.org/core";
 import { Blake2b } from "@twin.org/crypto";
@@ -2207,7 +2208,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			try {
 				taskResult = await handleActivity(activity as IDataspaceActivity);
 			} catch (error) {
-				taskError = BaseError.fromError(error);
+				const baseErr = BaseError.fromError(error);
+				const isSemanticError =
+					BaseError.someErrorName(baseErr, ValidationError.CLASS_NAME) ||
+					BaseError.someErrorName(baseErr, GuardError.CLASS_NAME);
+				taskError = isSemanticError
+					? new UnprocessableError(
+							DataspaceDataPlaneService.CLASS_NAME,
+							"activitySemanticError",
+							undefined,
+							baseErr
+						)
+					: baseErr;
 			}
 
 			const now = Date.now();
