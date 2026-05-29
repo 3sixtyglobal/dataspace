@@ -1429,12 +1429,24 @@ export class DataspaceControlPlaneService
 		);
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(publicOrigin), publicOrigin);
 
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"negotiateAgreement"
+		);
+
 		await this._loggingComponent?.log({
 			level: "info",
 			source: DataspaceControlPlaneService.CLASS_NAME,
 			ts: Date.now(),
 			message: "startingContractNegotiation",
-			data: { datasetId, offerId, providerEndpoint, publicOrigin }
+			data: {
+				datasetId,
+				offerId,
+				providerEndpoint,
+				publicOrigin,
+				verifiedIdentity: trustInfo.identity
+			}
 		});
 
 		const catalogResult = await this._federatedCatalogueComponent.get(datasetId);

@@ -374,7 +374,7 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Returns immediately with a negotiationId. The caller is notified
@@ -405,12 +405,6 @@ The provider's contract negotiation endpoint URL.
 `string`
 
 The public origin URL of this control plane (for callbacks).
-
-##### trustPayload
-
-`unknown`
-
-The trust payload for authentication.
 
 #### Returns
 
