@@ -211,7 +211,13 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 			});
 
 			if (agreementId) {
-				await this._callback?.onCompleted(negotiationId, agreementId);
+				await this._callback?.onStateChanged(
+					negotiationId,
+					DataspaceProtocolContractNegotiationStateType.FINALIZED,
+					{ agreement: negotiation.agreement }
+				);
+
+				await this._callback?.onFinalized(negotiationId, agreementId);
 			} else {
 				await this._callback?.onFailed(negotiationId, "negotiationFinalizedNoAgreement");
 			}

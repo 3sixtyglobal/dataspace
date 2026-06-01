@@ -2748,10 +2748,10 @@ export class DataspaceControlPlaneService
 					}
 				}
 			},
-			onCompleted: async (negotiationId, agreementId) => {
+			onFinalized: async (negotiationId, agreementId) => {
 				for (const [key, cb] of this._negotiationCallbacks.entries()) {
 					try {
-						await cb.onCompleted(negotiationId, agreementId);
+						await cb.onFinalized(negotiationId, agreementId);
 					} catch (error) {
 						await this._loggingComponent?.log({
 							level: "error",

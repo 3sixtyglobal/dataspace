@@ -29,12 +29,12 @@ export interface INegotiationCallback {
 	): Promise<void>;
 
 	/**
-	 * Called when the negotiation completes successfully (finalized).
+	 * Called when the negotiation finalizes.
 	 * @param negotiationId The negotiation ID.
 	 * @param agreementId The agreement ID (from agreement.uid).
 	 * @returns Nothing.
 	 */
-	onCompleted(negotiationId: string, agreementId: string): Promise<void>;
+	onFinalized(negotiationId: string, agreementId: string): Promise<void>;
 
 	/**
 	 * Called when the negotiation fails (terminated or stalled).

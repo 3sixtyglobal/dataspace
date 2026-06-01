@@ -3423,7 +3423,7 @@ describe("DataspaceControlPlaneService", () => {
 		test("should invoke onStateChanged with OFFERED when offer() fires", async () => {
 			const callbackSpy: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
@@ -3461,14 +3461,14 @@ describe("DataspaceControlPlaneService", () => {
 				DataspaceProtocolContractNegotiationStateType.OFFERED,
 				{ offer: mockOffer }
 			);
-			expect(callbackSpy.onCompleted).not.toHaveBeenCalled();
+			expect(callbackSpy.onFinalized).not.toHaveBeenCalled();
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
 		test("should invoke onStateChanged with AGREED when agreement() fires", async () => {
 			const callbackSpy: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
@@ -3506,14 +3506,14 @@ describe("DataspaceControlPlaneService", () => {
 				DataspaceProtocolContractNegotiationStateType.AGREED,
 				{ agreement: mockAgreement }
 			);
-			expect(callbackSpy.onCompleted).not.toHaveBeenCalled();
+			expect(callbackSpy.onFinalized).not.toHaveBeenCalled();
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
-		test("should invoke onCompleted with agreementId when finalised() fires after agreement", async () => {
+		test("should invoke onFinalized with agreementId when finalised() fires after agreement", async () => {
 			const callbackSpy: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
@@ -3555,14 +3555,14 @@ describe("DataspaceControlPlaneService", () => {
 			await requester.agreement("cb-neg-003", mockAgreement);
 			await requester.finalised("cb-neg-003");
 
-			expect(callbackSpy.onCompleted).toHaveBeenCalledWith("cb-neg-003", "final-agreement-uid");
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith("cb-neg-003", "final-agreement-uid");
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
 		test("should invoke onFailed when terminated() fires", async () => {
 			const callbackSpy: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
@@ -3589,13 +3589,13 @@ describe("DataspaceControlPlaneService", () => {
 				"cb-neg-004",
 				"negotiationTerminatedByProvider"
 			);
-			expect(callbackSpy.onCompleted).not.toHaveBeenCalled();
+			expect(callbackSpy.onFinalized).not.toHaveBeenCalled();
 		});
 
 		test("should invoke onFailed when finalised() fires without prior agreement", async () => {
 			const callbackSpy: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
@@ -3623,7 +3623,7 @@ describe("DataspaceControlPlaneService", () => {
 				"cb-neg-005",
 				"negotiationFinalizedNoAgreement"
 			);
-			expect(callbackSpy.onCompleted).not.toHaveBeenCalled();
+			expect(callbackSpy.onFinalized).not.toHaveBeenCalled();
 		});
 
 		test("should remove negotiation from tracking after finalised()", async () => {
@@ -3689,8 +3689,8 @@ describe("DataspaceControlPlaneService", () => {
 				onStateChanged: vi.fn().mockImplementation(async (negId, state) => {
 					callOrder.push(`stateChanged:${state}`);
 				}),
-				onCompleted: vi.fn().mockImplementation(async () => {
-					callOrder.push("completed");
+				onFinalized: vi.fn().mockImplementation(async () => {
+					callOrder.push("finalized");
 				}),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
@@ -3731,18 +3731,23 @@ describe("DataspaceControlPlaneService", () => {
 
 			await requester.finalised("cb-neg-008");
 
-			expect(callOrder).toEqual(["stateChanged:OFFERED", "stateChanged:AGREED", "completed"]);
+			expect(callOrder).toEqual([
+				"stateChanged:OFFERED",
+				"stateChanged:AGREED",
+				"stateChanged:FINALIZED",
+				"finalized"
+			]);
 		});
 
 		test("should fan out callbacks to multiple registered listeners", async () => {
 			const callbackSpy1: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 			const callbackSpy2: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
@@ -3779,7 +3784,7 @@ describe("DataspaceControlPlaneService", () => {
 		test("should not invoke callback after unregisterNegotiationCallback", async () => {
 			const callbackSpy: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
@@ -3804,19 +3809,19 @@ describe("DataspaceControlPlaneService", () => {
 			await requester.terminated("cb-neg-unreg-001");
 
 			expect(callbackSpy.onStateChanged).not.toHaveBeenCalled();
-			expect(callbackSpy.onCompleted).not.toHaveBeenCalled();
+			expect(callbackSpy.onFinalized).not.toHaveBeenCalled();
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
 		test("should only unregister the specified key, leaving other callbacks active", async () => {
 			const callbackSpy1: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 			const callbackSpy2: INegotiationCallback = {
 				onStateChanged: vi.fn().mockResolvedValue(undefined),
-				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined)
 			};
 
