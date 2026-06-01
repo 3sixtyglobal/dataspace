@@ -194,6 +194,21 @@ url-transformer
 
 ***
 
+### remoteControlPlaneComponentType? {#remotecontrolplanecomponenttype}
+
+> `optional` **remoteControlPlaneComponentType?**: `string`
+
+Remote control plane component type used to make outbound DSP transfer requests.
+Created dynamically via ComponentFactory.create() with the provider endpoint as config.
+
+#### Default
+
+```ts
+dataspace-control-plane-rest-client
+```
+
+***
+
 ### config? {#config}
 
 > `optional` **config?**: [`IDataspaceControlPlaneServiceConfig`](IDataspaceControlPlaneServiceConfig.md)

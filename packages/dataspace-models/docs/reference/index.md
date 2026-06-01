@@ -62,6 +62,7 @@
 - [IDataspaceControlPlaneComponent](interfaces/IDataspaceControlPlaneComponent.md)
 - [IDataspaceControlPlaneResolverComponent](interfaces/IDataspaceControlPlaneResolverComponent.md)
 - [INegotiationCallback](interfaces/INegotiationCallback.md)
+- [ITransferCallback](interfaces/ITransferCallback.md)
 - [ITransferContext](interfaces/ITransferContext.md)
 - [ITransferProcess](interfaces/ITransferProcess.md)
 - [ITransferContextResponse](interfaces/ITransferContextResponse.md)

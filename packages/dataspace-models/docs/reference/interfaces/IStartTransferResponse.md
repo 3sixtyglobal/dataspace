@@ -6,7 +6,7 @@ API response for starting a transfer process.
 
 ### body {#body}
 
-> **body**: `IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`
+> **body**: `IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`
 
 Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or error.
 

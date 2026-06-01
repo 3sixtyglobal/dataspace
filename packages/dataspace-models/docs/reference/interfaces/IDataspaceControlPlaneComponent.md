@@ -192,6 +192,116 @@ List of negotiation history entries with pagination cursor.
 
 ***
 
+### registerTransferCallback() {#registertransfercallback}
+
+> **registerTransferCallback**(`key`, `callback`): `void`
+
+Register a callback to receive transfer process state change notifications.
+Upstream modules register their callback here to be notified when a
+consumer-initiated transfer changes state (STARTED, COMPLETED, SUSPENDED,
+TERMINATED).
+
+This method has NO REST client implementation — in-process only.
+
+#### Parameters
+
+##### key
+
+`string`
+
+A unique key identifying this callback registration.
+
+##### callback
+
+[`ITransferCallback`](ITransferCallback.md)
+
+The callback interface to register.
+
+#### Returns
+
+`void`
+
+***
+
+### unregisterTransferCallback() {#unregistertransfercallback}
+
+> **unregisterTransferCallback**(`key`): `void`
+
+Unregister a previously registered transfer callback.
+
+#### Parameters
+
+##### key
+
+`string`
+
+The key used when registering the callback.
+
+#### Returns
+
+`void`
+
+***
+
+### startDataTransfer() {#startdatatransfer}
+
+> **startDataTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+
+Start a data transfer as a Consumer.
+High-level convenience wrapper around the DSP Transfer Request protocol.
+
+This method:
+1. Generates a consumerPid.
+2. POSTs a TransferRequestMessage to the provider's DSP endpoint.
+3. Persists a local TransferProcess in REQUESTED state (only if provider accepts).
+4. Returns the consumerPid immediately.
+
+The caller is notified of subsequent state changes (STARTED, COMPLETED, etc.)
+via the registered ITransferCallback. The transfer moves to STARTED when the
+provider POSTs a TransferStartMessage back to this node's callback address.
+
+This method has NO REST client implementation — in-process only.
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+The finalized agreement ID (from contract negotiation).
+
+##### providerEndpoint
+
+`string`
+
+The provider's DSP control plane base URL.
+
+##### publicOrigin
+
+`string`
+
+The public origin URL of this control plane (used as callbackAddress).
+
+##### format
+
+`string`
+
+The transfer format (e.g. "HttpProxy-PULL", "HttpProxy-PUSH").
+
+##### trustPayload
+
+`unknown`
+
+Trust payload for authentication.
+
+#### Returns
+
+`Promise`\<\{ `consumerPid`: `string`; \}\>
+
+The consumerPid of the newly created TransferProcess.
+
+***
+
 ### requestTransfer() {#requesttransfer}
 
 > **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
@@ -231,7 +341,7 @@ both consumerPid and providerPid, or TransferError if the operation fails.
 
 ### startTransfer() {#starttransfer}
 
-> **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+> **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`\>
 
 Start a Transfer Process.
 Transitions Transfer Process from REQUESTED to STARTED state, or resumes from SUSPENDED state.
@@ -263,7 +373,7 @@ Trust payload containing authorization information (JWT, VC, etc.).
 
 #### Returns
 
-`Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+`Promise`\<`IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`\>
 
 Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 

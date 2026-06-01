@@ -9,7 +9,7 @@ Implements Eclipse Dataspace Protocol (DSP) Transfer Process Protocol.
 
 ## Implements
 
-- `Omit`\<`IDataspaceControlPlaneComponent`, `"registerNegotiationCallback"` \| `"unregisterNegotiationCallback"` \| `"negotiateAgreement"` \| `"getNegotiation"` \| `"getNegotiationHistory"`\>
+- `Omit`\<`IDataspaceControlPlaneComponent`, `"registerNegotiationCallback"` \| `"unregisterNegotiationCallback"` \| `"negotiateAgreement"` \| `"getNegotiation"` \| `"getNegotiationHistory"` \| `"registerTransferCallback"` \| `"unregisterTransferCallback"` \| `"startDataTransfer"`\>
 
 ## Constructors
 

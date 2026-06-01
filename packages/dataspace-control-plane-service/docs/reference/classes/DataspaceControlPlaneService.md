@@ -114,6 +114,60 @@ The key used when registering the callback.
 
 ***
 
+### registerTransferCallback() {#registertransfercallback}
+
+> **registerTransferCallback**(`key`, `callback`): `void`
+
+Register a callback to receive transfer process state change notifications.
+
+#### Parameters
+
+##### key
+
+`string`
+
+A unique key identifying this callback registration.
+
+##### callback
+
+`ITransferCallback`
+
+The callback interface to register.
+
+#### Returns
+
+`void`
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.registerTransferCallback`
+
+***
+
+### unregisterTransferCallback() {#unregistertransfercallback}
+
+> **unregisterTransferCallback**(`key`): `void`
+
+Unregister a previously registered transfer callback.
+
+#### Parameters
+
+##### key
+
+`string`
+
+The key used when registering the callback.
+
+#### Returns
+
+`void`
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.unregisterTransferCallback`
+
+***
+
 ### start() {#start}
 
 > **start**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
@@ -200,6 +254,66 @@ Called by: Consumer when it wants to request a new Transfer Process
 #### Implementation of
 
 `IDataspaceControlPlaneComponent.requestTransfer`
+
+***
+
+### startDataTransfer() {#startdatatransfer}
+
+> **startDataTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+
+Start a data transfer as a Consumer.
+Generates a consumerPid, POSTs a TransferRequestMessage to the provider's DSP endpoint,
+and (only if the provider accepts) persists a local TransferProcess in REQUESTED state.
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+The finalized agreement ID from contract negotiation.
+
+##### providerEndpoint
+
+`string`
+
+The provider's DSP control plane base URL.
+
+##### publicOrigin
+
+`string`
+
+The public origin URL of this control plane (used as callbackAddress).
+
+##### format
+
+`string`
+
+The transfer format (e.g. "HttpProxy-PULL", "HttpProxy-PUSH").
+
+##### trustPayload
+
+`unknown`
+
+Trust payload for authenticating this call.
+
+#### Returns
+
+`Promise`\<\{ `consumerPid`: `string`; \}\>
+
+The consumerPid of the newly created TransferProcess.
+
+**Engine configuration requirement:** The outbound call to the provider uses
+`ComponentFactory.create(remoteControlPlaneComponentType, { endpoint, pathPrefix })`.
+For the runtime `providerEndpoint` to be forwarded correctly, the engine **must** register
+the component type (default: `dataspace-control-plane-rest-client`) as a
+**multi-instance** component (`isMultiInstance: true` in engine config). A singleton
+registration ignores the runtime `endpoint` arg and silently POSTs to its
+static endpoint instead.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.startDataTransfer`
 
 ***
 
