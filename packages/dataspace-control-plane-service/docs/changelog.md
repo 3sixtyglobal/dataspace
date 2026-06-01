@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.33](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.32...dataspace-control-plane-service-v0.0.3-next.33) (2026-06-01)
+
+
+### Features
+
+* rename completed callback ([#147](https://github.com/iotaledger/twin-dataspace/issues/147)) ([f62baad](https://github.com/iotaledger/twin-dataspace/commit/f62baad0ff444e2913439b12dcd06d20c9a4f6a4))
+
+
+### Bug Fixes
+
+* implement missing trust check on negotiateAgreement ([#136](https://github.com/iotaledger/twin-dataspace/issues/136)) ([a3589c2](https://github.com/iotaledger/twin-dataspace/commit/a3589c279476d5450b68ea7c2790be7e3125bfe2))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.32 to 0.0.3-next.33
+
 ## [0.0.3-next.32](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.31...dataspace-control-plane-service-v0.0.3-next.32) (2026-05-29)
 
 
