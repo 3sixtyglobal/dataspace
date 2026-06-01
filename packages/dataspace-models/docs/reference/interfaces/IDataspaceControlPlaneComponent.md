@@ -66,7 +66,7 @@ The key used when registering the callback.
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Implements DSP Contract Negotiation Protocol.
@@ -104,6 +104,12 @@ The provider's contract negotiation endpoint URL.
 `string`
 
 The public origin URL of this control plane (for callbacks).
+
+##### trustPayload
+
+`unknown`
+
+Trust payload for authentication (JWT or Verifiable Credential).
 
 #### Returns
 

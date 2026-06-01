@@ -51,11 +51,11 @@ Nothing.
 
 ***
 
-### onCompleted() {#oncompleted}
+### onFinalized() {#onfinalized}
 
-> **onCompleted**(`negotiationId`, `agreementId`): `Promise`\<`void`\>
+> **onFinalized**(`negotiationId`, `agreementId`): `Promise`\<`void`\>
 
-Called when the negotiation completes successfully (finalized).
+Called when the negotiation finalizes.
 
 #### Parameters
 
