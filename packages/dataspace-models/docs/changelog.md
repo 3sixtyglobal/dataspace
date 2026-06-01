@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.34](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.33...dataspace-models-v0.0.3-next.34) (2026-06-01)
+
+
+### Features
+
+* add consumer transfer callbacks and startDataTransfer convenience method ([#151](https://github.com/iotaledger/twin-dataspace/issues/151)) ([0ab66c3](https://github.com/iotaledger/twin-dataspace/commit/0ab66c3636fd1f98f89baca1e99764d77c6f91d9))
+
 ## [0.0.3-next.33](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.32...dataspace-models-v0.0.3-next.33) (2026-06-01)
 
 

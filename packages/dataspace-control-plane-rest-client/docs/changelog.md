@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.34](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.33...dataspace-control-plane-rest-client-v0.0.3-next.34) (2026-06-01)
+
+
+### Features
+
+* add consumer transfer callbacks and startDataTransfer convenience method ([#151](https://github.com/iotaledger/twin-dataspace/issues/151)) ([0ab66c3](https://github.com/iotaledger/twin-dataspace/commit/0ab66c3636fd1f98f89baca1e99764d77c6f91d9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.33 to 0.0.3-next.34
+
 ## [0.0.3-next.33](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.32...dataspace-control-plane-rest-client-v0.0.3-next.33) (2026-06-01)
 
 

@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.34](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.33...dataspace-data-plane-service-v0.0.3-next.34) (2026-06-01)
+
+
+### Bug Fixes
+
+* guard against empty consumerPid IN () ([#142](https://github.com/iotaledger/twin-dataspace/issues/142)) ([ee0c098](https://github.com/iotaledger/twin-dataspace/commit/ee0c09886faa474b62fd411b5f1d8ba26bf9d1de))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.33 to 0.0.3-next.34
+    * @twin.org/dataspace-models bumped from 0.0.3-next.33 to 0.0.3-next.34
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.33 to 0.0.3-next.34
+
 ## [0.0.3-next.33](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.32...dataspace-data-plane-service-v0.0.3-next.33) (2026-06-01)
 
 
