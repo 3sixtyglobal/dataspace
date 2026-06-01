@@ -1518,6 +1518,25 @@ describe("DataspaceDataPlaneService", () => {
 			]);
 		});
 
+		test("does not query transferProcessStorage when subscription page is empty", async () => {
+			// The cursor-drift test above mocks pushSubscriptionStorage.query without
+			// restoring it. Restore all spies first so the real memory connector is used
+			// here — which returns empty because nothing is seeded.
+			vi.restoreAllMocks();
+
+			// No push subscriptions seeded — the subscription page is empty.
+			// Without the guard the service would emit `consumerPid IN ()`.
+			const querySpy = vi.spyOn(transferProcessStorage, "query");
+
+			const service = new DataspaceDataPlaneService(options);
+			await (
+				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
+			).cleanupOrphanedPushSubscriptions();
+
+			// Guard must prevent the IN query from being issued at all.
+			expect(querySpy).not.toHaveBeenCalled();
+		});
+
 		test("multi-tenant cleanup iterates each registered tenant and runs partition cleanup per tenant", async () => {
 			// Configure service in multi-tenant mode (partitionContextIds includes Tenant).
 			// Register a mock tenantAdmin that returns two tenants in one page.

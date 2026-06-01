@@ -1815,21 +1815,25 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				cursor = result.cursor;
 
 				const pids = (result.entities as PushSubscription[]).map(s => s.consumerPid);
-				const tpResult = await this._transferProcessStorage.query({
-					property: "consumerPid",
-					value: pids,
-					comparison: ComparisonOperator.In
-				});
-				const tpMap = new Map(tpResult.entities.map(tp => [tp.consumerPid, tp.state]));
 
-				for (const sub of result.entities as PushSubscription[]) {
-					const state = tpMap.get(sub.consumerPid);
-					if (
-						!state ||
-						state === DataspaceProtocolTransferProcessStateType.COMPLETED ||
-						state === DataspaceProtocolTransferProcessStateType.TERMINATED
-					) {
-						toDelete.push(sub.consumerPid);
+				// Skip the transfer-process query when the page is empty.
+				if (pids.length > 0) {
+					const tpResult = await this._transferProcessStorage.query({
+						property: "consumerPid",
+						value: pids,
+						comparison: ComparisonOperator.In
+					});
+					const tpMap = new Map(tpResult.entities.map(tp => [tp.consumerPid, tp.state]));
+
+					for (const sub of result.entities as PushSubscription[]) {
+						const state = tpMap.get(sub.consumerPid);
+						if (
+							!state ||
+							state === DataspaceProtocolTransferProcessStateType.COMPLETED ||
+							state === DataspaceProtocolTransferProcessStateType.TERMINATED
+						) {
+							toDelete.push(sub.consumerPid);
+						}
 					}
 				}
 			} while (Is.stringValue(cursor));
