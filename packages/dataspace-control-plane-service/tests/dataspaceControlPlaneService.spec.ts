@@ -16,6 +16,7 @@ import {
 	DataspaceAppFactory,
 	DataspaceTransferFormat,
 	type INegotiationCallback,
+	type ITransferCallback,
 	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
@@ -5062,6 +5063,672 @@ describe("DataspaceControlPlaneService", () => {
 			).rejects.toThrow();
 
 			ComponentFactory.unregister("test-trust-failing");
+		});
+	});
+
+	describe("Transfer Callbacks - register / unregister", () => {
+		test("registerTransferCallback stores the callback", () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			expect(() => service.registerTransferCallback("my-listener", callback)).not.toThrow();
+		});
+
+		test("unregisterTransferCallback removes a registered callback without error", () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			service.registerTransferCallback("my-listener", callback);
+			expect(() => service.unregisterTransferCallback("my-listener")).not.toThrow();
+		});
+
+		test("unregisterTransferCallback is a no-op for an unknown key", () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			expect(() => service.unregisterTransferCallback("does-not-exist")).not.toThrow();
+		});
+	});
+
+	describe("Transfer Callbacks - startTransfer fires onStarted for Consumer role", () => {
+		test("should invoke onStateChanged(STARTED) and onStarted when role is Consumer", async () => {
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			service.registerTransferCallback("test-cb", callback);
+
+			// Seed a REQUESTED transfer where THIS node is the consumer (consumerPid = primary key).
+			// providerIdentity must match the mock trust component identity ("did:iota:consumer-node-abc").
+			await transferProcessStorage.set({
+				id: "cb-start-internal-01",
+				consumerPid: "cb-start-consumer-01",
+				providerPid: "cb-start-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-01",
+				providerIdentity: "did:iota:consumer-node-abc",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "cb-start-consumer-01",
+				providerPid: "cb-start-provider-01"
+			};
+
+			const result = await service.startTransfer(
+				message,
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			expect(callback.onStateChanged).toHaveBeenCalledWith(
+				"cb-start-consumer-01",
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			expect(callback.onStarted).toHaveBeenCalledWith(
+				"cb-start-consumer-01",
+				expect.objectContaining({ consumerPid: "cb-start-consumer-01" })
+			);
+			expect(callback.onCompleted).not.toHaveBeenCalled();
+			expect(callback.onSuspended).not.toHaveBeenCalled();
+			expect(callback.onTerminated).not.toHaveBeenCalled();
+		});
+
+		test("should NOT invoke transfer callbacks when role is Provider", async () => {
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			// Use a trust component that identifies as the provider
+			ComponentFactory.register("test-trust-provider-cb", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-provider-cb"
+			});
+			service.registerTransferCallback("test-cb", callback);
+
+			// Seed a REQUESTED transfer found by providerPid (secondary key) → role = Provider.
+			// consumerIdentity is intentionally set to a different identity so the provider lookup succeeds.
+			await transferProcessStorage.set({
+				id: "cb-provider-internal-01",
+				consumerPid: "cb-provider-consumer-01",
+				providerPid: "cb-provider-pid-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-provider",
+				consumerIdentity: "did:iota:other-consumer",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			// Pass the stored entity's providerPid as the message consumerPid.
+			// The primary-key lookup will miss (primary key is "cb-provider-consumer-01"),
+			// then the secondary providerPid index lookup will find it → role = Provider.
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "cb-provider-pid-01",
+				providerPid: "cb-provider-pid-01"
+			};
+
+			await service.startTransfer(message, "https://test-origin.com", "valid-trust-payload");
+
+			// No callbacks should have fired because THIS node is acting as Provider
+			expect(callback.onStateChanged).not.toHaveBeenCalled();
+			expect(callback.onStarted).not.toHaveBeenCalled();
+
+			ComponentFactory.unregister("test-trust-provider-cb");
+		});
+
+		test("should NOT invoke callback after unregisterTransferCallback", async () => {
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			service.registerTransferCallback("test-cb", callback);
+			service.unregisterTransferCallback("test-cb");
+
+			await transferProcessStorage.set({
+				id: "cb-unreg-internal-01",
+				consumerPid: "cb-unreg-consumer-01",
+				providerPid: "cb-unreg-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-unreg",
+				providerIdentity: "did:iota:consumer-node-abc",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "cb-unreg-consumer-01",
+					providerPid: "cb-unreg-provider-01"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(callback.onStateChanged).not.toHaveBeenCalled();
+			expect(callback.onStarted).not.toHaveBeenCalled();
+		});
+
+		test("fan-out: multiple callbacks all receive onStarted", async () => {
+			const callback1: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+			const callback2: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			service.registerTransferCallback("listener-a", callback1);
+			service.registerTransferCallback("listener-b", callback2);
+
+			await transferProcessStorage.set({
+				id: "cb-fanout-internal-01",
+				consumerPid: "cb-fanout-consumer-01",
+				providerPid: "cb-fanout-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-fanout",
+				providerIdentity: "did:iota:consumer-node-abc",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "cb-fanout-consumer-01",
+					providerPid: "cb-fanout-provider-01"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(callback1.onStarted).toHaveBeenCalledTimes(1);
+			expect(callback2.onStarted).toHaveBeenCalledTimes(1);
+		});
+
+		test("errors thrown by individual callbacks are swallowed and do not affect protocol flow", async () => {
+			const throwingCallback: ITransferCallback = {
+				onStateChanged: vi.fn().mockRejectedValue(new Error("Callback boom")),
+				onStarted: vi.fn().mockRejectedValue(new Error("Callback boom")),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			service.registerTransferCallback("throwing-cb", throwingCallback);
+
+			await transferProcessStorage.set({
+				id: "cb-throw-internal-01",
+				consumerPid: "cb-throw-consumer-01",
+				providerPid: "cb-throw-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-throw",
+				providerIdentity: "did:iota:consumer-node-abc",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			// Should resolve to a valid TransferStartMessage, NOT propagate the callback error
+			const result = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "cb-throw-consumer-01",
+					providerPid: "cb-throw-provider-01"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		});
+	});
+
+	describe("Transfer Callbacks - completeTransfer fires onCompleted for Consumer role", () => {
+		test("should invoke onStateChanged(COMPLETED) and onCompleted when role is Consumer", async () => {
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			service.registerTransferCallback("test-cb", callback);
+
+			// consumerIdentity must match the caller (mock trust returns "did:iota:consumer-node-abc")
+			await transferProcessStorage.set({
+				id: "cb-complete-internal-01",
+				consumerPid: "cb-complete-consumer-01",
+				providerPid: "cb-complete-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-complete",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const result = await service.completeTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferCompletionMessage",
+					consumerPid: "cb-complete-consumer-01",
+					providerPid: "cb-complete-provider-01"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			expect(callback.onStateChanged).toHaveBeenCalledWith(
+				"cb-complete-consumer-01",
+				DataspaceProtocolTransferProcessStateType.COMPLETED
+			);
+			expect(callback.onCompleted).toHaveBeenCalledWith("cb-complete-consumer-01");
+			expect(callback.onStarted).not.toHaveBeenCalled();
+			expect(callback.onSuspended).not.toHaveBeenCalled();
+			expect(callback.onTerminated).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("Transfer Callbacks - suspendTransfer fires onSuspended for Consumer role", () => {
+		test("should invoke onStateChanged(SUSPENDED) and onSuspended when role is Consumer", async () => {
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			service.registerTransferCallback("test-cb", callback);
+
+			await transferProcessStorage.set({
+				id: "cb-suspend-internal-01",
+				consumerPid: "cb-suspend-consumer-01",
+				providerPid: "cb-suspend-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-suspend",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const result = await service.suspendTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferSuspensionMessage",
+					consumerPid: "cb-suspend-consumer-01",
+					providerPid: "cb-suspend-provider-01",
+					reason: ["Manual suspension"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			expect(callback.onStateChanged).toHaveBeenCalledWith(
+				"cb-suspend-consumer-01",
+				DataspaceProtocolTransferProcessStateType.SUSPENDED
+			);
+			expect(callback.onSuspended).toHaveBeenCalledWith(
+				"cb-suspend-consumer-01",
+				"Manual suspension"
+			);
+			expect(callback.onStarted).not.toHaveBeenCalled();
+			expect(callback.onCompleted).not.toHaveBeenCalled();
+			expect(callback.onTerminated).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("Transfer Callbacks - terminateTransfer fires onTerminated for Consumer role", () => {
+		test("should invoke onStateChanged(TERMINATED) and onTerminated when role is Consumer", async () => {
+			const callback: ITransferCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined)
+			};
+
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			service.registerTransferCallback("test-cb", callback);
+
+			await transferProcessStorage.set({
+				id: "cb-terminate-internal-01",
+				consumerPid: "cb-terminate-consumer-01",
+				providerPid: "cb-terminate-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-123",
+				offerId: "offer-cb-terminate",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const result = await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "cb-terminate-consumer-01",
+					providerPid: "cb-terminate-provider-01",
+					reason: ["End of transfer"]
+				},
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			expect(callback.onStateChanged).toHaveBeenCalledWith(
+				"cb-terminate-consumer-01",
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+			expect(callback.onTerminated).toHaveBeenCalledWith(
+				"cb-terminate-consumer-01",
+				"End of transfer"
+			);
+			expect(callback.onStarted).not.toHaveBeenCalled();
+			expect(callback.onCompleted).not.toHaveBeenCalled();
+			expect(callback.onSuspended).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("startDataTransfer()", () => {
+		test("should reject with guards error when agreementId is empty", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await expect(
+				service.startDataTransfer(
+					"",
+					"http://provider.example.com",
+					"http://consumer.example.com",
+					"HttpProxy-PULL",
+					"valid-trust-payload"
+				)
+			).rejects.toThrow();
+		});
+
+		test("should reject with guards error when providerEndpoint is empty", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await expect(
+				service.startDataTransfer(
+					"agreement-123",
+					"",
+					"http://consumer.example.com",
+					"HttpProxy-PULL",
+					"valid-trust-payload"
+				)
+			).rejects.toThrow();
+		});
+
+		test("should throw GeneralError when format is not a known DataspaceTransferFormat", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await expect(
+				service.startDataTransfer(
+					"agreement-123",
+					"http://provider.example.com",
+					"http://consumer.example.com",
+					"not-a-valid-format",
+					"valid-trust-payload"
+				)
+			).rejects.toThrow("unsupportedTransferFormat");
+		});
+
+		test("should throw GeneralError when agreement is not found", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await expect(
+				service.startDataTransfer(
+					"agreement-does-not-exist",
+					"http://provider.example.com",
+					"http://consumer.example.com",
+					"HttpProxy-PULL",
+					"valid-trust-payload"
+				)
+			).rejects.toThrow();
+		});
+
+		test("should throw UnauthorizedError when caller is not the agreement assignee", async () => {
+			// Trust identity "did:iota:wrong-consumer" is NOT in agreement-123's assignee
+			ComponentFactory.register("test-trust-wrong-assignee", () =>
+				createMockTrustComponent("did:iota:wrong-consumer")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-wrong-assignee"
+			});
+
+			await expect(
+				service.startDataTransfer(
+					"agreement-123",
+					"http://provider.example.com",
+					"http://consumer.example.com",
+					"HttpProxy-PULL",
+					"valid-trust-payload"
+				)
+			).rejects.toThrow();
+
+			ComponentFactory.unregister("test-trust-wrong-assignee");
+		});
+
+		test("should return consumerPid and store the transfer process when provider accepts", async () => {
+			const mockRemoteControlPlane = {
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi.fn().mockResolvedValue({
+					"@context": ["https://w3id.org/dspace/2024/1/context.json"],
+					"@type": "TransferProcess",
+					consumerPid: "generated-consumer-pid",
+					providerPid: "provider-pid-from-remote",
+					state: DataspaceProtocolTransferProcessStateType.REQUESTED
+				})
+			};
+
+			ComponentFactory.register("test-remote-cp", () => mockRemoteControlPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-remote-cp"
+			});
+
+			const result = await service.startDataTransfer(
+				"agreement-123",
+				"http://provider.example.com",
+				"http://consumer.example.com",
+				"HttpProxy-PULL",
+				"valid-trust-payload"
+			);
+
+			expect(result).toBeDefined();
+			expect(result.consumerPid).toBeDefined();
+			expect(typeof result.consumerPid).toBe("string");
+
+			// Verify the remote control plane was called with a valid TransferRequestMessage
+			expect(mockRemoteControlPlane.requestTransfer).toHaveBeenCalledWith(
+				expect.objectContaining({
+					"@type": "TransferRequestMessage",
+					agreementId: "agreement-123",
+					format: "HttpProxy-PULL"
+				}),
+				expect.anything()
+			);
+
+			// Verify the TransferProcess was actually persisted with the correct initial state
+			const stored = await transferProcessStorage.get(result.consumerPid);
+			expect(stored).toBeDefined();
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+			expect(stored?.providerPid).toBe("provider-pid-from-remote");
+			expect(stored?.agreementId).toBe("agreement-123");
+			expect(stored?.consumerPid).toBe(result.consumerPid);
+
+			ComponentFactory.unregister("test-remote-cp");
+		});
+
+		test("should include dataAddress with consumer /inbox for HttpProxy-PUSH format", async () => {
+			const mockRemoteControlPlane = {
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi.fn().mockResolvedValue({
+					"@context": ["https://w3id.org/dspace/2024/1/context.json"],
+					"@type": "TransferProcess",
+					consumerPid: "generated-consumer-pid",
+					providerPid: "provider-pid-push",
+					state: DataspaceProtocolTransferProcessStateType.REQUESTED
+				})
+			};
+
+			ComponentFactory.register("test-remote-cp-push", () => mockRemoteControlPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-remote-cp-push"
+			});
+
+			const result = await service.startDataTransfer(
+				"agreement-123",
+				"http://provider.example.com",
+				"http://consumer.example.com",
+				DataspaceTransferFormat.HttpProxyPush,
+				"valid-trust-payload"
+			);
+
+			expect(result.consumerPid).toBeDefined();
+
+			// Verify the TransferRequestMessage sent to the provider includes the consumer /inbox
+			expect(mockRemoteControlPlane.requestTransfer).toHaveBeenCalledWith(
+				expect.objectContaining({
+					"@type": "TransferRequestMessage",
+					format: DataspaceTransferFormat.HttpProxyPush,
+					dataAddress: expect.objectContaining({
+						endpoint: expect.stringContaining("/data-plane/data/inbox")
+					})
+				}),
+				expect.anything()
+			);
+
+			// Verify the consumer-side storage entity also has dataAddress
+			const stored = await transferProcessStorage.get(result.consumerPid);
+			expect(stored?.dataAddress).toBeDefined();
+			expect(stored?.dataAddress?.endpoint).toContain("/data-plane/data/inbox");
+
+			ComponentFactory.unregister("test-remote-cp-push");
+		});
+
+		test("should throw when HttpProxy-PUSH is requested but dataPlanePath is not configured", async () => {
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				config: {}
+			});
+
+			await expect(
+				service.startDataTransfer(
+					"agreement-123",
+					"http://provider.example.com",
+					"http://consumer.example.com",
+					DataspaceTransferFormat.HttpProxyPush,
+					"valid-trust-payload"
+				)
+			).rejects.toThrow("pushTransferDataPathNotConfigured");
+		});
+
+		test("should throw GeneralError when provider returns a TransferError", async () => {
+			const mockRemoteControlPlane = {
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi.fn().mockResolvedValue({
+					"@context": ["https://w3id.org/dspace/2024/1/context.json"],
+					"@type": "TransferError",
+					code: "GeneralError:policyViolation"
+				})
+			};
+
+			ComponentFactory.register("test-remote-cp-error", () => mockRemoteControlPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-remote-cp-error"
+			});
+
+			await expect(
+				service.startDataTransfer(
+					"agreement-123",
+					"http://provider.example.com",
+					"http://consumer.example.com",
+					"HttpProxy-PULL",
+					"valid-trust-payload"
+				)
+			).rejects.toThrow();
+
+			ComponentFactory.unregister("test-remote-cp-error");
 		});
 	});
 });

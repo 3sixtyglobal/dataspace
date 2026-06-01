@@ -11,6 +11,7 @@ export * from "./models/controlPlane/IDataspaceAppDataset.js";
 export * from "./models/controlPlane/IDataspaceControlPlaneComponent.js";
 export * from "./models/controlPlane/IDataspaceControlPlaneResolverComponent.js";
 export * from "./models/controlPlane/INegotiationCallback.js";
+export * from "./models/controlPlane/ITransferCallback.js";
 export * from "./models/controlPlane/ITransferContext.js";
 export * from "./models/controlPlane/ITransferProcess.js";
 export * from "./models/controlPlane/transferProcessRole.js";

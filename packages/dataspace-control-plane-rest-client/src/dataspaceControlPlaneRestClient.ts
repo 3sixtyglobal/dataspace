@@ -54,6 +54,9 @@ export class DataspaceControlPlaneRestClient
 			| "negotiateAgreement"
 			| "getNegotiation"
 			| "getNegotiationHistory"
+			| "registerTransferCallback"
+			| "unregisterTransferCallback"
+			| "startDataTransfer"
 		>
 {
 	/**

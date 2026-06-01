@@ -15,6 +15,7 @@ import type {
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDataspaceAppDataset } from "./IDataspaceAppDataset.js";
 import type { INegotiationCallback } from "./INegotiationCallback.js";
+import type { ITransferCallback } from "./ITransferCallback.js";
 
 /**
  * Dataspace Control Plane Component interface.
@@ -132,6 +133,55 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	// CONSUMER SIDE OPERATIONS
 	// Methods called by the Data Consumer to initiate transfers
 	// ----------------------------------------------------------------------------
+
+	/**
+	 * Register a callback to receive transfer process state change notifications.
+	 * Upstream modules register their callback here to be notified when a
+	 * consumer-initiated transfer changes state (STARTED, COMPLETED, SUSPENDED,
+	 * TERMINATED).
+	 *
+	 * This method has NO REST client implementation — in-process only.
+	 * @param key A unique key identifying this callback registration.
+	 * @param callback The callback interface to register.
+	 */
+	registerTransferCallback(key: string, callback: ITransferCallback): void;
+
+	/**
+	 * Unregister a previously registered transfer callback.
+	 * @param key The key used when registering the callback.
+	 */
+	unregisterTransferCallback(key: string): void;
+
+	/**
+	 * Start a data transfer as a Consumer.
+	 * High-level convenience wrapper around the DSP Transfer Request protocol.
+	 *
+	 * This method:
+	 * 1. Generates a consumerPid.
+	 * 2. POSTs a TransferRequestMessage to the provider's DSP endpoint.
+	 * 3. Persists a local TransferProcess in REQUESTED state (only if provider accepts).
+	 * 4. Returns the consumerPid immediately.
+	 *
+	 * The caller is notified of subsequent state changes (STARTED, COMPLETED, etc.)
+	 * via the registered ITransferCallback. The transfer moves to STARTED when the
+	 * provider POSTs a TransferStartMessage back to this node's callback address.
+	 *
+	 * This method has NO REST client implementation — in-process only.
+	 *
+	 * @param agreementId The finalized agreement ID (from contract negotiation).
+	 * @param providerEndpoint The provider's DSP control plane base URL.
+	 * @param publicOrigin The public origin URL of this control plane (used as callbackAddress).
+	 * @param format The transfer format (e.g. "HttpProxy-PULL", "HttpProxy-PUSH").
+	 * @param trustPayload Trust payload for authentication.
+	 * @returns The consumerPid of the newly created TransferProcess.
+	 */
+	startDataTransfer(
+		agreementId: string,
+		providerEndpoint: string,
+		publicOrigin: string,
+		format: string,
+		trustPayload: unknown
+	): Promise<{ consumerPid: string }>;
 
 	/**
 	 * Request a Transfer Process.

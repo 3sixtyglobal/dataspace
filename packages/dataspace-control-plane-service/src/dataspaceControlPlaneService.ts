@@ -32,6 +32,7 @@ import {
 	type IDataspaceControlPlaneResolverComponent,
 	type IDataspaceDataPlaneComponent,
 	type INegotiationCallback,
+	type ITransferCallback,
 	type IDataspaceAppDataset,
 	type ITransferContext,
 	type ITransferProcess,
@@ -220,6 +221,25 @@ export class DataspaceControlPlaneService
 	private readonly _negotiationCallbacks: Map<string, INegotiationCallback>;
 
 	/**
+	 * Registered transfer callbacks from upstream callers, keyed by registration key.
+	 * @internal
+	 */
+	private readonly _transferCallbacks: Map<string, ITransferCallback>;
+
+	/**
+	 * Internal transfer callback that fans out to all registered transfer callbacks.
+	 * @internal
+	 */
+	private readonly _internalTransferCallback: ITransferCallback;
+
+	/**
+	 * Factory key used to create remote control plane REST client instances for outbound
+	 * DSP transfer requests. Resolved via ComponentFactory.create() at call time.
+	 * @internal
+	 */
+	private readonly _remoteControlPlaneComponentType: string;
+
+	/**
 	 * The component type name for the hosting component.
 	 * @internal
 	 */
@@ -294,6 +314,10 @@ export class DataspaceControlPlaneService
 		);
 
 		this._negotiationCallbacks = new Map();
+		this._transferCallbacks = new Map();
+		this._internalTransferCallback = this.createInternalTransferCallback();
+		this._remoteControlPlaneComponentType =
+			options?.remoteControlPlaneComponentType ?? "dataspace-control-plane-rest-client";
 
 		const internalCallback = this.createInternalCallback();
 
@@ -334,6 +358,26 @@ export class DataspaceControlPlaneService
 	public unregisterNegotiationCallback(key: string): void {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(key), key);
 		this._negotiationCallbacks.delete(key);
+	}
+
+	/**
+	 * Register a callback to receive transfer process state change notifications.
+	 * @param key A unique key identifying this callback registration.
+	 * @param callback The callback interface to register.
+	 */
+	public registerTransferCallback(key: string, callback: ITransferCallback): void {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(key), key);
+		Guards.object(DataspaceControlPlaneService.CLASS_NAME, nameof(callback), callback);
+		this._transferCallbacks.set(key, callback);
+	}
+
+	/**
+	 * Unregister a previously registered transfer callback.
+	 * @param key The key used when registering the callback.
+	 */
+	public unregisterTransferCallback(key: string): void {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(key), key);
+		this._transferCallbacks.delete(key);
 	}
 
 	/**
@@ -616,6 +660,210 @@ export class DataspaceControlPlaneService
 			providerPid: entity.providerPid,
 			state: entity.state
 		};
+	}
+
+	/**
+	 * Start a data transfer as a Consumer.
+	 * Generates a consumerPid, POSTs a TransferRequestMessage to the provider's DSP endpoint,
+	 * and (only if the provider accepts) persists a local TransferProcess in REQUESTED state.
+	 * @param agreementId The finalized agreement ID from contract negotiation.
+	 * @param providerEndpoint The provider's DSP control plane base URL.
+	 * @param publicOrigin The public origin URL of this control plane (used as callbackAddress).
+	 * @param format The transfer format (e.g. "HttpProxy-PULL", "HttpProxy-PUSH").
+	 * @param trustPayload Trust payload for authenticating this call.
+	 * @returns The consumerPid of the newly created TransferProcess.
+	 *
+	 * **Engine configuration requirement:** The outbound call to the provider uses
+	 * `ComponentFactory.create(remoteControlPlaneComponentType, { endpoint, pathPrefix })`.
+	 * For the runtime `providerEndpoint` to be forwarded correctly, the engine **must** register
+	 * the component type (default: `dataspace-control-plane-rest-client`) as a
+	 * **multi-instance** component (`isMultiInstance: true` in engine config). A singleton
+	 * registration ignores the runtime `endpoint` arg and silently POSTs to its
+	 * static endpoint instead.
+	 */
+	public async startDataTransfer(
+		agreementId: string,
+		providerEndpoint: string,
+		publicOrigin: string,
+		format: string,
+		trustPayload: unknown
+	): Promise<{ consumerPid: string }> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(agreementId), agreementId);
+		Guards.stringValue(
+			DataspaceControlPlaneService.CLASS_NAME,
+			nameof(providerEndpoint),
+			providerEndpoint
+		);
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(publicOrigin), publicOrigin);
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(format), format);
+
+		if (!(Object.values(DataspaceTransferFormat) as string[]).includes(format)) {
+			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "unsupportedTransferFormat", {
+				format,
+				supported: Object.values(DataspaceTransferFormat)
+			});
+		}
+
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"startDataTransfer"
+		);
+
+		await this._loggingComponent?.log({
+			level: "info",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "startingDataTransfer",
+			data: { agreementId, providerEndpoint, format, identity: trustInfo.identity }
+		});
+
+		const agreement = await this.lookupAgreement(agreementId);
+
+		const assigneeIdentity = OdrlPolicyHelper.extractAssigneeIdentity(agreement);
+		const assigneeIds = ArrayHelper.fromObjectOrArray<string>(assigneeIdentity);
+		const callerComposite = this.buildCallerComposite(trustInfo);
+		if (!assigneeIds.includes(callerComposite)) {
+			throw new UnauthorizedError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"callerNotAuthorizedForAgreement"
+			);
+		}
+
+		const assignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
+		const assignerIds = ArrayHelper.fromObjectOrArray<string>(assignerIdentity);
+		if (assignerIds.length > 1) {
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"multipleAssignersNotSupported"
+			);
+		}
+		const providerIdentity = assignerIds[0];
+
+		const datasetId = this.extractDatasetId(agreement);
+
+		const consumerPid = `urn:uuid:${RandomHelper.generateUuidV7()}`;
+		const callbackAddress = StringHelper.trimTrailingSlashes(publicOrigin);
+
+		// Fetch context once and reuse across the PUSH dataAddress, trust token, and storage entity.
+		const contextIds = await ContextIdStore.getContextIds();
+		const nodeIdentity = contextIds?.[ContextIdKeys.Node];
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "nodeIdentity", nodeIdentity);
+		const tenantId = contextIds?.[ContextIdKeys.Tenant];
+		const organizationIdentity = contextIds?.[ContextIdKeys.Organization];
+
+		const transferRequestMessage: IDataspaceProtocolTransferRequestMessage = {
+			"@context": [DataspaceProtocolContexts.Context],
+			"@type": DataspaceProtocolTransferProcessTypes.TransferRequestMessage,
+			consumerPid,
+			agreementId,
+			callbackAddress,
+			format
+		};
+
+		// For consumer-initiated PUSH transfers the consumer must supply its /inbox endpoint as
+		// dataAddress so the provider knows where to push ActivityStreams objects. Without it the
+		// provider silently falls through to PULL mode on startTransfer.
+		if (format === DataspaceTransferFormat.HttpProxyPush) {
+			if (!Is.stringValue(this._dataPlanePath)) {
+				throw new GeneralError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"pushTransferDataPathNotConfigured",
+					{ consumerPid }
+				);
+			}
+			let inboxEndpoint = `${callbackAddress}/${this._dataPlanePath}/inbox`;
+			if (Is.stringValue(tenantId)) {
+				inboxEndpoint = await this._urlTransformerComponent.addEncryptedQueryParamToUrl(
+					inboxEndpoint,
+					"tenant",
+					tenantId
+				);
+			}
+			transferRequestMessage.dataAddress = {
+				"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+				endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+				endpoint: inboxEndpoint
+			};
+		}
+
+		// Generate outbound trust token to authenticate this node to the provider.
+		const outboundToken = await this._trustComponent.generate(
+			nodeIdentity,
+			this._overrideTrustGeneratorType,
+			{ subject: { consumerPid, agreementId } },
+			Is.stringValue(tenantId) ? TrustHelper.hashTenantId(tenantId) : undefined,
+			organizationIdentity
+		);
+
+		// Create a remote REST client pointed at the provider endpoint and call requestTransfer.
+		const remoteControlPlane = ComponentFactory.create<IDataspaceControlPlaneComponent>(
+			this._remoteControlPlaneComponentType,
+			{ endpoint: providerEndpoint, pathPrefix: "" }
+		);
+
+		const result = await remoteControlPlane.requestTransfer(transferRequestMessage, outboundToken);
+
+		if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+			const transferError = result as { code?: string };
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"transferRequestRejectedByProvider",
+				{
+					agreementId,
+					providerEndpoint,
+					code: transferError.code
+				}
+			);
+		}
+
+		const transferProcess = result as { providerPid?: string };
+
+		if (!Is.stringValue(transferProcess.providerPid)) {
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"providerPidMissingInResponse",
+				{ consumerPid }
+			);
+		}
+
+		const now = new Date();
+
+		const storageEntity: TransferProcess = {
+			id: Converter.bytesToHex(RandomHelper.generate(32)),
+			consumerPid,
+			providerPid: transferProcess.providerPid,
+			state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+			agreementId,
+			datasetId,
+			consumerIdentity: callerComposite,
+			providerIdentity,
+			offerId: agreementId,
+			policies: [agreement],
+			callbackAddress,
+			format,
+			dataAddress: transferRequestMessage.dataAddress,
+			tenantId: Is.stringValue(tenantId) ? tenantId : undefined,
+			dateCreated: now.toISOString(),
+			dateModified: now.toISOString()
+		};
+
+		await this._transferProcessStorage.set(storageEntity);
+
+		await this._loggingComponent?.log({
+			level: "info",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "dataTransferStarted",
+			data: {
+				consumerPid,
+				providerPid: storageEntity.providerPid,
+				agreementId,
+				format
+			}
+		});
+
+		return { consumerPid };
 	}
 
 	// ----------------------------------------------------------------------------
@@ -985,6 +1233,14 @@ export class DataspaceControlPlaneService
 				}
 			}
 
+			if (role === TransferProcessRole.Consumer) {
+				await this._internalTransferCallback.onStateChanged(
+					entity.consumerPid,
+					DataspaceProtocolTransferProcessStateType.STARTED
+				);
+				await this._internalTransferCallback.onStarted(entity.consumerPid, response);
+			}
+
 			return response;
 		} catch (error) {
 			return transformToTransferError(error, message);
@@ -1104,6 +1360,14 @@ export class DataspaceControlPlaneService
 					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
 					throw teardownError;
 				}
+			}
+
+			if (role === TransferProcessRole.Consumer) {
+				await this._internalTransferCallback.onStateChanged(
+					entity.consumerPid,
+					DataspaceProtocolTransferProcessStateType.COMPLETED
+				);
+				await this._internalTransferCallback.onCompleted(entity.consumerPid);
 			}
 
 			return {
@@ -1228,6 +1492,19 @@ export class DataspaceControlPlaneService
 				}
 			}
 
+			if (role === TransferProcessRole.Consumer) {
+				await this._internalTransferCallback.onStateChanged(
+					entity.consumerPid,
+					DataspaceProtocolTransferProcessStateType.SUSPENDED
+				);
+				// DSP reason is typed any[] — forward only the first entry since the callback
+				// contract is reason?: string. Additional entries are intentionally dropped.
+				const suspendReason = Array.isArray(message.reason)
+					? (message.reason[0] as string | undefined)
+					: (message.reason as string | undefined);
+				await this._internalTransferCallback.onSuspended(entity.consumerPid, suspendReason);
+			}
+
 			return {
 				"@context": [DataspaceProtocolContexts.Context],
 				"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
@@ -1338,6 +1615,19 @@ export class DataspaceControlPlaneService
 					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
 					throw teardownError;
 				}
+			}
+
+			if (role === TransferProcessRole.Consumer) {
+				await this._internalTransferCallback.onStateChanged(
+					entity.consumerPid,
+					DataspaceProtocolTransferProcessStateType.TERMINATED
+				);
+				// DSP reason is typed any[] — forward only the first entry since the callback
+				// contract is reason?: string. Additional entries are intentionally dropped.
+				const terminateReason = Array.isArray(message.reason)
+					? (message.reason[0] as string | undefined)
+					: (message.reason as string | undefined);
+				await this._internalTransferCallback.onTerminated(entity.consumerPid, terminateReason);
 			}
 
 			return {
@@ -2774,6 +3064,97 @@ export class DataspaceControlPlaneService
 							ts: Date.now(),
 							message: "negotiationCallbackError",
 							data: { key, negotiationId, method: "onFailed", error }
+						});
+					}
+				}
+			}
+		};
+	}
+
+	/**
+	 * Creates the internal ITransferCallback that fans out to all registered transfer callbacks.
+	 * Errors thrown by individual callbacks are logged and swallowed so they cannot affect
+	 * the DSP protocol state machine or other registrants.
+	 * @returns The internal transfer callback.
+	 */
+	private createInternalTransferCallback(): ITransferCallback {
+		return {
+			onStateChanged: async (consumerPid, state) => {
+				for (const [key, cb] of this._transferCallbacks.entries()) {
+					try {
+						await cb.onStateChanged(consumerPid, state);
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "transferCallbackError",
+							error: BaseError.fromError(error),
+							data: { key, consumerPid, state, method: "onStateChanged" }
+						});
+					}
+				}
+			},
+			onStarted: async (consumerPid, message) => {
+				for (const [key, cb] of this._transferCallbacks.entries()) {
+					try {
+						await cb.onStarted(consumerPid, message);
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "transferCallbackError",
+							error: BaseError.fromError(error),
+							data: { key, consumerPid, method: "onStarted" }
+						});
+					}
+				}
+			},
+			onCompleted: async consumerPid => {
+				for (const [key, cb] of this._transferCallbacks.entries()) {
+					try {
+						await cb.onCompleted(consumerPid);
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "transferCallbackError",
+							error: BaseError.fromError(error),
+							data: { key, consumerPid, method: "onCompleted" }
+						});
+					}
+				}
+			},
+			onSuspended: async (consumerPid, reason) => {
+				for (const [key, cb] of this._transferCallbacks.entries()) {
+					try {
+						await cb.onSuspended(consumerPid, reason);
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "transferCallbackError",
+							error: BaseError.fromError(error),
+							data: { key, consumerPid, method: "onSuspended" }
+						});
+					}
+				}
+			},
+			onTerminated: async (consumerPid, reason) => {
+				for (const [key, cb] of this._transferCallbacks.entries()) {
+					try {
+						await cb.onTerminated(consumerPid, reason);
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "transferCallbackError",
+							error: BaseError.fromError(error),
+							data: { key, consumerPid, method: "onTerminated" }
 						});
 					}
 				}

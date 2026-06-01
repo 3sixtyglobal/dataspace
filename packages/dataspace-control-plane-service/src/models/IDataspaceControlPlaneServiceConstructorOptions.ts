@@ -93,6 +93,13 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	urlTransformerComponentType?: string;
 
 	/**
+	 * Remote control plane component type used to make outbound DSP transfer requests.
+	 * Created dynamically via ComponentFactory.create() with the provider endpoint as config.
+	 * @default dataspace-control-plane-rest-client
+	 */
+	remoteControlPlaneComponentType?: string;
+
+	/**
 	 * The configuration of the Dataspace Control Plane Service.
 	 */
 	config?: IDataspaceControlPlaneServiceConfig;

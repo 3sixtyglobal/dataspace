@@ -22,7 +22,9 @@
 			"getNegotiationHistory": "Retrieving negotiation history",
 			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
 			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})",
-			"pushTransferStarted": "PUSH transfer started (consumerPid: {consumerPid}, providerPid: {providerPid}, endpoint: {endpoint})"
+			"pushTransferStarted": "PUSH transfer started (consumerPid: {consumerPid}, providerPid: {providerPid}, endpoint: {endpoint})",
+			"startingDataTransfer": "Starting consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
+			"dataTransferStarted": "Consumer data transfer started successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"offerReceived": "Offer received from provider (negotiationId: {negotiationId}, offerId: {offerId})",
@@ -84,6 +86,10 @@
 			"datasetHasNoValidOffers": "Dataset \"{datasetId}\" has no valid ODRL offer objects. Cannot negotiate without a valid offer.",
 			"offerNotFoundInDataset": "Offer \"{offerId}\" not found in dataset \"{datasetId}\". Available offers: {availableOffers}",
 			"negotiationCallbackError": "Negotiation callback \"{key}\" threw an error during {method} for negotiation {negotiationId}",
+			"transferCallbackError": "Transfer callback \"{key}\" threw an error during {method} for consumerPid {consumerPid}",
+			"transferRequestRejectedByProvider": "Provider rejected transfer request for agreement {agreementId} at {providerEndpoint} (code: {code})",
+			"providerPidMissingInResponse": "Provider accepted transfer request for {consumerPid} but returned no providerPid",
+			"unsupportedTransferFormat": "Transfer format \"{format}\" is not supported. Supported formats: {supported}",
 			"catalogDatasetMissingId": "Catalog dataset is missing a required @id identifier",
 			"providerIdentityMissing": "Provider identity (DID) is required to sign data access tokens but was not set on the Transfer Process",
 			"callerNotAuthorizedForAgreement": "The caller's verified identity does not match the agreement assignee (consumer)",
