@@ -79,7 +79,7 @@ Extracted from Agreement's assigner field.
 
 > `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
-Data address for consumer-initiated push transfers (HttpProxy-PUSH).
+Data address for consumer-initiated push transfers (HttpData-PUSH).
 Contains the consumer's /inbox endpoint as supplied in the TransferRequestMessage.
-Absent for PULL (HttpProxy-PULL) and provider-initiated push (HttpProxy-POST),
+Absent for PULL (HttpData-PULL) and provider-initiated push (HttpData-POST),
 where the consumer deliberately omits a dataAddress.

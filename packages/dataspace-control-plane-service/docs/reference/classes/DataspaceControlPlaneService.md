@@ -289,7 +289,7 @@ The public origin URL of this control plane (used as callbackAddress).
 
 `string`
 
-The transfer format (e.g. "HttpProxy-PULL", "HttpProxy-PUSH").
+The transfer format (e.g. "HttpData-PULL", "HttpData-PUSH").
 
 ##### trustPayload
 

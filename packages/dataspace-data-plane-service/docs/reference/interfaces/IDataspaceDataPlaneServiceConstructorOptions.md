@@ -167,6 +167,20 @@ tenant-admin
 
 ***
 
+### urlTransformerComponentType? {#urltransformercomponenttype}
+
+> `optional` **urlTransformerComponentType?**: `string`
+
+URL Transformer component type used to encrypt the tenant token into the data-plane.
+
+#### Default
+
+```ts
+url-transformer
+```
+
+***
+
 ### config? {#config}
 
 > `optional` **config?**: [`IDataspaceDataPlaneServiceConfig`](IDataspaceDataPlaneServiceConfig.md)
