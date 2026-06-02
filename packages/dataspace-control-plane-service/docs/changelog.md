@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.36](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.35...dataspace-control-plane-service-v0.0.3-next.36) (2026-06-02)
+
+
+### Bug Fixes
+
+* defer startTransfer state mutation until dispatch succeeds ([#162](https://github.com/iotaledger/twin-dataspace/issues/162)) ([6704bbd](https://github.com/iotaledger/twin-dataspace/commit/6704bbd88c10c8b5b37b621b56cf9d8704e00a15))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.35 to 0.0.3-next.36
+
 ## [0.0.3-next.35](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.34...dataspace-control-plane-service-v0.0.3-next.35) (2026-06-02)
 
 
