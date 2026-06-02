@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.35](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.34...dataspace-data-plane-service-v0.0.3-next.35) (2026-06-02)
+
+
+### Features
+
+* use tenant token param from config ([#159](https://github.com/iotaledger/twin-dataspace/issues/159)) ([0be336e](https://github.com/iotaledger/twin-dataspace/commit/0be336ef60710c93e2f8520917b9beda12ec434b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.34 to 0.0.3-next.35
+    * @twin.org/dataspace-models bumped from 0.0.3-next.34 to 0.0.3-next.35
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.34 to 0.0.3-next.35
+
 ## [0.0.3-next.34](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.33...dataspace-data-plane-service-v0.0.3-next.34) (2026-06-01)
 
 

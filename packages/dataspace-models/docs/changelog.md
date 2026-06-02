@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.35](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.34...dataspace-models-v0.0.3-next.35) (2026-06-02)
+
+
+### Features
+
+* update DataspaceTransferFormat names ([2c9d424](https://github.com/iotaledger/twin-dataspace/commit/2c9d424a07b97346faa2124048c4675514d58109))
+
 ## [0.0.3-next.34](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.33...dataspace-models-v0.0.3-next.34) (2026-06-01)
 
 
