@@ -911,7 +911,7 @@ describe("DataspaceControlPlaneService", () => {
 			datasetId: "dataset-post-push",
 			offerId: "offer-post-push",
 			providerIdentity: "did:iota:provider-node-xyz",
-			format: DataspaceTransferFormat.HttpProxyPost,
+			format: DataspaceTransferFormat.HttpDataPost,
 			dateCreated: new Date().toISOString(),
 			dateModified: new Date().toISOString()
 		});
@@ -980,7 +980,7 @@ describe("DataspaceControlPlaneService", () => {
 			datasetId: "dataset-pini-01",
 			offerId: "offer-pini-01",
 			providerIdentity: "did:iota:provider-node-xyz",
-			format: DataspaceTransferFormat.HttpProxyPost,
+			format: DataspaceTransferFormat.HttpDataPost,
 			dateCreated: new Date().toISOString(),
 			dateModified: new Date().toISOString()
 		});
@@ -1036,7 +1036,7 @@ describe("DataspaceControlPlaneService", () => {
 			datasetId: "dataset-pini-02",
 			offerId: "offer-pini-02",
 			providerIdentity: "did:iota:provider-node-xyz",
-			format: DataspaceTransferFormat.HttpProxyPost,
+			format: DataspaceTransferFormat.HttpDataPost,
 			dateCreated: new Date().toISOString(),
 			dateModified: new Date().toISOString()
 		});
@@ -1170,7 +1170,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-push-complete",
 				offerId: "offer-push-complete",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1217,7 +1217,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-push-complete-rollback",
 				offerId: "offer-push-complete-rollback",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1266,7 +1266,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.COMPLETED,
 				datasetId: "dataset-push-complete-idempotent",
 				offerId: "offer-push-complete-idempotent",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1404,7 +1404,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-push-suspend",
 				offerId: "offer-push-suspend",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1451,7 +1451,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-push-suspend-rollback",
 				offerId: "offer-push-suspend-rollback",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1501,7 +1501,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.SUSPENDED,
 				datasetId: "dataset-push-suspend-idempotent",
 				offerId: "offer-push-suspend-idempotent",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1640,7 +1640,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-push-terminate",
 				offerId: "offer-push-terminate",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1687,7 +1687,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-push-terminate-rollback",
 				offerId: "offer-push-terminate-rollback",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -1737,7 +1737,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.TERMINATED,
 				datasetId: "dataset-push-terminate-idempotent",
 				offerId: "offer-push-terminate-idempotent",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -2262,7 +2262,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push",
 					agreementId: "agreement-push",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback",
 					dataAddress: {
 						"@type": "DataAddress",
@@ -2391,7 +2391,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-001",
 					agreementId: "agreement-push-001",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback",
 					dataAddress: {
 						"@type": "DataAddress",
@@ -2501,7 +2501,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-trust-fail",
 					agreementId: "agreement-push-trust-fail",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -2579,7 +2579,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-terminate",
 					agreementId: "agreement-push-terminate",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -2644,7 +2644,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-no-org",
 					agreementId: "agreement-push-no-org",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -2698,7 +2698,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-mismatch",
 					agreementId: "agreement-push-mismatch",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -2753,7 +2753,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferRequestMessage",
 					consumerPid: "consumer-pid-push-assignee",
 					agreementId: "agreement-push-assignee",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
 				"valid-trust-payload"
@@ -4293,7 +4293,7 @@ describe("DataspaceControlPlaneService", () => {
 			).not.toThrow();
 		});
 
-		test("setupPushSubscription is called with consumerPid on REQUESTED → STARTED (HttpProxy-PUSH)", async () => {
+		test("setupPushSubscription is called with consumerPid on REQUESTED → STARTED (HttpData-PUSH)", async () => {
 			const mockDataPlane = createMockDataspaceDataPlaneComponent();
 			ComponentFactory.register("test-dp-required-start", () => mockDataPlane);
 			ComponentFactory.register("test-trust-dp-required-start", () =>
@@ -4315,7 +4315,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-g14-start",
 				offerId: "offer-g14-start",
 				providerIdentity: "did:iota:provider-node-xyz",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
 				dataAddress: {
@@ -4347,7 +4347,7 @@ describe("DataspaceControlPlaneService", () => {
 			} catch {}
 		});
 
-		test("teardownPushSubscription is called with consumerPid on STARTED → TERMINATED (HttpProxy-PUSH)", async () => {
+		test("teardownPushSubscription is called with consumerPid on STARTED → TERMINATED (HttpData-PUSH)", async () => {
 			const mockDataPlane = createMockDataspaceDataPlaneComponent();
 			ComponentFactory.register("test-dp-required-terminate", () => mockDataPlane);
 
@@ -4364,7 +4364,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-g14-terminate",
 				offerId: "offer-g14-terminate",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -4392,7 +4392,7 @@ describe("DataspaceControlPlaneService", () => {
 			} catch {}
 		});
 
-		test("suspendPushSubscription is called with consumerPid on STARTED → SUSPENDED (HttpProxy-PUSH)", async () => {
+		test("suspendPushSubscription is called with consumerPid on STARTED → SUSPENDED (HttpData-PUSH)", async () => {
 			const mockDataPlane = createMockDataspaceDataPlaneComponent();
 			ComponentFactory.register("test-dp-required-suspend", () => mockDataPlane);
 
@@ -4409,7 +4409,7 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-g14-suspend",
 				offerId: "offer-g14-suspend",
-				format: DataspaceTransferFormat.HttpProxyPush,
+				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
@@ -5511,7 +5511,7 @@ describe("DataspaceControlPlaneService", () => {
 					"",
 					"http://provider.example.com",
 					"http://consumer.example.com",
-					"HttpProxy-PULL",
+					"HttpData-PULL",
 					"valid-trust-payload"
 				)
 			).rejects.toThrow();
@@ -5525,7 +5525,7 @@ describe("DataspaceControlPlaneService", () => {
 					"agreement-123",
 					"",
 					"http://consumer.example.com",
-					"HttpProxy-PULL",
+					"HttpData-PULL",
 					"valid-trust-payload"
 				)
 			).rejects.toThrow();
@@ -5553,7 +5553,7 @@ describe("DataspaceControlPlaneService", () => {
 					"agreement-does-not-exist",
 					"http://provider.example.com",
 					"http://consumer.example.com",
-					"HttpProxy-PULL",
+					"HttpData-PULL",
 					"valid-trust-payload"
 				)
 			).rejects.toThrow();
@@ -5575,7 +5575,7 @@ describe("DataspaceControlPlaneService", () => {
 					"agreement-123",
 					"http://provider.example.com",
 					"http://consumer.example.com",
-					"HttpProxy-PULL",
+					"HttpData-PULL",
 					"valid-trust-payload"
 				)
 			).rejects.toThrow();
@@ -5606,7 +5606,7 @@ describe("DataspaceControlPlaneService", () => {
 				"agreement-123",
 				"http://provider.example.com",
 				"http://consumer.example.com",
-				"HttpProxy-PULL",
+				"HttpData-PULL",
 				"valid-trust-payload"
 			);
 
@@ -5619,7 +5619,7 @@ describe("DataspaceControlPlaneService", () => {
 				expect.objectContaining({
 					"@type": "TransferRequestMessage",
 					agreementId: "agreement-123",
-					format: "HttpProxy-PULL"
+					format: "HttpData-PULL"
 				}),
 				expect.anything()
 			);
@@ -5635,7 +5635,7 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-remote-cp");
 		});
 
-		test("should include dataAddress with consumer /inbox for HttpProxy-PUSH format", async () => {
+		test("should include dataAddress with consumer /inbox for HttpData-PUSH format", async () => {
 			const mockRemoteControlPlane = {
 				className: () => "MockRemoteControlPlane",
 				requestTransfer: vi.fn().mockResolvedValue({
@@ -5658,7 +5658,7 @@ describe("DataspaceControlPlaneService", () => {
 				"agreement-123",
 				"http://provider.example.com",
 				"http://consumer.example.com",
-				DataspaceTransferFormat.HttpProxyPush,
+				DataspaceTransferFormat.HttpDataPush,
 				"valid-trust-payload"
 			);
 
@@ -5668,7 +5668,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(mockRemoteControlPlane.requestTransfer).toHaveBeenCalledWith(
 				expect.objectContaining({
 					"@type": "TransferRequestMessage",
-					format: DataspaceTransferFormat.HttpProxyPush,
+					format: DataspaceTransferFormat.HttpDataPush,
 					dataAddress: expect.objectContaining({
 						endpoint: expect.stringContaining("/data-plane/data/inbox")
 					})
@@ -5684,7 +5684,7 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-remote-cp-push");
 		});
 
-		test("should throw when HttpProxy-PUSH is requested but dataPlanePath is not configured", async () => {
+		test("should throw when HttpData-PUSH is requested but dataPlanePath is not configured", async () => {
 			const service = new DataspaceControlPlaneService({
 				...DEFAULT_SERVICE_OPTIONS,
 				config: {}
@@ -5695,7 +5695,7 @@ describe("DataspaceControlPlaneService", () => {
 					"agreement-123",
 					"http://provider.example.com",
 					"http://consumer.example.com",
-					DataspaceTransferFormat.HttpProxyPush,
+					DataspaceTransferFormat.HttpDataPush,
 					"valid-trust-payload"
 				)
 			).rejects.toThrow("pushTransferDataPathNotConfigured");
@@ -5723,7 +5723,7 @@ describe("DataspaceControlPlaneService", () => {
 					"agreement-123",
 					"http://provider.example.com",
 					"http://consumer.example.com",
-					"HttpProxy-PULL",
+					"HttpData-PULL",
 					"valid-trust-payload"
 				)
 			).rejects.toThrow();

@@ -669,7 +669,7 @@ export class DataspaceControlPlaneService
 	 * @param agreementId The finalized agreement ID from contract negotiation.
 	 * @param providerEndpoint The provider's DSP control plane base URL.
 	 * @param publicOrigin The public origin URL of this control plane (used as callbackAddress).
-	 * @param format The transfer format (e.g. "HttpProxy-PULL", "HttpProxy-PUSH").
+	 * @param format The transfer format (e.g. "HttpData-PULL", "HttpData-PUSH").
 	 * @param trustPayload Trust payload for authenticating this call.
 	 * @returns The consumerPid of the newly created TransferProcess.
 	 *
@@ -764,7 +764,7 @@ export class DataspaceControlPlaneService
 		// For consumer-initiated PUSH transfers the consumer must supply its /inbox endpoint as
 		// dataAddress so the provider knows where to push ActivityStreams objects. Without it the
 		// provider silently falls through to PULL mode on startTransfer.
-		if (format === DataspaceTransferFormat.HttpProxyPush) {
+		if (format === DataspaceTransferFormat.HttpDataPush) {
 			if (!Is.stringValue(this._dataPlanePath)) {
 				throw new GeneralError(
 					DataspaceControlPlaneService.CLASS_NAME,
@@ -991,10 +991,10 @@ export class DataspaceControlPlaneService
 			// See: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1-err1/#transfer-start-message
 			// ============================================================================
 
-			if (Is.empty(entity.dataAddress) && entity.format === DataspaceTransferFormat.HttpProxyPost) {
+			if (Is.empty(entity.dataAddress) && entity.format === DataspaceTransferFormat.HttpDataPost) {
 				// PROVIDER-INITIATED PUSH: Consumer requested push but did not supply an /inbox.
 				// Provider returns its own /inbox URL + a signed JWT so the consumer can verify
-				// the incoming activities (HttpProxy-POST / DataspaceTransferFormat.HttpProxyPost).
+				// the incoming activities (HttpData-POST / DataspaceTransferFormat.HttpDataPost).
 				if (!Is.stringValue(this._dataPlanePath)) {
 					return transformToTransferError(
 						new GeneralError(
@@ -1072,7 +1072,7 @@ export class DataspaceControlPlaneService
 						consumerPid: entity.consumerPid,
 						providerPid: entity.providerPid,
 						endpoint: fullEndpoint,
-						transferMode: DataspaceTransferFormat.HttpProxyPost
+						transferMode: DataspaceTransferFormat.HttpDataPost
 					}
 				});
 			} else if (Is.empty(entity.dataAddress)) {
@@ -1214,7 +1214,7 @@ export class DataspaceControlPlaneService
 						consumerPid: entity.consumerPid,
 						providerPid: entity.providerPid,
 						endpoint: fullEndpoint,
-						transferMode: DataspaceTransferFormat.HttpProxyPush
+						transferMode: DataspaceTransferFormat.HttpDataPush
 					}
 				});
 
@@ -2599,8 +2599,8 @@ export class DataspaceControlPlaneService
 	 */
 	private isPushFormat(format: string | undefined): boolean {
 		return (
-			format === DataspaceTransferFormat.HttpProxyPush ||
-			format === DataspaceTransferFormat.HttpProxyPost
+			format === DataspaceTransferFormat.HttpDataPush ||
+			format === DataspaceTransferFormat.HttpDataPost
 		);
 	}
 

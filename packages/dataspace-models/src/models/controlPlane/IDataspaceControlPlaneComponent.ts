@@ -171,7 +171,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param agreementId The finalized agreement ID (from contract negotiation).
 	 * @param providerEndpoint The provider's DSP control plane base URL.
 	 * @param publicOrigin The public origin URL of this control plane (used as callbackAddress).
-	 * @param format The transfer format (e.g. "HttpProxy-PULL", "HttpProxy-PUSH").
+	 * @param format The transfer format (e.g. "HttpData-PULL", "HttpData-PUSH").
 	 * @param trustPayload Trust payload for authentication.
 	 * @returns The consumerPid of the newly created TransferProcess.
 	 */
