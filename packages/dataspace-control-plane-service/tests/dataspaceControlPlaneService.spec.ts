@@ -554,8 +554,114 @@ describe("DataspaceControlPlaneService", () => {
 				expect(response.code).toMatch(/invalidPushDataAddress/);
 			}
 
+			const storedBad = await transferProcessStorage.get("push-consumer-pid-bad");
+			expect((storedBad as TransferProcess).state).toBe(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+
 			try {
 				ComponentFactory.unregister("test-trust-provider-bad");
+			} catch {}
+		});
+
+		test("should leave state at REQUESTED when pull is unsupported (dataPlanePath unconfigured)", async () => {
+			ComponentFactory.register("test-trust-provider-pull-noconfig", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-provider-pull-noconfig",
+				config: {}
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "pull-consumer-pid-noconfig",
+				id: "pull-internal-id-noconfig",
+				providerPid: "pull-provider-pid-noconfig",
+				agreementId: "agreement-pull-noconfig",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-pull-noconfig",
+				offerId: "offer-pull-noconfig",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "pull-consumer-pid-noconfig",
+					providerPid: "pull-provider-pid-noconfig"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(response.code).toMatch(/pullTransfersNotSupported/);
+			}
+
+			const storedPullNoconfig = await transferProcessStorage.get("pull-consumer-pid-noconfig");
+			expect((storedPullNoconfig as TransferProcess).state).toBe(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+
+			try {
+				ComponentFactory.unregister("test-trust-provider-pull-noconfig");
+			} catch {}
+		});
+
+		test("should leave state at REQUESTED when provider-initiated push has no dataPlanePath", async () => {
+			ComponentFactory.register("test-trust-provider-push-noconfig", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-provider-push-noconfig",
+				config: {}
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-consumer-pid-noconfig",
+				id: "push-internal-id-noconfig",
+				providerPid: "push-provider-pid-noconfig",
+				agreementId: "agreement-push-noconfig",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-push-noconfig",
+				offerId: "offer-push-noconfig",
+				providerIdentity: "did:iota:provider-node-xyz",
+				format: DataspaceTransferFormat.HttpDataPost,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "push-consumer-pid-noconfig",
+					providerPid: "push-provider-pid-noconfig"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+				expect(response.code).toMatch(/pushTransferDataPathNotConfigured/);
+			}
+
+			const storedPushNoconfig = await transferProcessStorage.get("push-consumer-pid-noconfig");
+			expect((storedPushNoconfig as TransferProcess).state).toBe(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+
+			try {
+				ComponentFactory.unregister("test-trust-provider-push-noconfig");
 			} catch {}
 		});
 
@@ -1900,13 +2006,19 @@ describe("DataspaceControlPlaneService", () => {
 				const transferProcess = requestResponse;
 				providerPid = transferProcess.providerPid;
 
-				// Start the transfer as the provider (startTransfer requires provider identity)
+				// Start the transfer as the provider (startTransfer requires provider identity).
+				// dataPlanePath is required for pull-mode transfers — without it, startTransfer
+				// returns a `pullTransfersNotSupported` TransferError and (post-fix) leaves the
+				// state at REQUESTED, so we must configure it to get to STARTED.
 				const providerService = new DataspaceControlPlaneService({
 					policyAdministrationPointComponentType: "test-pap-resolve",
 					policyNegotiationPointComponentType: "test-pnp",
 					federatedCatalogueComponentType: "test-fedcat-resolve",
 					trustComponentType: "test-trust-resolve-as-provider",
-					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+					config: {
+						dataPlanePath: "data-plane/data"
+					}
 				});
 				await providerService.startTransfer(
 					{
@@ -2064,7 +2176,8 @@ describe("DataspaceControlPlaneService", () => {
 				policyNegotiationPointComponentType: "test-pnp",
 				federatedCatalogueComponentType: "test-fedcat-resolve",
 				trustComponentType: "test-trust-resolve-as-provider",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+				config: { dataPlanePath: "data-plane/data" }
 			});
 			const startResponse = await workingService.getTransferProcess(
 				"consumer-pid-trust-fail",
@@ -2282,7 +2395,8 @@ describe("DataspaceControlPlaneService", () => {
 					policyNegotiationPointComponentType: "test-pnp",
 					federatedCatalogueComponentType: "test-fedcat-resolve",
 					trustComponentType: "test-trust-resolve-as-provider",
-					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+					config: { dataPlanePath: "data-plane/data" }
 				});
 				await providerStartService.startTransfer(
 					{
@@ -2407,13 +2521,17 @@ describe("DataspaceControlPlaneService", () => {
 				const transferProcess = requestResponse;
 				providerPid = transferProcess.providerPid;
 
-				// Start the transfer as the provider (startTransfer requires provider identity)
+				// Start the transfer as the provider (startTransfer requires provider identity).
+				// dataPlanePath is required to reach STARTED — see sibling test above.
 				const providerService = new DataspaceControlPlaneService({
 					policyAdministrationPointComponentType: "test-pap-resolve-provider",
 					policyNegotiationPointComponentType: "test-pnp",
 					federatedCatalogueComponentType: "test-fedcat-resolve-provider",
 					trustComponentType: "test-trust-resolve-provider-as-provider",
-					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+					config: {
+						dataPlanePath: "data-plane/data"
+					}
 				});
 				await providerService.startTransfer(
 					{
@@ -2518,7 +2636,8 @@ describe("DataspaceControlPlaneService", () => {
 					policyNegotiationPointComponentType: "test-pnp",
 					federatedCatalogueComponentType: "test-fedcat-resolve-provider",
 					trustComponentType: "test-trust-resolve-provider-as-provider",
-					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+					config: { dataPlanePath: "data-plane/data" }
 				});
 				await providerStartService.startTransfer(
 					{
@@ -2770,7 +2889,8 @@ describe("DataspaceControlPlaneService", () => {
 					policyNegotiationPointComponentType: "test-pnp",
 					federatedCatalogueComponentType: "test-fedcat-resolve-provider",
 					trustComponentType: "test-trust-resolve-provider-as-provider",
-					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+					transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+					config: { dataPlanePath: "data-plane/data" }
 				});
 				await providerStartService.startTransfer(
 					{
@@ -2877,7 +2997,8 @@ describe("DataspaceControlPlaneService", () => {
 				policyNegotiationPointComponentType: "test-pnp",
 				federatedCatalogueComponentType: "test-fedcat-workflow",
 				trustComponentType: "test-trust-workflow-provider",
-				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+				config: { dataPlanePath: "data-plane/data" }
 			});
 			const startMessage: IDataspaceProtocolTransferStartMessage = {
 				"@context": [DataspaceProtocolContexts.JsonLdContext],

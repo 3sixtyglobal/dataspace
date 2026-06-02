@@ -946,23 +946,11 @@ export class DataspaceControlPlaneService
 				);
 			}
 
+			// The previous (pre-transition) state drives the push-subscription branch below
+			// (setup vs resume). Do NOT mutate entity.state here as the persisted transition
+			// to STARTED happens after the dispatch block succeeds, so any validation or
+			// token-generation failure leaves the row in its prior state.
 			const previousState = entity.state;
-			entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
-			entity.dateModified = new Date();
-
-			await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
-
-			await this._loggingComponent?.log({
-				level: "info",
-				source: DataspaceControlPlaneService.CLASS_NAME,
-				ts: Date.now(),
-				message: "transferProcessStarted",
-				data: {
-					consumerPid: entity.consumerPid,
-					providerPid: entity.providerPid,
-					role
-				}
-			});
 
 			const response: IDataspaceProtocolTransferStartMessage = {
 				"@context": [DataspaceProtocolContexts.Context],
@@ -1218,20 +1206,29 @@ export class DataspaceControlPlaneService
 					}
 				});
 
-				try {
-					const dataPlane = this.requireDataPlane();
-					if (previousState === DataspaceProtocolTransferProcessStateType.REQUESTED) {
-						await dataPlane.setupPushSubscription(entity.consumerPid);
-					} else if (previousState === DataspaceProtocolTransferProcessStateType.SUSPENDED) {
-						await dataPlane.resumePushSubscription(entity.consumerPid);
-					}
-				} catch (setupError) {
-					entity.state = previousState;
-					entity.dateModified = new Date();
-					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
-					throw setupError;
+				const dataPlane = this.requireDataPlane();
+				if (previousState === DataspaceProtocolTransferProcessStateType.REQUESTED) {
+					await dataPlane.setupPushSubscription(entity.consumerPid);
+				} else if (previousState === DataspaceProtocolTransferProcessStateType.SUSPENDED) {
+					await dataPlane.resumePushSubscription(entity.consumerPid);
 				}
 			}
+
+			entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
+			entity.dateModified = new Date();
+			await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+
+			await this._loggingComponent?.log({
+				level: "info",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "transferProcessStarted",
+				data: {
+					consumerPid: entity.consumerPid,
+					providerPid: entity.providerPid,
+					role
+				}
+			});
 
 			if (role === TransferProcessRole.Consumer) {
 				await this._internalTransferCallback.onStateChanged(
