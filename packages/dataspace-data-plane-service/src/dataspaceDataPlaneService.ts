@@ -1,6 +1,10 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ITenant, ITenantAdminComponent } from "@twin.org/api-models";
+import type {
+	ITenant,
+	ITenantAdminComponent,
+	IUrlTransformerComponent
+} from "@twin.org/api-models";
 import {
 	TaskStatus,
 	type IBackgroundTaskComponent,
@@ -269,6 +273,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _tenantAdmin?: ITenantAdminComponent;
 
 	/**
+	 * The component type name for the hosting component.
+	 * @internal
+	 */
+	private readonly _urlTransformerComponent: IUrlTransformerComponent;
+
+	/**
 	 * Entity storage for Transfer Process entities.
 	 * Used to read transfer state from shared storage (written by Control Plane).
 	 * @internal
@@ -322,6 +332,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		this._tenantAdmin = ComponentFactory.getIfExists<ITenantAdminComponent>(
 			options?.tenantAdminType ?? "tenant-admin"
+		);
+
+		this._urlTransformerComponent = ComponentFactory.get<IUrlTransformerComponent>(
+			options?.urlTransformerComponentType ?? "url-transformer"
 		);
 
 		// Entity storage for Transfer Process state lookup
@@ -1086,15 +1100,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// Parse as a real URL so we match on the actual query parameter, not a substring
 		// in a path segment / value position.
 		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
-			let hasTenantToken = false;
-			try {
-				hasTenantToken = new URL(transferProcess.dataAddress.endpoint).searchParams.has(
-					"x-enc-tenant-token"
-				);
-			} catch {
-				// Malformed URL — treat as missing token (will fail closed below).
-			}
-			if (!hasTenantToken) {
+			const tenantId = await this._urlTransformerComponent.getEncryptedFromUrl(
+				transferProcess.dataAddress.endpoint,
+				"tenant"
+			);
+			if (!Is.stringValue(tenantId)) {
 				throw new GeneralError(
 					DataspaceDataPlaneService.CLASS_NAME,
 					"pushSubscriptionMissingTenantToken",

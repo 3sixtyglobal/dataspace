@@ -120,6 +120,23 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		ContextIdStore.getContextIds = vi.fn().mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
+
+		ComponentFactory.register("url-transformer", () => ({
+			className: () => "MockUrlTransformerComponent",
+			getEncryptedFromUrl: vi.fn().mockImplementation(async (url: string, id: string) => {
+				const value = new URL(url).searchParams.get(`x-enc-${id}-token`);
+				return value ?? undefined;
+			}),
+			addEncryptedQueryParamToUrl: vi.fn().mockImplementation(async (url: string) => url),
+			getEncryptedQueryParam: vi.fn().mockResolvedValue(undefined),
+			addEncryptedToUrl: vi.fn().mockImplementation(async (url: string) => url),
+			getDecryptedFromQueryParams: vi.fn().mockResolvedValue({}),
+			encryptQueryParams: vi.fn().mockResolvedValue(undefined),
+			decryptQueryParams: vi.fn().mockResolvedValue(undefined),
+			encryptParam: vi.fn().mockImplementation(async (v: string) => v),
+			decryptParam: vi.fn().mockImplementation(async (v: string) => v),
+			getParamName: vi.fn().mockImplementation((key: string) => `x-enc-${key}-token`)
+		}));
 	});
 
 	beforeEach(async () => {
@@ -247,6 +264,16 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		}
 		try {
 			EntityStorageConnectorFactory.unregister("background-task");
+		} catch {
+			// Ignore
+		}
+		try {
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<DataspaceAppDataset>());
+		} catch {
+			// Ignore
+		}
+		try {
+			EntityStorageConnectorFactory.unregister("scheduled-task");
 		} catch {
 			// Ignore
 		}

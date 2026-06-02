@@ -1,6 +1,10 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IHttpRequestContext, ITenantAdminComponent } from "@twin.org/api-models";
+import type {
+	IHttpRequestContext,
+	ITenantAdminComponent,
+	IUrlTransformerComponent
+} from "@twin.org/api-models";
 import { TaskStatus } from "@twin.org/background-task-models";
 import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
@@ -393,6 +397,25 @@ describe("DataspaceDataPlaneService", () => {
 			className: () => "HostingComponent",
 			buildPublicUrl: async (url: string) => url
 		}));
+
+		const mockUrlTransformer: IUrlTransformerComponent = {
+			className: () => "MockUrlTransformerComponent",
+			getEncryptedFromUrl: vi.fn().mockImplementation(async (url: string, id: string) => {
+				const paramName = `x-enc-${id}-token`;
+				const value = new URL(url).searchParams.get(paramName);
+				return value ?? undefined;
+			}),
+			addEncryptedQueryParamToUrl: vi.fn().mockResolvedValue(""),
+			getEncryptedQueryParam: vi.fn().mockResolvedValue(undefined),
+			addEncryptedToUrl: vi.fn().mockImplementation(async (url: string) => url),
+			getDecryptedFromQueryParams: vi.fn().mockResolvedValue({}),
+			encryptQueryParams: vi.fn().mockResolvedValue(undefined),
+			decryptQueryParams: vi.fn().mockResolvedValue(undefined),
+			encryptParam: vi.fn().mockImplementation(async (v: string) => v),
+			decryptParam: vi.fn().mockImplementation(async (v: string) => v),
+			getParamName: vi.fn().mockImplementation((key: string) => `x-enc-${key}-token`)
+		};
+		ComponentFactory.register("url-transformer", () => mockUrlTransformer);
 	});
 
 	beforeEach(async () => {

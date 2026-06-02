@@ -79,6 +79,12 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	tenantAdminType?: string;
 
 	/**
+	 * URL Transformer component type used to encrypt the tenant token into the data-plane.
+	 * @default url-transformer
+	 */
+	urlTransformerComponentType?: string;
+
+	/**
 	 * The configuration of the Dataspace Data Plane Service.
 	 */
 	config?: IDataspaceDataPlaneServiceConfig;
