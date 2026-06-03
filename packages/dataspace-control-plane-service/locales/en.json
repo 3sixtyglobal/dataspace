@@ -102,7 +102,7 @@
 			"dataPlaneNotRegistered": "Push-mode transfer requires the data plane component to be registered (factory key: \"dataspace-data-plane\"). This deployment was configured without a data plane — register one to enable push, or use pull-mode transfers only.",
 			"datasetPublishFailed": "Failed to publish dataset {datasetRecordId} for app {appId} (tenant: {tenantId})",
 			"datasetNodeContextRequired": "A node context is required to register a dataset.",
-			"datasetAlreadyExists": "A dataset with id \"{id}\" already exists.",
+			"datasetAlreadyExists": "A dataset with id \"{existingId}\" already exists.",
 			"datasetNotFound": "Dataset not found",
 			"datasetWrongTenant": "The calling tenant does not own this dataset.",
 			"transferWrongTenant": "The calling tenant does not own this transfer.",

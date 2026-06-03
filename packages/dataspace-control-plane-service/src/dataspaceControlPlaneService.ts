@@ -5,6 +5,7 @@ import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	ArrayHelper,
+	AlreadyExistsError,
 	BaseError,
 	ComponentFactory,
 	Converter,
@@ -2218,9 +2219,11 @@ export class DataspaceControlPlaneService
 
 		const existing = await this._dataspaceAppDatasetStorage.get(resolvedId);
 		if (!Is.empty(existing)) {
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetAlreadyExists", {
-				id: resolvedId
-			});
+			throw new AlreadyExistsError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"datasetAlreadyExists",
+				resolvedId
+			);
 		}
 
 		const now = new Date().toISOString();

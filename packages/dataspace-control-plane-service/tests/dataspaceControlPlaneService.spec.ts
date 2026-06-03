@@ -4648,7 +4648,7 @@ describe("DataspaceControlPlaneService", () => {
 					buildDataset("https://twin.example.org/data-service-dup") as never
 				)
 			).rejects.toMatchObject({
-				name: "GeneralError",
+				name: "AlreadyExistsError",
 				message: expect.stringContaining("datasetAlreadyExists")
 			});
 		});
