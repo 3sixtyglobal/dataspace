@@ -6,10 +6,6 @@ The details related to the processing of an Activity
 
 - [`IActivityLogDetails`](IActivityLogDetails.md)
 
-## Extended by
-
-- [`IActivityLogEntryWithError`](IActivityLogEntryWithError.md)
-
 ## Properties
 
 ### id {#id}

@@ -14,7 +14,6 @@
 
 ## Variables
 
-- [ACTIVITY\_LOG\_ROUTE](variables/ACTIVITY_LOG_ROUTE.md)
 - [tagsDataspaceDataPlane](variables/tagsDataspaceDataPlane.md)
 - [restEntryPoints](variables/restEntryPoints.md)
 - [socketEntryPoints](variables/socketEntryPoints.md)

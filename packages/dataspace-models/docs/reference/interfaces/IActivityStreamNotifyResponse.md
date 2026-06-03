@@ -30,7 +30,6 @@ Optional headers.
 
 ### body? {#body}
 
-> `optional` **body?**: [`IActivityLogEntryWithError`](IActivityLogEntryWithError.md)
+> `optional` **body?**: [`IActivityLogEntry`](IActivityLogEntry.md)
 
 The Activity log entry if the notification was processed inline.
-For 422/500 responses, also includes a top-level `error` field per IETF RFC 9457.
