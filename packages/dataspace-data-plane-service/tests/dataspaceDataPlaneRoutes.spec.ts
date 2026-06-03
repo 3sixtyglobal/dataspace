@@ -170,10 +170,7 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 
 		expect(response.statusCode).toBe(HttpStatusCode.unprocessableEntity);
 		expect(response.headers?.location).toBe(`${BASE_ROUTE}/activity-logs/${errorLogEntry.id}`);
-		expect(response.body).toEqual({
-			...errorLogEntry,
-			error: { name: "UnprocessableError", message: "activity semantic error" }
-		});
+		expect(response.body).toEqual(errorLogEntry);
 	});
 
 	test("activityStreamNotify returns 500 when inline processing fails with a server error", async () => {
@@ -211,10 +208,7 @@ describe("generateRestRoutesDataspaceDataPlane", () => {
 
 		expect(response.statusCode).toBe(HttpStatusCode.internalServerError);
 		expect(response.headers?.location).toBe(`${BASE_ROUTE}/activity-logs/${errorLogEntry.id}`);
-		expect(response.body).toEqual({
-			...errorLogEntry,
-			error: { name: "GeneralError", message: "unexpected server failure" }
-		});
+		expect(response.body).toEqual(errorLogEntry);
 	});
 
 	test("activityStreamNotify returns 500 with no error field when tasks is undefined", async () => {

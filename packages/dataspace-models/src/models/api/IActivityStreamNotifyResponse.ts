@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { HeaderTypes, HttpStatusCode } from "@twin.org/web";
-import type { IActivityLogEntryWithError } from "./IActivityLogEntryWithError.js";
+import type { IActivityLogEntry } from "../IActivityLogEntry.js";
 
 /**
  * Activity Stream Notify Response.
@@ -29,7 +29,6 @@ export interface IActivityStreamNotifyResponse {
 
 	/**
 	 * The Activity log entry if the notification was processed inline.
-	 * For 422/500 responses, also includes a top-level `error` field per IETF RFC 9457.
 	 */
-	body?: IActivityLogEntryWithError;
+	body?: IActivityLogEntry;
 }

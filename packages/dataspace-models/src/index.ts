@@ -39,7 +39,6 @@ export * from "./models/api/IActivityLogEntryGetRequest.js";
 export * from "./models/api/IActivityLogEntryGetResponse.js";
 export * from "./models/api/IActivityLogStatusNotificationPayload.js";
 export * from "./models/api/IActivityLogStatusRequest.js";
-export * from "./models/api/IActivityLogEntryWithError.js";
 export * from "./models/api/IActivityStreamNotifyRequest.js";
 export * from "./models/api/IActivityStreamNotifyResponse.js";
 export * from "./models/api/IDataAssetEntitiesResponse.js";

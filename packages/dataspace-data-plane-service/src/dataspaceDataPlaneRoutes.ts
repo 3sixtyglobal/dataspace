@@ -1,14 +1,20 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import {
-	HttpErrorHelper,
 	HttpParameterHelper,
 	type IHostingComponent,
 	type IHttpRequestContext,
 	type IRestRoute,
 	type ITag
 } from "@twin.org/api-models";
-import { Coerce, ComponentFactory, Guards, Is } from "@twin.org/core";
+import {
+	BaseError,
+	Coerce,
+	ComponentFactory,
+	Guards,
+	Is,
+	UnprocessableError
+} from "@twin.org/core";
 import {
 	ActivityProcessingStatus,
 	ActivityTaskStatus,
@@ -32,21 +38,6 @@ import { HeaderHelper, HeaderTypes, HttpStatusCode, MimeTypes } from "@twin.org/
  * The source used when communicating about these routes.
  */
 const ROUTES_SOURCE = "dataspaceDataPlaneRoutes";
-
-/**
- * Activity stream route.
- */
-const ACTIVITY_STREAM_ROUTE = "inbox";
-
-/**
- * Activity processing details route.
- */
-export const ACTIVITY_LOG_ROUTE = "activity-logs";
-
-/**
- * Route of the query interface.
- */
-const QUERY_INTERFACE_ROUTE = "entities";
 
 /**
  * The tag to associate with the routes.
@@ -117,7 +108,7 @@ export function generateRestRoutesDataspaceDataPlane(
 		summary: "Notify of a new Activity",
 		tag: tagsDataspaceDataPlane[0].name,
 		method: "POST",
-		path: `${baseRouteName}/${ACTIVITY_STREAM_ROUTE}`,
+		path: `${baseRouteName}/inbox`,
 		handler: async (httpRequestContext, request) =>
 			activityStreamNotify(baseRouteName, httpRequestContext, factoryServiceName, request),
 		requestType: {
@@ -152,7 +143,7 @@ export function generateRestRoutesDataspaceDataPlane(
 		summary: "Get a Activity Log Entry",
 		tag: tagsDataspaceDataPlane[0].name,
 		method: "GET",
-		path: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/:id`,
+		path: `${baseRouteName}/activity-logs/:id`,
 		handler: async (httpRequestContext, request) =>
 			activityLogEntryGet(httpRequestContext, factoryServiceName, request),
 		requestType: {
@@ -191,7 +182,7 @@ export function generateRestRoutesDataspaceDataPlane(
 		summary: "Get Data Asset Entities",
 		tag: tagsDataspaceDataPlane[0].name,
 		method: "GET",
-		path: `${baseRouteName}/${QUERY_INTERFACE_ROUTE}`,
+		path: `${baseRouteName}/entities`,
 		handler: async (httpRequestContext, request) =>
 			getDataAssetEntities(httpRequestContext, factoryServiceName, request),
 		requestType: {
@@ -230,7 +221,7 @@ export function generateRestRoutesDataspaceDataPlane(
 		summary: "Query Data Asset",
 		tag: tagsDataspaceDataPlane[0].name,
 		method: "POST",
-		path: `${baseRouteName}/${QUERY_INTERFACE_ROUTE}/query`,
+		path: `${baseRouteName}/entities/query`,
 		handler: async (httpRequestContext, request) =>
 			queryDataAsset(httpRequestContext, factoryServiceName, request),
 		requestType: {
@@ -302,45 +293,29 @@ export async function activityStreamNotify(
 	if (Is.string(result)) {
 		return {
 			headers: {
-				location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result}`
+				location: `${baseRouteName}/activity-logs/${result}`
 			},
 			statusCode: HttpStatusCode.accepted
 		};
 	}
 
+	let statusCode: HttpStatusCode = HttpStatusCode.created;
 	if (result.status === ActivityProcessingStatus.Error) {
-		const failedErrors = (result.tasks ?? []).flatMap(t => {
-			if (t.status === ActivityTaskStatus.Failed && t.error) {
-				return [t.error];
-			}
-			return [];
-		});
-		const semanticError = failedErrors.find(
-			e =>
-				HttpErrorHelper.processError(e, false).httpStatusCode === HttpStatusCode.unprocessableEntity
+		const failedErrors =
+			result.tasks?.filter(task => task.status === ActivityTaskStatus.Failed) ?? [];
+		const hasUnprocessableError = failedErrors.some(task =>
+			BaseError.someErrorName(task.error, UnprocessableError.CLASS_NAME)
 		);
-		const failedTaskError = semanticError ?? failedErrors[0];
-		const { httpStatusCode, error } = failedTaskError
-			? HttpErrorHelper.processError(failedTaskError, false)
-			: { httpStatusCode: HttpStatusCode.internalServerError, error: undefined };
-		const statusCode =
-			httpStatusCode === HttpStatusCode.unprocessableEntity
-				? HttpStatusCode.unprocessableEntity
-				: HttpStatusCode.internalServerError;
-		return {
-			headers: {
-				location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result.id}`
-			},
-			statusCode,
-			body: { ...result, error }
-		};
+		statusCode = hasUnprocessableError
+			? HttpStatusCode.unprocessableEntity
+			: HttpStatusCode.internalServerError;
 	}
 
 	return {
 		headers: {
-			location: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/${result.id}`
+			location: `${baseRouteName}/activity-logs/${result.id}`
 		},
-		statusCode: HttpStatusCode.created,
+		statusCode,
 		body: result
 	};
 }

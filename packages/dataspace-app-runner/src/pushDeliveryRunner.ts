@@ -17,7 +17,14 @@ import {
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
 import type { ITrustComponent } from "@twin.org/trust-models";
-import { FetchHelper, HeaderHelper, HeaderTypes, MimeTypes } from "@twin.org/web";
+import {
+	FetchHelper,
+	HeaderHelper,
+	HeaderTypes,
+	HttpMethod,
+	type IHttpHeaders,
+	MimeTypes
+} from "@twin.org/web";
 
 const PUSH_DELIVERY_RUNNER_SOURCE = "pushDeliveryRunner";
 
@@ -26,6 +33,9 @@ let engine: IEngineCore | undefined;
 // Serialises concurrent startup+task dispatch: Node.js EventEmitter doesn't await async
 // listeners, so pushDeliveryRunnerStart and pushDeliveryRunner can run concurrently in the worker thread.
 let startupPromise: Promise<void> | undefined;
+let pepComponent: IPolicyEnforcementPointComponent | undefined;
+let trustComponent: ITrustComponent | undefined;
+let nodeIdentity: string | undefined;
 
 /**
  * Push Delivery Task Startup Method.
@@ -40,6 +50,17 @@ export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone)
 			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), true);
 			await newEngine.start();
 			engine = newEngine;
+
+			const defaultPepType = engine.getRegisteredInstanceTypeOptional(
+				"rightsManagementPepComponent"
+			);
+			const defaultTrustType = engine.getRegisteredInstanceTypeOptional("trustComponent");
+
+			pepComponent = ComponentFactory.getIfExists<IPolicyEnforcementPointComponent>(defaultPepType);
+			trustComponent = ComponentFactory.getIfExists<ITrustComponent>(defaultTrustType);
+
+			const contextIds = await ContextIdStore.getContextIds();
+			nodeIdentity = contextIds?.[ContextIdKeys.Node];
 		}
 	})();
 	await startupPromise;
@@ -104,17 +125,10 @@ export async function pushDeliveryRunner(
  */
 async function pushDeliveryRunnerBody(payload: IPushDeliveryPayload): Promise<unknown> {
 	// Apply PEP policy filter if available
-	const pep = ComponentFactory.getIfExists<IPolicyEnforcementPointComponent>(
-		"policy-enforcement-point-service"
-	);
 	let data = payload.data;
-	if (pep) {
-		data = await pep.interceptWithPolicy<typeof payload.data>(payload.agreement, payload.data);
+	if (!Is.empty(pepComponent)) {
+		data = await pepComponent.interceptWithPolicy(payload.agreement, payload.data);
 	}
-
-	// Get node identity for actor field
-	const contextIds = await ContextIdStore.getContextIds();
-	const nodeIdentity = contextIds?.[ContextIdKeys.Node] ?? "";
 
 	// Build Activity Streams Create wrapper
 	const activity: IActivityStreamsActivity = {
@@ -127,12 +141,11 @@ async function pushDeliveryRunnerBody(payload: IPushDeliveryPayload): Promise<un
 	};
 
 	// Build auth header: use pre-packaged token or generate a fresh JWT
-	let authHeader: string;
+	let authHeader: string | undefined;
 	if (Is.stringValue(payload.consumerAuthToken)) {
 		authHeader = HeaderHelper.createBearer(payload.consumerAuthToken);
-	} else {
-		const trust = ComponentFactory.get<ITrustComponent>("trust");
-		const token = await trust.generate(nodeIdentity, undefined, {
+	} else if (Is.stringValue(nodeIdentity) && !Is.empty(trustComponent)) {
+		const token = await trustComponent.generate(nodeIdentity, undefined, {
 			subject: {
 				consumerPid: payload.consumerPid,
 				providerPid: payload.providerPid,
@@ -143,17 +156,21 @@ async function pushDeliveryRunnerBody(payload: IPushDeliveryPayload): Promise<un
 		authHeader = HeaderHelper.createBearer(token);
 	}
 
+	const headers: IHttpHeaders = {
+		[HeaderTypes.ContentType]: MimeTypes.ActivityStreams
+	};
+	if (Is.stringValue(authHeader)) {
+		headers[HeaderTypes.Authorization] = authHeader;
+	}
+
 	// POST to consumer /inbox with retry
 	await FetchHelper.fetchJson<typeof activity, unknown>(
 		PUSH_DELIVERY_RUNNER_SOURCE,
 		payload.consumerEndpoint,
-		"POST",
+		HttpMethod.POST,
 		activity,
 		{
-			headers: {
-				[HeaderTypes.Authorization]: authHeader,
-				[HeaderTypes.ContentType]: MimeTypes.ActivityStreams
-			},
+			headers,
 			timeoutMs: payload.pushTimeoutMs ?? 30000,
 			retryCount: payload.pushRetryCount ?? 3,
 			retryDelayMs: payload.pushRetryBaseDelayMs ?? 1000

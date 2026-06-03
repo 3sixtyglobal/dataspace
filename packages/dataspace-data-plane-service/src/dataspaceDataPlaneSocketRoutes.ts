@@ -9,7 +9,6 @@ import type {
 } from "@twin.org/dataspace-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof } from "@twin.org/nameof";
-import { ACTIVITY_LOG_ROUTE } from "./dataspaceDataPlaneRoutes.js";
 
 /**
  * The source used when communicating about these routes.
@@ -31,7 +30,7 @@ export function generateSocketRoutesDataspaceDataPlane(
 		IActivityLogStatusNotificationPayload
 	> = {
 		operationId: "statusQuery",
-		path: `${baseRouteName}/${ACTIVITY_LOG_ROUTE}/status`,
+		path: `${baseRouteName}/activity-logs/status`,
 		handler: async (socketRequestContext, request, emitter) =>
 			activityLogStatusUpdate(socketRequestContext, componentName, request, emitter),
 		connected: async socketRequestContext => activityLogStatusConnected(socketRequestContext),
