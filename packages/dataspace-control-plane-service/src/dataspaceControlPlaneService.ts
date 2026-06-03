@@ -1208,10 +1208,25 @@ export class DataspaceControlPlaneService
 				});
 
 				const dataPlane = this.requireDataPlane();
-				if (previousState === DataspaceProtocolTransferProcessStateType.REQUESTED) {
-					await dataPlane.setupPushSubscription(entity.consumerPid);
-				} else if (previousState === DataspaceProtocolTransferProcessStateType.SUSPENDED) {
-					await dataPlane.resumePushSubscription(entity.consumerPid);
+
+				// Push subscription setup reads the entity from storage and requires state=STARTED.
+				// Persist STARTED before the data-plane call, and roll back if subscription setup
+				// fails so the row doesn't leak to STARTED on a setup-time error.
+				entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
+				entity.dateModified = new Date();
+				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+
+				try {
+					if (previousState === DataspaceProtocolTransferProcessStateType.REQUESTED) {
+						await dataPlane.setupPushSubscription(entity.consumerPid);
+					} else if (previousState === DataspaceProtocolTransferProcessStateType.SUSPENDED) {
+						await dataPlane.resumePushSubscription(entity.consumerPid);
+					}
+				} catch (subscriptionError) {
+					entity.state = previousState;
+					entity.dateModified = new Date();
+					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+					throw subscriptionError;
 				}
 			}
 

@@ -665,6 +665,68 @@ describe("DataspaceControlPlaneService", () => {
 			} catch {}
 		});
 
+		test("should persist STARTED to storage BEFORE setupPushSubscription is invoked", async () => {
+			// Regression guard: setupPushSubscription on the real data-plane reads the transfer
+			// entity back from storage and requires state=STARTED. Earlier mocks only recorded
+			// the call, so a defect where state was advanced after the data-plane call still
+			// passed unit tests but broke the integration path.
+			let observedStateAtCallTime: string | undefined;
+			const mockDataPlane = {
+				className: () => "MockDataPlane",
+				setupPushSubscription: async (consumerPid: string) => {
+					const stored = await transferProcessStorage.get(consumerPid);
+					observedStateAtCallTime = stored?.state;
+				}
+			};
+			ComponentFactory.register("test-data-plane-readback", () => mockDataPlane);
+			ComponentFactory.register("test-trust-readback", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-readback",
+				dataPlaneComponentType: "test-data-plane-readback"
+			});
+
+			await transferProcessStorage.set({
+				consumerPid: "push-consumer-pid-readback",
+				id: "push-internal-id-readback",
+				providerPid: "push-provider-pid-readback",
+				agreementId: "agreement-readback",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-readback",
+				offerId: "offer-readback",
+				providerIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const response = await service.startTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferStartMessage",
+					consumerPid: "push-consumer-pid-readback",
+					providerPid: "push-provider-pid-readback"
+				},
+				"https://test-origin.com",
+				"valid-trust-payload"
+			);
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(observedStateAtCallTime).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+
+			try {
+				ComponentFactory.unregister("test-data-plane-readback");
+				ComponentFactory.unregister("test-trust-readback");
+			} catch {}
+		});
+
 		test("should revert state to REQUESTED if setupPushSubscription throws (atomicity)", async () => {
 			const mockDataPlane = {
 				className: () => "MockDataPlane",
