@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-rest-server",
-	"version": "0.0.3-next.37",
+	"version": "0.0.3-next.38",
 	"description": "Hosts control plane and data plane APIs in a single deployable REST server.",
 	"repository": {
 		"type": "git",
@@ -34,12 +34,12 @@
 	"dependencies": {
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
-		"@twin.org/dataspace-models": "0.0.3-next.37",
-		"@twin.org/dataspace-data-plane-rest-client": "0.0.3-next.37",
-		"@twin.org/dataspace-data-plane-socket-client": "0.0.3-next.37",
-		"@twin.org/dataspace-data-plane-service": "0.0.3-next.37",
-		"@twin.org/dataspace-control-plane-service": "0.0.3-next.37",
-		"@twin.org/dataspace-test-app": "0.0.3-next.37",
+		"@twin.org/dataspace-models": "0.0.3-next.38",
+		"@twin.org/dataspace-data-plane-rest-client": "0.0.3-next.38",
+		"@twin.org/dataspace-data-plane-socket-client": "0.0.3-next.38",
+		"@twin.org/dataspace-data-plane-service": "0.0.3-next.38",
+		"@twin.org/dataspace-control-plane-service": "0.0.3-next.38",
+		"@twin.org/dataspace-test-app": "0.0.3-next.38",
 		"@twin.org/engine-types": "next",
 		"@twin.org/engine-models": "next",
 		"@twin.org/entity": "next",

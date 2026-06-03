@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.38](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.0.3-next.37...dataspace-app-runner-v0.0.3-next.38) (2026-06-03)
+
+
+### Features
+
+* improve error handling and component usage ([544e20e](https://github.com/iotaledger/twin-dataspace/commit/544e20e640d6f09266942bfc698aead6227a7769))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.37 to 0.0.3-next.38
+
 ## [0.0.3-next.37](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.0.3-next.36...dataspace-app-runner-v0.0.3-next.37) (2026-06-03)
 
 

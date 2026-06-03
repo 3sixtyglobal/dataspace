@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.38](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.37...dataspace-control-plane-service-v0.0.3-next.38) (2026-06-03)
+
+
+### Bug Fixes
+
+* persist STARTED before setupPushSubscription so data-plane read-back sees the right state ([#168](https://github.com/iotaledger/twin-dataspace/issues/168)) ([6a7c81a](https://github.com/iotaledger/twin-dataspace/commit/6a7c81a1247dcbfbec5d64958328e8b77798be0c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.37 to 0.0.3-next.38
+
 ## [0.0.3-next.37](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.36...dataspace-control-plane-service-v0.0.3-next.37) (2026-06-03)
 
 
