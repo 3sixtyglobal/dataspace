@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.37](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.36...dataspace-control-plane-service-v0.0.3-next.37) (2026-06-03)
+
+
+### Bug Fixes
+
+* return 409 Conflict on duplicate dataset creation ([#165](https://github.com/iotaledger/twin-dataspace/issues/165)) ([890a2f5](https://github.com/iotaledger/twin-dataspace/commit/890a2f59d881aed4c50f63f57cdec3a4ccfb572d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.36 to 0.0.3-next.37
+
 ## [0.0.3-next.36](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.35...dataspace-control-plane-service-v0.0.3-next.36) (2026-06-02)
 
 
