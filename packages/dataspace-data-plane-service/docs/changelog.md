@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.39](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.38...dataspace-data-plane-service-v0.0.3-next.39) (2026-06-04)
+
+
+### Features
+
+* tenant component ([#171](https://github.com/iotaledger/twin-dataspace/issues/171)) ([83a6d40](https://github.com/iotaledger/twin-dataspace/commit/83a6d402394f2cfbecc5e2304b1044a40f22a32b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.38 to 0.0.3-next.39
+    * @twin.org/dataspace-models bumped from 0.0.3-next.38 to 0.0.3-next.39
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.38 to 0.0.3-next.39
+
 ## [0.0.3-next.38](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.37...dataspace-data-plane-service-v0.0.3-next.38) (2026-06-03)
 
 
