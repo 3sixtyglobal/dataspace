@@ -1,10 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type {
-	ITenant,
-	ITenantAdminComponent,
-	IUrlTransformerComponent
-} from "@twin.org/api-models";
+import type { ITenantComponent, IUrlTransformerComponent } from "@twin.org/api-models";
 import {
 	TaskStatus,
 	type IBackgroundTaskComponent,
@@ -49,6 +45,7 @@ import {
 	DataspaceDataTypes,
 	DataspaceTypes,
 	getJsonLdType,
+	type DataspaceAppDataset,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IActivityQuery,
@@ -66,7 +63,6 @@ import {
 	type IPushDeliveryPayload,
 	type ITransferContext,
 	type IUndoActivity,
-	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
@@ -267,10 +263,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _policyEnforcementPoint?: IPolicyEnforcementPointComponent;
 
 	/**
-	 * The tenant admin component.
+	 * The tenant component.
 	 * @internal
 	 */
-	private readonly _tenantAdmin?: ITenantAdminComponent;
+	private readonly _tenantComponent?: ITenantComponent;
 
 	/**
 	 * The component type name for the hosting component.
@@ -330,8 +326,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			options?.pepComponentType ?? "policy-enforcement-point-service"
 		);
 
-		this._tenantAdmin = ComponentFactory.getIfExists<ITenantAdminComponent>(
-			options?.tenantAdminType ?? "tenant-admin"
+		this._tenantComponent = ComponentFactory.getIfExists<ITenantComponent>(
+			options?.tenantComponentType ?? "tenant"
 		);
 
 		this._urlTransformerComponent = ComponentFactory.get<IUrlTransformerComponent>(
@@ -1576,32 +1572,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
 			// The cleanup must be done by tenant as the data is partitioned
-			try {
-				let cursor;
-				do {
-					const result: { tenants: ITenant[]; cursor?: string } | undefined =
-						await this._tenantAdmin?.query(undefined, cursor);
-					cursor = result?.cursor;
-					if (!Is.empty(result)) {
-						for (const tenantId of result.tenants.map(t => t.id)) {
-							const localContextIds = (await ContextIdStore.getContextIds()) ?? {};
-							localContextIds[ContextIdKeys.Tenant] = tenantId;
-
-							await ContextIdStore.run(localContextIds, async () => {
-								numRecordsDeleted += await this.cleanupActivityLogPartition();
-							});
-						}
-					}
-				} while (Is.stringValue(cursor));
-			} catch (error) {
-				await this._logging?.log({
-					level: "error",
-					message: "cleanupFailed",
-					ts: Date.now(),
-					source: DataspaceDataPlaneService.CLASS_NAME,
-					error: BaseError.fromError(error)
-				});
-			}
+			await this._tenantComponent?.runPerTenant(async () => {
+				numRecordsDeleted += await this.cleanupActivityLogPartition();
+			});
 		} else {
 			numRecordsDeleted += await this.cleanupActivityLogPartition();
 		}
@@ -1749,47 +1722,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		let numDeleted = 0;
 
 		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
-			// Per-tenant try/catch — a transient failure on one tenant must not poison the rest
-			// of the cleanup pass. Each tenant gets its own attempt; failures are logged with the
-			// offending tenantId so operators can triage.
-			let cursor;
-			do {
-				let result: { tenants: ITenant[]; cursor?: string } | undefined;
-				try {
-					result = await this._tenantAdmin?.query(undefined, cursor);
-				} catch (error) {
-					await this._logging?.log({
-						level: "error",
-						message: "cleanupFailed",
-						ts: Date.now(),
-						source: DataspaceDataPlaneService.CLASS_NAME,
-						error: BaseError.fromError(error)
-					});
-					break;
-				}
-				cursor = result?.cursor;
-				if (!Is.empty(result)) {
-					for (const tenantId of result.tenants.map(t => t.id)) {
-						try {
-							const localContextIds = (await ContextIdStore.getContextIds()) ?? {};
-							localContextIds[ContextIdKeys.Tenant] = tenantId;
-
-							await ContextIdStore.run(localContextIds, async () => {
-								numDeleted += await this.cleanupOrphanedPushSubscriptionsPartition();
-							});
-						} catch (error) {
-							await this._logging?.log({
-								level: "error",
-								message: "cleanupFailed",
-								ts: Date.now(),
-								source: DataspaceDataPlaneService.CLASS_NAME,
-								data: { tenantId },
-								error: BaseError.fromError(error)
-							});
-						}
-					}
-				}
-			} while (Is.stringValue(cursor));
+			// The cleanup must be done by tenant as the data is partitioned
+			await this._tenantComponent?.runPerTenant(async () => {
+				numDeleted += await this.cleanupOrphanedPushSubscriptionsPartition();
+			});
 		} else {
 			numDeleted += await this.cleanupOrphanedPushSubscriptionsPartition();
 		}

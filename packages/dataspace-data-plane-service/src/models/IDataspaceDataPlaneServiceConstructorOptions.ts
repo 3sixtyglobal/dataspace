@@ -73,10 +73,10 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	pepComponentType?: string;
 
 	/**
-	 * Tenant admin component type.
-	 * @default tenant-admin
+	 * Tenant component type.
+	 * @default tenant
 	 */
-	tenantAdminType?: string;
+	tenantComponentType?: string;
 
 	/**
 	 * URL Transformer component type used to encrypt the tenant token into the data-plane.

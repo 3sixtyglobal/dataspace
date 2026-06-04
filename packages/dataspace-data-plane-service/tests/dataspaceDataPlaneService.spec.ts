@@ -1,10 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type {
-	IHttpRequestContext,
-	ITenantAdminComponent,
-	IUrlTransformerComponent
-} from "@twin.org/api-models";
+import type { IHttpRequestContext, IUrlTransformerComponent } from "@twin.org/api-models";
 import { TaskStatus } from "@twin.org/background-task-models";
 import type { ScheduledTask } from "@twin.org/background-task-scheduler";
 import {
@@ -22,8 +18,8 @@ import { JsonLdDataTypes, type JsonLdObjectWithContext } from "@twin.org/data-js
 import {
 	ActivityProcessingStatus,
 	ActivityTaskStatus,
-	DataspaceAppFactory,
 	DataspaceAppDataset,
+	DataspaceAppFactory,
 	DataspaceDataTypes,
 	TransferProcess,
 	type IActivityLogEntry,
@@ -1562,23 +1558,27 @@ describe("DataspaceDataPlaneService", () => {
 
 		test("multi-tenant cleanup iterates each registered tenant and runs partition cleanup per tenant", async () => {
 			// Configure service in multi-tenant mode (partitionContextIds includes Tenant).
-			// Register a mock tenantAdmin that returns two tenants in one page.
+			// Register a mock tenant component that runs the callback once per tenant.
 			const tenantA = "did:iota:tenant-a-mt";
 			const tenantB = "did:iota:tenant-b-mt";
-			const tenantAdminQuery = vi.fn().mockResolvedValue({
-				tenants: [{ id: tenantA }, { id: tenantB }],
-				cursor: undefined
+			const runPerTenant = vi.fn().mockImplementation(async (operation: () => Promise<void>) => {
+				for (const tenantId of [tenantA, tenantB]) {
+					const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+					await ContextIdStore.run({ ...contextIds, [ContextIdKeys.Tenant]: tenantId }, async () =>
+						operation()
+					);
+				}
 			});
-			const mockTenantAdmin = {
-				className: () => "MockTenantAdmin",
-				query: tenantAdminQuery
+			const mockTenantComponent = {
+				className: () => "MockTenantComponent",
+				runPerTenant
 			};
-			ComponentFactory.register("test-tenant-admin-mt", () => mockTenantAdmin);
+			ComponentFactory.register("test-tenant-mt", () => mockTenantComponent);
 
 			const service = new DataspaceDataPlaneService({
 				...options,
 				partitionContextIds: [ContextIdKeys.Tenant],
-				tenantAdminType: "test-tenant-admin-mt"
+				tenantComponentType: "test-tenant-mt"
 			});
 
 			// Spy on the partition body and capture the tenant context it ran under.
@@ -1600,7 +1600,7 @@ describe("DataspaceDataPlaneService", () => {
 				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
 			).cleanupOrphanedPushSubscriptions();
 
-			expect(tenantAdminQuery).toHaveBeenCalledTimes(1);
+			expect(runPerTenant).toHaveBeenCalledTimes(1);
 			expect(partitionSpy).toHaveBeenCalledTimes(2);
 			expect(observedTenants).toEqual([tenantA, tenantB]);
 		});
@@ -1608,20 +1608,31 @@ describe("DataspaceDataPlaneService", () => {
 		test("multi-tenant cleanup isolates failures: one bad tenant does not poison the rest", async () => {
 			const tenantBad = "did:iota:tenant-bad";
 			const tenantGood = "did:iota:tenant-good";
-			const tenantAdminQuery = vi.fn().mockResolvedValue({
-				tenants: [{ id: tenantBad }, { id: tenantGood }],
-				cursor: undefined
+			const runPerTenant = vi.fn().mockImplementation(async (operation: () => Promise<void>) => {
+				for (const tenantId of [tenantBad, tenantGood]) {
+					const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+					await ContextIdStore.run(
+						{ ...contextIds, [ContextIdKeys.Tenant]: tenantId },
+						async () => {
+							try {
+								await operation();
+							} catch {
+								// Mimic the tenant component isolating failures so the next tenant still runs.
+							}
+						}
+					);
+				}
 			});
-			const mockTenantAdmin = {
-				className: () => "MockTenantAdmin",
-				query: tenantAdminQuery
+			const mockTenantComponent = {
+				className: () => "MockTenantComponent",
+				runPerTenant
 			};
-			ComponentFactory.register("test-tenant-admin-mt-fail", () => mockTenantAdmin);
+			ComponentFactory.register("test-tenant-mt-fail", () => mockTenantComponent);
 
 			const service = new DataspaceDataPlaneService({
 				...options,
 				partitionContextIds: [ContextIdKeys.Tenant],
-				tenantAdminType: "test-tenant-admin-mt-fail"
+				tenantComponentType: "test-tenant-mt-fail"
 			});
 
 			const observedTenants: (string | undefined)[] = [];
@@ -2404,35 +2415,29 @@ describe("DataspaceDataPlaneService", () => {
 	// RFC-004 Specific Tests
 	// ============================================
 
-	test("cleanupActivityLog uses tenant admin pagination for tenant partitions", async () => {
+	test("cleanupActivityLog uses tenant component iteration for tenant partitions", async () => {
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
-		const tenantAdminQuery = vi
-			.fn()
-			.mockResolvedValueOnce({
-				tenants: [{ id: "tenant-1" }, { id: "tenant-2" }],
-				cursor: "cursor-2"
-			})
-			.mockResolvedValueOnce({
-				tenants: [{ id: "tenant-3" }],
-				cursor: undefined
-			});
+		const runPerTenant = vi.fn().mockImplementation(async (operation: () => Promise<void>) => {
+			for (const tenantId of ["tenant-1", "tenant-2", "tenant-3"]) {
+				const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+				await ContextIdStore.run({ ...contextIds, [ContextIdKeys.Tenant]: tenantId }, async () =>
+					operation()
+				);
+			}
+		});
 
-		ComponentFactory.register(
-			"tenant-admin",
-			() =>
-				({
-					className: () => "MockTenantAdmin",
-					query: tenantAdminQuery
-				}) as unknown as ITenantAdminComponent
-		);
+		ComponentFactory.register("tenant-component", () => ({
+			className: () => "MockTenantComponent",
+			runPerTenant
+		}));
 
 		const dataspaceDataPlaneService = new DataspaceDataPlaneService({
 			...options,
 			partitionContextIds: [ContextIdKeys.Tenant],
-			tenantAdminType: "tenant-admin"
+			tenantComponentType: "tenant-component"
 		});
 
 		const servicePrivate = dataspaceDataPlaneService as unknown as {
@@ -2445,32 +2450,26 @@ describe("DataspaceDataPlaneService", () => {
 
 		await servicePrivate.cleanupActivityLog();
 
-		expect(tenantAdminQuery).toHaveBeenCalledTimes(2);
-		expect(tenantAdminQuery).toHaveBeenNthCalledWith(1, undefined, undefined);
-		expect(tenantAdminQuery).toHaveBeenNthCalledWith(2, undefined, "cursor-2");
+		expect(runPerTenant).toHaveBeenCalledTimes(1);
 		expect(cleanupPartitionSpy).toHaveBeenCalledTimes(3);
 	});
 
-	test("cleanupActivityLog skips partition cleanup when tenant admin returns no tenants", async () => {
+	test("cleanupActivityLog skips partition cleanup when tenant component runs no tenants", async () => {
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: TEST_NODE_IDENTITY
 		});
 
-		const tenantAdminQuery = vi.fn().mockResolvedValue({ tenants: [], cursor: undefined });
+		const runPerTenant = vi.fn().mockResolvedValue(undefined);
 
-		ComponentFactory.register(
-			"tenant-admin",
-			() =>
-				({
-					className: () => "MockTenantAdmin",
-					query: tenantAdminQuery
-				}) as unknown as ITenantAdminComponent
-		);
+		ComponentFactory.register("tenant-component", () => ({
+			className: () => "MockTenantComponent",
+			runPerTenant
+		}));
 
 		const dataspaceDataPlaneService = new DataspaceDataPlaneService({
 			...options,
 			partitionContextIds: [ContextIdKeys.Tenant],
-			tenantAdminType: "tenant-admin"
+			tenantComponentType: "tenant-component"
 		});
 
 		const servicePrivate = dataspaceDataPlaneService as unknown as {
@@ -2483,7 +2482,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		await servicePrivate.cleanupActivityLog();
 
-		expect(tenantAdminQuery).toHaveBeenCalledTimes(1);
+		expect(runPerTenant).toHaveBeenCalledTimes(1);
 		expect(cleanupPartitionSpy).not.toHaveBeenCalled();
 	});
 
