@@ -145,7 +145,6 @@ export class DataspaceControlPlaneService
 	/**
 	 * Policy Negotiation Point component for contract negotiation.
 	 * Used to negotiate agreements with providers before creating transfer processes.
-
 	 * @internal
 	 */
 	private readonly _policyNegotiationPointComponent: IPolicyNegotiationPointComponent;
@@ -2608,7 +2607,7 @@ export class DataspaceControlPlaneService
 
 	/**
 	 * Extract dataset ID from Agreement target.
-	 * @param agreement Agreement.
+	 * @param format Agreement.
 	 * @returns Dataset ID.
 	 * @internal
 	 */
@@ -2624,6 +2623,7 @@ export class DataspaceControlPlaneService
 	 * @param agreement The ODRL agreement containing the target.
 	 * @returns The dataset ID extracted from the target URN.
 	 * @throws GeneralError if the agreement target is missing, has no UID, or has multiple targets.
+	 * @internal
 	 */
 	private extractDatasetId(agreement: IDataspaceProtocolAgreement): string {
 		if (Is.empty(agreement.target)) {
@@ -2713,6 +2713,8 @@ export class DataspaceControlPlaneService
 	/**
 	 * Extract PID from DSP message and lookup Transfer Process with role detection.
 	 * @param message DSP protocol message with consumerPid and/or providerPid fields.
+	 * @param message.consumerPid The consumer-side PID from the DSP message.
+	 * @param message.providerPid The provider-side PID from the DSP message.
 	 * @returns Transfer Process entity and our role in this transfer.
 	 * @internal
 	 */
@@ -2964,8 +2966,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Build the tenant-attributed identifier.
 	 * @param nodeId The node identity (from `ContextIdKeys.Node`).
-	 * @param tenantId The plaintext tenant id (from `ContextIdKeys.Tenant`), if
-	 *   any. Hashed before insertion into the composite.
+	 * @param tenantId The plaintext tenant id (from `ContextIdKeys.Tenant`), if any. Hashed before insertion into the composite.
 	 * @returns Composite identifier, or undefined if nodeId is missing.
 	 * @internal
 	 */
@@ -2982,11 +2983,9 @@ export class DataspaceControlPlaneService
 	/**
 	 * Parse a composite tenant identifier into its node and tenant-hash portions.
 	 * @param composite The composite identifier (`nodeDid` or `nodeDid:hash`).
-	 * @returns The parsed parts. `tenantIdHash` is undefined when the composite
-	 *   has no tenant portion (single-tenant node form).
+	 * @returns The parsed parts. `tenantIdHash` is undefined when the composite has no tenant portion (single-tenant node form).
 	 * @throws GuardError if the input is not a non-empty string.
-	 * @throws GeneralError if the input does not start with `did:` — the only
-	 *   valid composite identifier shapes carry a DID as the leading portion.
+	 * @throws GeneralError if the input does not start with `did:` — the only valid composite identifier shapes carry a DID as the leading portion.
 	 * @internal
 	 */
 	private parseTenantIdentifier(composite: string): {
@@ -3035,6 +3034,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Creates the internal INegotiationCallback that fans out to all registered callbacks.
 	 * @returns The internal negotiation callback.
+	 * @internal
 	 */
 	private createInternalCallback(): INegotiationCallback {
 		return {
@@ -3091,6 +3091,7 @@ export class DataspaceControlPlaneService
 	 * Errors thrown by individual callbacks are logged and swallowed so they cannot affect
 	 * the DSP protocol state machine or other registrants.
 	 * @returns The internal transfer callback.
+	 * @internal
 	 */
 	private createInternalTransferCallback(): ITransferCallback {
 		return {

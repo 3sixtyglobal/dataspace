@@ -48,6 +48,7 @@ export class DataspaceDataPlaneSocketClient
 
 	/**
 	 * Activity processing details route.
+	 * @internal
 	 */
 	private static readonly _ACTIVITY_LOG_STATUS_ROUTE = "activity-logs/status";
 
@@ -350,7 +351,6 @@ export class DataspaceDataPlaneSocketClient
 
 	/**
 	 * Handle an incoming publish event.
-	 * @param topic The incoming topic.
 	 * @param event The incoming data.
 	 * @internal
 	 */
