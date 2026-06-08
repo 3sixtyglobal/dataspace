@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.40](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.39...dataspace-data-plane-service-v0.0.3-next.40) (2026-06-08)
+
+
+### Features
+
+* add support for the new federated catalogue trust model ([#179](https://github.com/iotaledger/twin-dataspace/issues/179)) ([0d99a93](https://github.com/iotaledger/twin-dataspace/commit/0d99a9331e259e3efe5250e390fdfb1a2f0983b1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.39 to 0.0.3-next.40
+    * @twin.org/dataspace-models bumped from 0.0.3-next.39 to 0.0.3-next.40
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.39 to 0.0.3-next.40
+
 ## [0.0.3-next.39](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.38...dataspace-data-plane-service-v0.0.3-next.39) (2026-06-04)
 
 
