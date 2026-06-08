@@ -91,13 +91,16 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 
 	/**
 	 * Set a dataset.
-	 * @param dataSet The dataset to set.
+	 * @param dataset The dataset to set.
+	 * @returns An error if the dataset is invalid, otherwise undefined.
 	 */
-	public async set(dataSet: IDcatDataset): Promise<void> {
-		const id = dataSet["@id"];
+	public async set(dataset: IDcatDataset): Promise<string | IDataspaceProtocolCatalogError> {
+		const id = dataset["@id"];
 		if (Is.string(id)) {
-			this._datasets.set(id, dataSet);
+			this._datasets.set(id, dataset);
 		}
+
+		return id ?? "";
 	}
 
 	/**
@@ -128,10 +131,12 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 
 	/**
 	 * Remove a dataset.
-	 * @param dataSetId The dataset ID to remove.
+	 * @param datasetId The dataset ID to remove.
+	 * @returns An error if the dataset is not found, otherwise undefined.
 	 */
-	public async remove(dataSetId: string): Promise<void> {
-		this._datasets.delete(dataSetId);
+	public async remove(datasetId: string): Promise<IDataspaceProtocolCatalogError | undefined> {
+		this._datasets.delete(datasetId);
+		return undefined;
 	}
 
 	// ============================================================================

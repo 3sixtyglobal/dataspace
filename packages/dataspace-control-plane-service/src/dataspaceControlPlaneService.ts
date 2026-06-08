@@ -450,7 +450,7 @@ export class DataspaceControlPlaneService
 							message: "datasetPublishFailed",
 							error: BaseError.fromError(error),
 							data: {
-								datasetRecordId: appDataset.id,
+								datasetId: appDataset.id,
 								appId: appDataset.appId,
 								tenantId: appDataset.tenantId
 							}
@@ -1751,7 +1751,8 @@ export class DataspaceControlPlaneService
 			}
 		});
 
-		const catalogResult = await this._federatedCatalogueComponent.get(datasetId);
+		const localTrustPayload = await this.generateLocalTrustPayload();
+		const catalogResult = await this._federatedCatalogueComponent.get(datasetId, localTrustPayload);
 
 		if (isCatalogError(catalogResult)) {
 			if (isCatalogErrorName(catalogResult, NotFoundError.CLASS_NAME)) {
@@ -2382,14 +2383,16 @@ export class DataspaceControlPlaneService
 			throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "datasetWrongTenant");
 		}
 
-		// Side effect first, primary storage last
-		const wrappedContextIds = {
-			...((await ContextIdStore.getContextIds()) ?? {}),
-			[ContextIdKeys.Tenant]: existing.tenantId
-		};
-		await ContextIdStore.run(wrappedContextIds, async () => {
-			await this._federatedCatalogueComponent.remove(id);
-		});
+		const localTrustPayload = await this.generateLocalTrustPayload(existing.tenantId);
+		const removeResult = await this._federatedCatalogueComponent.remove(id, localTrustPayload);
+
+		if (isCatalogError(removeResult)) {
+			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetRemoveFailed", {
+				datasetId: id,
+				tenantId: existing.tenantId ?? "",
+				catalogErrorCode: removeResult.code
+			});
+		}
 
 		await this._dataspaceAppDatasetStorage.remove(id);
 	}
@@ -2674,7 +2677,8 @@ export class DataspaceControlPlaneService
 		);
 
 		// Lookup dataset in catalog
-		const catalogResult = await this._federatedCatalogueComponent.get(datasetId);
+		const localTrustPayload = await this.generateLocalTrustPayload();
+		const catalogResult = await this._federatedCatalogueComponent.get(datasetId, localTrustPayload);
 
 		if (isCatalogError(catalogResult)) {
 			if (isCatalogErrorName(catalogResult, NotFoundError.CLASS_NAME)) {
@@ -3204,6 +3208,7 @@ export class DataspaceControlPlaneService
 		// appDataset's owning tenant. On single-tenant nodes the appDataset has no tenantId,
 		// so the assignment writes `Tenant: undefined` — equivalent to no override.
 		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+		const localTrustPayload = await this.generateLocalTrustPayload(appDataset.tenantId);
 		const wrappedContextIds = {
 			...contextIds,
 			[ContextIdKeys.Tenant]: appDataset.tenantId
@@ -3218,7 +3223,18 @@ export class DataspaceControlPlaneService
 			const datasets = await Promise.all(rawDatasets.map(async d => this.populateDefaults(d)));
 
 			for (const dataset of datasets) {
-				await this._federatedCatalogueComponent.set(dataset as unknown as IDcatDataset);
+				const publishResult = await this._federatedCatalogueComponent.set(
+					dataset as unknown as IDcatDataset,
+					localTrustPayload
+				);
+				if (isCatalogError(publishResult)) {
+					throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetPublishFailed", {
+						datasetId: appDataset.id,
+						appId: appDataset.appId,
+						tenantId: appDataset.tenantId ?? "",
+						catalogErrorCode: publishResult.code
+					});
+				}
 			}
 		});
 	}
@@ -3246,5 +3262,23 @@ export class DataspaceControlPlaneService
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetNodeContextRequired");
 		}
 		return nodeId;
+	}
+
+	/**
+	 * Generate a trust payload representing this node for internal FederatedCatalogue calls.
+	 * @param tenantId Optional tenant ID to embed in the token.
+	 * @returns The generated trust payload.
+	 * @internal
+	 */
+	private async generateLocalTrustPayload(tenantId?: string): Promise<unknown> {
+		const nodeId = await this.resolveNodeIdentity();
+		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
+		return this._trustComponent.generate(
+			nodeId,
+			this._overrideTrustGeneratorType,
+			{},
+			Is.stringValue(tenantId) ? TrustHelper.hashTenantId(tenantId) : undefined,
+			contextIds[ContextIdKeys.Organization]
+		);
 	}
 }

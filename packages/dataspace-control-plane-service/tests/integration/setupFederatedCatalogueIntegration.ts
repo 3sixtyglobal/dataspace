@@ -11,9 +11,10 @@ import { nameof } from "@twin.org/nameof";
 
 /**
  * Create a real FederatedCatalogueService with memory storage for integration tests.
+ * @param trustComponentType The component factory name for the trust service (default: "trust").
  * @returns Configured FederatedCatalogue service instance and storage connector for inspection.
  */
-export function createRealFederatedCatalogue(): {
+export function createRealFederatedCatalogue(trustComponentType: string = "trust"): {
 	federatedCatalogue: FederatedCatalogueService;
 	datasetStorage: MemoryEntityStorageConnector<Dataset>;
 } {
@@ -27,7 +28,8 @@ export function createRealFederatedCatalogue(): {
 
 	// Create the real FederatedCatalogue service
 	const federatedCatalogue = new FederatedCatalogueService({
-		datasetEntityStorageType: "dataset"
+		datasetEntityStorageType: "dataset",
+		trustComponentType
 	});
 
 	return {
@@ -40,9 +42,13 @@ export function createRealFederatedCatalogue(): {
  * Register FederatedCatalogue service and schemas for integration tests.
  * Call this in beforeEach or beforeAll of test suites.
  * @param componentName The component name to register (default: "test-fedcat").
+ * @param trustComponentType The component factory name for the trust service (default: "trust").
  * @returns The FederatedCatalogue service instance and storage for inspection.
  */
-export function setupFederatedCatalogueIntegration(componentName: string = "test-fedcat"): {
+export function setupFederatedCatalogueIntegration(
+	componentName: string = "test-fedcat",
+	trustComponentType: string = "trust"
+): {
 	federatedCatalogue: IFederatedCatalogueComponent;
 	datasetStorage: MemoryEntityStorageConnector<Dataset>;
 } {
@@ -50,7 +56,7 @@ export function setupFederatedCatalogueIntegration(componentName: string = "test
 	EntitySchemaFactory.register(nameof<Dataset>(), () => EntitySchemaHelper.getSchema(Dataset));
 
 	// Create and register the FederatedCatalogue service
-	const { federatedCatalogue, datasetStorage } = createRealFederatedCatalogue();
+	const { federatedCatalogue, datasetStorage } = createRealFederatedCatalogue(trustComponentType);
 	ComponentFactory.register(componentName, () => federatedCatalogue);
 
 	return {

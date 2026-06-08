@@ -13,8 +13,9 @@
 
 import { ComponentFactory } from "@twin.org/core";
 import type { ITrustComponent } from "@twin.org/trust-models";
-import { TrustVerifierFactory } from "@twin.org/trust-models";
+import { TrustGeneratorFactory, TrustVerifierFactory } from "@twin.org/trust-models";
 import { TrustService } from "@twin.org/trust-service";
+import { TestJwtGenerator } from "./testJwtGenerator.js";
 import { createTestJwtVerifier } from "./testJwtVerifier.js";
 
 /**
@@ -22,8 +23,9 @@ import { createTestJwtVerifier } from "./testJwtVerifier.js";
  * @returns Real Trust Service instance.
  */
 export function createRealTrustService(): TrustService {
-	// Register test JWT verifier globally with TrustVerifierFactory
+	// Register test JWT verifier and generator globally
 	TrustVerifierFactory.register("test-jwt-verifier", () => createTestJwtVerifier());
+	TrustGeneratorFactory.register("test-jwt-generator", () => new TestJwtGenerator());
 
 	// Create TrustService
 	// Verifiers are registered globally with TrustVerifierFactory, not passed to service

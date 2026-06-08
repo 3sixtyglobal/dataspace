@@ -293,7 +293,7 @@ export async function activityStreamNotify(
 	if (Is.string(result)) {
 		return {
 			headers: {
-				location: `${baseRouteName}/activity-logs/${result}`
+				[HeaderTypes.Location]: `${baseRouteName}/activity-logs/${result}`
 			},
 			statusCode: HttpStatusCode.accepted
 		};
@@ -313,7 +313,7 @@ export async function activityStreamNotify(
 
 	return {
 		headers: {
-			location: `${baseRouteName}/activity-logs/${result.id}`
+			[HeaderTypes.Location]: `${baseRouteName}/activity-logs/${result.id}`
 		},
 		statusCode,
 		body: result

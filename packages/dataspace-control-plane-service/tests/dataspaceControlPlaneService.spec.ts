@@ -4746,6 +4746,29 @@ describe("DataspaceControlPlaneService", () => {
 			expect(publishedDataset["@id"]).toBe("https://twin.example.org/ds-publish");
 		});
 
+		test("createAppDataset does not persist locally when fedcat publish returns CatalogError", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			vi.spyOn(mockFedCat, "set").mockResolvedValue({
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": DataspaceProtocolCatalogTypes.CatalogError,
+				code: "GeneralError:datasetOwnerMismatch"
+			});
+
+			await expect(
+				service.createAppDataset(
+					"urn:test:ds-publish-fail",
+					TEST_APP_ID,
+					buildDataset("https://twin.example.org/ds-publish-fail") as never
+				)
+			).rejects.toMatchObject({
+				name: "GeneralError",
+				message: expect.stringContaining("datasetPublishFailed")
+			});
+
+			const stored = await dataspaceAppDatasetStorage.get("urn:test:ds-publish-fail");
+			expect(stored).toBeUndefined();
+		});
+
 		test("populateDefaults stamps composite (nodeDid:hash(tenantId)) as publisher in multi-tenant context", async () => {
 			// Publisher attribution is always the composite identifier
 			// (`nodeDid:hash(tenantId)`), independent of whether a user session
@@ -4944,6 +4967,26 @@ describe("DataspaceControlPlaneService", () => {
 			// fedcat removal called with the dataset @id (which IS the entity id).
 			expect(removeSpy).toHaveBeenCalledTimes(1);
 			expect(removeSpy.mock.calls[0][0]).toBe(datasetId);
+		});
+
+		test("deleteAppDataset keeps the app dataset when fedcat remove returns CatalogError", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			const datasetId = "https://twin.example.org/ds-del-fail";
+			await service.createAppDataset(datasetId, TEST_APP_ID, buildDataset(datasetId) as never);
+
+			vi.spyOn(mockFedCat, "remove").mockResolvedValue({
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": DataspaceProtocolCatalogTypes.CatalogError,
+				code: "GeneralError:datasetRemoveNotOwner"
+			});
+
+			await expect(service.deleteAppDataset(datasetId)).rejects.toMatchObject({
+				name: "GeneralError",
+				message: expect.stringContaining("datasetRemoveFailed")
+			});
+
+			const stored = await dataspaceAppDatasetStorage.get(datasetId);
+			expect(stored).toBeDefined();
 		});
 
 		test("deleteAppDataset rejects cross-tenant deletes with datasetWrongTenant", async () => {
@@ -5204,7 +5247,8 @@ describe("DataspaceControlPlaneService", () => {
 
 			ComponentFactory.register("test-trust-spy", () => ({
 				className: () => "TestTrustSpy",
-				verify: verifySpy
+				verify: verifySpy,
+				generate: vi.fn().mockResolvedValue("mock-local-trust-token")
 			}));
 
 			const service = new DataspaceControlPlaneService({

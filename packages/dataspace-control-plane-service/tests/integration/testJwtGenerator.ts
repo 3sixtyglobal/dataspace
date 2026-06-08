@@ -12,7 +12,42 @@
  */
 
 import { Converter } from "@twin.org/core";
+import type { ITrustGenerator } from "@twin.org/trust-models";
 import { Jwt } from "@twin.org/web";
+
+const TEST_JWT_KEY = Converter.utf8ToBytes("test-secret-key-for-integration-tests-min-32-chars");
+
+/**
+ * Test JWT Generator implementing ITrustGenerator.
+ * Generates test JWTs that TestJwtVerifier can verify.
+ */
+export class TestJwtGenerator implements ITrustGenerator {
+	public static readonly CLASS_NAME: string = "TestJwtGenerator";
+
+	public className(): string {
+		return TestJwtGenerator.CLASS_NAME;
+	}
+
+	public async generate(
+		identity: string,
+		info?: { [key: string]: unknown },
+		tenantIdHash?: string,
+		organizationId?: string
+	): Promise<unknown> {
+		const now = Math.floor(Date.now() / 1000);
+		const payload: { [key: string]: unknown } = {
+			sub: identity,
+			iat: now,
+			exp: now + 3600,
+			iss: "test-generator",
+			...info
+		};
+		if (tenantIdHash) {
+			payload.tid = tenantIdHash;
+		}
+		return Jwt.encode({ alg: "HS256", typ: "JWT" }, payload, TEST_JWT_KEY);
+	}
+}
 
 /**
  * Generate a test JWT token with specified identity and expiration.
@@ -48,7 +83,7 @@ export async function generateTestJwt(
 
 	// Encode JWT using the Jwt utility
 	// Key must be Uint8Array for HS256
-	const key = Converter.utf8ToBytes("test-secret-key-for-integration-tests-min-32-chars");
+	const key = TEST_JWT_KEY;
 	const token = await Jwt.encode(header, payload, key);
 
 	return token;
@@ -71,7 +106,7 @@ export async function generateExpiredTestJwt(identity: string): Promise<string> 
 		aud: "test-audience"
 	};
 
-	const key = Converter.utf8ToBytes("test-secret-key-for-integration-tests-min-32-chars");
+	const key = TEST_JWT_KEY;
 	const token = await Jwt.encode(header, payload, key);
 
 	return token;
@@ -93,7 +128,7 @@ export async function generateTestJwtWithoutIdentity(): Promise<string> {
 		aud: "test-audience"
 	};
 
-	const key = Converter.utf8ToBytes("test-secret-key-for-integration-tests-min-32-chars");
+	const key = TEST_JWT_KEY;
 	const token = await Jwt.encode(header, payload, key);
 
 	return token;

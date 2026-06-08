@@ -1,6 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IHostingComponent, IHttpRequest, IHttpRequestContext } from "@twin.org/api-models";
+import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory } from "@twin.org/core";
 import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
@@ -10,6 +11,7 @@ import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessTypes
 } from "@twin.org/standards-dataspace-protocol";
+import { vi } from "vitest";
 import { generateRestRoutesDataspaceControlPlane } from "../src/dataspaceControlPlaneRoutes.js";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
@@ -58,13 +60,21 @@ describe("dataspaceControlPlaneRoutes", () => {
 			className: () => "MockHostingComponent",
 			getPublicOrigin: async () => "https://test-origin.com",
 			getTenantOrigin: async () => "https://test-origin.com",
-			buildPublicUrl: async (path: string) => `https://test-origin.com${path}`
+			buildPublicUrl: async (path: string) => `https://test-origin.com${path}`,
+			matchesLocalOrigin: async (origin: string) => ""
 		};
 		ComponentFactory.register("hosting", () => mockHostingComponent);
 		ComponentFactory.register("url-transformer", () => ({
 			className: () => "MockUrlTransformerComponent",
 			addEncryptedQueryParamToUrl: async (url: string) => url
 		}));
+
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+			[ContextIdKeys.Node]: "did:iota:test-node",
+			[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+			[ContextIdKeys.User]: "did:iota:test-user"
+		});
 
 		ComponentFactory.register(
 			componentName,
@@ -98,6 +108,7 @@ describe("dataspaceControlPlaneRoutes", () => {
 		} catch {
 			// Ignore errors if already unregistered
 		}
+		vi.restoreAllMocks();
 	});
 
 	afterAll(() => {

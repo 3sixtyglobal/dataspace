@@ -52,6 +52,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 
 	// Test JWT tokens for different identities
 	let consumerToken: string;
+	let providerToken: string;
 
 	beforeAll(async () => {
 		// Setup test environment (schemas, contexts, locales)
@@ -62,6 +63,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 
 		// Generate test JWT tokens (async)
 		consumerToken = await generateTestJwt("did:iota:consumer-node-abc");
+		providerToken = await generateTestJwt("did:iota:provider-node-xyz");
 	});
 
 	afterAll(() => {
@@ -78,7 +80,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		}));
 
 		// Setup REAL FederatedCatalogue service with memory storage
-		const fedCatSetup = setupFederatedCatalogueIntegration("test-fedcat");
+		const fedCatSetup = setupFederatedCatalogueIntegration("test-fedcat", "test-trust");
 		federatedCatalogue = fedCatSetup.federatedCatalogue;
 		datasetStorage = fedCatSetup.datasetStorage;
 
@@ -116,15 +118,6 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			trustComponentType: "test-trust",
 			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
 			dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>()
-		});
-
-		// Agreement fixtures in this file all use a bare DID
-		// (`did:iota:provider-node-xyz`) as the assigner. Pin the context to a
-		// single-tenant shape so the caller composite matches.
-		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
-			[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
-			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-			[ContextIdKeys.User]: "did:iota:test-user"
 		});
 	});
 
@@ -187,28 +180,40 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			}
 		} as unknown as IDcatDataset;
 
-		// Act - Store dataset using real service
-		await federatedCatalogue.set(testDataset);
+		// ContextIdStore.run() sets AsyncLocalStorage context shared across all module instances,
+		// including the FederatedCatalogueService which resolves @twin.org/context from its own
+		// node_modules. vi.spyOn only patches the local module, so run() is required here.
+		await ContextIdStore.run(
+			{
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
+			},
+			async () => {
+				// Act - Store dataset using real service
+				await federatedCatalogue.set(testDataset, providerToken);
 
-		// Assert - Verify dataset was stored and retrieved
-		const retrieved = await federatedCatalogue.get(datasetId);
-		expect(retrieved).toBeDefined();
-		expect((retrieved as IDcatDataset)["@id"]).toBe(datasetId);
+				// Assert - Verify dataset was stored and retrieved
+				const retrieved = await federatedCatalogue.get(datasetId, providerToken);
+				expect(retrieved).toBeDefined();
+				expect((retrieved as IDcatDataset)["@id"]).toBe(datasetId);
 
-		// NOTE: JSON-LD processing transforms field names:
-		// Input: "dcterms:title" -> Output: "dct:title"
-		// Input: "dcat:distribution" -> Output: "distribution"
-		// This is EXPECTED behavior with real service!
-		const retrievedDataset = retrieved as unknown as { [key: string]: unknown };
-		expect(retrievedDataset["@type"]).toBe("Dataset");
-		expect(retrievedDataset["dct:title"]).toBe("Test Dataset 001");
-		expect(retrievedDataset["dct:publisher"]).toBe("did:iota:provider-node-xyz");
+				// NOTE: JSON-LD processing transforms field names:
+				// Input: "dcterms:title" -> Output: "dct:title"
+				// Input: "dcat:distribution" -> Output: "distribution"
+				// This is EXPECTED behavior with real service!
+				const retrievedDataset = retrieved as unknown as { [key: string]: unknown };
+				expect(retrievedDataset["@type"]).toBe("Dataset");
+				expect(retrievedDataset["dct:title"]).toBe("Test Dataset 001");
+				expect(retrievedDataset["dct:publisher"]).toBe("did:iota:provider-node-xyz");
 
-		// NEW: Verify we can inspect storage directly
-		const allDatasets = datasetStorage.getStore();
-		expect(allDatasets.length).toBe(1);
-		// Storage entity has different structure than DCAT dataset
-		expect(allDatasets[0].id).toBe(datasetId);
+				// NEW: Verify we can inspect storage directly
+				const allDatasets = datasetStorage.getStore();
+				expect(allDatasets.length).toBe(1);
+				// Storage entity has different structure than DCAT dataset
+				expect(allDatasets[0].id).toBe(datasetId);
+			}
+		);
 	});
 
 	// ============================================================================
@@ -245,56 +250,65 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			}
 		} as unknown as IDcatDataset;
 
-		await federatedCatalogue.set(dataset);
-
-		// 2. Create agreement in PAP (UID matches the offer UID)
-		await pap.create({
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
-			"@type": "Agreement",
-			"@id": agreementUrn,
-			assigner: "did:iota:provider-node-xyz",
-			assignee: "did:iota:consumer-node-abc",
-			target: datasetId,
-			permission: [{ action: "read" }]
-		});
-
-		// Act - Request transfer
-		const result = await service.requestTransfer(
+		await ContextIdStore.run(
 			{
-				"@context": [DataspaceProtocolContexts.JsonLdContext],
-				"@type": "TransferRequestMessage",
-				agreementId: agreementUrn,
-				consumerPid: "consumer-pid-integration-001",
-				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
 			},
-			consumerToken // Real JWT token with consumer identity
+			async () => {
+				await federatedCatalogue.set(dataset, providerToken);
+
+				// 2. Create agreement in PAP (UID matches the offer UID)
+				await pap.create({
+					"@context": "http://www.w3.org/ns/odrl.jsonld",
+					"@type": "Agreement",
+					"@id": agreementUrn,
+					assigner: "did:iota:provider-node-xyz",
+					assignee: "did:iota:consumer-node-abc",
+					target: datasetId,
+					permission: [{ action: "read" }]
+				});
+
+				// Act - Request transfer
+				const result = await service.requestTransfer(
+					{
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": "TransferRequestMessage",
+						agreementId: agreementUrn,
+						consumerPid: "consumer-pid-integration-001",
+						callbackAddress: "https://consumer.example.com/callback",
+						format: "application/json"
+					},
+					consumerToken // Real JWT token with consumer identity
+				);
+
+				// Assert DSP response
+				if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+					console.log("Transfer error:", JSON.stringify(result, null, 2));
+				}
+				expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+				const transferProcess = result as IDataspaceProtocolTransferProcess;
+				expect(transferProcess.consumerPid).toBe("consumer-pid-integration-001");
+				expect(transferProcess.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+
+				// Verify context resolution includes dataset ID
+				const context = await service.resolveConsumerPid(
+					"consumer-pid-integration-001",
+					consumerToken // Real JWT token with consumer identity
+				);
+				// datasetId is now the full URN (DCAT-compliant, not parsed)
+				expect(context.datasetId).toBe("urn:uuid:dataset-integration-001");
+
+				// NEW: Verify dataset still in storage (not modified by transfer)
+				const retrievedDataset = await federatedCatalogue.get(datasetId, providerToken);
+				expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
+
+				// NEW: Verify storage state
+				const allDatasets = datasetStorage.getStore();
+				expect(allDatasets.length).toBe(1);
+			}
 		);
-
-		// Assert DSP response
-		if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
-			console.log("Transfer error:", JSON.stringify(result, null, 2));
-		}
-		expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-		const transferProcess = result as IDataspaceProtocolTransferProcess;
-		expect(transferProcess.consumerPid).toBe("consumer-pid-integration-001");
-		expect(transferProcess.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
-
-		// Verify context resolution includes dataset ID
-		const context = await service.resolveConsumerPid(
-			"consumer-pid-integration-001",
-			consumerToken // Real JWT token with consumer identity
-		);
-		// datasetId is now the full URN (DCAT-compliant, not parsed)
-		expect(context.datasetId).toBe("urn:uuid:dataset-integration-001");
-
-		// NEW: Verify dataset still in storage (not modified by transfer)
-		const retrievedDataset = await federatedCatalogue.get(datasetId);
-		expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
-
-		// NEW: Verify storage state
-		const allDatasets = datasetStorage.getStore();
-		expect(allDatasets.length).toBe(1);
 	});
 
 	// ============================================================================
@@ -330,42 +344,51 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			}
 		} as unknown as IDcatDataset;
 
-		await federatedCatalogue.set(dataset);
-
-		// Create matching agreement in REAL PAP (same UID as offer)
-		await pap.create({
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
-			"@type": "Agreement",
-			"@id": policyUrn, // Agreement UID matches offer UID
-
-			assignee: "did:iota:consumer-node-abc",
-			assigner: "did:iota:provider-node-xyz",
-			target: datasetId,
-			permission: [{ action: "use" }]
-		});
-
-		// Act - Request transfer
-		const result = await service.requestTransfer(
+		await ContextIdStore.run(
 			{
-				"@context": [DataspaceProtocolContexts.JsonLdContext],
-				"@type": "TransferRequestMessage",
-				consumerPid: "consumer-pid-catalog-test",
-				agreementId: policyUrn,
-				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
 			},
-			consumerToken // Real JWT token with consumer identity
+			async () => {
+				await federatedCatalogue.set(dataset, providerToken);
+
+				// Create matching agreement in REAL PAP (same UID as offer)
+				await pap.create({
+					"@context": "http://www.w3.org/ns/odrl.jsonld",
+					"@type": "Agreement",
+					"@id": policyUrn, // Agreement UID matches offer UID
+
+					assignee: "did:iota:consumer-node-abc",
+					assigner: "did:iota:provider-node-xyz",
+					target: datasetId,
+					permission: [{ action: "use" }]
+				});
+
+				// Act - Request transfer
+				const result = await service.requestTransfer(
+					{
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": "TransferRequestMessage",
+						consumerPid: "consumer-pid-catalog-test",
+						agreementId: policyUrn,
+						callbackAddress: "https://callback.example.com",
+						format: "application/json"
+					},
+					consumerToken // Real JWT token with consumer identity
+				);
+
+				// Assert - Transfer should succeed (dataset found in catalog)
+				expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+				const transferProcess = result as IDataspaceProtocolTransferProcess;
+				expect(transferProcess.consumerPid).toBe("consumer-pid-catalog-test");
+				expect(transferProcess.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+
+				// NEW: Verify dataset lookup occurred (dataset still in storage)
+				const retrievedDataset = await federatedCatalogue.get(datasetId, providerToken);
+				expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
+			}
 		);
-
-		// Assert - Transfer should succeed (dataset found in catalog)
-		expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-		const transferProcess = result as IDataspaceProtocolTransferProcess;
-		expect(transferProcess.consumerPid).toBe("consumer-pid-catalog-test");
-		expect(transferProcess.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
-
-		// NEW: Verify dataset lookup occurred (dataset still in storage)
-		const retrievedDataset = await federatedCatalogue.get(datasetId);
-		expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
 	});
 
 	test("Should return TransferError if dataset not in catalog - REAL Services", async () => {
@@ -373,50 +396,59 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		const missingDatasetId = "urn:uuid:missing-dataset-456";
 		const agreementUrn = "urn:policy:agreement-missing-dataset";
 
-		await pap.create({
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
-			"@type": "Agreement",
-			"@id": agreementUrn,
-
-			assignee: "did:iota:consumer-node-abc",
-			assigner: "did:iota:provider-node-xyz",
-			target: missingDatasetId, // Dataset NOT in catalog
-			permission: [{ action: "use" }]
-		});
-
-		// Act - Request transfer for missing dataset
-		const result = await service.requestTransfer(
+		await ContextIdStore.run(
 			{
-				"@context": [DataspaceProtocolContexts.JsonLdContext],
-				"@type": "TransferRequestMessage",
-				consumerPid: "consumer-pid-missing-dataset",
-				agreementId: agreementUrn,
-				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
 			},
-			consumerToken // Real JWT token with consumer identity
+			async () => {
+				await pap.create({
+					"@context": "http://www.w3.org/ns/odrl.jsonld",
+					"@type": "Agreement",
+					"@id": agreementUrn,
+
+					assignee: "did:iota:consumer-node-abc",
+					assigner: "did:iota:provider-node-xyz",
+					target: missingDatasetId, // Dataset NOT in catalog
+					permission: [{ action: "use" }]
+				});
+
+				// Act - Request transfer for missing dataset
+				const result = await service.requestTransfer(
+					{
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": "TransferRequestMessage",
+						consumerPid: "consumer-pid-missing-dataset",
+						agreementId: agreementUrn,
+						callbackAddress: "https://callback.example.com",
+						format: "application/json"
+					},
+					consumerToken // Real JWT token with consumer identity
+				);
+
+				// Assert - Should return DSP-compliant TransferError
+				expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+				const transferError = result as unknown as { [key: string]: unknown };
+				expect(transferError.code).toMatch(/^NotFoundError:/);
+				expect(transferError.consumerPid).toBe("consumer-pid-missing-dataset");
+				expect(transferError.providerPid).toBeDefined();
+				expect(transferError.reason).toBeDefined();
+				expect(Is.array(transferError.reason)).toBe(true);
+
+				// Verify error contains expected message
+				const reason = transferError.reason as unknown[];
+				if (reason && reason.length > 0) {
+					const firstError = reason[0] as { name?: string; message?: string };
+					expect(firstError.name).toBe("NotFoundError");
+					expect(firstError.message).toContain("datasetNotInCatalog");
+				}
+
+				// NEW: Verify catalog is actually empty (no datasets stored)
+				const allDatasets = datasetStorage.getStore();
+				expect(allDatasets.length).toBe(0);
+			}
 		);
-
-		// Assert - Should return DSP-compliant TransferError
-		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-		const transferError = result as unknown as { [key: string]: unknown };
-		expect(transferError.code).toMatch(/^NotFoundError:/);
-		expect(transferError.consumerPid).toBe("consumer-pid-missing-dataset");
-		expect(transferError.providerPid).toBeDefined();
-		expect(transferError.reason).toBeDefined();
-		expect(Is.array(transferError.reason)).toBe(true);
-
-		// Verify error contains expected message
-		const reason = transferError.reason as unknown[];
-		if (reason && reason.length > 0) {
-			const firstError = reason[0] as { name?: string; message?: string };
-			expect(firstError.name).toBe("NotFoundError");
-			expect(firstError.message).toContain("datasetNotInCatalog");
-		}
-
-		// NEW: Verify catalog is actually empty (no datasets stored)
-		const allDatasets = datasetStorage.getStore();
-		expect(allDatasets.length).toBe(0);
 	});
 
 	test("Should return TransferError if Agreement doesn't match Catalog Offer - REAL Services", async () => {
@@ -455,49 +487,58 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			}
 		} as unknown as IDcatDataset;
 
-		await federatedCatalogue.set(dataset);
-
-		// Create agreement with DIFFERENT UID in REAL PAP (UID doesn't match offer)
-		await pap.create({
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
-			"@type": "Agreement",
-			"@id": agreementUrn, // Agreement UID "agreement-DIFFERENT-789" != Offer UID!
-
-			assignee: "did:iota:consumer-node-abc",
-			assigner: "did:iota:provider-node-xyz",
-			target: datasetId,
-			permission: [{ action: "use" }]
-		});
-
-		// Act - Request transfer with mismatched agreement
-		const result = await service.requestTransfer(
+		await ContextIdStore.run(
 			{
-				"@context": [DataspaceProtocolContexts.JsonLdContext],
-				"@type": "TransferRequestMessage",
-				consumerPid: "consumer-pid-mismatch",
-				agreementId: agreementUrn,
-				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+				[ContextIdKeys.User]: "did:iota:test-user"
 			},
-			consumerToken // Real JWT token with consumer identity
+			async () => {
+				await federatedCatalogue.set(dataset, providerToken);
+
+				// Create agreement with DIFFERENT UID in REAL PAP (UID doesn't match offer)
+				await pap.create({
+					"@context": "http://www.w3.org/ns/odrl.jsonld",
+					"@type": "Agreement",
+					"@id": agreementUrn, // Agreement UID "agreement-DIFFERENT-789" != Offer UID!
+
+					assignee: "did:iota:consumer-node-abc",
+					assigner: "did:iota:provider-node-xyz",
+					target: datasetId,
+					permission: [{ action: "use" }]
+				});
+
+				// Act - Request transfer with mismatched agreement
+				const result = await service.requestTransfer(
+					{
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": "TransferRequestMessage",
+						consumerPid: "consumer-pid-mismatch",
+						agreementId: agreementUrn,
+						callbackAddress: "https://callback.example.com",
+						format: "application/json"
+					},
+					consumerToken // Real JWT token with consumer identity
+				);
+
+				// Assert - Should return TransferError with specific error
+				expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+				const transferError = result as unknown as { [key: string]: unknown };
+				expect(transferError.code).toMatch(/GeneralError:/);
+				expect(transferError.reason).toBeDefined();
+
+				// Verify error message indicates agreement/offer mismatch
+				const reason = transferError.reason as unknown[];
+				if (reason && reason.length > 0) {
+					const firstError = reason[0] as { message?: string };
+					expect(firstError.message).toContain("agreementNotMatchingOffer");
+				}
+
+				// NEW: Verify dataset exists but validation failed
+				const retrievedDataset = await federatedCatalogue.get(datasetId, providerToken);
+				expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
+				expect(datasetStorage.getStore().length).toBe(1);
+			}
 		);
-
-		// Assert - Should return TransferError with specific error
-		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-		const transferError = result as unknown as { [key: string]: unknown };
-		expect(transferError.code).toMatch(/GeneralError:/);
-		expect(transferError.reason).toBeDefined();
-
-		// Verify error message indicates agreement/offer mismatch
-		const reason = transferError.reason as unknown[];
-		if (reason && reason.length > 0) {
-			const firstError = reason[0] as { message?: string };
-			expect(firstError.message).toContain("agreementNotMatchingOffer");
-		}
-
-		// NEW: Verify dataset exists but validation failed
-		const retrievedDataset = await federatedCatalogue.get(datasetId);
-		expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
-		expect(datasetStorage.getStore().length).toBe(1);
 	});
 });
