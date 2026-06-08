@@ -232,6 +232,13 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		// Register test app
 		DataspaceAppFactory.register("test-app", () => new TestDataspaceDataPlaneApp());
 
+		// The PEP is a required component (the service resolves it with
+		// ComponentFactory.get). Register a default granting PEP so the service
+		// constructs; the PEP-delegation tests below override it via "mock-pep".
+		ComponentFactory.register("policy-enforcement-point-service", () =>
+			createMockPolicyEnforcementPoint()
+		);
+
 		// Create service with transfer process storage configured
 		service = new DataspaceDataPlaneService({
 			trustComponentType: "mock-trust",
@@ -505,12 +512,6 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		test("returns unchanged result when no agreement is provided", async () => {
 			const result = structuredClone(testResult);
 			const filtered = await callApplyPolicyFilters(service, result, undefined);
-			expect(filtered.itemList.itemListElement).toHaveLength(3);
-		});
-
-		test("returns unchanged result when no PEP is registered", async () => {
-			const result = structuredClone(testResult);
-			const filtered = await callApplyPolicyFilters(service, result, testAgreement);
 			expect(filtered.itemList.itemListElement).toHaveLength(3);
 		});
 

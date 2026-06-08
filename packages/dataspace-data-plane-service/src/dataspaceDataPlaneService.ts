@@ -73,7 +73,10 @@ import {
 } from "@twin.org/entity-storage-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import type { IPolicyEnforcementPointComponent } from "@twin.org/rights-management-models";
+import {
+	OdrlPolicyHelper,
+	type IPolicyEnforcementPointComponent
+} from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolDataTypes,
 	DataspaceProtocolTransferProcessStateType,
@@ -90,7 +93,7 @@ import {
 	ActivityStreamsTypes,
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
-import { OdrlContexts, OdrlTypes } from "@twin.org/standards-w3c-odrl";
+import { OdrlActionType, OdrlContexts, OdrlTypes } from "@twin.org/standards-w3c-odrl";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
@@ -260,7 +263,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * The policy enforcement point for ODRL policy enforcement.
 	 * @internal
 	 */
-	private readonly _policyEnforcementPoint?: IPolicyEnforcementPointComponent;
+	private readonly _policyEnforcementPoint: IPolicyEnforcementPointComponent;
 
 	/**
 	 * The tenant component.
@@ -322,7 +325,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			options?.trustComponentType ?? "trust"
 		);
 
-		this._policyEnforcementPoint = ComponentFactory.getIfExists<IPolicyEnforcementPointComponent>(
+		this._policyEnforcementPoint = ComponentFactory.get<IPolicyEnforcementPointComponent>(
 			options?.pepComponentType ?? "policy-enforcement-point-service"
 		);
 
@@ -601,6 +604,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 					"pushActivityNotAuthorized"
 				);
 			}
+
+			// Apply the transfer's agreement to the inbound activity via the PEP, which
+			// may deny it or manipulate (filter/redact) the payload. Dispatch what the
+			// PEP returns.
+			activity = await this.enforceInboxPolicy(transferProcess, activity, generatorIsConsumer);
 		}
 
 		await this._logging?.log({
@@ -2069,7 +2077,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		result: IDataAssetItemListResult,
 		agreement?: IDataspaceProtocolAgreement
 	): Promise<IDataAssetItemListResult> {
-		if (!agreement || !this._policyEnforcementPoint) {
+		if (!agreement) {
 			return result;
 		}
 
@@ -2080,10 +2088,94 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			);
 
 		if (Is.arrayValue(agreement.obligation)) {
-			await this.logObligations(agreement.obligation, agreement["@id"]);
+			await this.logObligations(agreement.obligation, OdrlPolicyHelper.getUid(agreement) ?? "");
 		}
 
 		return processed;
+	}
+
+	/**
+	 * Enforce the transfer's ODRL agreement on an inbound inbox activity via the PEP.
+	 * The PEP evaluates the agreement against the activity and either denies it or
+	 * permits it — potentially manipulating (filtering/redacting) the payload — and
+	 * the returned activity is what gets dispatched. The action is derived from the
+	 * transfer direction: provider-generated activities are read deliveries, while
+	 * consumer-generated activities are write contributions whose Activity Streams
+	 * verb maps to its ODRL action. A denied activity comes back empty. Skipped when
+	 * no PEP is wired or the agreement carries no rules, matching the read/push
+	 * lenience for agreements negotiated before this gate existed.
+	 * @param transferProcess The transfer the activity targets.
+	 * @param activity The inbound activity.
+	 * @param generatorIsConsumer True when the generator is the consumer side
+	 * (a write contribution); false when it is the provider side (a read delivery).
+	 * @returns The activity with policy applied, for dispatch.
+	 * @internal
+	 */
+	private async enforceInboxPolicy(
+		transferProcess: TransferProcess,
+		activity: IActivityStreamsActivity,
+		generatorIsConsumer: boolean
+	): Promise<IActivityStreamsActivity> {
+		const { agreement, consumerPid } = this.buildTransferContext(transferProcess);
+		const hasRules =
+			Is.arrayValue(agreement.permission) ||
+			Is.arrayValue(agreement.prohibition) ||
+			Is.arrayValue(agreement.obligation);
+		if (!hasRules) {
+			return activity;
+		}
+
+		const agreementId = OdrlPolicyHelper.getUid(agreement);
+		const action = this.deriveInboxAction(activity, generatorIsConsumer);
+		const processed = await this._policyEnforcementPoint.interceptWithPolicy<
+			IActivityStreamsActivity,
+			IActivityStreamsActivity
+		>(agreement, activity, action);
+
+		// The enforcement processor returns the (possibly manipulated) activity when
+		// the action is permitted, and an empty object when it is denied.
+		if (!Is.objectValue<IActivityStreamsActivity>(processed)) {
+			throw new UnauthorizedError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"pushActivityNotPermittedByPolicy",
+				{ agreementId, consumerPid }
+			);
+		}
+
+		if (Is.arrayValue(agreement.obligation)) {
+			await this.logObligations(agreement.obligation, agreementId ?? "");
+		}
+
+		return processed;
+	}
+
+	/**
+	 * Derive the ODRL action to enforce for an inbound activity from the transfer
+	 * direction and the Activity Streams verb. Provider-generated activities are read
+	 * deliveries; consumer-generated activities are write contributions whose verb
+	 * maps to the corresponding ODRL action.
+	 * @param activity The inbound activity.
+	 * @param generatorIsConsumer True when the generator is the consumer side.
+	 * @returns The ODRL action to evaluate.
+	 * @internal
+	 */
+	private deriveInboxAction(
+		activity: IActivityStreamsActivity,
+		generatorIsConsumer: boolean
+	): OdrlActionType | string {
+		if (!generatorIsConsumer) {
+			return OdrlActionType.Read;
+		}
+
+		const verb = Is.arrayValue(activity.type) ? activity.type[0] : activity.type;
+		if (verb === ActivityStreamsTypes.Update) {
+			return OdrlActionType.Modify;
+		}
+		if (verb === ActivityStreamsTypes.Delete || verb === ActivityStreamsTypes.Remove) {
+			return OdrlActionType.Delete;
+		}
+		// Create, Add and any other contribution verb map to write.
+		return OdrlActionType.Write;
 	}
 
 	/**

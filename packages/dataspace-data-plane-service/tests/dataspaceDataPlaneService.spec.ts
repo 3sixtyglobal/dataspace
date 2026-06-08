@@ -46,6 +46,7 @@ import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ITrustComponent } from "@twin.org/trust-models";
 import { HeaderHelper, HeaderTypes } from "@twin.org/web";
+import { createMockPolicyEnforcementPoint } from "./setupTestEnv.js";
 import {
 	activityLdContextArray,
 	canonicalActivity,
@@ -473,6 +474,14 @@ describe("DataspaceDataPlaneService", () => {
 
 		taskScheduler = new TaskSchedulerService();
 		ComponentFactory.register("task-scheduler", () => taskScheduler);
+
+		// The PEP is a required component (the service resolves it with
+		// ComponentFactory.get). Register a default granting PEP so every
+		// construction resolves one; gate tests re-register it to exercise the
+		// specific grant / deny / manipulate behaviour.
+		ComponentFactory.register("policy-enforcement-point-service", () =>
+			createMockPolicyEnforcementPoint()
+		);
 
 		options = {
 			loggingComponentType: "logging",
@@ -2100,6 +2109,193 @@ describe("DataspaceDataPlaneService", () => {
 				service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token")
 			).rejects.toMatchObject({ name: "UnauthorizedError" });
 		});
+
+		// Inbox policy enforcement via the PEP. The PEP is registered per-test because
+		// the gate is skipped when none is wired, so the auth tests above pass unchanged.
+
+		test("rejects the activity when the PEP denies it (returns an empty object)", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			// The enforcement processor returns {} for a full deny.
+			ComponentFactory.register("policy-enforcement-point-service", () =>
+				createMockPolicyEnforcementPoint({})
+			);
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token")
+			).rejects.toMatchObject({
+				name: "UnauthorizedError",
+				properties: { agreementId: TEST_AGREEMENT_ID }
+			});
+		});
+
+		test("rejects the activity when the PEP denies it (returns a non-object)", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			// The enforcement processor returns `false` when denying non-object data;
+			// the gate must treat any non-object result as a deny.
+			ComponentFactory.register("policy-enforcement-point-service", () =>
+				createMockPolicyEnforcementPoint(false)
+			);
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token")
+			).rejects.toMatchObject({
+				name: "UnauthorizedError",
+				properties: { agreementId: TEST_AGREEMENT_ID }
+			});
+		});
+
+		test("accepts the activity when the PEP grants it (returns the activity unchanged)", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			// No interceptResult → the mock returns the input activity unchanged (granted).
+			ComponentFactory.register("policy-enforcement-point-service", () =>
+				createMockPolicyEnforcementPoint()
+			);
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const result = await service.notifyActivity(
+				makePushAuthActivity(TEST_CONSUMER_PID),
+				"Bearer test-token"
+			);
+			expect(Is.stringValue(result)).toBe(true);
+		});
+
+		test("dispatches the PEP-manipulated activity, not the original", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			// The PEP permits the activity but rewrites the payload. The gate must
+			// dispatch (and log) what the PEP returns — the marker proves the dispatched
+			// activity is the PEP's output, not the original.
+			const manipulated = makePushAuthActivity(TEST_CONSUMER_PID);
+			manipulated.generator = "urn:uuid:pep-manipulated-marker";
+			ComponentFactory.register("policy-enforcement-point-service", () =>
+				createMockPolicyEnforcementPoint(manipulated)
+			);
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const result = await service.notifyActivity(
+				makePushAuthActivity(TEST_CONSUMER_PID),
+				"Bearer test-token"
+			);
+			expect(Is.stringValue(result)).toBe(true);
+			const logEntry = await service.getActivityLogEntry(result as string);
+			expect(logEntry.generator).toBe("urn:uuid:pep-manipulated-marker");
+		});
+
+		test("skips the gate when the transfer's agreement has no rules at all (legacy lenience)", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			// PEP that would deny if called — but it shouldn't be called for an empty agreement.
+			const interceptSpy = vi.fn().mockResolvedValue({});
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			// Transfer with no permission/prohibition/obligation rules at all
+			// (e.g. an agreement negotiated before the gate existed).
+			const transferProcess = createTestTransferProcess();
+			transferProcess.policies = undefined;
+			await transferProcessStorage.set(transferProcess);
+
+			const result = await service.notifyActivity(
+				makePushAuthActivity(TEST_CONSUMER_PID),
+				"Bearer test-token"
+			);
+			expect(Is.stringValue(result)).toBe(true);
+			expect(interceptSpy).not.toHaveBeenCalled();
+		});
+
+		test("derives a write action from a consumer-generated activity (Create → write)", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			// generator === consumerPid → the consumer side → a write contribution.
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			const [agreement, payload, action] = interceptSpy.mock.calls[0];
+			expect(agreement["@id"]).toBe(TEST_AGREEMENT_ID);
+			expect(agreement.permission).toEqual([{ action: "read" }]);
+			expect(payload).toMatchObject({ type: "Create" });
+			expect(action).toBe("write");
+		});
+
+		test("derives a read action from a provider-generated delivery", async () => {
+			// generator === providerPid → the provider side → a read delivery; the JWT
+			// identity must therefore match the provider identity. A unique providerPid
+			// keeps the secondary-index lookup clear of transfers left by other tests.
+			const readDirectionProviderPid = "urn:uuid:provider-direction-read-test";
+			ComponentFactory.register("trust", () => makeTrustComponent(TEST_NODE_IDENTITY));
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(
+				createTestTransferProcess({ providerPid: readDirectionProviderPid })
+			);
+
+			await service.notifyActivity(
+				makePushAuthActivity(readDirectionProviderPid),
+				"Bearer test-token"
+			);
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			const action = interceptSpy.mock.calls[0][2];
+			expect(action).toBe("read");
+		});
+
+		// The real PEP → PDP → arbiter → enforcement-processor chain is exercised
+		// end-to-end by the kenyaCommunityUseCaseDocker e2e (real pass-through processor,
+		// accept path) and by rights-management's own PEP service tests. The mock-PEP
+		// tests above cover the gate's own logic: how it derives the action and how it
+		// acts on the PEP's grant / deny / manipulate result.
 	});
 
 	// ============================================
