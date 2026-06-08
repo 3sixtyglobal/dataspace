@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.41](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.40...dataspace-data-plane-service-v0.0.3-next.41) (2026-06-08)
+
+
+### Features
+
+* enforce ODRL on the data-plane inbox via the PEP ([#178](https://github.com/iotaledger/twin-dataspace/issues/178)) ([0b33e32](https://github.com/iotaledger/twin-dataspace/commit/0b33e327f12413453fc36fdc373fa7e5b87fae8c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.40 to 0.0.3-next.41
+    * @twin.org/dataspace-models bumped from 0.0.3-next.40 to 0.0.3-next.41
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.40 to 0.0.3-next.41
+
 ## [0.0.3-next.40](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.39...dataspace-data-plane-service-v0.0.3-next.40) (2026-06-08)
 
 
