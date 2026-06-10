@@ -81,16 +81,5 @@
 	"bugs": {
 		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
 	},
-	"homepage": "https://twindev.org",
-	"dependencies": {
-		"es-module-lexer": "^2.1.0",
-		"magic-string": "^0.30.21",
-		"pathe": "^2.0.3",
-		"picomatch": "^4.0.4",
-		"std-env": "^4.1.0",
-		"tinybench": "^6.0.2",
-		"tinyexec": "^1.1.2",
-		"tinyglobby": "^0.2.16",
-		"tinyrainbow": "^3.1.0"
-	}
+	"homepage": "https://twindev.org"
 }

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseRestClient } from "@twin.org/api-core";
 import type { IBaseRestClientConfig } from "@twin.org/api-models";
-import { Guards } from "@twin.org/core";
+import { Guards, NotSupportedError } from "@twin.org/core";
 import type {
 	ICompleteTransferRequest,
 	ICompleteTransferResponse,
@@ -10,6 +10,8 @@ import type {
 	IGetTransferProcessRequest,
 	IGetTransferProcessResponse,
 	IDataspaceAppDataset,
+	INegotiationCallback,
+	ITransferCallback,
 	IAppDatasetCreateRequest,
 	IAppDatasetCreateResponse,
 	IAppDatasetDeleteRequest,
@@ -29,6 +31,8 @@ import type {
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type {
+	IDataspaceProtocolContractNegotiation,
+	IDataspaceProtocolContractNegotiationError,
 	IDataspaceProtocolDataset,
 	IDataspaceProtocolTransferCompletionMessage,
 	IDataspaceProtocolTransferError,
@@ -46,18 +50,7 @@ import { HeaderHelper, HeaderTypes } from "@twin.org/web";
  */
 export class DataspaceControlPlaneRestClient
 	extends BaseRestClient
-	implements
-		Omit<
-			IDataspaceControlPlaneComponent,
-			| "registerNegotiationCallback"
-			| "unregisterNegotiationCallback"
-			| "negotiateAgreement"
-			| "getNegotiation"
-			| "getNegotiationHistory"
-			| "registerTransferCallback"
-			| "unregisterTransferCallback"
-			| "startDataTransfer"
-		>
+	implements IDataspaceControlPlaneComponent
 {
 	/**
 	 * Runtime name for the class.
@@ -78,6 +71,169 @@ export class DataspaceControlPlaneRestClient
 	 */
 	public className(): string {
 		return DataspaceControlPlaneRestClient.CLASS_NAME;
+	}
+
+	/**
+	 * Not supported on REST client — negotiation callbacks are in-process only.
+	 * @param key Unused.
+	 * @param callback Unused.
+	 * @throws NotSupportedError as this method is not supported on the REST client.
+	 */
+	public registerNegotiationCallback(key: string, callback: INegotiationCallback): void {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "registerNegotiationCallback"
+			}
+		);
+	}
+
+	/**
+	 * Not supported on REST client — negotiation callbacks are in-process only.
+	 * @param key Unused.
+	 * @throws NotSupportedError as this method is not supported on the REST client.
+	 */
+	public unregisterNegotiationCallback(key: string): void {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "unregisterNegotiationCallback"
+			}
+		);
+	}
+
+	/**
+	 * Not supported on REST client — contract negotiation is in-process only.
+	 * @param datasetId Unused.
+	 * @param offerId Unused.
+	 * @param providerEndpoint Unused.
+	 * @param publicOrigin Unused.
+	 * @param trustPayload Unused.
+	 * @returns The negotiation ID for tracking.
+	 */
+	public async negotiateAgreement(
+		datasetId: string,
+		offerId: string,
+		providerEndpoint: string,
+		publicOrigin: string,
+		trustPayload: unknown
+	): Promise<{ negotiationId: string }> {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "negotiateAgreement"
+			}
+		);
+	}
+
+	/**
+	 * Not supported on REST client — contract negotiation is in-process only.
+	 * @param negotiationId Unused.
+	 * @param trustPayload Unused.
+	 * @returns DSP ContractNegotiation with current state, or error.
+	 */
+	public async getNegotiation(
+		negotiationId: string,
+		trustPayload: unknown
+	): Promise<IDataspaceProtocolContractNegotiation | IDataspaceProtocolContractNegotiationError> {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "getNegotiation"
+			}
+		);
+	}
+
+	/**
+	 * Not supported on REST client — contract negotiation is in-process only.
+	 * @param state Unused.
+	 * @param cursor Unused.
+	 * @param trustPayload Unused.
+	 * @returns List of negotiation history entries with pagination cursor.
+	 */
+	public async getNegotiationHistory(
+		state: string | undefined,
+		cursor: string | undefined,
+		trustPayload: unknown
+	): Promise<{
+		negotiations: {
+			negotiation:
+				| IDataspaceProtocolContractNegotiation
+				| IDataspaceProtocolContractNegotiationError;
+			createdAt: string;
+			offerId?: string;
+			agreementId?: string;
+		}[];
+		cursor?: string;
+		count: number;
+	}> {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "getNegotiationHistory"
+			}
+		);
+	}
+
+	/**
+	 * Not supported on REST client — transfer callbacks are in-process only.
+	 * @param key Unused.
+	 * @param callback Unused.
+	 * @throws NotSupportedError as this method is not supported on the REST client.
+	 */
+	public registerTransferCallback(key: string, callback: ITransferCallback): void {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "registerTransferCallback"
+			}
+		);
+	}
+
+	/**
+	 * Not supported on REST client — transfer callbacks are in-process only.
+	 * @param key Unused.
+	 * @throws NotSupportedError as this method is not supported on the REST client.
+	 */
+	public unregisterTransferCallback(key: string): void {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "unregisterTransferCallback"
+			}
+		);
+	}
+
+	/**
+	 * Not supported on REST client — consumer-initiated transfers are in-process only.
+	 * @param agreementId Unused.
+	 * @param providerEndpoint Unused.
+	 * @param publicOrigin Unused.
+	 * @param format Unused.
+	 * @param trustPayload Unused.
+	 * @returns The consumerPid of the newly created TransferProcess.
+	 */
+	public async startDataTransfer(
+		agreementId: string,
+		providerEndpoint: string,
+		publicOrigin: string,
+		format: string,
+		trustPayload: unknown
+	): Promise<{ consumerPid: string }> {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "startDataTransfer"
+			}
+		);
 	}
 
 	/**
