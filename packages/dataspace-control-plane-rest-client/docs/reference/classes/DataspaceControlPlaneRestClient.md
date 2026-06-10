@@ -9,7 +9,7 @@ Implements Eclipse Dataspace Protocol (DSP) Transfer Process Protocol.
 
 ## Implements
 
-- `Omit`\<`IDataspaceControlPlaneComponent`, `"registerNegotiationCallback"` \| `"unregisterNegotiationCallback"` \| `"negotiateAgreement"` \| `"getNegotiation"` \| `"getNegotiationHistory"` \| `"registerTransferCallback"` \| `"unregisterTransferCallback"` \| `"startDataTransfer"`\>
+- `IDataspaceControlPlaneComponent`
 
 ## Constructors
 
@@ -59,7 +59,301 @@ The class name of the component.
 
 #### Implementation of
 
-`Omit.className`
+`IDataspaceControlPlaneComponent.className`
+
+***
+
+### registerNegotiationCallback() {#registernegotiationcallback}
+
+> **registerNegotiationCallback**(`key`, `callback`): `void`
+
+Not supported on REST client — negotiation callbacks are in-process only.
+
+#### Parameters
+
+##### key
+
+`string`
+
+Unused.
+
+##### callback
+
+`INegotiationCallback`
+
+Unused.
+
+#### Returns
+
+`void`
+
+#### Throws
+
+NotSupportedError as this method is not supported on the REST client.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.registerNegotiationCallback`
+
+***
+
+### unregisterNegotiationCallback() {#unregisternegotiationcallback}
+
+> **unregisterNegotiationCallback**(`key`): `void`
+
+Not supported on REST client — negotiation callbacks are in-process only.
+
+#### Parameters
+
+##### key
+
+`string`
+
+Unused.
+
+#### Returns
+
+`void`
+
+#### Throws
+
+NotSupportedError as this method is not supported on the REST client.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.unregisterNegotiationCallback`
+
+***
+
+### negotiateAgreement() {#negotiateagreement}
+
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+
+Not supported on REST client — contract negotiation is in-process only.
+
+#### Parameters
+
+##### datasetId
+
+`string`
+
+Unused.
+
+##### offerId
+
+`string`
+
+Unused.
+
+##### providerEndpoint
+
+`string`
+
+Unused.
+
+##### publicOrigin
+
+`string`
+
+Unused.
+
+##### trustPayload
+
+`unknown`
+
+Unused.
+
+#### Returns
+
+`Promise`\<\{ `negotiationId`: `string`; \}\>
+
+The negotiation ID for tracking.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.negotiateAgreement`
+
+***
+
+### getNegotiation() {#getnegotiation}
+
+> **getNegotiation**(`negotiationId`, `trustPayload`): `Promise`\<`IDataspaceProtocolContractNegotiation` \| `IDataspaceProtocolContractNegotiationError`\>
+
+Not supported on REST client — contract negotiation is in-process only.
+
+#### Parameters
+
+##### negotiationId
+
+`string`
+
+Unused.
+
+##### trustPayload
+
+`unknown`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`IDataspaceProtocolContractNegotiation` \| `IDataspaceProtocolContractNegotiationError`\>
+
+DSP ContractNegotiation with current state, or error.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.getNegotiation`
+
+***
+
+### getNegotiationHistory() {#getnegotiationhistory}
+
+> **getNegotiationHistory**(`state`, `cursor`, `trustPayload`): `Promise`\<\{ `negotiations`: `object`[]; `cursor?`: `string`; `count`: `number`; \}\>
+
+Not supported on REST client — contract negotiation is in-process only.
+
+#### Parameters
+
+##### state
+
+`string` \| `undefined`
+
+Unused.
+
+##### cursor
+
+`string` \| `undefined`
+
+Unused.
+
+##### trustPayload
+
+`unknown`
+
+Unused.
+
+#### Returns
+
+`Promise`\<\{ `negotiations`: `object`[]; `cursor?`: `string`; `count`: `number`; \}\>
+
+List of negotiation history entries with pagination cursor.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.getNegotiationHistory`
+
+***
+
+### registerTransferCallback() {#registertransfercallback}
+
+> **registerTransferCallback**(`key`, `callback`): `void`
+
+Not supported on REST client — transfer callbacks are in-process only.
+
+#### Parameters
+
+##### key
+
+`string`
+
+Unused.
+
+##### callback
+
+`ITransferCallback`
+
+Unused.
+
+#### Returns
+
+`void`
+
+#### Throws
+
+NotSupportedError as this method is not supported on the REST client.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.registerTransferCallback`
+
+***
+
+### unregisterTransferCallback() {#unregistertransfercallback}
+
+> **unregisterTransferCallback**(`key`): `void`
+
+Not supported on REST client — transfer callbacks are in-process only.
+
+#### Parameters
+
+##### key
+
+`string`
+
+Unused.
+
+#### Returns
+
+`void`
+
+#### Throws
+
+NotSupportedError as this method is not supported on the REST client.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.unregisterTransferCallback`
+
+***
+
+### startDataTransfer() {#startdatatransfer}
+
+> **startDataTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+
+Not supported on REST client — consumer-initiated transfers are in-process only.
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+Unused.
+
+##### providerEndpoint
+
+`string`
+
+Unused.
+
+##### publicOrigin
+
+`string`
+
+Unused.
+
+##### format
+
+`string`
+
+Unused.
+
+##### trustPayload
+
+`unknown`
+
+Unused.
+
+#### Returns
+
+`Promise`\<\{ `consumerPid`: `string`; \}\>
+
+The consumerPid of the newly created TransferProcess.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.startDataTransfer`
 
 ***
 
@@ -91,7 +385,7 @@ Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the o
 
 #### Implementation of
 
-`Omit.requestTransfer`
+`IDataspaceControlPlaneComponent.requestTransfer`
 
 ***
 
@@ -123,7 +417,7 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or T
 
 #### Implementation of
 
-`Omit.startTransfer`
+`IDataspaceControlPlaneComponent.startTransfer`
 
 ***
 
@@ -155,7 +449,7 @@ Transfer Process (DSP compliant) with state COMPLETED, or TransferError if the o
 
 #### Implementation of
 
-`Omit.completeTransfer`
+`IDataspaceControlPlaneComponent.completeTransfer`
 
 ***
 
@@ -187,7 +481,7 @@ Transfer Process (DSP compliant) with state SUSPENDED, or TransferError if the o
 
 #### Implementation of
 
-`Omit.suspendTransfer`
+`IDataspaceControlPlaneComponent.suspendTransfer`
 
 ***
 
@@ -219,7 +513,7 @@ Transfer Process (DSP compliant) with state TERMINATED, or TransferError if the 
 
 #### Implementation of
 
-`Omit.terminateTransfer`
+`IDataspaceControlPlaneComponent.terminateTransfer`
 
 ***
 
@@ -251,7 +545,7 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 #### Implementation of
 
-`Omit.getTransferProcess`
+`IDataspaceControlPlaneComponent.getTransferProcess`
 
 ***
 
@@ -290,7 +584,7 @@ The resolved dataset id (from the response Location header).
 
 #### Implementation of
 
-`Omit.createAppDataset`
+`IDataspaceControlPlaneComponent.createAppDataset`
 
 ***
 
@@ -316,7 +610,7 @@ The stored dataset record.
 
 #### Implementation of
 
-`Omit.getAppDataset`
+`IDataspaceControlPlaneComponent.getAppDataset`
 
 ***
 
@@ -348,7 +642,7 @@ The stored datasets and the next-page cursor if more exist.
 
 #### Implementation of
 
-`Omit.listAppDatasets`
+`IDataspaceControlPlaneComponent.listAppDatasets`
 
 ***
 
@@ -384,7 +678,7 @@ The dataset payload.
 
 #### Implementation of
 
-`Omit.updateAppDataset`
+`IDataspaceControlPlaneComponent.updateAppDataset`
 
 ***
 
@@ -408,4 +702,4 @@ The stored app dataset id.
 
 #### Implementation of
 
-`Omit.deleteAppDataset`
+`IDataspaceControlPlaneComponent.deleteAppDataset`
