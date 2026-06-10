@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.42](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.0.3-next.41...dataspace-test-app-v0.0.3-next.42) (2026-06-10)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.41 to 0.0.3-next.42
+
 ## [0.0.3-next.41](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.0.3-next.40...dataspace-test-app-v0.0.3-next.41) (2026-06-08)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.42](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.41...dataspace-models-v0.0.3-next.42) (2026-06-10)
+
+
+### Bug Fixes
+
+* throw not supported error for in-process only control plane methods ([#185](https://github.com/iotaledger/twin-dataspace/issues/185)) ([130f00a](https://github.com/iotaledger/twin-dataspace/commit/130f00a87412b34defde891855bee7aa3ac34130))
+
 ## [0.0.3-next.41](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.40...dataspace-models-v0.0.3-next.41) (2026-06-08)
 
 

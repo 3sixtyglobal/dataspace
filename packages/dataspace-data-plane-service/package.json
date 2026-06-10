@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-data-plane-service",
-	"version": "0.0.3-next.41",
+	"version": "0.0.3-next.42",
 	"description": "Processes activities and data requests while enforcing transfer and policy constraints in the data plane.",
 	"repository": {
 		"type": "git",
@@ -36,8 +36,8 @@
 		"@twin.org/crypto": "next",
 		"@twin.org/data-core": "next",
 		"@twin.org/data-json-ld": "next",
-		"@twin.org/dataspace-app-runner": "0.0.3-next.41",
-		"@twin.org/dataspace-models": "0.0.3-next.41",
+		"@twin.org/dataspace-app-runner": "0.0.3-next.42",
+		"@twin.org/dataspace-models": "0.0.3-next.42",
 		"@twin.org/engine-models": "next",
 		"@twin.org/entity": "next",
 		"@twin.org/entity-storage-models": "next",
@@ -56,7 +56,7 @@
 	"devDependencies": {
 		"@twin.org/background-task-service": "next",
 		"@twin.org/background-task-scheduler": "next",
-		"@twin.org/dataspace-test-app": "0.0.3-next.41",
+		"@twin.org/dataspace-test-app": "0.0.3-next.42",
 		"@twin.org/context": "next",
 		"@twin.org/federated-catalogue-service": "next",
 		"@twin.org/modules": "next",

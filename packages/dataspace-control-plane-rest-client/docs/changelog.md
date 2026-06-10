@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.42](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.41...dataspace-control-plane-rest-client-v0.0.3-next.42) (2026-06-10)
+
+
+### Bug Fixes
+
+* throw not supported error for in-process only control plane methods ([#185](https://github.com/iotaledger/twin-dataspace/issues/185)) ([130f00a](https://github.com/iotaledger/twin-dataspace/commit/130f00a87412b34defde891855bee7aa3ac34130))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.41 to 0.0.3-next.42
+
 ## [0.0.3-next.41](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.40...dataspace-control-plane-rest-client-v0.0.3-next.41) (2026-06-08)
 
 
