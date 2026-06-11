@@ -38,7 +38,7 @@ A query that describes the set of activities handled by the App.
 
 ### datasetsHandled()? {#datasetshandled}
 
-> `optional` **datasetsHandled**(`payload`, `tenantId`): `Promise`\<`IDataspaceProtocolDataset`[]\>
+> `optional` **datasetsHandled**(`payload`): `Promise`\<`IDataspaceProtocolDataset`[]\>
 
 Optional override called by the Control Plane when publishing a stored dataset for this app.
 The Control Plane always calls `populateDefaults` (e.g. `dcterms:publisher`)
@@ -51,13 +51,6 @@ on every dataset returned here, so apps don't need to populate publisher themsel
 `IDataspaceProtocolDataset`
 
 The user-stored dataset payload.
-
-##### tenantId
-
-`string`
-
-The owning tenant for this dataset. Empty string on
-single-tenant nodes (no `TWIN_TENANT_ENABLED`).
 
 #### Returns
 

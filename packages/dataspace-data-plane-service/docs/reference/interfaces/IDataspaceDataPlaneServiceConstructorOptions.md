@@ -10,12 +10,6 @@ Dataspace Data Plane service options
 
 Logging component type.
 
-#### Default
-
-```ts
-logging
-```
-
 ***
 
 ### backgroundTaskComponentType? {#backgroundtaskcomponenttype}
@@ -117,14 +111,6 @@ dataspace-app-dataset
 
 ***
 
-### partitionContextIds? {#partitioncontextids}
-
-> `optional` **partitionContextIds?**: `string`[]
-
-The keys to use from the context ids to cleanup partitions.
-
-***
-
 ### trustComponentType? {#trustcomponenttype}
 
 > `optional` **trustComponentType?**: `string`
@@ -153,30 +139,16 @@ policy-enforcement-point-service
 
 ***
 
-### tenantComponentType? {#tenantcomponenttype}
+### platformComponentType? {#platformcomponenttype}
 
-> `optional` **tenantComponentType?**: `string`
+> `optional` **platformComponentType?**: `string`
 
-Tenant component type.
-
-#### Default
-
-```ts
-tenant
-```
-
-***
-
-### urlTransformerComponentType? {#urltransformercomponenttype}
-
-> `optional` **urlTransformerComponentType?**: `string`
-
-URL Transformer component type used to encrypt the tenant token into the data-plane.
+Platform component type.
 
 #### Default
 
 ```ts
-url-transformer
+platform
 ```
 
 ***

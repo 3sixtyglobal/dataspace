@@ -103,13 +103,12 @@ URI where messages to the Consumer should be sent.
 
 ***
 
-### tenantId? {#tenantid}
+### organizationIdentity {#organizationidentity}
 
-> `optional` **tenantId?**: `string`
+> **organizationIdentity**: `string`
 
-The tenant that owns this transfer process, captured at write time so async
-delivery tasks and delayed state transitions can re-enter the right tenant context.
-Optional — single-tenant nodes operate without a tenant context.
+The organization that owns this transfer process, captured at write time so async
+delivery tasks and delayed state transitions can re-enter the right organization context.
 
 ***
 

@@ -71,12 +71,6 @@ federated-catalogue
 
 Logging component type.
 
-#### Default
-
-```ts
-logging
-```
-
 ***
 
 ### identityComponentType? {#identitycomponenttype}
@@ -180,20 +174,6 @@ dataspace-data-plane
 
 ***
 
-### urlTransformerComponentType? {#urltransformercomponenttype}
-
-> `optional` **urlTransformerComponentType?**: `string`
-
-URL Transformer component type used to encrypt the tenant token into the data-plane.
-
-#### Default
-
-```ts
-url-transformer
-```
-
-***
-
 ### remoteControlPlaneComponentType? {#remotecontrolplanecomponenttype}
 
 > `optional` **remoteControlPlaneComponentType?**: `string`
@@ -205,6 +185,20 @@ Created dynamically via ComponentFactory.create() with the provider endpoint as 
 
 ```ts
 dataspace-control-plane-rest-client
+```
+
+***
+
+### platformComponentType? {#platformcomponenttype}
+
+> `optional` **platformComponentType?**: `string`
+
+Platform component type, used to retrieve public origin for constructing data plane URLs.
+
+#### Default
+
+```ts
+platform
 ```
 
 ***

@@ -10,12 +10,6 @@ Test App Constructor options.
 
 Logging component type.
 
-#### Default
-
-```ts
-logging
-```
-
 ***
 
 ### consignments? {#consignments}

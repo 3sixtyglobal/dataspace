@@ -173,10 +173,6 @@ The key used when registering the callback.
 > **start**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
 
 The service needs to be started when the application is initialized.
-Populates the Federated Catalogue with datasets from registered apps
-and starts the stalled negotiation cleanup task. Also captures the node
-identity from ContextIdStore when tenant-token encryption is configured
-(required to derive the vault key name `${nodeId}/${signingKeyName}`).
 
 #### Parameters
 
@@ -676,7 +672,7 @@ Transfer Context with Agreement, datasetId, and Transfer Process metadata.
 
 > **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>
 
-Register a dataset for a dataspace app, owned by the calling tenant.
+Register a dataset for a dataspace app, owned by the calling organization.
 
 #### Parameters
 
@@ -715,7 +711,7 @@ The resolved dataset id.
 
 > **getAppDataset**(`id`): `Promise`\<`IDataspaceAppDataset`\>
 
-Get a dataset record owned by the calling tenant.
+Get a dataset record owned by the calling organization.
 
 #### Parameters
 
@@ -741,7 +737,7 @@ The stored dataset record.
 
 > **listAppDatasets**(`cursor?`, `limit?`): `Promise`\<\{ `entities`: `IDataspaceAppDataset`[]; `cursor?`: `string`; \}\>
 
-List the dataspace app datasets owned by the calling tenant.
+List the dataspace app datasets owned by the calling organization.
 
 #### Parameters
 
@@ -773,7 +769,7 @@ The stored datasets and the next-page cursor if more exist.
 
 > **updateAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`void`\>
 
-Update a dataset record owned by the calling tenant.
+Update a dataset record owned by the calling organization.
 
 #### Parameters
 
@@ -809,7 +805,7 @@ The dataset payload.
 
 > **deleteAppDataset**(`id`): `Promise`\<`void`\>
 
-Delete a dataspace app dataset owned by the calling tenant.
+Delete a dataspace app dataset owned by the calling organization.
 
 #### Parameters
 

@@ -22,11 +22,11 @@ The unique identifier for the dataset.
 
 ***
 
-### nodeIdentity {#nodeidentity}
+### organizationIdentity {#organizationidentity}
 
-> **nodeIdentity**: `string`
+> **organizationIdentity**: `string`
 
-The identity of the node that owns this entity (required for sync).
+The identity of the organization that owns this entity.
 
 ***
 
@@ -36,8 +36,7 @@ The identity of the node that owns this entity (required for sync).
 
 The tenant that owns this dataset, captured from the request context at
 write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`)
-register datasets without a tenant context, in which case federated catalogue stores
-the dataset with no `tenantId` and URL-baking is skipped.
+register datasets without a tenant context.
 
 ***
 
