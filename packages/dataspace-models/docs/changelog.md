@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.43](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.42...dataspace-models-v0.0.3-next.43) (2026-06-11)
+
+
+### Features
+
+* organization identifiers ([#188](https://github.com/iotaledger/twin-dataspace/issues/188)) ([af643d3](https://github.com/iotaledger/twin-dataspace/commit/af643d3bb7f212d6cbb672e362a9e1bbe886d1a5))
+
 ## [0.0.3-next.42](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.41...dataspace-models-v0.0.3-next.42) (2026-06-10)
 
 
