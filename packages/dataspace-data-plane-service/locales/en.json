@@ -14,7 +14,7 @@
 			"transferNotInStartedState": "Transfer Process is not in STARTED state. Current state: \"{currentState}\"",
 			"transferMissingDatasetId": "Transfer Process is missing datasetId",
 			"transferMissingDataAddress": "Transfer Process is missing a valid push dataAddress endpoint (consumerPid: {consumerPid})",
-			"pushSubscriptionMissingTenantToken": "Push subscription setup rejected: consumer endpoint does not carry an `x-enc-tenant-token` query parameter (consumerPid: {consumerPid}, endpoint: {endpoint}). On multi-tenant publishers the consumer must bake its tenant token before sending the dataAddress.",
+			"pushSubscriptionMissingOrganizationId": "Push subscription setup rejected: consumer endpoint does not carry an `organization` query parameter (consumerPid: {consumerPid}, endpoint: {endpoint}). On multi-tenant publishers the consumer must bake its organization ID before sending the dataAddress.",
 			"pushSubscriptionStorageNotRegistered": "Push-mode transfer requires push-subscription storage to be registered (entity-storage key: \"push-subscription\"). This deployment was configured without it — register the storage to enable push, or use pull-mode transfers only.",
 			"schemaNotFound": "Schema \"{schemaId}\" not found",
 			"cleanupFailed": "Error occurred during cleanup of activity logs",

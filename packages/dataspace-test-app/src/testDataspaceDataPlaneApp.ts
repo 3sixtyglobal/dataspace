@@ -111,9 +111,7 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 	 * @param options The constructor options.
 	 */
 	constructor(options?: ITestAppConstructorOptions) {
-		this._logging = ComponentFactory.getIfExists<ILoggingComponent>(
-			options?.loggingComponentType ?? "logging"
-		);
+		this._logging = ComponentFactory.getIfExists<ILoggingComponent>(options?.loggingComponentType);
 		this._consignments = options?.consignments ?? DEFAULT_CONSIGNMENTS;
 	}
 

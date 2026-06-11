@@ -108,16 +108,6 @@ export class TestJwtVerifier implements ITrustVerifier {
 			// ✅ MUTATE the info parameter (this is the correct ITrustVerifier pattern!)
 			info.identity = identity;
 
-			// Extract optional multi-tenancy claims embedded by TestJwtGenerator
-			const tid = jwtPayload.tid as string | undefined;
-			if (tid) {
-				info.tenantId = tid;
-			}
-			const org = jwtPayload.org as string | undefined;
-			if (org) {
-				info.organizationId = org;
-			}
-
 			// ✅ Return true (boolean, not an object!)
 			return true;
 		} catch (error) {

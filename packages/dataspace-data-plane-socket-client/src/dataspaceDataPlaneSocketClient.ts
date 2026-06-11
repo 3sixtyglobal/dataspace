@@ -80,7 +80,7 @@ export class DataspaceDataPlaneSocketClient
 			subscriberCallbacks: {}
 		};
 
-		this._logging = ComponentFactory.getIfExists(options?.loggingComponentType ?? "logging");
+		this._logging = ComponentFactory.getIfExists(options?.loggingComponentType);
 
 		super.onEvent<IHttpResponse<IActivityLogStatusNotification>>("publish", async data =>
 			this.incomingPublishActivityLog(data)

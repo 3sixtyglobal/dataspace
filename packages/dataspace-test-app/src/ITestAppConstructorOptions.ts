@@ -8,7 +8,6 @@ import type { IJsonLdDocument } from "@twin.org/data-json-ld";
 export interface ITestAppConstructorOptions {
 	/**
 	 * Logging component type.
-	 * @default logging
 	 */
 	loggingComponentType?: string;
 

@@ -31,15 +31,10 @@ export interface IDataspaceApp extends IComponent {
 	 * The Control Plane always calls `populateDefaults` (e.g. `dcterms:publisher`)
 	 * on every dataset returned here, so apps don't need to populate publisher themselves.
 	 * @param payload The user-stored dataset payload.
-	 * @param tenantId The owning tenant for this dataset. Empty string on
-	 * single-tenant nodes (no `TWIN_TENANT_ENABLED`).
 	 * @returns One or more datasets to publish to the catalogue. System-stamped
 	 * fields like `dcterms:publisher` may be omitted — the Control Plane fills them in.
 	 */
-	datasetsHandled?(
-		payload: IDataspaceProtocolDataset,
-		tenantId: string
-	): Promise<IDataspaceProtocolDataset[]>;
+	datasetsHandled?(payload: IDataspaceProtocolDataset): Promise<IDataspaceProtocolDataset[]>;
 
 	/**
 	 * The types of queries supported.

@@ -1,5 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import type { IPlatformComponent } from "@twin.org/api-models";
+import { ContextIdStore } from "@twin.org/context";
 import { Converter, ComponentFactory, I18n } from "@twin.org/core";
 import {
 	DataspaceAppDataset,
@@ -20,10 +22,6 @@ import locales from "../locales/en.json" with { type: "json" };
  * Creates a mock trust component for testing.
  * The mock passes through the trustPayload as the token (simulating a verified Bearer token).
  * The generate method creates a mock JWT token for testing token generation flows.
- *
- * TODO: Consider using real TrustService from @twin.org/trust-service for integration tests.
- * This would require setting up verifiers (e.g., JwtVerifiableCredentialVerifier) and identity infrastructure.
- *
  * @param identity The identity to return from the trust component.
  * @returns A mock ITrustComponent for testing.
  */
@@ -93,7 +91,6 @@ export const DEFAULT_SERVICE_OPTIONS = {
 	trustComponentType: "test-trust",
 	transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
 	dataspaceAppDatasetEntityStorageType: nameofKebabCase<DataspaceAppDataset>(),
-	urlTransformerComponentType: "test-url-transformer",
 	config: {
 		dataPlanePath: "data-plane/data"
 	}
@@ -145,6 +142,10 @@ export async function setupTestEnv(): Promise<void> {
 		EntitySchemaHelper.getSchema(DataspaceAppDataset)
 	);
 
+	// Register a default single-tenant platform component. Tests that need
+	// multi-tenant behaviour register their own under a separate key.
+	ComponentFactory.register("platform", () => createSingleTenantPlatformComponent());
+
 	// Register a default mock data plane component so all test suites can construct
 	// DataspaceControlPlaneService without specifying dataPlaneComponentType.
 	ComponentFactory.register("dataspace-data-plane-service", () =>
@@ -170,4 +171,43 @@ export function createMockEngineCore(isClone: boolean = false): IEngineCore {
 		className: () => "MockEngineCore",
 		isClone: () => isClone
 	} as unknown as IEngineCore;
+}
+
+/**
+ * Creates a single-tenant platform component mock.
+ * execute() runs the callback once in the current context.
+ * @returns A mock IPlatformComponent for single-tenant mode.
+ */
+export function createSingleTenantPlatformComponent(): IPlatformComponent {
+	return {
+		className: () => "MockSingleTenantPlatformComponent",
+		isMultiTenant: () => false,
+		execute: async (method: () => Promise<void>) => {
+			await method();
+		}
+	};
+}
+
+/**
+ * Creates a multi-tenant platform component mock.
+ * execute() iterates the given tenant identities, injecting each as
+ * ContextIdKeys.Tenant into the async context before invoking the callback.
+ * This mirrors the production behaviour where the tenant component iterates
+ * every registered tenant and wraps execution in its context.
+ * @param tenants Array of tenant context objects to iterate.
+ * @returns A mock IPlatformComponent for multi-tenant mode.
+ */
+export function createMultiTenantPlatformComponent(
+	tenants: { [key: string]: string }[]
+): IPlatformComponent {
+	return {
+		className: () => "MockMultiTenantPlatformComponent",
+		isMultiTenant: () => true,
+		execute: async (method: () => Promise<void>) => {
+			const baseContextIds = (await ContextIdStore.getContextIds()) ?? {};
+			for (const tenantContextIds of tenants) {
+				await ContextIdStore.run({ ...baseContextIds, ...tenantContextIds }, method);
+			}
+		}
+	};
 }

@@ -28,12 +28,7 @@ export class TestJwtGenerator implements ITrustGenerator {
 		return TestJwtGenerator.CLASS_NAME;
 	}
 
-	public async generate(
-		identity: string,
-		info?: { [key: string]: unknown },
-		tenantIdHash?: string,
-		organizationId?: string
-	): Promise<unknown> {
+	public async generate(identity: string, info?: { [key: string]: unknown }): Promise<unknown> {
 		const now = Math.floor(Date.now() / 1000);
 		const payload: { [key: string]: unknown } = {
 			sub: identity,
@@ -42,9 +37,6 @@ export class TestJwtGenerator implements ITrustGenerator {
 			iss: "test-generator",
 			...info
 		};
-		if (tenantIdHash) {
-			payload.tid = tenantIdHash;
-		}
 		return Jwt.encode({ alg: "HS256", typ: "JWT" }, payload, TEST_JWT_KEY);
 	}
 }

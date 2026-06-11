@@ -14,16 +14,15 @@ export class DataspaceAppDataset {
 	public id!: string;
 
 	/**
-	 * The identity of the node that owns this entity (required for sync).
+	 * The identity of the organization that owns this entity.
 	 */
 	@property({ type: "string", isSecondary: true })
-	public nodeIdentity!: string;
+	public organizationIdentity!: string;
 
 	/**
 	 * The tenant that owns this dataset, captured from the request context at
 	 * write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`)
-	 * register datasets without a tenant context, in which case federated catalogue stores
-	 * the dataset with no `tenantId` and URL-baking is skipped.
+	 * register datasets without a tenant context.
 	 */
 	@property({ type: "string", optional: true })
 	public tenantId?: string;

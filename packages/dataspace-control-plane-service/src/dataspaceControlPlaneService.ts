@@ -1,8 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IUrlTransformerComponent } from "@twin.org/api-models";
+import { HttpUrlHelper, type IPlatformComponent } from "@twin.org/api-models";
 import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
+import { ContextIdKeys, ContextIdStore, ContextIdHelper } from "@twin.org/context";
 import {
 	ArrayHelper,
 	AlreadyExistsError,
@@ -78,11 +78,7 @@ import {
 	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
-import {
-	TrustHelper,
-	type ITrustComponent,
-	type ITrustVerificationInfo
-} from "@twin.org/trust-models";
+import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import { DataspaceControlPlanePolicyRequester } from "./dataspaceControlPlanePolicyRequester.js";
 import { EndpointProperties } from "./models/endpointProperties.js";
 import type { IDataspaceControlPlaneServiceConstructorOptions } from "./models/IDataspaceControlPlaneServiceConstructorOptions.js";
@@ -120,15 +116,6 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private static readonly _STALLED_NEGOTIATION_THRESHOLD_MS = 30 * 60 * 1000;
-
-	/**
-	 * Matches the base64url encoding of a BLAKE2b-256 hash (32 bytes → 43 base64url
-	 * chars, no padding). Used to discriminate the tenant-hash portion of a
-	 * composite tenant identifier from a bare IOTA DID, whose `<id>` segment is
-	 * always `0x<64-hex>` (66 chars) and cannot match.
-	 * @internal
-	 */
-	private static readonly _TENANT_HASH_PATTERN = /^[\w-]{43}$/;
 
 	/**
 	 * The logging component.
@@ -170,7 +157,7 @@ export class DataspaceControlPlaneService
 	private readonly _transferProcessStorage: IEntityStorageConnector<TransferProcess>;
 
 	/**
-	 * Entity storage for tenant-supplied Dataspace App Dataset entities.
+	 * Entity storage for Dataspace App Dataset entities.
 	 * @internal
 	 */
 	private readonly _dataspaceAppDatasetStorage: IEntityStorageConnector<DataspaceAppDataset>;
@@ -215,6 +202,12 @@ export class DataspaceControlPlaneService
 	private readonly _taskScheduler?: ITaskSchedulerComponent;
 
 	/**
+	 * Platform component.
+	 * @internal
+	 */
+	private readonly _platformComponent?: IPlatformComponent;
+
+	/**
 	 * Registered negotiation callbacks from upstream callers, keyed by registration key.
 	 * @internal
 	 */
@@ -240,18 +233,12 @@ export class DataspaceControlPlaneService
 	private readonly _remoteControlPlaneComponentType: string;
 
 	/**
-	 * The component type name for the hosting component.
-	 * @internal
-	 */
-	private readonly _urlTransformerComponent: IUrlTransformerComponent;
-
-	/**
 	 * Create a new instance of DataspaceControlPlaneService.
 	 * @param options The options for the service.
 	 */
 	constructor(options?: IDataspaceControlPlaneServiceConstructorOptions) {
 		this._loggingComponent = ComponentFactory.getIfExists<ILoggingComponent>(
-			options?.loggingComponentType ?? "logging"
+			options?.loggingComponentType
 		);
 
 		// Retrieve PAP component with default
@@ -300,6 +287,10 @@ export class DataspaceControlPlaneService
 			options?.taskSchedulerComponentType ?? "task-scheduler"
 		);
 
+		this._platformComponent = ComponentFactory.getIfExists<IPlatformComponent>(
+			options?.platformComponentType ?? "platform"
+		);
+
 		// Data plane component is optional and resolved lazily. The control plane is initialised
 		// BEFORE the data plane in engine startup order, so `getRegisteredInstanceTypeOptional`
 		// returns undefined when the engine constructs us — the wiring override can't fire here.
@@ -308,10 +299,6 @@ export class DataspaceControlPlaneService
 		// lookup at push time finds it regardless of init order.
 		this._dataPlaneComponentType =
 			options?.dataPlaneComponentType ?? "dataspace-data-plane-service";
-
-		this._urlTransformerComponent = ComponentFactory.get<IUrlTransformerComponent>(
-			options?.urlTransformerComponentType ?? "url-transformer"
-		);
 
 		this._negotiationCallbacks = new Map();
 		this._transferCallbacks = new Map();
@@ -322,7 +309,7 @@ export class DataspaceControlPlaneService
 		const internalCallback = this.createInternalCallback();
 
 		this._policyRequester = new DataspaceControlPlanePolicyRequester(
-			options?.loggingComponentType ?? "logging",
+			options?.loggingComponentType,
 			internalCallback
 		);
 
@@ -382,10 +369,6 @@ export class DataspaceControlPlaneService
 
 	/**
 	 * The service needs to be started when the application is initialized.
-	 * Populates the Federated Catalogue with datasets from registered apps
-	 * and starts the stalled negotiation cleanup task. Also captures the node
-	 * identity from ContextIdStore when tenant-token encryption is configured
-	 * (required to derive the vault key name `${nodeId}/${signingKeyName}`).
 	 * @param nodeLoggingComponentType The node logging component type.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
@@ -412,54 +395,57 @@ export class DataspaceControlPlaneService
 		let errorCount = 0;
 		let totalDatasets = 0;
 
-		// Walk stored dataspace app datasets one page at a time and publish each in its
-		// owning tenant's context. Memory stays bounded to one page.
-		let cursor: string | undefined;
-		do {
-			const page = await this._dataspaceAppDatasetStorage.query(
-				undefined,
-				undefined,
-				undefined,
-				cursor
-			);
-			if (Is.arrayValue(page.entities)) {
-				for (const entity of page.entities) {
-					const appDataset = entity as DataspaceAppDataset;
-					totalDatasets++;
-					try {
-						await this.publishAppDataset(appDataset);
-						registeredCount++;
+		// The platform component execute is used so that the dataset publication runs in the
+		// tenant context of the hosting component, also works in single tenant mode
+		await this._platformComponent?.execute(async () => {
+			// The tenant context id is set here for each system tenant
+			let cursor: string | undefined;
+			do {
+				const page = await this._dataspaceAppDatasetStorage.query(
+					undefined,
+					undefined,
+					undefined,
+					cursor
+				);
+				if (Is.arrayValue(page.entities)) {
+					for (const entity of page.entities) {
+						const appDataset = entity as DataspaceAppDataset;
+						totalDatasets++;
+						try {
+							await this.publishAppDataset(appDataset);
+							registeredCount++;
 
-						await this._loggingComponent?.log({
-							level: "debug",
-							ts: Date.now(),
-							source: DataspaceControlPlaneService.CLASS_NAME,
-							message: "datasetRegistered",
-							data: {
-								datasetId: appDataset.id,
-								appId: appDataset.appId,
-								tenantId: appDataset.tenantId
-							}
-						});
-					} catch (error) {
-						errorCount++;
-						await this._loggingComponent?.log({
-							level: "error",
-							ts: Date.now(),
-							source: DataspaceControlPlaneService.CLASS_NAME,
-							message: "datasetPublishFailed",
-							error: BaseError.fromError(error),
-							data: {
-								datasetId: appDataset.id,
-								appId: appDataset.appId,
-								tenantId: appDataset.tenantId
-							}
-						});
+							await this._loggingComponent?.log({
+								level: "debug",
+								ts: Date.now(),
+								source: DataspaceControlPlaneService.CLASS_NAME,
+								message: "datasetRegistered",
+								data: {
+									datasetId: appDataset.id,
+									appId: appDataset.appId,
+									tenantId: appDataset.tenantId
+								}
+							});
+						} catch (error) {
+							errorCount++;
+							await this._loggingComponent?.log({
+								level: "error",
+								ts: Date.now(),
+								source: DataspaceControlPlaneService.CLASS_NAME,
+								message: "datasetPublishFailed",
+								error: BaseError.fromError(error),
+								data: {
+									datasetId: appDataset.id,
+									appId: appDataset.appId,
+									tenantId: appDataset.tenantId
+								}
+							});
+						}
 					}
 				}
-			}
-			cursor = page.cursor;
-		} while (Is.stringValue(cursor));
+				cursor = page.cursor;
+			} while (Is.stringValue(cursor));
+		});
 
 		await this._loggingComponent?.log({
 			level: "info",
@@ -583,15 +569,14 @@ export class DataspaceControlPlaneService
 			const assigneeIdentity = OdrlPolicyHelper.extractAssigneeIdentity(agreement);
 			const assigneeIds = ArrayHelper.fromObjectOrArray<string>(assigneeIdentity);
 
-			// The agreement's assignee is stamped by the provider as the consumer's composite identity (`consumerNodeDid:hash(consumerTenantId)`).
-			const callerComposite = this.buildCallerComposite(trustInfo);
-			if (!assigneeIds.includes(callerComposite)) {
+			// The agreement's assignee is stamped by the provider as the consumer's organization identity.
+			if (!assigneeIds.includes(trustInfo.identity)) {
 				throw new UnauthorizedError(
 					DataspaceControlPlaneService.CLASS_NAME,
 					"callerNotAuthorizedForAgreement"
 				);
 			}
-			consumerIdentity = callerComposite;
+			consumerIdentity = trustInfo.identity;
 
 			const assignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
 			const assignerIds = ArrayHelper.fromObjectOrArray<string>(assignerIdentity);
@@ -613,8 +598,7 @@ export class DataspaceControlPlaneService
 		}
 
 		const now = new Date();
-		const requestContextIds = await ContextIdStore.getContextIds();
-		const requestTenantId = requestContextIds?.[ContextIdKeys.Tenant];
+		const organizationIdentity = await this.resolveContextOrganizationId();
 
 		const storageEntity: TransferProcess = {
 			id: Converter.bytesToHex(RandomHelper.generate(32)),
@@ -631,7 +615,7 @@ export class DataspaceControlPlaneService
 			policies,
 			callbackAddress: request.callbackAddress,
 			format: request.format,
-			tenantId: Is.stringValue(requestTenantId) ? requestTenantId : undefined,
+			organizationIdentity,
 			dataAddress: request.dataAddress,
 			dateCreated: now.toISOString(),
 			dateModified: now.toISOString()
@@ -722,8 +706,7 @@ export class DataspaceControlPlaneService
 
 		const assigneeIdentity = OdrlPolicyHelper.extractAssigneeIdentity(agreement);
 		const assigneeIds = ArrayHelper.fromObjectOrArray<string>(assigneeIdentity);
-		const callerComposite = this.buildCallerComposite(trustInfo);
-		if (!assigneeIds.includes(callerComposite)) {
+		if (!assigneeIds.includes(trustInfo.identity)) {
 			throw new UnauthorizedError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"callerNotAuthorizedForAgreement"
@@ -746,11 +729,7 @@ export class DataspaceControlPlaneService
 		const callbackAddress = StringHelper.trimTrailingSlashes(publicOrigin);
 
 		// Fetch context once and reuse across the PUSH dataAddress, trust token, and storage entity.
-		const contextIds = await ContextIdStore.getContextIds();
-		const nodeIdentity = contextIds?.[ContextIdKeys.Node];
-		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "nodeIdentity", nodeIdentity);
-		const tenantId = contextIds?.[ContextIdKeys.Tenant];
-		const organizationIdentity = contextIds?.[ContextIdKeys.Organization];
+		const organizationIdentity = await this.resolveContextOrganizationId();
 
 		const transferRequestMessage: IDataspaceProtocolTransferRequestMessage = {
 			"@context": [DataspaceProtocolContexts.Context],
@@ -773,11 +752,11 @@ export class DataspaceControlPlaneService
 				);
 			}
 			let inboxEndpoint = `${callbackAddress}/${this._dataPlanePath}/inbox`;
-			if (Is.stringValue(tenantId)) {
-				inboxEndpoint = await this._urlTransformerComponent.addEncryptedQueryParamToUrl(
+			if (Is.stringValue(organizationIdentity)) {
+				inboxEndpoint = HttpUrlHelper.addQueryStringParam(
 					inboxEndpoint,
-					"tenant",
-					tenantId
+					ContextIdKeys.Organization,
+					organizationIdentity
 				);
 			}
 			transferRequestMessage.dataAddress = {
@@ -789,11 +768,9 @@ export class DataspaceControlPlaneService
 
 		// Generate outbound trust token to authenticate this node to the provider.
 		const outboundToken = await this._trustComponent.generate(
-			nodeIdentity,
+			organizationIdentity,
 			this._overrideTrustGeneratorType,
-			{ subject: { consumerPid, agreementId } },
-			Is.stringValue(tenantId) ? TrustHelper.hashTenantId(tenantId) : undefined,
-			organizationIdentity
+			{ subject: { consumerPid, agreementId } }
 		);
 
 		// Create a remote REST client pointed at the provider endpoint and call requestTransfer.
@@ -836,14 +813,14 @@ export class DataspaceControlPlaneService
 			state: DataspaceProtocolTransferProcessStateType.REQUESTED,
 			agreementId,
 			datasetId,
-			consumerIdentity: callerComposite,
+			consumerIdentity: trustInfo.identity,
 			providerIdentity,
 			offerId: agreementId,
 			policies: [agreement],
 			callbackAddress,
 			format,
 			dataAddress: transferRequestMessage.dataAddress,
-			tenantId: Is.stringValue(tenantId) ? tenantId : undefined,
+			organizationIdentity,
 			dateCreated: now.toISOString(),
 			dateModified: now.toISOString()
 		};
@@ -919,17 +896,20 @@ export class DataspaceControlPlaneService
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
 
-			this.validateCallerIsProvider(this.buildCallerComposite(trustInfo), entity);
+			if (trustInfo.identity !== entity.providerIdentity) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"callerNotAuthorizedAsProvider"
+				);
+			}
 
-			// Only the tenant that owns this transfer can mutate it.
-			// Skipped on single-tenant nodes (entity.tenantId undefined).
-			const callingTenantId = await this.resolveCallingTenantId();
-			if (
-				Is.stringValue(entity.tenantId) &&
-				Is.stringValue(callingTenantId) &&
-				entity.tenantId !== callingTenantId
-			) {
-				throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "transferWrongTenant");
+			// Only the organization that owns this transfer can mutate it.
+			const callingOrganizationIdentity = await this.resolveContextOrganizationId();
+			if (entity.organizationIdentity !== callingOrganizationIdentity) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"transferWrongOrganization"
+				);
 			}
 
 			if (
@@ -1000,10 +980,9 @@ export class DataspaceControlPlaneService
 						"providerIdentityMissing"
 					);
 				}
-				// providerIdentity is a composite `nodeDid:hash(tenantId)`
-				const pushProviderId = this.parseTenantIdentifier(entity.providerIdentity);
+				const pushProviderId = entity.providerIdentity;
 				const accessToken = await this._trustComponent.generate(
-					pushProviderId.nodeDid,
+					pushProviderId,
 					this._overrideTrustGeneratorType,
 					{
 						subject: {
@@ -1012,26 +991,22 @@ export class DataspaceControlPlaneService
 							agreementId: entity.agreementId,
 							datasetId: entity.datasetId
 						}
-					},
-					pushProviderId.tenantIdHash
+					}
 				);
 
 				Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "accessToken", accessToken);
 				const tokenString = accessToken;
 				let fullEndpoint = `${publicOrigin}/${this._dataPlanePath}/inbox`;
 
-				// Bake the provider's tenant token into the /inbox URL so the consumer's
-				// inbound POST routes to the right tenant via TenantProcessor — mirrors the
+				// Bake the provider's organization identity into the /inbox URL so the consumer's
+				// inbound POST routes to the right organization via TenantProcessor — mirrors the
 				// pull-mode endpoint baking below.
-				const inboxContextIds1 = await ContextIdStore.getContextIds();
-				const inboxTenantId1 = inboxContextIds1?.[ContextIdKeys.Tenant];
-				if (Is.stringValue(inboxTenantId1)) {
-					fullEndpoint = await this._urlTransformerComponent.addEncryptedQueryParamToUrl(
-						fullEndpoint,
-						"tenant",
-						inboxTenantId1
-					);
-				}
+				const organizationIdentity = await this.resolveContextOrganizationId();
+				fullEndpoint = HttpUrlHelper.addQueryStringParam(
+					fullEndpoint,
+					ContextIdKeys.Organization,
+					organizationIdentity
+				);
 
 				response.dataAddress = {
 					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
@@ -1076,18 +1051,16 @@ export class DataspaceControlPlaneService
 
 				// Provider signs the data access token with its own identity.
 				// The subject contains the transfer context claims that the data plane
-				// will verify when the consumer presents this token. Parse
-				// the composite providerIdentity to extract the signing nodeDid and
-				// the tenant-hash to embed as `tid`.
+				// will verify when the consumer presents this token
 				if (!Is.stringValue(entity.providerIdentity)) {
 					throw new GeneralError(
 						DataspaceControlPlaneService.CLASS_NAME,
 						"providerIdentityMissing"
 					);
 				}
-				const pullProviderId = this.parseTenantIdentifier(entity.providerIdentity);
+				const pullProviderId = entity.providerIdentity;
 				const accessToken = await this._trustComponent.generate(
-					pullProviderId.nodeDid,
+					pullProviderId,
 					this._overrideTrustGeneratorType,
 					{
 						subject: {
@@ -1096,24 +1069,19 @@ export class DataspaceControlPlaneService
 							agreementId: entity.agreementId,
 							datasetId: entity.datasetId
 						}
-					},
-					pullProviderId.tenantIdHash
+					}
 				);
 
 				Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "accessToken", accessToken);
 				const tokenString = accessToken;
 				let fullEndpoint = `${publicOrigin}/${this._dataPlanePath}`;
 
-				const contextIds = await ContextIdStore.getContextIds();
-				const tenantId = contextIds?.[ContextIdKeys.Tenant];
-
-				if (Is.stringValue(tenantId)) {
-					fullEndpoint = await this._urlTransformerComponent.addEncryptedQueryParamToUrl(
-						fullEndpoint,
-						"tenant",
-						tenantId
-					);
-				}
+				const organizationIdentity = await this.resolveContextOrganizationId();
+				fullEndpoint = HttpUrlHelper.addQueryStringParam(
+					fullEndpoint,
+					ContextIdKeys.Organization,
+					organizationIdentity
+				);
 
 				response.dataAddress = {
 					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
@@ -1174,18 +1142,15 @@ export class DataspaceControlPlaneService
 
 				let fullEndpoint = `${publicOrigin}/${this._dataPlanePath}/inbox`;
 
-				// Bake the provider's tenant token into the /inbox URL so the consumer's
-				// inbound POST routes to the right tenant via TenantProcessor — mirrors the
+				// Bake the provider's organization identity into the /inbox URL so the consumer's
+				// inbound POST routes to the right organization via TenantProcessor — mirrors the
 				// pull-mode endpoint baking.
-				const inboxContextIds2 = await ContextIdStore.getContextIds();
-				const inboxTenantId2 = inboxContextIds2?.[ContextIdKeys.Tenant];
-				if (Is.stringValue(inboxTenantId2)) {
-					fullEndpoint = await this._urlTransformerComponent.addEncryptedQueryParamToUrl(
-						fullEndpoint,
-						"tenant",
-						inboxTenantId2
-					);
-				}
+				const organizationIdentity = await this.resolveContextOrganizationId();
+				fullEndpoint = HttpUrlHelper.addQueryStringParam(
+					fullEndpoint,
+					ContextIdKeys.Organization,
+					organizationIdentity
+				);
 
 				response.dataAddress = {
 					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
@@ -1305,17 +1270,20 @@ export class DataspaceControlPlaneService
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
 
-			this.validateCallerIsConsumer(this.buildCallerComposite(trustInfo), entity);
+			if (trustInfo.identity !== entity.consumerIdentity) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"callerNotAuthorizedAsConsumer"
+				);
+			}
 
-			// Only the tenant that owns this transfer can mutate it.
-			// Skipped on single-tenant nodes (entity.tenantId undefined).
-			const callingTenantId = await this.resolveCallingTenantId();
-			if (
-				Is.stringValue(entity.tenantId) &&
-				Is.stringValue(callingTenantId) &&
-				entity.tenantId !== callingTenantId
-			) {
-				throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "transferWrongTenant");
+			// Only the organization that owns this transfer can mutate it.
+			const callingOrganizationId = await this.resolveContextOrganizationId();
+			if (entity.organizationIdentity !== callingOrganizationId) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"transferWrongOrganization"
+				);
 			}
 
 			// DSP idempotency: re-receiving TransferCompletionMessage for a transfer already
@@ -1436,17 +1404,23 @@ export class DataspaceControlPlaneService
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
 
-			this.validateCallerIsTransferParty(this.buildCallerComposite(trustInfo), entity);
-
-			// S2 belt-and-braces: only the tenant that owns this transfer can mutate it.
-			// Skipped on single-tenant nodes (entity.tenantId undefined).
-			const callingTenantId = await this.resolveCallingTenantId();
 			if (
-				Is.stringValue(entity.tenantId) &&
-				Is.stringValue(callingTenantId) &&
-				entity.tenantId !== callingTenantId
+				trustInfo.identity !== entity.consumerIdentity &&
+				trustInfo.identity !== entity.providerIdentity
 			) {
-				throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "transferWrongTenant");
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"callerNotAuthorizedForTransfer"
+				);
+			}
+
+			// S2 belt-and-braces: only the organization that owns this transfer can mutate it.
+			const callingOrganizationId = await this.resolveContextOrganizationId();
+			if (entity.organizationIdentity !== callingOrganizationId) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"transferWrongOrganization"
+				);
 			}
 
 			// DSP idempotency: re-receiving TransferSuspensionMessage for a transfer already
@@ -1571,17 +1545,23 @@ export class DataspaceControlPlaneService
 		try {
 			const { entity, role } = await this.lookupTransferByMessage(message);
 
-			this.validateCallerIsTransferParty(this.buildCallerComposite(trustInfo), entity);
-
-			// Only the tenant that owns this transfer can mutate it.
-			// Skipped on single-tenant nodes (entity.tenantId undefined).
-			const callingTenantId = await this.resolveCallingTenantId();
 			if (
-				Is.stringValue(entity.tenantId) &&
-				Is.stringValue(callingTenantId) &&
-				entity.tenantId !== callingTenantId
+				trustInfo.identity !== entity.consumerIdentity &&
+				trustInfo.identity !== entity.providerIdentity
 			) {
-				throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "transferWrongTenant");
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"callerNotAuthorizedForTransfer"
+				);
+			}
+
+			// Only the organization that owns this transfer can mutate it.
+			const organizationIdentity = await this.resolveContextOrganizationId();
+			if (entity.organizationIdentity !== organizationIdentity) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"transferWrongOrganization"
+				);
 			}
 
 			// DSP idempotency: re-receiving TransferTerminationMessage for a transfer already
@@ -1673,7 +1653,15 @@ export class DataspaceControlPlaneService
 		try {
 			const { entity, role } = await this.lookupTransferByPid(pid);
 
-			this.validateCallerIsTransferParty(this.buildCallerComposite(trustInfo), entity);
+			if (
+				trustInfo.identity !== entity.consumerIdentity &&
+				trustInfo.identity !== entity.providerIdentity
+			) {
+				throw new UnauthorizedError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"callerNotAuthorizedForTransfer"
+				);
+			}
 
 			await this._loggingComponent?.log({
 				level: "info",
@@ -1751,7 +1739,13 @@ export class DataspaceControlPlaneService
 			}
 		});
 
-		const localTrustPayload = await this.generateLocalTrustPayload();
+		const organizationId = await this.resolveContextOrganizationId();
+
+		const localTrustPayload = await this._trustComponent.generate(
+			organizationId,
+			this._overrideTrustGeneratorType,
+			{}
+		);
 		const catalogResult = await this._federatedCatalogueComponent.get(datasetId, localTrustPayload);
 
 		if (isCatalogError(catalogResult)) {
@@ -2019,36 +2013,19 @@ export class DataspaceControlPlaneService
 
 		const agreement = await this.lookupAgreement(entity.agreementId);
 
-		const contextIds = await ContextIdStore.getContextIds();
-		const currentComposite = this.buildTenantIdentifier(
-			contextIds?.[ContextIdKeys.Node],
-			contextIds?.[ContextIdKeys.Tenant]
-		);
-
-		// Identity is `nodeDid:hash(tenantId)` (or just `nodeDid` in
-		// single-tenant). Without a node DID in context we cannot derive any
-		// caller identity at all.
-		if (!Is.stringValue(currentComposite)) {
-			throw new UnauthorizedError(
-				DataspaceControlPlaneService.CLASS_NAME,
-				"organizationContextMissing",
-				{
-					consumerPid
-				}
-			);
-		}
+		const organizationIdentity = await this.resolveContextOrganizationId();
 
 		const assignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
 		const assignerIds = ArrayHelper.fromObjectOrArray<string>(assignerIdentity);
 
-		if (!assignerIds.includes(currentComposite)) {
+		if (!assignerIds.includes(organizationIdentity)) {
 			throw new UnauthorizedError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"agreementAssignerMismatch",
 				{
 					consumerPid,
 					agreementId: OdrlPolicyHelper.getUid(agreement),
-					expectedComposite: currentComposite,
+					organizationIdentity,
 					actualAssigner: assignerIds.join(", ")
 				}
 			);
@@ -2065,7 +2042,7 @@ export class DataspaceControlPlaneService
 				state: entity.state,
 				consumerIdentity: entity.consumerIdentity,
 				agreementId: OdrlPolicyHelper.getUid(agreement),
-				organizationId: contextIds?.[ContextIdKeys.Organization]
+				organizationId: organizationIdentity
 			}
 		});
 
@@ -2110,33 +2087,19 @@ export class DataspaceControlPlaneService
 
 		const agreement = await this.lookupAgreement(entity.agreementId);
 
-		const contextIds = await ContextIdStore.getContextIds();
-		const currentComposite = this.buildTenantIdentifier(
-			contextIds?.[ContextIdKeys.Node],
-			contextIds?.[ContextIdKeys.Tenant]
-		);
-
-		if (!Is.stringValue(currentComposite)) {
-			throw new UnauthorizedError(
-				DataspaceControlPlaneService.CLASS_NAME,
-				"organizationContextMissingProvider",
-				{
-					providerPid
-				}
-			);
-		}
+		const organizationIdentity = await this.resolveContextOrganizationId();
 
 		const assignerIdentity = OdrlPolicyHelper.extractAssignerIdentity(agreement);
 		const assignerIds = ArrayHelper.fromObjectOrArray<string>(assignerIdentity);
 
-		if (!assignerIds.includes(currentComposite)) {
+		if (!assignerIds.includes(organizationIdentity)) {
 			throw new UnauthorizedError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"agreementAssignerMismatchProvider",
 				{
 					providerPid,
 					agreementId: OdrlPolicyHelper.getUid(agreement),
-					expectedComposite: currentComposite,
+					organizationIdentity,
 					actualAssigner: assignerIds.join(", ")
 				}
 			);
@@ -2176,7 +2139,7 @@ export class DataspaceControlPlaneService
 				consumerIdentity: entity.consumerIdentity,
 				providerIdentity: entity.providerIdentity,
 				agreementId: OdrlPolicyHelper.getUid(agreement),
-				organizationId: contextIds?.[ContextIdKeys.Organization]
+				organizationId: organizationIdentity
 			}
 		});
 
@@ -2194,7 +2157,7 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Register a dataset for a dataspace app, owned by the calling tenant.
+	 * Register a dataset for a dataspace app, owned by the calling organization.
 	 * @param id Optional explicit id. If omitted, derived from `dataset["@id"]`
 	 * or generated.
 	 * @param appId The dataspace app this dataset belongs to.
@@ -2229,9 +2192,7 @@ export class DataspaceControlPlaneService
 			});
 		}
 
-		const tenantId = await this.resolveCallingTenantId();
-		const nodeIdentity = await this.resolveNodeIdentity();
-
+		const organizationIdentity = await this.resolveContextOrganizationId();
 		const existing = await this._dataspaceAppDatasetStorage.get(resolvedId);
 		if (!Is.empty(existing)) {
 			throw new AlreadyExistsError(
@@ -2244,8 +2205,9 @@ export class DataspaceControlPlaneService
 		const now = new Date().toISOString();
 		const entity: DataspaceAppDataset = {
 			id: resolvedId,
-			nodeIdentity,
-			tenantId,
+			organizationIdentity,
+			// Required for out of bound dataset operations that need to correlate back to the owning tenant
+			tenantId: await this.resolveContextTenantId(),
 			appId,
 			dataset: ObjectHelper.omit(dataset, ["@id"]),
 			dateCreated: now,
@@ -2260,20 +2222,23 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Get a dataset record owned by the calling tenant.
+	 * Get a dataset record owned by the calling organization.
 	 * @param id The stored dataset id.
 	 * @returns The stored dataset record.
 	 */
 	public async getAppDataset(id: string): Promise<IDataspaceAppDataset> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
 
-		const tenantId = await this.resolveCallingTenantId();
+		const organizationId = await this.resolveContextOrganizationId();
 		const entity = await this._dataspaceAppDatasetStorage.get(id);
 		if (Is.empty(entity)) {
 			throw new NotFoundError(DataspaceControlPlaneService.CLASS_NAME, "datasetNotFound", id);
 		}
-		if (entity.tenantId !== tenantId) {
-			throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "datasetWrongTenant");
+		if (entity.organizationIdentity !== organizationId) {
+			throw new UnauthorizedError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"datasetWrongOrganization"
+			);
 		}
 
 		return {
@@ -2286,7 +2251,7 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * List the dataspace app datasets owned by the calling tenant.
+	 * List the dataspace app datasets owned by the calling organization.
 	 * @param cursor Optional pagination cursor.
 	 * @param limit Optional maximum number of entries to return.
 	 * @returns The stored datasets and the next-page cursor if more exist.
@@ -2298,15 +2263,13 @@ export class DataspaceControlPlaneService
 		entities: IDataspaceAppDataset[];
 		cursor?: string;
 	}> {
-		const tenantId = await this.resolveCallingTenantId();
+		const organizationIdentity = await this.resolveContextOrganizationId();
 		const page = await this._dataspaceAppDatasetStorage.query(
-			Is.stringValue(tenantId)
-				? {
-						property: "tenantId",
-						value: tenantId,
-						comparison: ComparisonOperator.Equals
-					}
-				: undefined,
+			{
+				property: "organizationIdentity",
+				value: organizationIdentity,
+				comparison: ComparisonOperator.Equals
+			},
 			undefined,
 			undefined,
 			cursor,
@@ -2328,7 +2291,7 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Update a dataset record owned by the calling tenant.
+	 * Update a dataset record owned by the calling organization.
 	 * @param id The stored dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
@@ -2346,13 +2309,16 @@ export class DataspaceControlPlaneService
 			dataset
 		);
 
-		const tenantId = await this.resolveCallingTenantId();
+		const organizationId = await this.resolveContextOrganizationId();
 		const existing = await this._dataspaceAppDatasetStorage.get(id);
 		if (Is.empty(existing)) {
 			throw new NotFoundError(DataspaceControlPlaneService.CLASS_NAME, "datasetNotFound", id);
 		}
-		if (existing.tenantId !== tenantId) {
-			throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "datasetWrongTenant");
+		if (existing.organizationIdentity !== organizationId) {
+			throw new UnauthorizedError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"datasetWrongOrganization"
+			);
 		}
 
 		const updated: DataspaceAppDataset = {
@@ -2368,22 +2334,29 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Delete a dataspace app dataset owned by the calling tenant.
+	 * Delete a dataspace app dataset owned by the calling organization.
 	 * @param id The stored app dataset id.
 	 */
 	public async deleteAppDataset(id: string): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
 
-		const tenantId = await this.resolveCallingTenantId();
+		const organizationId = await this.resolveContextOrganizationId();
 		const existing = await this._dataspaceAppDatasetStorage.get(id);
 		if (Is.empty(existing)) {
 			throw new NotFoundError(DataspaceControlPlaneService.CLASS_NAME, "datasetNotFound", id);
 		}
-		if (existing.tenantId !== tenantId) {
-			throw new UnauthorizedError(DataspaceControlPlaneService.CLASS_NAME, "datasetWrongTenant");
+		if (existing.organizationIdentity !== organizationId) {
+			throw new UnauthorizedError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"datasetWrongOrganization"
+			);
 		}
 
-		const localTrustPayload = await this.generateLocalTrustPayload(existing.tenantId);
+		const localTrustPayload = await this._trustComponent.generate(
+			existing.organizationIdentity,
+			this._overrideTrustGeneratorType,
+			{}
+		);
 		const removeResult = await this._federatedCatalogueComponent.remove(id, localTrustPayload);
 
 		if (isCatalogError(removeResult)) {
@@ -2471,7 +2444,7 @@ export class DataspaceControlPlaneService
 			providerIdentity: storageEntity.providerIdentity,
 			format: storageEntity.format,
 			callbackAddress: storageEntity.callbackAddress,
-			tenantId: storageEntity.tenantId,
+			organizationIdentity: storageEntity.organizationIdentity,
 			dateCreated: new Date(storageEntity.dateCreated),
 			dateModified: new Date(storageEntity.dateModified),
 			policies: storageEntity.policies,
@@ -2498,7 +2471,7 @@ export class DataspaceControlPlaneService
 			providerIdentity: entity.providerIdentity,
 			format: entity.format,
 			callbackAddress: entity.callbackAddress,
-			tenantId: entity.tenantId,
+			organizationIdentity: entity.organizationIdentity,
 			dateCreated: entity.dateCreated.toISOString(),
 			dateModified: entity.dateModified.toISOString(),
 			policies: entity.policies,
@@ -2532,80 +2505,6 @@ export class DataspaceControlPlaneService
 		}
 
 		return agreement;
-	}
-
-	/**
-	 * Build the caller's composite identity (`nodeDid:tenantIdHash`) from a
-	 * verified trust payload.
-	 * @param trustInfo The verification info from `TrustHelper.verifyTrust`.
-	 * @returns The composite identity.
-	 * @internal
-	 */
-	private buildCallerComposite(trustInfo: ITrustVerificationInfo): string {
-		Guards.object<ITrustVerificationInfo>(
-			DataspaceControlPlaneService.CLASS_NAME,
-			nameof(trustInfo),
-			trustInfo
-		);
-		Guards.stringValue(
-			DataspaceControlPlaneService.CLASS_NAME,
-			nameof(trustInfo.identity),
-			trustInfo.identity
-		);
-		return Is.stringValue(trustInfo.tenantId)
-			? `${trustInfo.identity}:${trustInfo.tenantId}`
-			: trustInfo.identity;
-	}
-
-	/**
-	 * Validate that the caller's verified identity matches the consumer of a transfer process.
-	 * @param callerComposite The caller's composite identity (`nodeDid:tenantIdHash`).
-	 * @param entity The transfer process entity.
-	 * @throws UnauthorizedError if the caller is not the consumer.
-	 * @internal
-	 */
-	private validateCallerIsConsumer(callerComposite: string, entity: ITransferProcess): void {
-		if (callerComposite !== entity.consumerIdentity) {
-			throw new UnauthorizedError(
-				DataspaceControlPlaneService.CLASS_NAME,
-				"callerNotAuthorizedAsConsumer"
-			);
-		}
-	}
-
-	/**
-	 * Validate that the caller's verified identity matches the provider of a transfer process.
-	 * @param callerComposite The caller's composite identity (`nodeDid:tenantIdHash`).
-	 * @param entity The transfer process entity.
-	 * @throws UnauthorizedError if the caller is not the provider.
-	 * @internal
-	 */
-	private validateCallerIsProvider(callerComposite: string, entity: ITransferProcess): void {
-		if (callerComposite !== entity.providerIdentity) {
-			throw new UnauthorizedError(
-				DataspaceControlPlaneService.CLASS_NAME,
-				"callerNotAuthorizedAsProvider"
-			);
-		}
-	}
-
-	/**
-	 * Validate that the caller's verified identity matches either the consumer or provider of a transfer process.
-	 * @param callerComposite The caller's composite identity (`nodeDid:tenantIdHash`).
-	 * @param entity The transfer process entity.
-	 * @throws UnauthorizedError if the caller is not a party to the transfer.
-	 * @internal
-	 */
-	private validateCallerIsTransferParty(callerComposite: string, entity: ITransferProcess): void {
-		if (
-			callerComposite !== entity.consumerIdentity &&
-			callerComposite !== entity.providerIdentity
-		) {
-			throw new UnauthorizedError(
-				DataspaceControlPlaneService.CLASS_NAME,
-				"callerNotAuthorizedForTransfer"
-			);
-		}
 	}
 
 	/**
@@ -2676,8 +2575,12 @@ export class DataspaceControlPlaneService
 			agreement
 		);
 
-		// Lookup dataset in catalog
-		const localTrustPayload = await this.generateLocalTrustPayload();
+		const organizationId = await this.resolveContextOrganizationId();
+		const localTrustPayload = await this._trustComponent.generate(
+			organizationId,
+			this._overrideTrustGeneratorType,
+			{}
+		);
 		const catalogResult = await this._federatedCatalogueComponent.get(datasetId, localTrustPayload);
 
 		if (isCatalogError(catalogResult)) {
@@ -2955,67 +2858,13 @@ export class DataspaceControlPlaneService
 		if (dataset["dcterms:publisher"]) {
 			return dataset;
 		}
+
 		const contextIds = await ContextIdStore.getContextIds();
-		// The publisher attribution is always the composite identifier
-		const compositePublisher = this.buildTenantIdentifier(
-			contextIds?.[ContextIdKeys.Node],
-			contextIds?.[ContextIdKeys.Tenant]
-		);
-		if (compositePublisher) {
-			return { ...dataset, "dcterms:publisher": compositePublisher };
+		if (contextIds?.[ContextIdKeys.Organization]) {
+			return { ...dataset, "dcterms:publisher": contextIds[ContextIdKeys.Organization] };
 		}
+
 		return dataset;
-	}
-
-	/**
-	 * Build the tenant-attributed identifier.
-	 * @param nodeId The node identity (from `ContextIdKeys.Node`).
-	 * @param tenantId The plaintext tenant id (from `ContextIdKeys.Tenant`), if any. Hashed before insertion into the composite.
-	 * @returns Composite identifier, or undefined if nodeId is missing.
-	 * @internal
-	 */
-	private buildTenantIdentifier(
-		nodeId: string | undefined,
-		tenantId: string | undefined
-	): string | undefined {
-		if (!Is.stringValue(nodeId)) {
-			return undefined;
-		}
-		return Is.stringValue(tenantId) ? `${nodeId}:${TrustHelper.hashTenantId(tenantId)}` : nodeId;
-	}
-
-	/**
-	 * Parse a composite tenant identifier into its node and tenant-hash portions.
-	 * @param composite The composite identifier (`nodeDid` or `nodeDid:hash`).
-	 * @returns The parsed parts. `tenantIdHash` is undefined when the composite has no tenant portion (single-tenant node form).
-	 * @throws GuardError if the input is not a non-empty string.
-	 * @throws GeneralError if the input does not start with `did:` — the only valid composite identifier shapes carry a DID as the leading portion.
-	 * @internal
-	 */
-	private parseTenantIdentifier(composite: string): {
-		nodeDid: string;
-		tenantIdHash?: string;
-	} {
-		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(composite), composite);
-		if (!composite.startsWith("did:")) {
-			throw new GeneralError(
-				DataspaceControlPlaneService.CLASS_NAME,
-				"invalidCompositeIdentifier",
-				{ composite }
-			);
-		}
-		const lastColon = composite.lastIndexOf(":");
-		if (lastColon === -1) {
-			return { nodeDid: composite };
-		}
-		const candidateHash = composite.slice(lastColon + 1);
-		if (DataspaceControlPlaneService._TENANT_HASH_PATTERN.test(candidateHash)) {
-			return {
-				nodeDid: composite.slice(0, lastColon),
-				tenantIdHash: candidateHash
-			};
-		}
-		return { nodeDid: composite };
 	}
 
 	/**
@@ -3199,27 +3048,30 @@ export class DataspaceControlPlaneService
 	// DATASPACE APP DATASET HANDLERS
 
 	/**
-	 * Publish a single dataspace app dataset to the federated catalogue in its owning tenant's context.
+	 * Publish a single dataspace app dataset to the federated catalogue.
 	 * @param appDataset The stored dataspace app dataset entity.
 	 * @internal
 	 */
 	private async publishAppDataset(appDataset: DataspaceAppDataset): Promise<void> {
-		// Override `Tenant` in the context wrap so federated catalogue captures the
-		// appDataset's owning tenant. On single-tenant nodes the appDataset has no tenantId,
-		// so the assignment writes `Tenant: undefined` — equivalent to no override.
-		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
-		const localTrustPayload = await this.generateLocalTrustPayload(appDataset.tenantId);
-		const wrappedContextIds = {
-			...contextIds,
-			[ContextIdKeys.Tenant]: appDataset.tenantId
-		};
-		await ContextIdStore.run(wrappedContextIds, async () => {
+		const localTrustPayload = await this._trustComponent.generate(
+			appDataset.organizationIdentity,
+			this._overrideTrustGeneratorType
+		);
+
+		// Ensure that any dataspace app operations are run with the tenant id
+		// of the dataset owner, so that propagates to any operations it performs
+		const contextIds = await ContextIdStore.getContextIds();
+		const tenantContextIds = { ...contextIds, [ContextIdKeys.Tenant]: appDataset.tenantId };
+
+		await ContextIdStore.run(tenantContextIds, async () => {
 			const app = DataspaceAppFactory.get<IDataspaceApp>(appDataset.appId);
 			const datasetPayload = this.restampDatasetId(appDataset.dataset, appDataset.id);
 			const overrideHandler = app.datasetsHandled?.bind(app);
+
 			const rawDatasets: IDataspaceProtocolDataset[] = overrideHandler
-				? await overrideHandler(datasetPayload, appDataset.tenantId ?? "")
+				? await overrideHandler(datasetPayload)
 				: [datasetPayload];
+
 			const datasets = await Promise.all(rawDatasets.map(async d => this.populateDefaults(d)));
 
 			for (const dataset of datasets) {
@@ -3240,45 +3092,23 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Resolve the calling tenant from the request context.
-	 * @returns The owning tenant id, or undefined for single-tenant nodes.
+	 * Resolve the calling organization from the request context.
+	 * @returns The owning organization identity.
 	 * @internal
 	 */
-	private async resolveCallingTenantId(): Promise<string | undefined> {
+	private async resolveContextOrganizationId(): Promise<string> {
 		const contextIds = await ContextIdStore.getContextIds();
-		const tenantId = contextIds?.[ContextIdKeys.Tenant];
-		return Is.stringValue(tenantId) ? tenantId : undefined;
+		ContextIdHelper.guard(contextIds, ContextIdKeys.Organization);
+		return contextIds[ContextIdKeys.Organization];
 	}
 
 	/**
-	 * Resolve the node identity from the current context, throwing if absent.
-	 * @returns The owning node identity.
+	 * Resolve the tenant identity from the current context.
+	 * @returns The owning tenant identity.
 	 * @internal
 	 */
-	private async resolveNodeIdentity(): Promise<string> {
+	private async resolveContextTenantId(): Promise<string | undefined> {
 		const contextIds = await ContextIdStore.getContextIds();
-		const nodeId = contextIds?.[ContextIdKeys.Node];
-		if (!Is.stringValue(nodeId)) {
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetNodeContextRequired");
-		}
-		return nodeId;
-	}
-
-	/**
-	 * Generate a trust payload representing this node for internal FederatedCatalogue calls.
-	 * @param tenantId Optional tenant ID to embed in the token.
-	 * @returns The generated trust payload.
-	 * @internal
-	 */
-	private async generateLocalTrustPayload(tenantId?: string): Promise<unknown> {
-		const nodeId = await this.resolveNodeIdentity();
-		const contextIds = (await ContextIdStore.getContextIds()) ?? {};
-		return this._trustComponent.generate(
-			nodeId,
-			this._overrideTrustGeneratorType,
-			{},
-			Is.stringValue(tenantId) ? TrustHelper.hashTenantId(tenantId) : undefined,
-			contextIds[ContextIdKeys.Organization]
-		);
+		return contextIds?.[ContextIdKeys.Tenant];
 	}
 }

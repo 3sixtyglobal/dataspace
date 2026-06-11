@@ -7,10 +7,8 @@ import {
 	GeneralError,
 	Is,
 	NotFoundError,
-	RandomHelper,
-	UnauthorizedError
+	RandomHelper
 } from "@twin.org/core";
-import { Blake2b } from "@twin.org/crypto";
 import type { IJsonLdNodeObject } from "@twin.org/data-json-ld";
 import {
 	DataspaceAppFactory,
@@ -56,6 +54,7 @@ import {
 	createMockDataspaceDataPlaneComponent,
 	createMockEngineCore,
 	createMockTrustComponent,
+	createSingleTenantPlatformComponent,
 	DEFAULT_SERVICE_OPTIONS,
 	setupTestEnv
 } from "./setupTestEnv.js";
@@ -124,16 +123,6 @@ describe("DataspaceControlPlaneService", () => {
 
 		// Register mock trust component
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
-
-		// Register mock URL transformer (pass-through by default); register both the
-		// explicit "test-url-transformer" name used by DEFAULT_SERVICE_OPTIONS and the
-		// default "url-transformer" name for tests that construct the service with custom options.
-		const mockUrlTransformer = {
-			className: () => "MockUrlTransformerComponent",
-			addEncryptedQueryParamToUrl: vi.fn().mockImplementation(async (url: string) => url)
-		};
-		ComponentFactory.register("test-url-transformer", () => mockUrlTransformer);
-		ComponentFactory.register("url-transformer", () => mockUrlTransformer);
 
 		// Mock ContextIdStore to return test organization ID
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
@@ -250,7 +239,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 		});
 
-		test("captures tenantId from ContextIdStore at requestTransfer time", async () => {
+		test("captures organizationIdentity from ContextIdStore at requestTransfer time", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			const consumerGeneratedPid = `urn:uuid:${RandomHelper.generateUuidV7()}`;
@@ -266,7 +255,7 @@ describe("DataspaceControlPlaneService", () => {
 			await service.requestTransfer(request, "valid-trust-payload");
 
 			const stored = await transferProcessStorage.get(consumerGeneratedPid);
-			expect(stored?.tenantId).toBe("did:iota:test-tenant");
+			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
 		});
 
 		test("should allow retrieving the created Transfer Process", async () => {
@@ -406,6 +395,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-push-req",
 				offerId: "offer-push-req",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
 				dataAddress: {
@@ -435,7 +425,7 @@ describe("DataspaceControlPlaneService", () => {
 					DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint
 				);
 				expect(startMsg.dataAddress?.endpoint).toBe(
-					"https://test-origin.com/data-plane/data/inbox"
+					`https://test-origin.com/data-plane/data/inbox?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
 				);
 			}
 			expect(setupPushCalls).toEqual(["push-consumer-pid-req"]);
@@ -479,6 +469,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-push-susp",
 				offerId: "offer-push-susp",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
 				dataAddress: {
@@ -529,6 +520,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-push-bad",
 				offerId: "offer-push-bad",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
 				dataAddress: {
@@ -584,6 +576,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-pull-noconfig",
 				offerId: "offer-pull-noconfig",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -634,6 +627,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-push-noconfig",
 				offerId: "offer-push-noconfig",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				format: DataspaceTransferFormat.HttpDataPost,
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
@@ -698,6 +692,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-readback",
 				offerId: "offer-readback",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
 				dataAddress: {
@@ -754,6 +749,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-atomicity-req",
 				offerId: "offer-atomicity-req",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
 				dataAddress: {
@@ -815,6 +811,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-atomicity-susp",
 				offerId: "offer-atomicity-susp",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
 				dataAddress: {
@@ -847,7 +844,7 @@ describe("DataspaceControlPlaneService", () => {
 				ComponentFactory.unregister("test-trust-atomicity-susp");
 			} catch {}
 		});
-		describe("tenant token URL handling", () => {
+		describe("endpoint URL handling (organization routing)", () => {
 			// Mock trust component returns identity "did:iota:consumer-node-abc" by default; seed the
 			// transfer with providerIdentity matching so validateCallerIsProvider passes, and an
 			// empty dataAddress so the PULL-mode branch is exercised.
@@ -865,6 +862,7 @@ describe("DataspaceControlPlaneService", () => {
 					offerId: "agreement-123",
 					consumerIdentity: "did:iota:provider-node-xyz",
 					providerIdentity: "did:iota:consumer-node-abc",
+					organizationIdentity: "did:iota:provider-node-xyz",
 					dateCreated: now,
 					dateModified: now
 				});
@@ -876,7 +874,7 @@ describe("DataspaceControlPlaneService", () => {
 				};
 			};
 
-			test("returns raw endpoint URL when url transformer is a pass-through", async () => {
+			test("appends organization to pull endpoint URL", async () => {
 				const message = await seedPullTransfer();
 				const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
@@ -889,23 +887,16 @@ describe("DataspaceControlPlaneService", () => {
 				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 					throw new Error(`unexpected TransferError: ${response.code}`);
 				}
-				expect(response.dataAddress?.endpoint).toBe("https://test-origin.com/data-plane/data");
+				expect(response.dataAddress?.endpoint).toBe(
+					`https://test-origin.com/data-plane/data?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
+				);
 			});
 
-			test("calls addEncryptedQueryParamToUrl on url transformer when configured", async () => {
+			test("appends organization query param to pull endpoint URL", async () => {
 				const message = await seedPullTransfer();
-				const mockUrlTransformerComponent = {
-					addEncryptedQueryParamToUrl: vi
-						.fn()
-						.mockImplementation(async (url: string) => `${url}?tenant-token=encrypted-tenant-did`),
-					className: () => "MockUrlTransformerComponent"
-				};
-
-				ComponentFactory.register("test-url-transformer-custom", () => mockUrlTransformerComponent);
 
 				const service = new DataspaceControlPlaneService({
-					...DEFAULT_SERVICE_OPTIONS,
-					urlTransformerComponentType: "test-url-transformer-custom"
+					...DEFAULT_SERVICE_OPTIONS
 				});
 
 				const response = await service.startTransfer(
@@ -918,35 +909,18 @@ describe("DataspaceControlPlaneService", () => {
 					throw new Error(`unexpected TransferError: ${response.code}`);
 				}
 				expect(response.dataAddress?.endpoint).toBe(
-					"https://test-origin.com/data-plane/data?tenant-token=encrypted-tenant-did"
+					`https://test-origin.com/data-plane/data?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
 				);
-				expect(mockUrlTransformerComponent.addEncryptedQueryParamToUrl).toHaveBeenCalledWith(
-					"https://test-origin.com/data-plane/data",
-					"tenant",
-					"did:iota:test-tenant"
-				);
-
-				ComponentFactory.unregister("test-url-transformer-custom");
 			});
 
-			test("returns raw endpoint URL when url transformer is configured but tenant context is missing", async () => {
+			test("appends organization to pull endpoint URL when tenant context is absent", async () => {
 				const message = await seedPullTransfer();
-				const mockUrlTransformerComponent = {
-					addEncryptedQueryParamToUrl: vi.fn(),
-					className: () => "MockUrlTransformerComponent"
-				};
-
-				ComponentFactory.register(
-					"test-url-transformer-no-tenant",
-					() => mockUrlTransformerComponent
-				);
 
 				const service = new DataspaceControlPlaneService({
-					...DEFAULT_SERVICE_OPTIONS,
-					urlTransformerComponentType: "test-url-transformer-no-tenant"
+					...DEFAULT_SERVICE_OPTIONS
 				});
 
-				// Remove Tenant from context
+				// Remove Tenant from context (Organization still present)
 				vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 					[ContextIdKeys.Node]: "did:iota:test-node",
 					[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
@@ -962,10 +936,9 @@ describe("DataspaceControlPlaneService", () => {
 				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 					throw new Error(`unexpected TransferError: ${response.code}`);
 				}
-				expect(response.dataAddress?.endpoint).toBe("https://test-origin.com/data-plane/data");
-				expect(mockUrlTransformerComponent.addEncryptedQueryParamToUrl).not.toHaveBeenCalled();
-
-				ComponentFactory.unregister("test-url-transformer-no-tenant");
+				expect(response.dataAddress?.endpoint).toBe(
+					`https://test-origin.com/data-plane/data?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
+				);
 			});
 
 			test("startTransfer accessToken does NOT auto-flow tenant/org context (caller must pass explicitly)", async () => {
@@ -999,15 +972,11 @@ describe("DataspaceControlPlaneService", () => {
 					generate: async (
 						issuerIdentity: string,
 						generatorType?: string,
-						info?: { subject?: { [key: string]: unknown } },
-						tenantId?: string,
-						organizationId?: string
+						info?: { subject?: { [key: string]: unknown } }
 					) =>
 						realGenerator.generate(
 							issuerIdentity,
-							info as { subject?: IJsonLdNodeObject } | undefined,
-							tenantId,
-							organizationId
+							info as { subject?: IJsonLdNodeObject } | undefined
 						)
 				};
 				ComponentFactory.register("s3-real-trust", () => hybridTrustComponent);
@@ -1030,14 +999,10 @@ describe("DataspaceControlPlaneService", () => {
 				const lastCall =
 					verifiableCredentialCreate.mock.calls[verifiableCredentialCreate.mock.calls.length - 1];
 				const subjectArg = lastCall[2] as { [key: string]: unknown };
-				const optionsArg = lastCall[3] as { [key: string]: unknown } | undefined;
 
-				// credentialSubject stays domain-only — tenant/org are NOT merged in..
+				// credentialSubject stays domain-only — tenant/org are NOT merged in.
 				expect(subjectArg.tenantId).toBeUndefined();
 				expect(subjectArg.organizationId).toBeUndefined();
-				// jwtPayloadFields is always passed (empty here because the dataspace
-				// caller does not supply tenantId / organizationId
-				expect(optionsArg?.jwtPayloadFields).toEqual({});
 				// Original transfer claims still flow through unchanged.
 				expect(subjectArg.consumerPid).toBeDefined();
 				expect(subjectArg.providerPid).toBeDefined();
@@ -1079,6 +1044,7 @@ describe("DataspaceControlPlaneService", () => {
 			datasetId: "dataset-post-push",
 			offerId: "offer-post-push",
 			providerIdentity: "did:iota:provider-node-xyz",
+			organizationIdentity: "did:iota:provider-node-xyz",
 			format: DataspaceTransferFormat.HttpDataPost,
 			dateCreated: new Date().toISOString(),
 			dateModified: new Date().toISOString()
@@ -1100,7 +1066,9 @@ describe("DataspaceControlPlaneService", () => {
 			expect(response.dataAddress?.endpointType).toBe(
 				DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint
 			);
-			expect(response.dataAddress?.endpoint).toBe("https://test-origin.com/data-plane/data/inbox");
+			expect(response.dataAddress?.endpoint).toBe(
+				`https://test-origin.com/data-plane/data/inbox?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
+			);
 			// Provider-initiated push includes a JWT token in endpointProperties
 			const authProp = response.dataAddress?.endpointProperties?.find(
 				p => p.name === "authorization"
@@ -1148,6 +1116,7 @@ describe("DataspaceControlPlaneService", () => {
 			datasetId: "dataset-pini-01",
 			offerId: "offer-pini-01",
 			providerIdentity: "did:iota:provider-node-xyz",
+			organizationIdentity: "did:iota:provider-node-xyz",
 			format: DataspaceTransferFormat.HttpDataPost,
 			dateCreated: new Date().toISOString(),
 			dateModified: new Date().toISOString()
@@ -1204,6 +1173,7 @@ describe("DataspaceControlPlaneService", () => {
 			datasetId: "dataset-pini-02",
 			offerId: "offer-pini-02",
 			providerIdentity: "did:iota:provider-node-xyz",
+			organizationIdentity: "did:iota:provider-node-xyz",
 			format: DataspaceTransferFormat.HttpDataPost,
 			dateCreated: new Date().toISOString(),
 			dateModified: new Date().toISOString()
@@ -1229,11 +1199,11 @@ describe("DataspaceControlPlaneService", () => {
 		} catch {}
 	});
 
-	test("rejects startTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+	test("rejects startTransfer from an organization that does not own this transfer (transferWrongOrganization)", async () => {
 		const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-		const ownerTenant = "did:iota:tenant-owner";
-		const otherTenant = "did:iota:tenant-other";
+		const ownerOrg = "did:iota:org-owner";
+		const otherOrg = "did:iota:org-other";
 
 		await transferProcessStorage.set({
 			consumerPid: "wrong-tenant-start-pid",
@@ -1243,17 +1213,19 @@ describe("DataspaceControlPlaneService", () => {
 			state: DataspaceProtocolTransferProcessStateType.REQUESTED,
 			datasetId: "dataset-wrong-tenant-start",
 			offerId: "offer-wrong-tenant-start",
-			consumerIdentity: "did:iota:provider-node-xyz",
+			consumerIdentity: "did:iota:consumer-node-abc",
+			// Must match what the default test-trust mock returns ("did:iota:consumer-node-abc")
+			// so the callerNotAuthorizedAsProvider check passes before the org check is reached.
 			providerIdentity: "did:iota:consumer-node-abc",
-			tenantId: ownerTenant,
+			organizationIdentity: ownerOrg,
 			dateCreated: new Date().toISOString(),
 			dateModified: new Date().toISOString()
 		});
 
-		// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+		// Caller's organization context is `otherOrg`, but the entity is owned by `ownerOrg`.
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: "did:iota:test-node",
-			[ContextIdKeys.Tenant]: otherTenant
+			[ContextIdKeys.Organization]: otherOrg
 		});
 
 		const response = await service.startTransfer(
@@ -1270,7 +1242,7 @@ describe("DataspaceControlPlaneService", () => {
 		expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 		if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 			expect(response.code).toMatch(/^UnauthorizedError:/);
-			expect(response.code).toContain("transferWrongTenant");
+			expect(response.code).toContain("transferWrongOrganization");
 		}
 	});
 
@@ -1341,6 +1313,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1388,6 +1361,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1437,6 +1411,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1463,11 +1438,11 @@ describe("DataspaceControlPlaneService", () => {
 			} catch {}
 		});
 
-		test("rejects completeTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+		test("rejects completeTransfer from an organization that does not own this transfer (transferWrongOrganization)", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			const ownerTenant = "did:iota:tenant-owner";
-			const otherTenant = "did:iota:tenant-other";
+			const ownerOrg = "did:iota:org-owner";
+			const otherOrg = "did:iota:org-other";
 
 			await transferProcessStorage.set({
 				consumerPid: "wrong-tenant-complete-pid",
@@ -1477,17 +1452,19 @@ describe("DataspaceControlPlaneService", () => {
 				state: DataspaceProtocolTransferProcessStateType.STARTED,
 				datasetId: "dataset-wrong-tenant-complete",
 				offerId: "offer-wrong-tenant-complete",
+				// Must match what the default test-trust mock returns ("did:iota:consumer-node-abc")
+				// so the callerNotAuthorizedAsConsumer check passes before the org check is reached.
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
-				tenantId: ownerTenant,
+				organizationIdentity: ownerOrg,
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
 
-			// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+			// Caller's organization context is `otherOrg`, but the entity is owned by `ownerOrg`.
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:test-node",
-				[ContextIdKeys.Tenant]: otherTenant
+				[ContextIdKeys.Organization]: otherOrg
 			});
 
 			const response = await service.completeTransfer(
@@ -1503,7 +1480,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 				expect(response.code).toMatch(/^UnauthorizedError:/);
-				expect(response.code).toContain("transferWrongTenant");
+				expect(response.code).toContain("transferWrongOrganization");
 			}
 		});
 	});
@@ -1575,6 +1552,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1622,6 +1600,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1672,6 +1651,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1698,11 +1678,11 @@ describe("DataspaceControlPlaneService", () => {
 			} catch {}
 		});
 
-		test("rejects suspendTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+		test("rejects suspendTransfer from an organization that does not own this transfer (transferWrongOrganization)", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			const ownerTenant = "did:iota:tenant-owner";
-			const otherTenant = "did:iota:tenant-other";
+			const ownerOrg = "did:iota:org-owner";
+			const otherOrg = "did:iota:org-other";
 
 			await transferProcessStorage.set({
 				consumerPid: "wrong-tenant-suspend-pid",
@@ -1714,15 +1694,15 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "offer-wrong-tenant-suspend",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
-				tenantId: ownerTenant,
+				organizationIdentity: ownerOrg,
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
 
-			// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+			// Caller's organization context is `otherOrg`, but the entity is owned by `ownerOrg`.
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:test-node",
-				[ContextIdKeys.Tenant]: otherTenant
+				[ContextIdKeys.Organization]: otherOrg
 			});
 
 			const response = await service.suspendTransfer(
@@ -1731,7 +1711,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferSuspensionMessage",
 					consumerPid: "wrong-tenant-suspend-pid",
 					providerPid: "wrong-tenant-suspend-provider-pid",
-					reason: ["wrong tenant attempt"]
+					reason: ["wrong org attempt"]
 				},
 				"valid-trust-payload"
 			);
@@ -1739,7 +1719,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 				expect(response.code).toMatch(/^UnauthorizedError:/);
-				expect(response.code).toContain("transferWrongTenant");
+				expect(response.code).toContain("transferWrongOrganization");
 			}
 		});
 	});
@@ -1811,6 +1791,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1858,6 +1839,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1908,6 +1890,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -1934,11 +1917,11 @@ describe("DataspaceControlPlaneService", () => {
 			} catch {}
 		});
 
-		test("rejects terminateTransfer from a tenant that does not own this transfer (transferWrongTenant)", async () => {
+		test("rejects terminateTransfer from an organization that does not own this transfer (transferWrongOrganization)", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			const ownerTenant = "did:iota:tenant-owner";
-			const otherTenant = "did:iota:tenant-other";
+			const ownerOrg = "did:iota:org-owner";
+			const otherOrg = "did:iota:org-other";
 
 			await transferProcessStorage.set({
 				consumerPid: "wrong-tenant-terminate-pid",
@@ -1950,15 +1933,15 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "offer-wrong-tenant-terminate",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
-				tenantId: ownerTenant,
+				organizationIdentity: ownerOrg,
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
 
-			// Caller's tenant context is `otherTenant`, but the entity is owned by `ownerTenant`.
+			// Caller's organization context is `otherOrg`, but the entity is owned by `ownerOrg`.
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:test-node",
-				[ContextIdKeys.Tenant]: otherTenant
+				[ContextIdKeys.Organization]: otherOrg
 			});
 
 			const response = await service.terminateTransfer(
@@ -1967,7 +1950,7 @@ describe("DataspaceControlPlaneService", () => {
 					"@type": "TransferTerminationMessage",
 					consumerPid: "wrong-tenant-terminate-pid",
 					providerPid: "wrong-tenant-terminate-provider-pid",
-					reason: ["wrong tenant attempt"]
+					reason: ["wrong org attempt"]
 				},
 				"valid-trust-payload"
 			);
@@ -1975,7 +1958,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 				expect(response.code).toMatch(/^UnauthorizedError:/);
-				expect(response.code).toContain("transferWrongTenant");
+				expect(response.code).toContain("transferWrongOrganization");
 			}
 		});
 	});
@@ -2262,13 +2245,13 @@ describe("DataspaceControlPlaneService", () => {
 			// TrustHelper.verifyTrust should throw UnauthorizedError when verified: false
 			await expect(
 				service.resolveConsumerPid("consumer-pid-trust-fail", "any-token")
-			).rejects.toThrow(UnauthorizedError);
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
 
 			// Cleanup
 			ComponentFactory.unregister("test-trust-failing");
 		});
 
-		test("should throw UnauthorizedError when organization context is missing", async () => {
+		test("should throw GeneralError when organization context is missing", async () => {
 			const service = new DataspaceControlPlaneService({
 				policyAdministrationPointComponentType: "test-pap-resolve",
 				policyNegotiationPointComponentType: "test-pnp",
@@ -2311,7 +2294,7 @@ describe("DataspaceControlPlaneService", () => {
 			// Pass the correct token format for the trust component
 			await expect(
 				service.resolveConsumerPid("consumer-pid-001", "mock-jwt-consumer-pid-001")
-			).rejects.toThrow(UnauthorizedError);
+			).rejects.toMatchObject({ name: "GeneralError" });
 		});
 
 		test("should throw UnauthorizedError when Agreement assigner doesn't match organization", async () => {
@@ -2358,7 +2341,7 @@ describe("DataspaceControlPlaneService", () => {
 			// Pass the correct token format for the trust component
 			await expect(
 				service.resolveConsumerPid("consumer-pid-001", "mock-jwt-consumer-pid-001")
-			).rejects.toThrow(UnauthorizedError);
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
 		});
 
 		test("should return TransferError when Agreement is missing assigner", async () => {
@@ -2725,9 +2708,9 @@ describe("DataspaceControlPlaneService", () => {
 			});
 
 			// TrustHelper.verifyTrust should throw UnauthorizedError when verified: false
-			await expect(failingService.resolveProviderPid(providerPid, "any-token")).rejects.toThrow(
-				UnauthorizedError
-			);
+			await expect(
+				failingService.resolveProviderPid(providerPid, "any-token")
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
 
 			// Cleanup
 			ComponentFactory.unregister("test-trust-failing-provider");
@@ -2798,7 +2781,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 		});
 
-		test("should throw UnauthorizedError when organization context is missing", async () => {
+		test("should throw GeneralError when organization context is missing", async () => {
 			const service = new DataspaceControlPlaneService({
 				policyAdministrationPointComponentType: "test-pap-resolve-provider",
 				policyNegotiationPointComponentType: "test-pnp",
@@ -2849,7 +2832,7 @@ describe("DataspaceControlPlaneService", () => {
 			// Pass the correct token format
 			await expect(
 				service.resolveProviderPid(providerPid, "mock-jwt-consumer-pid-push-no-org")
-			).rejects.toThrow(UnauthorizedError);
+			).rejects.toMatchObject({ name: "GeneralError" });
 		});
 
 		test("should throw UnauthorizedError when Agreement assigner doesn't match organization", async () => {
@@ -2904,7 +2887,7 @@ describe("DataspaceControlPlaneService", () => {
 			// Pass the correct token format
 			await expect(
 				service.resolveProviderPid(providerPid, "mock-jwt-consumer-pid-push-mismatch")
-			).rejects.toThrow(UnauthorizedError);
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
 		});
 
 		test("should throw UnauthorizedError when Agreement assignee doesn't match consumer identity", async () => {
@@ -2983,7 +2966,7 @@ describe("DataspaceControlPlaneService", () => {
 			// Pass the correct token format
 			await expect(
 				service.resolveProviderPid(providerPid, "mock-jwt-consumer-pid-push-assignee")
-			).rejects.toThrow(UnauthorizedError);
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
 		});
 	});
 
@@ -4277,6 +4260,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "agreement-123",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
 			});
@@ -4315,6 +4299,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "agreement-123",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
 			});
@@ -4357,6 +4342,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "agreement-123",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
 			});
@@ -4394,6 +4380,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "agreement-123",
 				consumerIdentity: "did:iota:other-consumer",
 				providerIdentity: "did:iota:consumer-node-abc",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
 			});
@@ -4453,6 +4440,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "agreement-123",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: now,
 				dateModified: now
 			});
@@ -4498,6 +4486,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-g14-start",
 				offerId: "offer-g14-start",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				format: DataspaceTransferFormat.HttpDataPush,
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString(),
@@ -4550,6 +4539,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -4595,6 +4585,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: DataspaceTransferFormat.HttpDataPush,
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -4688,7 +4679,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(stored?.id).toBe("urn:test:ds-1");
 			expect(stored?.appId).toBe(TEST_APP_ID);
 			expect(stored?.tenantId).toBe(TEST_TENANT_A);
-			expect(stored?.nodeIdentity).toBe(TEST_NODE_ID);
+			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
 			// `@id` is stripped from the stored blob — entity.id is the source of truth.
 			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
 			expect(stored?.dataset?.["@type"]).toBe("Dataset");
@@ -4769,16 +4760,8 @@ describe("DataspaceControlPlaneService", () => {
 			expect(stored).toBeUndefined();
 		});
 
-		test("populateDefaults stamps composite (nodeDid:hash(tenantId)) as publisher in multi-tenant context", async () => {
-			// Publisher attribution is always the composite identifier
-			// (`nodeDid:hash(tenantId)`), independent of whether a user session
-			// is active. The plaintext tenantId never appears in the published
-			// dataset — it is hashed via unkeyed BLAKE2b-256, base64url-encoded.
-			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
-				[ContextIdKeys.Node]: TEST_NODE_ID,
-				[ContextIdKeys.Tenant]: TEST_TENANT_A
-			});
-
+		test("populateDefaults stamps org DID as publisher in multi-tenant context", async () => {
+			// Publisher attribution is always the organization DID from the calling context.
 			const setSpy = vi.spyOn(mockFedCat, "set");
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
@@ -4792,18 +4775,12 @@ describe("DataspaceControlPlaneService", () => {
 			const publishedDataset = setSpy.mock.calls[0][0] as {
 				"dcterms:publisher"?: string;
 			};
-			const expectedHash = Converter.bytesToBase64Url(
-				Blake2b.sum256(Converter.utf8ToBytes(TEST_TENANT_A))
-			);
-			expect(publishedDataset["dcterms:publisher"]).toBe(`${TEST_NODE_ID}:${expectedHash}`);
-			// And specifically: the plaintext tenantId does NOT appear in the
-			// stamped identifier — guards the confidentiality property.
-			expect(publishedDataset["dcterms:publisher"]).not.toContain(TEST_TENANT_A);
+			expect(publishedDataset["dcterms:publisher"]).toBe("did:iota:provider-node-xyz");
 		});
 
-		test("populateDefaults stamps composite even when an org context is present (org no longer wins)", async () => {
-			// The file-level beforeEach mock includes Organization. That's audit-only — publisher attribution still comes from the
-			// node/tenant composite.
+		test("populateDefaults stamps org DID as publisher when an org context is present", async () => {
+			// The file-level beforeEach mock includes Organization = "did:iota:provider-node-xyz".
+			// Publisher attribution comes from the organization DID.
 			const setSpy = vi.spyOn(mockFedCat, "set");
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
@@ -4817,11 +4794,7 @@ describe("DataspaceControlPlaneService", () => {
 			const publishedDataset = setSpy.mock.calls[0][0] as {
 				"dcterms:publisher"?: string;
 			};
-			const expectedHash = Converter.bytesToBase64Url(
-				Blake2b.sum256(Converter.utf8ToBytes("did:iota:test-tenant"))
-			);
-			expect(publishedDataset["dcterms:publisher"]).toBe(`did:iota:test-node:${expectedHash}`);
-			expect(publishedDataset["dcterms:publisher"]).not.toBe("did:iota:provider-node-xyz");
+			expect(publishedDataset["dcterms:publisher"]).toBe("did:iota:provider-node-xyz");
 		});
 
 		test("getAppDataset returns the app when the calling tenant owns it", async () => {
@@ -4847,7 +4820,7 @@ describe("DataspaceControlPlaneService", () => {
 			});
 		});
 
-		test("getAppDataset rejects cross-tenant reads with datasetWrongTenant", async () => {
+		test("getAppDataset rejects cross-tenant reads with datasetWrongOrganization", async () => {
 			// Create as Tenant A.
 			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 			await serviceA.createAppDataset(
@@ -4865,14 +4838,14 @@ describe("DataspaceControlPlaneService", () => {
 
 			await expect(serviceA.getAppDataset("urn:test:ds-cross")).rejects.toMatchObject({
 				name: "UnauthorizedError",
-				message: expect.stringContaining("datasetWrongTenant")
+				message: expect.stringContaining("datasetWrongOrganization")
 			});
 		});
 
-		test("listDatasets returns only the calling tenant's records", async () => {
+		test("listDatasets returns only the calling organization's records", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			// Two records under Tenant A.
+			// Two records under the default organization.
 			await service.createAppDataset(
 				"urn:test:ds-a-1",
 				TEST_APP_ID,
@@ -4884,12 +4857,12 @@ describe("DataspaceControlPlaneService", () => {
 				buildDataset("https://twin.example.org/ds-a-2") as never
 			);
 
-			// One record under Tenant B (seeded directly into storage to skip
-			// the context switch dance).
+			// One record belonging to a different organization (seeded directly
+			// into storage to skip the context switch dance).
 			const now = new Date().toISOString();
 			await dataspaceAppDatasetStorage.set({
 				id: "ds-b-1",
-				nodeIdentity: TEST_NODE_ID,
+				organizationIdentity: "did:iota:other-org",
 				tenantId: TEST_TENANT_B,
 				appId: TEST_APP_ID,
 				dataset: buildDataset("https://twin.example.org/ds-b-1") as never,
@@ -4926,7 +4899,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(stored?.id).toBe("urn:test:ds-upd");
 		});
 
-		test("updateAppDataset rejects cross-tenant writes with datasetWrongTenant", async () => {
+		test("updateAppDataset rejects cross-tenant writes with datasetWrongOrganization", async () => {
 			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 			await serviceA.createAppDataset(
 				"urn:test:ds-upd-cross",
@@ -4948,7 +4921,7 @@ describe("DataspaceControlPlaneService", () => {
 				)
 			).rejects.toMatchObject({
 				name: "UnauthorizedError",
-				message: expect.stringContaining("datasetWrongTenant")
+				message: expect.stringContaining("datasetWrongOrganization")
 			});
 		});
 
@@ -4989,7 +4962,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(stored).toBeDefined();
 		});
 
-		test("deleteAppDataset rejects cross-tenant deletes with datasetWrongTenant", async () => {
+		test("deleteAppDataset rejects cross-tenant deletes with datasetWrongOrganization", async () => {
 			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 			await serviceA.createAppDataset(
 				"urn:test:ds-del-cross",
@@ -5005,7 +4978,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await expect(serviceA.deleteAppDataset("urn:test:ds-del-cross")).rejects.toMatchObject({
 				name: "UnauthorizedError",
-				message: expect.stringContaining("datasetWrongTenant")
+				message: expect.stringContaining("datasetWrongOrganization")
 			});
 
 			// The record must still be present — denied delete shouldn't side-effect.
@@ -5022,26 +4995,16 @@ describe("DataspaceControlPlaneService", () => {
 			});
 		});
 
-		test("publishDataset wraps fedcat.set in the app dataset's tenant context", async () => {
+		test("publishDataset publishes stored datasets to fedcat using organizationIdentity during start()", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-			// Spy on ContextIdStore.run so we can read the override map the
-			// publish loop passes in. This is the load-bearing invariant of
-			// when fedcat.set() runs inside the wrap, it must see
-			// `Tenant = dataset.tenantId`, regardless of the request/engine
-			// startup tenant.
-			//
-			// We assert on the run wrapper's arguments rather than the
-			// `ContextIdStore.getContextIds()` value seen inside the wrapped
-			// callback, because the test's beforeEach replaces
-			// `getContextIds` with a fixed mock that doesn't honour the
-			// AsyncLocalStorage-backed override.
-			const runSpy = vi.spyOn(ContextIdStore, "run");
+			// Spy on the fedcat set method to verify publish is called for the stored dataset.
+			const fedcatSetSpy = vi.spyOn(mockFedCat, "set");
 
 			const now = new Date().toISOString();
 			const appDataset: DataspaceAppDataset = {
 				id: "ds-publish-tenant",
-				nodeIdentity: TEST_NODE_ID,
+				organizationIdentity: "did:iota:provider-node-xyz",
 				tenantId: TEST_TENANT_B,
 				appId: TEST_APP_ID,
 				dataset: buildDataset("https://twin.example.org/ds-publish-tenant") as never,
@@ -5057,19 +5020,17 @@ describe("DataspaceControlPlaneService", () => {
 				EngineCoreFactory.unregister("engine");
 			}
 
-			// Filter out any unrelated `ContextIdStore.run` calls (e.g. inner
-			// service plumbing); we only care about the publish wrap that
-			// passed our app dataset's tenantId.
-			const wrapWithTenantB = runSpy.mock.calls.find(
-				([ids]) => (ids as { [key: string]: string })?.[ContextIdKeys.Tenant] === TEST_TENANT_B
+			// Verify fedcat.set was called for our stored dataset (publish happened).
+			const publishedOurDataset = fedcatSetSpy.mock.calls.some(
+				([dataset]) => (dataset as { "@id"?: string })["@id"] === "ds-publish-tenant"
 			);
-			expect(wrapWithTenantB).toBeDefined();
+			expect(publishedOurDataset).toBe(true);
 		});
 
 		test("publishDataset calls populateDefaults even when app overrides datasetsHandled", async () => {
 			// Register an app whose datasetsHandled returns a dataset WITHOUT
 			// `dcterms:publisher`. The framework should stamp publisher from the
-			// node/tenant composite regardless of which path produced the dataset.
+			// organization DID regardless of which path produced the dataset.
 			const APP_WITH_OVERRIDE = "https://twin.example.org/app-with-override";
 			DataspaceAppFactory.register(APP_WITH_OVERRIDE, () => ({
 				className: () => "MockAppWithOverride",
@@ -5098,13 +5059,176 @@ describe("DataspaceControlPlaneService", () => {
 
 				expect(setSpy).toHaveBeenCalledTimes(1);
 				const publishedDataset = setSpy.mock.calls[0][0] as { "dcterms:publisher"?: string };
-				const expectedHash = Converter.bytesToBase64Url(
-					Blake2b.sum256(Converter.utf8ToBytes("did:iota:test-tenant"))
-				);
-				expect(publishedDataset["dcterms:publisher"]).toBe(`did:iota:test-node:${expectedHash}`);
+				expect(publishedDataset["dcterms:publisher"]).toBe("did:iota:provider-node-xyz");
 			} finally {
 				DataspaceAppFactory.unregister(APP_WITH_OVERRIDE);
 			}
+		});
+
+		describe("platform component — single-tenant vs multi-tenant mode", () => {
+			const TENANT_A = "did:iota:tenant-a";
+			const TENANT_B = "did:iota:tenant-b";
+			const ORG_A = "did:iota:org-a";
+			const ORG_B = "did:iota:org-b";
+
+			afterEach(() => {
+				try {
+					ComponentFactory.unregister("test-platform-st");
+					ComponentFactory.unregister("test-platform-mt");
+				} catch {
+					// Ignore.
+				}
+			});
+
+			test("single-tenant start() publishes datasets once with the ambient context", async () => {
+				ComponentFactory.register("test-platform-st", () => createSingleTenantPlatformComponent());
+				const service = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					platformComponentType: "test-platform-st"
+				});
+
+				const now = new Date().toISOString();
+				await dataspaceAppDatasetStorage.set({
+					id: "urn:test:st-ds-1",
+					organizationIdentity: "did:iota:provider-node-xyz",
+					tenantId: undefined,
+					appId: TEST_APP_ID,
+					dataset: buildDataset("https://twin.example.org/st-ds-1") as never,
+					dateCreated: now,
+					dateModified: now
+				});
+
+				const setSpy = vi.spyOn(mockFedCat, "set");
+				EngineCoreFactory.register("engine", () => createMockEngineCore(false));
+				try {
+					await service.start();
+				} finally {
+					EngineCoreFactory.unregister("engine");
+				}
+
+				// Dataset published exactly once — no per-tenant iteration.
+				expect(setSpy).toHaveBeenCalledTimes(1);
+				expect(
+					setSpy.mock.calls.some(([ds]) => (ds as { "@id"?: string })["@id"] === "urn:test:st-ds-1")
+				).toBe(true);
+			});
+
+			test("multi-tenant start() iterates each tenant and tenantId is available inside the callback", async () => {
+				// Restore the global getContextIds mock so ContextIdStore.run()
+				// actually propagates per-tenant context through AsyncLocalStorage.
+				vi.mocked(ContextIdStore.getContextIds).mockRestore();
+
+				const observedTenantIds: (string | undefined)[] = [];
+
+				// Inline platform mock: calls execute's callback once per tenant,
+				// each time with a complete isolated context injected via run().
+				ComponentFactory.register("test-platform-mt", () => ({
+					className: () => "MockMultiTenantPlatformComponent",
+					isMultiTenant: () => true,
+					execute: async (method: () => Promise<void>) => {
+						for (const [tenant, org] of [
+							[TENANT_A, ORG_A],
+							[TENANT_B, ORG_B]
+						]) {
+							await ContextIdStore.run(
+								{
+									[ContextIdKeys.Node]: "did:iota:test-node",
+									[ContextIdKeys.Tenant]: tenant,
+									[ContextIdKeys.Organization]: org
+								},
+								method
+							);
+						}
+					}
+				}));
+
+				const service = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					platformComponentType: "test-platform-mt"
+				});
+
+				// Intercept publishAppDataset to capture the tenant context each
+				// iteration runs under without making real fedcat calls.
+				const inner = service as unknown as {
+					publishAppDataset: (d: DataspaceAppDataset) => Promise<void>;
+				};
+				vi.spyOn(inner, "publishAppDataset").mockImplementation(async () => {
+					const ctx = await ContextIdStore.getContextIds();
+					observedTenantIds.push(ctx?.[ContextIdKeys.Tenant]);
+				});
+
+				// One shared dataset — published in both tenant contexts, proving
+				// tenantId is available inside the callback on each iteration.
+				const now = new Date().toISOString();
+				await dataspaceAppDatasetStorage.set({
+					id: "urn:test:mt-shared",
+					organizationIdentity: ORG_A,
+					tenantId: TENANT_A,
+					appId: TEST_APP_ID,
+					dataset: buildDataset("https://twin.example.org/mt-shared") as never,
+					dateCreated: now,
+					dateModified: now
+				});
+
+				EngineCoreFactory.register("engine", () => createMockEngineCore(false));
+				try {
+					await service.start();
+				} finally {
+					EngineCoreFactory.unregister("engine");
+				}
+
+				// publishAppDataset ran once per tenant; both tenant IDs were propagated.
+				expect(observedTenantIds).toEqual([TENANT_A, TENANT_B]);
+			});
+
+			test("multi-tenant listAppDatasets scopes to the calling organization within the tenant partition", async () => {
+				const now = new Date().toISOString();
+
+				// Seed two datasets belonging to ORG_A under TENANT_A.
+				await dataspaceAppDatasetStorage.set({
+					id: "urn:test:mt-list-a1",
+					organizationIdentity: ORG_A,
+					tenantId: TENANT_A,
+					appId: TEST_APP_ID,
+					dataset: buildDataset("https://twin.example.org/mt-list-a1") as never,
+					dateCreated: now,
+					dateModified: now
+				});
+				await dataspaceAppDatasetStorage.set({
+					id: "urn:test:mt-list-a2",
+					organizationIdentity: ORG_A,
+					tenantId: TENANT_A,
+					appId: TEST_APP_ID,
+					dataset: buildDataset("https://twin.example.org/mt-list-a2") as never,
+					dateCreated: now,
+					dateModified: now
+				});
+
+				// One dataset belonging to ORG_B — must not appear in ORG_A's list.
+				await dataspaceAppDatasetStorage.set({
+					id: "urn:test:mt-list-b1",
+					organizationIdentity: ORG_B,
+					tenantId: TENANT_B,
+					appId: TEST_APP_ID,
+					dataset: buildDataset("https://twin.example.org/mt-list-b1") as never,
+					dateCreated: now,
+					dateModified: now
+				});
+
+				// Call listAppDatasets as ORG_A.
+				vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+					[ContextIdKeys.Node]: "did:iota:test-node",
+					[ContextIdKeys.Tenant]: TENANT_A,
+					[ContextIdKeys.Organization]: ORG_A
+				});
+
+				const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+				const page = await service.listAppDatasets();
+				expect(page.entities.map(e => e.id).sort()).toEqual([
+					"urn:test:mt-list-a1",
+					"urn:test:mt-list-a2"
+				]);
+			});
 		});
 
 		test("createAppDataset uses dataset @id as storage key when no explicit id is provided", async () => {
@@ -5176,7 +5300,7 @@ describe("DataspaceControlPlaneService", () => {
 			const now = new Date().toISOString();
 			await dataspaceAppDatasetStorage.set({
 				id,
-				nodeIdentity: TEST_NODE_ID,
+				organizationIdentity: "did:iota:provider-node-xyz",
 				tenantId: TEST_TENANT_A,
 				appId: TEST_APP_ID,
 				dataset: {
@@ -5353,6 +5477,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-123",
 				offerId: "offer-cb-01",
 				providerIdentity: "did:iota:consumer-node-abc",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -5417,6 +5542,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "offer-cb-provider",
 				consumerIdentity: "did:iota:other-consumer",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -5462,6 +5588,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-123",
 				offerId: "offer-cb-unreg",
 				providerIdentity: "did:iota:consumer-node-abc",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -5510,6 +5637,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-123",
 				offerId: "offer-cb-fanout",
 				providerIdentity: "did:iota:consumer-node-abc",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -5550,6 +5678,7 @@ describe("DataspaceControlPlaneService", () => {
 				datasetId: "dataset-123",
 				offerId: "offer-cb-throw",
 				providerIdentity: "did:iota:consumer-node-abc",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -5594,6 +5723,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "offer-cb-complete",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -5644,6 +5774,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "offer-cb-suspend",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});
@@ -5698,6 +5829,7 @@ describe("DataspaceControlPlaneService", () => {
 				offerId: "offer-cb-terminate",
 				consumerIdentity: "did:iota:consumer-node-abc",
 				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
 				dateCreated: new Date().toISOString(),
 				dateModified: new Date().toISOString()
 			});

@@ -72,13 +72,6 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 	});
 
 	beforeEach(() => {
-		// Register url-transformer before FederatedCatalogueService is constructed
-		// (its constructor eagerly calls ComponentFactory.get("url-transformer"))
-		ComponentFactory.register("url-transformer", () => ({
-			className: () => "MockUrlTransformerComponent",
-			addEncryptedQueryParamToUrl: async (url: string) => url
-		}));
-
 		// Setup REAL FederatedCatalogue service with memory storage
 		const fedCatSetup = setupFederatedCatalogueIntegration("test-fedcat", "test-trust");
 		federatedCatalogue = fedCatSetup.federatedCatalogue;

@@ -49,17 +49,12 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		ComponentFactory.register("test-fedcat", () => mockFedCat);
 		ComponentFactory.register("test-pnp", () => mockPnp);
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
-		ComponentFactory.register("url-transformer", () => ({
-			className: () => "MockUrlTransformerComponent",
-			addEncryptedQueryParamToUrl: async (url: string) => url
-		}));
 	});
 
 	afterAll(() => {
 		ComponentFactory.unregister("test-fedcat");
 		ComponentFactory.unregister("test-pnp");
 		ComponentFactory.unregister("test-trust");
-		ComponentFactory.unregister("url-transformer");
 	});
 
 	beforeEach(() => {

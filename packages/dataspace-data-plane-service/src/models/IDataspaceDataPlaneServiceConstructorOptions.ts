@@ -8,7 +8,6 @@ import type { IDataspaceDataPlaneServiceConfig } from "./IDataspaceDataPlaneServ
 export interface IDataspaceDataPlaneServiceConstructorOptions {
 	/**
 	 * Logging component type.
-	 * @default logging
 	 */
 	loggingComponentType?: string;
 
@@ -56,11 +55,6 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	dataspaceAppDatasetEntityStorageType?: string;
 
 	/**
-	 * The keys to use from the context ids to cleanup partitions.
-	 */
-	partitionContextIds?: string[];
-
-	/**
 	 * Trust component type.
 	 * @default trust
 	 */
@@ -73,16 +67,10 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	pepComponentType?: string;
 
 	/**
-	 * Tenant component type.
-	 * @default tenant
+	 * Platform component type.
+	 * @default platform
 	 */
-	tenantComponentType?: string;
-
-	/**
-	 * URL Transformer component type used to encrypt the tenant token into the data-plane.
-	 * @default url-transformer
-	 */
-	urlTransformerComponentType?: string;
+	platformComponentType?: string;
 
 	/**
 	 * The configuration of the Dataspace Data Plane Service.

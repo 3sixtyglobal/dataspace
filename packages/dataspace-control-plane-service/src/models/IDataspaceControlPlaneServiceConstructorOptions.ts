@@ -37,7 +37,6 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 
 	/**
 	 * Logging component type.
-	 * @default logging
 	 */
 	loggingComponentType?: string;
 
@@ -87,17 +86,17 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	dataPlaneComponentType?: string;
 
 	/**
-	 * URL Transformer component type used to encrypt the tenant token into the data-plane.
-	 * @default url-transformer
-	 */
-	urlTransformerComponentType?: string;
-
-	/**
 	 * Remote control plane component type used to make outbound DSP transfer requests.
 	 * Created dynamically via ComponentFactory.create() with the provider endpoint as config.
 	 * @default dataspace-control-plane-rest-client
 	 */
 	remoteControlPlaneComponentType?: string;
+
+	/**
+	 * Platform component type, used to retrieve public origin for constructing data plane URLs.
+	 * @default platform
+	 */
+	platformComponentType?: string;
 
 	/**
 	 * The configuration of the Dataspace Control Plane Service.

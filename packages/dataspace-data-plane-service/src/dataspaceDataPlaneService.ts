@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ITenantComponent, IUrlTransformerComponent } from "@twin.org/api-models";
+import { HttpUrlHelper, type IPlatformComponent } from "@twin.org/api-models";
 import {
 	TaskStatus,
 	type IBackgroundTaskComponent,
@@ -147,7 +147,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * Logging service type.
 	 * @internal
 	 */
-	private readonly _loggingComponentType: string;
+	private readonly _loggingComponentType?: string;
 
 	/**
 	 * Logging service.
@@ -248,12 +248,6 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _taskScheduler: ITaskSchedulerComponent;
 
 	/**
-	 * The keys to use from the context ids to create partitions.
-	 * @internal
-	 */
-	private readonly _partitionContextIds?: string[];
-
-	/**
 	 * The trust component.
 	 * @internal
 	 */
@@ -266,16 +260,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _policyEnforcementPoint: IPolicyEnforcementPointComponent;
 
 	/**
-	 * The tenant component.
+	 * The platform component.
 	 * @internal
 	 */
-	private readonly _tenantComponent?: ITenantComponent;
-
-	/**
-	 * The component type name for the hosting component.
-	 * @internal
-	 */
-	private readonly _urlTransformerComponent: IUrlTransformerComponent;
+	private readonly _platformComponent: IPlatformComponent;
 
 	/**
 	 * Entity storage for Transfer Process entities.
@@ -302,7 +290,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @param options The options for the data plane.
 	 */
 	constructor(options?: IDataspaceDataPlaneServiceConstructorOptions) {
-		this._loggingComponentType = options?.loggingComponentType ?? "logging";
+		this._loggingComponentType = options?.loggingComponentType;
 		this._logging = ComponentFactory.getIfExists<ILoggingComponent>(this._loggingComponentType);
 
 		this._entityStorageActivityLogs = EntityStorageConnectorFactory.get<
@@ -329,12 +317,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			options?.pepComponentType ?? "policy-enforcement-point-service"
 		);
 
-		this._tenantComponent = ComponentFactory.getIfExists<ITenantComponent>(
-			options?.tenantComponentType ?? "tenant"
-		);
-
-		this._urlTransformerComponent = ComponentFactory.get<IUrlTransformerComponent>(
-			options?.urlTransformerComponentType ?? "url-transformer"
+		this._platformComponent = ComponentFactory.get<IPlatformComponent>(
+			options?.platformComponentType ?? "platform"
 		);
 
 		// Entity storage for Transfer Process state lookup
@@ -361,7 +345,6 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		this._activityLogStatusCallbacks = {};
 		this._registeredTaskTypes = [];
-		this._partitionContextIds = options?.partitionContextIds;
 
 		this._retainTasksFor =
 			DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL * DataspaceDataPlaneService._MS_PER_MINUTE;
@@ -590,15 +573,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			// Bind the verified identity to the side of the transfer matching the claimed
 			// generator. Without this, a party with a valid token for transfer X can post
 			// an activity claiming to be the other party on the same transfer.
-			// Stored consumer/provider identities are composites
-			// (`nodeDid:hash(tenantId)`)
 			const expectedIdentity = generatorIsConsumer
 				? transferProcess.consumerIdentity
 				: transferProcess.providerIdentity;
-			const callerComposite = Is.stringValue(trustInfo.tenantId)
-				? `${trustInfo.identity}:${trustInfo.tenantId}`
-				: trustInfo.identity;
-			if (!Is.stringValue(expectedIdentity) || callerComposite !== expectedIdentity) {
+			if (!Is.stringValue(expectedIdentity) || trustInfo.identity !== expectedIdentity) {
 				throw new UnauthorizedError(
 					DataspaceDataPlaneService.CLASS_NAME,
 					"pushActivityNotAuthorized"
@@ -1098,23 +1076,22 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			});
 		}
 
-		// On multi-tenant publishers, the consumer must have baked its tenant token into the
+		// The consumer must have baked its organization ID into the
 		// callback URL so the consumer's TenantProcessor can route inbound push deliveries.
 		// Reject at setup time rather than silently 401 every push.
 		// Parse as a real URL so we match on the actual query parameter, not a substring
 		// in a path segment / value position.
-		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
-			const tenantId = await this._urlTransformerComponent.getEncryptedFromUrl(
-				transferProcess.dataAddress.endpoint,
-				"tenant"
+
+		const organizationId = HttpUrlHelper.getQueryStringParam(
+			transferProcess.dataAddress.endpoint,
+			ContextIdKeys.Organization
+		);
+		if (!Is.stringValue(organizationId)) {
+			throw new GeneralError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"pushSubscriptionMissingOrganizationId",
+				{ consumerPid, endpoint: transferProcess.dataAddress.endpoint }
 			);
-			if (!Is.stringValue(tenantId)) {
-				throw new GeneralError(
-					DataspaceDataPlaneService.CLASS_NAME,
-					"pushSubscriptionMissingTenantToken",
-					{ consumerPid, endpoint: transferProcess.dataAddress.endpoint }
-				);
-			}
 		}
 
 		const followActivityId = `${FOLLOW_ACTIVITY_URN_PREFIX}${RandomHelper.generateUuidV7("compact")}`;
@@ -1578,14 +1555,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		let numRecordsDeleted = 0;
 
-		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
-			// The cleanup must be done by tenant as the data is partitioned
-			await this._tenantComponent?.runPerTenant(async () => {
-				numRecordsDeleted += await this.cleanupActivityLogPartition();
-			});
-		} else {
+		await this._platformComponent.execute(async () => {
 			numRecordsDeleted += await this.cleanupActivityLogPartition();
-		}
+		});
 
 		await this._logging?.log({
 			level: "debug",
@@ -1729,14 +1701,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		let numDeleted = 0;
 
-		if (this._partitionContextIds?.includes(ContextIdKeys.Tenant)) {
-			// The cleanup must be done by tenant as the data is partitioned
-			await this._tenantComponent?.runPerTenant(async () => {
-				numDeleted += await this.cleanupOrphanedPushSubscriptionsPartition();
-			});
-		} else {
+		await this._platformComponent.execute(async () => {
 			numDeleted += await this.cleanupOrphanedPushSubscriptionsPartition();
-		}
+		});
 
 		await this._logging?.log({
 			level: "debug",
@@ -1747,8 +1714,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
-	 * Per-partition cleanup body for orphaned PushSubscriptions. Must run inside the
-	 * target tenant's context on multi-tenant nodes (caller wraps `ContextIdStore.run`).
+	 * Per-partition cleanup body for orphaned PushSubscriptions.
 	 * @returns The number of subscriptions deleted in this partition.
 	 * @internal
 	 */

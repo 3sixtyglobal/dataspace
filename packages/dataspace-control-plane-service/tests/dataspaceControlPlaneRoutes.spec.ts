@@ -64,10 +64,6 @@ describe("dataspaceControlPlaneRoutes", () => {
 			matchesLocalOrigin: async (origin: string) => ""
 		};
 		ComponentFactory.register("hosting", () => mockHostingComponent);
-		ComponentFactory.register("url-transformer", () => ({
-			className: () => "MockUrlTransformerComponent",
-			addEncryptedQueryParamToUrl: async (url: string) => url
-		}));
 
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: "did:iota:test-node",

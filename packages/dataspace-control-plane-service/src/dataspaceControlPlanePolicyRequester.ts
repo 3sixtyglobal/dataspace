@@ -57,9 +57,7 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 	 * @param callback Optional callback interface for state change notifications.
 	 */
 	constructor(loggingComponentType?: string, callback?: INegotiationCallback) {
-		this._loggingComponent = ComponentFactory.getIfExists<ILoggingComponent>(
-			loggingComponentType ?? "logging"
-		);
+		this._loggingComponent = ComponentFactory.getIfExists<ILoggingComponent>(loggingComponentType);
 		this._callback = callback;
 		this._negotiations = new Map();
 	}
