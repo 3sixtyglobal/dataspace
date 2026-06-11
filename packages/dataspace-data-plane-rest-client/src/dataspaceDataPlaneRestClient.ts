@@ -159,7 +159,7 @@ export class DataspaceDataPlaneRestClient
 	/**
 	 * Notify an Activity to the Dataspace Activity Stream.
 	 * @param activity The Activity notified.
-	 * @param trustPayload Optional trust payload to verify the requesters identity.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @returns The activity's id or entry.
 	 */
 	public async notifyActivity(

@@ -511,7 +511,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	/**
 	 * Notify an Activity.
 	 * @param activity The Activity notified.
-	 * @param trustPayload Optional trust payload to verify the requester's identity.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @returns The activity's id or entry.
 	 */
 	public async notifyActivity(
@@ -524,70 +524,69 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			activity
 		);
 
-		// For cross-node push deliveries the caller presents a JWT. Verify it,
-		// confirm the referenced transfer is still in STARTED state, and assert
-		// the verified identity is one of the two parties on that transfer.
-		if (Is.stringValue(trustPayload)) {
-			const trustInfo = await TrustHelper.verifyTrust(
-				this._trustComponent,
-				trustPayload,
-				"notifyActivity"
-			);
-			const generatorPid = this.calculateActivityGeneratorIdentity(activity);
-			// Primary lookup: by consumerPid (the entity's primary key). If this hits, the
-			// generator's PID equals consumerPid — the generator is the consumer side.
-			let transferProcess = await this._transferProcessStorage.get(generatorPid);
-			const generatorIsConsumer = Boolean(transferProcess);
+		// Every caller must present a trust payload — internal calls have no bypass,
+		// a missing payload fails verification. Verify it, confirm the referenced
+		// transfer is still in STARTED state, and assert the verified identity is
+		// one of the two parties on that transfer.
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"notifyActivity"
+		);
+		const generatorPid = this.calculateActivityGeneratorIdentity(activity);
+		// Primary lookup: by consumerPid (the entity's primary key). If this hits, the
+		// generator's PID equals consumerPid — the generator is the consumer side.
+		let transferProcess = await this._transferProcessStorage.get(generatorPid);
+		const generatorIsConsumer = Boolean(transferProcess);
 
-			if (!transferProcess) {
-				// Fallback: generatorPid === providerPid. providerPid is a UUIDv7 so it's
-				// unique per transfer, but defensively reject any case where the secondary
-				// index returns more than one match — silent first-match would risk
-				// authorising the wrong transfer if the invariant ever breaks.
-				const result = await this._transferProcessStorage.query({
-					conditions: [
-						{
-							property: "providerPid",
-							value: generatorPid,
-							comparison: ComparisonOperator.Equals
-						}
-					]
-				});
-				if (result.entities.length > 1) {
-					throw new UnauthorizedError(
-						DataspaceDataPlaneService.CLASS_NAME,
-						"pushActivityNotAuthorized"
-					);
-				}
-				transferProcess = result.entities[0] as TransferProcess | undefined;
-				// generatorIsConsumer stays false → generator is the provider side.
-			}
-
-			if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
+		if (!transferProcess) {
+			// Fallback: generatorPid === providerPid. providerPid is a UUIDv7 so it's
+			// unique per transfer, but defensively reject any case where the secondary
+			// index returns more than one match — silent first-match would risk
+			// authorising the wrong transfer if the invariant ever breaks.
+			const result = await this._transferProcessStorage.query({
+				conditions: [
+					{
+						property: "providerPid",
+						value: generatorPid,
+						comparison: ComparisonOperator.Equals
+					}
+				]
+			});
+			if (result.entities.length > 1) {
 				throw new UnauthorizedError(
 					DataspaceDataPlaneService.CLASS_NAME,
 					"pushActivityNotAuthorized"
 				);
 			}
-
-			// Bind the verified identity to the side of the transfer matching the claimed
-			// generator. Without this, a party with a valid token for transfer X can post
-			// an activity claiming to be the other party on the same transfer.
-			const expectedIdentity = generatorIsConsumer
-				? transferProcess.consumerIdentity
-				: transferProcess.providerIdentity;
-			if (!Is.stringValue(expectedIdentity) || trustInfo.identity !== expectedIdentity) {
-				throw new UnauthorizedError(
-					DataspaceDataPlaneService.CLASS_NAME,
-					"pushActivityNotAuthorized"
-				);
-			}
-
-			// Apply the transfer's agreement to the inbound activity via the PEP, which
-			// may deny it or manipulate (filter/redact) the payload. Dispatch what the
-			// PEP returns.
-			activity = await this.enforceInboxPolicy(transferProcess, activity, generatorIsConsumer);
+			transferProcess = result.entities[0] as TransferProcess | undefined;
+			// generatorIsConsumer stays false → generator is the provider side.
 		}
+
+		if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
+			throw new UnauthorizedError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"pushActivityNotAuthorized"
+			);
+		}
+
+		// Bind the verified identity to the side of the transfer matching the claimed
+		// generator. Without this, a party with a valid token for transfer X can post
+		// an activity claiming to be the other party on the same transfer.
+		const expectedIdentity = generatorIsConsumer
+			? transferProcess.consumerIdentity
+			: transferProcess.providerIdentity;
+		if (!Is.stringValue(expectedIdentity) || trustInfo.identity !== expectedIdentity) {
+			throw new UnauthorizedError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"pushActivityNotAuthorized"
+			);
+		}
+
+		// Apply the transfer's agreement to the inbound activity via the PEP, which
+		// may deny it or manipulate (filter/redact) the payload. Dispatch what the
+		// PEP returns.
+		activity = await this.enforceInboxPolicy(transferProcess, activity, generatorIsConsumer);
 
 		await this._logging?.log({
 			level: "debug",

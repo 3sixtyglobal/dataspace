@@ -2043,7 +2043,30 @@ describe("DataspaceDataPlaneService", () => {
 			};
 		}
 
-		test.skip("accepts activity when JWT is valid and identity matches a transfer party", async () => {
+		test("rejects when no trustPayload is provided", async () => {
+			// Mirror the real TrustService: an empty payload fails verification.
+			const verifySpy = vi.fn().mockImplementation(async payload => {
+				if (Is.stringValue(payload)) {
+					return { verified: true, info: { identity: DATA_CONSUMER_IDENTITY } };
+				}
+				return { verified: false, errors: [] };
+			});
+			ComponentFactory.register("trust", () => ({
+				className: () => "MockTrustComponent",
+				verify: verifySpy,
+				generate: vi.fn()
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID))
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+			expect(verifySpy).toHaveBeenCalledWith(undefined, undefined);
+		});
+
+		test("accepts activity when JWT is valid and identity matches a transfer party", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			const service = new DataspaceDataPlaneService(options);
 
@@ -2064,7 +2087,7 @@ describe("DataspaceDataPlaneService", () => {
 			expect(logEntry.generator).toBe(TEST_CONSUMER_PID);
 		});
 
-		test.skip("rejects when JWT verification fails", async () => {
+		test("rejects when JWT verification fails", async () => {
 			ComponentFactory.register("trust", () => ({
 				className: () => "MockTrustComponent",
 				verify: vi.fn().mockResolvedValue({ verified: false, errors: [] }),
@@ -2077,7 +2100,7 @@ describe("DataspaceDataPlaneService", () => {
 			).rejects.toMatchObject({ name: "UnauthorizedError" });
 		});
 
-		test.skip("rejects when no matching STARTED transfer exists for generator", async () => {
+		test("rejects when no matching STARTED transfer exists for generator", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			const service = new DataspaceDataPlaneService(options);
 
@@ -2090,7 +2113,7 @@ describe("DataspaceDataPlaneService", () => {
 			).rejects.toMatchObject({ name: "UnauthorizedError" });
 		});
 
-		test.skip("rejects when JWT identity does not match either transfer party", async () => {
+		test("rejects when JWT identity does not match either transfer party", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
 			const service = new DataspaceDataPlaneService(options);
 
@@ -2104,7 +2127,7 @@ describe("DataspaceDataPlaneService", () => {
 		// Inbox policy enforcement via the PEP. The PEP is registered per-test because
 		// the gate is skipped when none is wired, so the auth tests above pass unchanged.
 
-		test.skip("rejects the activity when the PEP denies it (returns an empty object)", async () => {
+		test("rejects the activity when the PEP denies it (returns an empty object)", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			// The enforcement processor returns {} for a full deny.
 			ComponentFactory.register("policy-enforcement-point-service", () =>
@@ -2126,7 +2149,7 @@ describe("DataspaceDataPlaneService", () => {
 			});
 		});
 
-		test.skip("rejects the activity when the PEP denies it (returns a non-object)", async () => {
+		test("rejects the activity when the PEP denies it (returns a non-object)", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			// The enforcement processor returns `false` when denying non-object data;
 			// the gate must treat any non-object result as a deny.
@@ -2149,7 +2172,7 @@ describe("DataspaceDataPlaneService", () => {
 			});
 		});
 
-		test.skip("accepts the activity when the PEP grants it (returns the activity unchanged)", async () => {
+		test("accepts the activity when the PEP grants it (returns the activity unchanged)", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			// No interceptResult → the mock returns the input activity unchanged (granted).
 			ComponentFactory.register("policy-enforcement-point-service", () =>
@@ -2170,7 +2193,7 @@ describe("DataspaceDataPlaneService", () => {
 			expect(Is.stringValue(result)).toBe(true);
 		});
 
-		test.skip("dispatches the PEP-manipulated activity, not the original", async () => {
+		test("dispatches the PEP-manipulated activity, not the original", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			// The PEP permits the activity but rewrites the payload. The gate must
 			// dispatch (and log) what the PEP returns — the marker proves the dispatched
@@ -2197,7 +2220,7 @@ describe("DataspaceDataPlaneService", () => {
 			expect(logEntry.generator).toBe("urn:uuid:pep-manipulated-marker");
 		});
 
-		test.skip("skips the gate when the transfer's agreement has no rules at all (legacy lenience)", async () => {
+		test("skips the gate when the transfer's agreement has no rules at all (legacy lenience)", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			// PEP that would deny if called — but it shouldn't be called for an empty agreement.
 			const interceptSpy = vi.fn().mockResolvedValue({});
@@ -2225,7 +2248,7 @@ describe("DataspaceDataPlaneService", () => {
 			expect(interceptSpy).not.toHaveBeenCalled();
 		});
 
-		test.skip("derives a write action from a consumer-generated activity (Create → write)", async () => {
+		test("derives a write action from a consumer-generated activity (Create → write)", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
 			ComponentFactory.register("policy-enforcement-point-service", () => ({
@@ -2251,7 +2274,7 @@ describe("DataspaceDataPlaneService", () => {
 			expect(action).toBe("write");
 		});
 
-		test.skip("derives a read action from a provider-generated delivery", async () => {
+		test("derives a read action from a provider-generated delivery", async () => {
 			// generator === providerPid → the provider side → a read delivery; the JWT
 			// identity must therefore match the provider identity. A unique providerPid
 			// keeps the secondary-index lookup clear of transfers left by other tests.

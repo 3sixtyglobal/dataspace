@@ -17,7 +17,7 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	/**
 	 * Notify an Activity to the Dataspace Data Plane Activity Stream.
 	 * @param activity The Activity notified.
-	 * @param trustPayload Optional trust payload to verify the requester's identity.
+	 * @param trustPayload Trust payload to verify the requesters identity.
 	 * @returns The activity's entry.
 	 */
 	notifyActivity(
