@@ -182,7 +182,7 @@ The Activity notified.
 
 `unknown`
 
-Optional trust payload to verify the requesters identity.
+Trust payload to verify the requesters identity.
 
 #### Returns
 
