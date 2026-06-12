@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.0.3-next.44](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.43...dataspace-data-plane-service-v0.0.3-next.44) (2026-06-12)
+
+
+### Bug Fixes
+
+* always verify trust in notifyActivity, no internal by ([#192](https://github.com/iotaledger/twin-dataspace/issues/192)) ([2cfc160](https://github.com/iotaledger/twin-dataspace/commit/2cfc16082a7c9d417f0b05f90f123e40f47d1e05))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.43 to 0.0.3-next.44
+    * @twin.org/dataspace-models bumped from 0.0.3-next.43 to 0.0.3-next.44
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.43 to 0.0.3-next.44
+
 ## [0.0.3-next.43](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.42...dataspace-data-plane-service-v0.0.3-next.43) (2026-06-11)
 
 

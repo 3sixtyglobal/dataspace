@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.44](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-socket-client-v0.0.3-next.43...dataspace-data-plane-socket-client-v0.0.3-next.44) (2026-06-12)
+
+
+### Miscellaneous Chores
+
+* **dataspace-data-plane-socket-client:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.43 to 0.0.3-next.44
+
 ## [0.0.3-next.43](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-socket-client-v0.0.3-next.42...dataspace-data-plane-socket-client-v0.0.3-next.43) (2026-06-11)
 
 
