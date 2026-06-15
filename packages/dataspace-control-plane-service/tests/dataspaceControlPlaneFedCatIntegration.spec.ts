@@ -87,7 +87,8 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 
 		// Create fresh transfer process storage for each test
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
-			entitySchema: nameof<TransferProcess>()
+			entitySchema: nameof<TransferProcess>(),
+			config: { storageKey: "transfer-process" }
 		});
 
 		EntityStorageConnectorFactory.register(
@@ -99,7 +100,8 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			nameofKebabCase<DataspaceAppDataset>(),
 			() =>
 				new MemoryEntityStorageConnector<DataspaceAppDataset>({
-					entitySchema: nameof<DataspaceAppDataset>()
+					entitySchema: nameof<DataspaceAppDataset>(),
+					config: { storageKey: "dataspace-app-dataset" }
 				})
 		);
 
@@ -114,10 +116,10 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		});
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		// Cleanup integrations
-		cleanupFederatedCatalogueIntegration("test-fedcat");
-		cleanupPapIntegration("test-pap");
+		await cleanupFederatedCatalogueIntegration("test-fedcat");
+		await cleanupPapIntegration("test-pap");
 
 		// Cleanup mock PNP and URL transformer
 		try {
@@ -201,7 +203,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 				expect(retrievedDataset["dct:publisher"]).toBe("did:iota:provider-node-xyz");
 
 				// NEW: Verify we can inspect storage directly
-				const allDatasets = datasetStorage.getStore();
+				const allDatasets = await datasetStorage.getStore();
 				expect(allDatasets.length).toBe(1);
 				// Storage entity has different structure than DCAT dataset
 				expect(allDatasets[0].id).toBe(datasetId);
@@ -298,7 +300,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 				expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
 
 				// NEW: Verify storage state
-				const allDatasets = datasetStorage.getStore();
+				const allDatasets = await datasetStorage.getStore();
 				expect(allDatasets.length).toBe(1);
 			}
 		);
@@ -438,7 +440,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 				}
 
 				// NEW: Verify catalog is actually empty (no datasets stored)
-				const allDatasets = datasetStorage.getStore();
+				const allDatasets = await datasetStorage.getStore();
 				expect(allDatasets.length).toBe(0);
 			}
 		);
@@ -530,7 +532,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 				// NEW: Verify dataset exists but validation failed
 				const retrievedDataset = await federatedCatalogue.get(datasetId, providerToken);
 				expect((retrievedDataset as IDcatDataset)["@id"]).toBe(datasetId);
-				expect(datasetStorage.getStore().length).toBe(1);
+				expect((await datasetStorage.getStore()).length).toBe(1);
 			}
 		);
 	});

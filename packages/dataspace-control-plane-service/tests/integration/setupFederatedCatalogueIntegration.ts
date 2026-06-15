@@ -20,7 +20,8 @@ export function createRealFederatedCatalogue(trustComponentType: string = "trust
 } {
 	// Create memory storage for datasets
 	const datasetStorage = new MemoryEntityStorageConnector<Dataset>({
-		entitySchema: nameof<Dataset>()
+		entitySchema: nameof<Dataset>(),
+		config: { storageKey: "dataset" }
 	});
 
 	// Register the storage connector
@@ -67,10 +68,18 @@ export function setupFederatedCatalogueIntegration(
 
 /**
  * Cleanup FederatedCatalogue integration test setup.
- * Call this in afterEach to clean up registrations.
+ * Call this in afterEach to clean up registrations and clear the shared buffer.
  * @param componentName - The component name to unregister (default: "test-fedcat").
  */
-export function cleanupFederatedCatalogueIntegration(componentName: string = "test-fedcat"): void {
+export async function cleanupFederatedCatalogueIntegration(
+	componentName: string = "test-fedcat"
+): Promise<void> {
+	// Teardown clears SharedObjectBuffer["dataset"] so subsequent tests start with an empty store.
+	const tempStorage = new MemoryEntityStorageConnector<Dataset>({
+		entitySchema: nameof<Dataset>(),
+		config: { storageKey: "dataset" }
+	});
+	await tempStorage.teardown();
 	ComponentFactory.unregister(componentName);
 	EntityStorageConnectorFactory.unregister("dataset");
 }

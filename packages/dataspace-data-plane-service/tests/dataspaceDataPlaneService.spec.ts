@@ -322,7 +322,8 @@ describe("DataspaceDataPlaneService", () => {
 
 		// Create entity storage connectors
 		activityLogStorage = new MemoryEntityStorageConnector<ActivityLogDetails>({
-			entitySchema: nameof<ActivityLogDetails>()
+			entitySchema: nameof<ActivityLogDetails>(),
+			config: { storageKey: "activity-log-details" }
 		});
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<ActivityLogDetails>(),
@@ -330,7 +331,8 @@ describe("DataspaceDataPlaneService", () => {
 		);
 
 		activityTaskStorage = new MemoryEntityStorageConnector<ActivityTask>({
-			entitySchema: nameof<ActivityTask>()
+			entitySchema: nameof<ActivityTask>(),
+			config: { storageKey: "activity-task" }
 		});
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<ActivityTask>(),
@@ -338,17 +340,20 @@ describe("DataspaceDataPlaneService", () => {
 		);
 
 		backgroundTaskStorage = new MemoryEntityStorageConnector<BackgroundTask>({
-			entitySchema: nameof<BackgroundTask>()
+			entitySchema: nameof<BackgroundTask>(),
+			config: { storageKey: "background-task" }
 		});
 		EntityStorageConnectorFactory.register("background-task", () => backgroundTaskStorage);
 
 		const scheduledTaskStorage = new MemoryEntityStorageConnector<ScheduledTask>({
-			entitySchema: "ScheduledTask"
+			entitySchema: "ScheduledTask",
+			config: { storageKey: "scheduled-task" }
 		});
 		EntityStorageConnectorFactory.register("scheduled-task", () => scheduledTaskStorage);
 
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
-			entitySchema: nameof<TransferProcess>()
+			entitySchema: nameof<TransferProcess>(),
+			config: { storageKey: "transfer-process" }
 		});
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<TransferProcess>(),
@@ -356,7 +361,8 @@ describe("DataspaceDataPlaneService", () => {
 		);
 
 		pushSubscriptionStorage = new MemoryEntityStorageConnector<PushSubscription>({
-			entitySchema: nameof<PushSubscription>()
+			entitySchema: nameof<PushSubscription>(),
+			config: { storageKey: "push-subscription" }
 		});
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<PushSubscription>(),
@@ -367,7 +373,8 @@ describe("DataspaceDataPlaneService", () => {
 			EntitySchemaHelper.getSchema(DataspaceAppDataset)
 		);
 		dataspaceAppDatasetStorage = new MemoryEntityStorageConnector<DataspaceAppDataset>({
-			entitySchema: nameof<DataspaceAppDataset>()
+			entitySchema: nameof<DataspaceAppDataset>(),
+			config: { storageKey: "dataspace-app-dataset" }
 		});
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<DataspaceAppDataset>(),

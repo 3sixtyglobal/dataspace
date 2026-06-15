@@ -93,10 +93,12 @@ describe("DataspaceControlPlaneService", () => {
 	beforeEach(() => {
 		// Create fresh storage for each test
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
-			entitySchema: nameof<TransferProcess>()
+			entitySchema: nameof<TransferProcess>(),
+			config: { storageKey: "transfer-process" }
 		});
 		dataspaceAppDatasetStorage = new MemoryEntityStorageConnector<DataspaceAppDataset>({
-			entitySchema: nameof<DataspaceAppDataset>()
+			entitySchema: nameof<DataspaceAppDataset>(),
+			config: { storageKey: "dataspace-app-dataset" }
 		});
 
 		// Register the entity storage connectors
@@ -133,7 +135,7 @@ describe("DataspaceControlPlaneService", () => {
 		});
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		// Unregister the entity storage connector after each test
 		try {
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferProcess>());
@@ -154,6 +156,9 @@ describe("DataspaceControlPlaneService", () => {
 		} catch {
 			// Ignore errors if already unregistered
 		}
+
+		await transferProcessStorage.teardown();
+		await dataspaceAppDatasetStorage.teardown();
 
 		vi.restoreAllMocks();
 	});

@@ -52,7 +52,8 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 	beforeEach(() => {
 		// Create fresh storage for each test
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
-			entitySchema: nameof<TransferProcess>()
+			entitySchema: nameof<TransferProcess>(),
+			config: { storageKey: "transfer-process" }
 		});
 
 		// Register the entity storage connector
@@ -65,7 +66,8 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 			nameofKebabCase<DataspaceAppDataset>(),
 			() =>
 				new MemoryEntityStorageConnector<DataspaceAppDataset>({
-					entitySchema: nameof<DataspaceAppDataset>()
+					entitySchema: nameof<DataspaceAppDataset>(),
+					config: { storageKey: "dataspace-app-dataset" }
 				})
 		);
 

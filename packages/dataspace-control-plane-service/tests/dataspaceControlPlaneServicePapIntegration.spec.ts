@@ -65,7 +65,8 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 
 		// Create fresh transfer process storage for each test
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
-			entitySchema: nameof<TransferProcess>()
+			entitySchema: nameof<TransferProcess>(),
+			config: { storageKey: "transfer-process" }
 		});
 
 		EntityStorageConnectorFactory.register(
@@ -77,7 +78,8 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 			nameofKebabCase<DataspaceAppDataset>(),
 			() =>
 				new MemoryEntityStorageConnector<DataspaceAppDataset>({
-					entitySchema: nameof<DataspaceAppDataset>()
+					entitySchema: nameof<DataspaceAppDataset>(),
+					config: { storageKey: "dataspace-app-dataset" }
 				})
 		);
 
@@ -103,9 +105,9 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		});
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		// Cleanup PAP integration
-		cleanupPapIntegration("test-pap");
+		await cleanupPapIntegration("test-pap");
 
 		// Cleanup transfer process storage
 		try {
@@ -224,7 +226,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		expect(context.datasetId).toBe("urn:uuid:dataset-456");
 
 		// NEW: Verify we can inspect policy storage directly
-		const allPolicies = policyStorage.getStore();
+		const allPolicies = await policyStorage.getStore();
 		expect(allPolicies.length).toBeGreaterThan(0);
 		const ourPolicy = allPolicies.find(p => p.id === agreementUrn);
 		expect(ourPolicy).toBeDefined();
@@ -263,7 +265,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		}
 
 		// NEW: Verify PAP storage is empty (no policies created)
-		const allPolicies = policyStorage.getStore();
+		const allPolicies = await policyStorage.getStore();
 		expect(allPolicies.length).toBe(0);
 	});
 
@@ -291,7 +293,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		).rejects.toThrow("common.validation");
 
 		// NEW: Verify PAP storage remains empty (invalid agreement was rejected)
-		const allPolicies = policyStorage.getStore();
+		const allPolicies = await policyStorage.getStore();
 		expect(allPolicies.length).toBe(0); // No invalid policies stored - validation prevented creation!
 	});
 

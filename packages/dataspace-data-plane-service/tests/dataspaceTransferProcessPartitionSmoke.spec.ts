@@ -71,13 +71,15 @@ describe("TransferProcess partition key compatibility (Phase 0 Smoke Test)", () 
 		// Control Plane connector: partitioned by Node only
 		const controlPlaneStorage = new MemoryEntityStorageConnector<TransferProcess>({
 			entitySchema: nameof<TransferProcess>(),
-			partitionContextIds: [ContextIdKeys.Node]
+			partitionContextIds: [ContextIdKeys.Node],
+			config: { storageKey: "transfer-process" }
 		});
 
 		// Data Plane connector (FIXED): also partitioned by Node only
 		const dataPlaneStorage = new MemoryEntityStorageConnector<TransferProcess>({
 			entitySchema: nameof<TransferProcess>(),
-			partitionContextIds: [ContextIdKeys.Node]
+			partitionContextIds: [ContextIdKeys.Node],
+			config: { storageKey: "transfer-process" }
 		});
 
 		// Act: Control Plane writes
@@ -112,12 +114,14 @@ describe("TransferProcess partition key compatibility (Phase 0 Smoke Test)", () 
 
 		const controlPlaneStorage = new MemoryEntityStorageConnector<TransferProcess>({
 			entitySchema: nameof<TransferProcess>(),
-			partitionContextIds: [ContextIdKeys.Node]
+			partitionContextIds: [ContextIdKeys.Node],
+			config: { storageKey: "transfer-process" }
 		});
 
 		const dataPlaneStorageMismatched = new MemoryEntityStorageConnector<TransferProcess>({
 			entitySchema: nameof<TransferProcess>(),
-			partitionContextIds: [ContextIdKeys.Node, ContextIdKeys.Tenant]
+			partitionContextIds: [ContextIdKeys.Node, ContextIdKeys.Tenant],
+			config: { storageKey: "transfer-process" }
 		});
 
 		await controlPlaneStorage.set(makeTransferProcess());

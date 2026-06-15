@@ -126,20 +126,25 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 	beforeEach(async () => {
 		// Create fresh storage for each test
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
-			entitySchema: nameof<TransferProcess>()
+			entitySchema: nameof<TransferProcess>(),
+			config: { storageKey: "transfer-process" }
 		});
 		activityLogStorage = new MemoryEntityStorageConnector<ActivityLogDetails>({
-			entitySchema: nameof<ActivityLogDetails>()
+			entitySchema: nameof<ActivityLogDetails>(),
+			config: { storageKey: "activity-log-details" }
 		});
 		activityTaskStorage = new MemoryEntityStorageConnector<ActivityTask>({
-			entitySchema: nameof<ActivityTask>()
+			entitySchema: nameof<ActivityTask>(),
+			config: { storageKey: "activity-task" }
 		});
 		backgroundTaskStorage = new MemoryEntityStorageConnector<BackgroundTask>({
-			entitySchema: nameof<BackgroundTask>()
+			entitySchema: nameof<BackgroundTask>(),
+			config: { storageKey: "background-task" }
 		});
 
 		pushSubscriptionStorage = new MemoryEntityStorageConnector<PushSubscription>({
-			entitySchema: nameof<PushSubscription>()
+			entitySchema: nameof<PushSubscription>(),
+			config: { storageKey: "push-subscription" }
 		});
 
 		// Register all required entity storage connectors
@@ -148,7 +153,8 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			() => transferProcessStorage
 		);
 		const dataspaceAppDatasetStorage = new MemoryEntityStorageConnector<DataspaceAppDataset>({
-			entitySchema: nameof<DataspaceAppDataset>()
+			entitySchema: nameof<DataspaceAppDataset>(),
+			config: { storageKey: "dataspace-app-dataset" }
 		});
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<DataspaceAppDataset>(),
@@ -194,7 +200,8 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		EntityStorageConnectorFactory.register("background-task", () => backgroundTaskStorage);
 
 		const scheduledTaskStorage = new MemoryEntityStorageConnector<ScheduledTask>({
-			entitySchema: "ScheduledTask"
+			entitySchema: "ScheduledTask",
+			config: { storageKey: "scheduled-task" }
 		});
 		EntityStorageConnectorFactory.register("scheduled-task", () => scheduledTaskStorage);
 

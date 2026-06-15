@@ -32,7 +32,8 @@ describe("dataspaceControlPlaneRoutes", () => {
 
 	beforeEach(() => {
 		transferProcessStorage = new MemoryEntityStorageConnector<TransferProcess>({
-			entitySchema: nameof<TransferProcess>()
+			entitySchema: nameof<TransferProcess>(),
+			config: { storageKey: "transfer-process" }
 		});
 
 		EntityStorageConnectorFactory.register(
@@ -44,7 +45,8 @@ describe("dataspaceControlPlaneRoutes", () => {
 			nameofKebabCase<DataspaceAppDataset>(),
 			() =>
 				new MemoryEntityStorageConnector<DataspaceAppDataset>({
-					entitySchema: nameof<DataspaceAppDataset>()
+					entitySchema: nameof<DataspaceAppDataset>(),
+					config: { storageKey: "dataspace-app-dataset" }
 				})
 		);
 

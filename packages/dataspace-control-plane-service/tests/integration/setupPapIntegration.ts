@@ -22,7 +22,8 @@ export function createRealPolicyAdministrationPoint(): {
 } {
 	// Create memory storage for policies
 	const policyStorage = new MemoryEntityStorageConnector<OdrlPolicy>({
-		entitySchema: nameof<OdrlPolicy>()
+		entitySchema: nameof<OdrlPolicy>(),
+		config: { storageKey: "odrl-policy" }
 	});
 
 	// Register the storage connector
@@ -66,10 +67,16 @@ export function setupPapIntegration(componentName: string = "test-pap"): {
 
 /**
  * Cleanup PAP integration test setup.
- * Call this in afterEach to clean up registrations.
+ * Call this in afterEach to clean up registrations and clear the shared buffer.
  * @param componentName - The component name to unregister (default: "test-pap").
  */
-export function cleanupPapIntegration(componentName: string = "test-pap"): void {
+export async function cleanupPapIntegration(componentName: string = "test-pap"): Promise<void> {
+	// Teardown clears SharedObjectBuffer["odrl-policy"] so subsequent tests start with an empty store.
+	const tempStorage = new MemoryEntityStorageConnector<OdrlPolicy>({
+		entitySchema: nameof<OdrlPolicy>(),
+		config: { storageKey: "odrl-policy" }
+	});
+	await tempStorage.teardown();
 	ComponentFactory.unregister(componentName);
 	EntityStorageConnectorFactory.unregister("odrl-policy");
 }
