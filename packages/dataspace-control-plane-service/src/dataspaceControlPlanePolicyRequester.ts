@@ -177,7 +177,7 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 	 * A policy finalisation has been sent by a provider.
 	 * Called by PNP when provider sends a FinalizedEvent.
 	 * @param negotiationId The id of the negotiation.
-	 * @returns Nothing.
+	 * @returns A promise that resolves when all finalisation callbacks have been notified.
 	 */
 	public async finalised(negotiationId: string): Promise<void> {
 		await this._loggingComponent?.log({
@@ -234,7 +234,7 @@ export class DataspaceControlPlanePolicyRequester implements IPolicyRequester {
 	 * A policy termination has been sent by a provider.
 	 * Called by PNP when provider sends a TerminatedMessage or negotiation fails.
 	 * @param negotiationId The id of the negotiation.
-	 * @returns Nothing.
+	 * @returns A promise that resolves when all termination callbacks have been notified.
 	 */
 	public async terminated(negotiationId: string): Promise<void> {
 		await this._loggingComponent?.log({

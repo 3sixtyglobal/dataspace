@@ -3,11 +3,11 @@
 import type { IActivityLogStatusNotification } from "../IActivityLogStatusNotification.js";
 
 /**
- * The status supplied to clients of the Dataspace Data Plane
+ * WebSocket push payload carrying an activity log status notification to connected clients.
  */
 export interface IActivityLogStatusNotificationPayload {
 	/**
-	 * Body
+	 * The activity log status notification.
 	 */
 	body: IActivityLogStatusNotification;
 }

@@ -205,9 +205,10 @@ export class DataspaceDataPlaneRestClient
 	}
 
 	/**
-	 * Unsubscribes to the activity log - implemented in Socket Client.
-	 * @param subscriptionId The subscription Id.
-	 * @returns The subscription Id.
+	 * Unsubscribes from the activity log — implemented in Socket Client.
+	 * @param subscriptionId The subscription Id to remove.
+	 * @returns A promise that always rejects since this operation is not supported on the REST client.
+	 * @throws NotSupportedError as this method is not supported on the REST client.
 	 */
 	public async unSubscribeToActivityLog(subscriptionId: string): Promise<void> {
 		// This is in the socket client

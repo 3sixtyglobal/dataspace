@@ -6,6 +6,10 @@ import {
 	tagsDataspaceDataPlane
 } from "./dataspaceDataPlaneRoutes.js";
 
+/**
+ * Entry points for the REST API.
+ * Defines REST routes for the Dataspace Data Plane.
+ */
 export const restEntryPoints: IRestRouteEntryPoint[] = [
 	{
 		name: "dataspace-data-plane",

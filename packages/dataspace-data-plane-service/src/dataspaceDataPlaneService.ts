@@ -439,6 +439,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	/**
 	 * The service needs to be started when the application is initialized.
 	 * @param nodeLoggingComponentType The node logging component type.
+	 * @returns A promise that resolves when the push-delivery handler and cleanup task are registered.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
 		await this._backgroundTaskComponent.registerHandler<IPushDeliveryPayload, unknown>(
@@ -745,8 +746,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
-	 * Subscribes to the activity log.
-	 * @param subscriptionId The Subscription Id.
+	 * Unsubscribes from the activity log.
+	 * @param subscriptionId The subscription Id to remove.
+	 * @returns A promise that resolves when the subscription has been removed.
 	 */
 	public async unSubscribeToActivityLog(subscriptionId: string): Promise<void> {
 		Guards.stringValue(
@@ -1291,6 +1293,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	/**
 	 * Schedule a push delivery when the app has new outbound data.
 	 * @param activity The outbound activity carrying the data payload.
+	 * @returns A promise that resolves when the push delivery task has been scheduled.
 	 */
 	public async processOutboxActivity(activity: IActivityStreamsActivity): Promise<void> {
 		Guards.object<IActivityStreamsActivity>(
@@ -1539,6 +1542,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Cleans up the activity log by deleting those entries that no longer shall be retained.
+	 * @returns A promise that resolves when all expired log entries have been deleted.
 	 * @internal
 	 */
 	private async cleanupActivityLog(): Promise<void> {
@@ -2148,6 +2152,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * Obligations are duties that must be fulfilled as part of the agreement.
 	 * @param obligations The obligation rules from the Agreement.
 	 * @param agreementId The agreement ID for reference.
+	 * @returns A promise that resolves when all obligations have been logged.
 	 * @internal
 	 */
 	private async logObligations(

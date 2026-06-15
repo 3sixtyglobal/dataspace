@@ -8,8 +8,7 @@ import {
 
 /**
  * Entry points for the REST API.
- * Defines REST routes for DSP protocol only.
- * Resolver methods (IDataspaceControlPlaneResolverComponent).
+ * Defines REST routes for DSP Transfer Process and Contract Negotiation Protocol.
  */
 export const restEntryPoints: IRestRouteEntryPoint[] = [
 	{

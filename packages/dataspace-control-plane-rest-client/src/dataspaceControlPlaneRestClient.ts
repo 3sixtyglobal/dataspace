@@ -508,6 +508,7 @@ export class DataspaceControlPlaneRestClient
 	 * @param id The stored dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @returns A promise that resolves when the dataset has been updated.
 	 */
 	public async updateAppDataset(
 		id: string,
@@ -531,6 +532,7 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Delete an app dataset record owned by the calling tenant.
 	 * @param id The stored app dataset id.
+	 * @returns A promise that resolves when the dataset has been deleted.
 	 */
 	public async deleteAppDataset(id: string): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneRestClient.CLASS_NAME, nameof(id), id);

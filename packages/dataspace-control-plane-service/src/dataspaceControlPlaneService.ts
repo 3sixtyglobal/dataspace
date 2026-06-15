@@ -370,6 +370,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * The service needs to be started when the application is initialized.
 	 * @param nodeLoggingComponentType The node logging component type.
+	 * @returns A promise that resolves when the federated catalogue is populated and the cleanup task is scheduled.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
 		const engine = EngineCoreFactory.getIfExists("engine");
@@ -479,6 +480,7 @@ export class DataspaceControlPlaneService
 	 * Stop the service.
 	 * Removes the stalled negotiation cleanup task.
 	 * @param nodeLoggingComponentType The node logging component type.
+	 * @returns A promise that resolves when the cleanup task has been removed.
 	 */
 	public async stop(nodeLoggingComponentType?: string): Promise<void> {
 		if (this._taskScheduler) {
@@ -2295,6 +2297,7 @@ export class DataspaceControlPlaneService
 	 * @param id The stored dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @returns A promise that resolves when the dataset has been updated in storage and the catalogue.
 	 */
 	public async updateAppDataset(
 		id: string,
@@ -2336,6 +2339,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Delete a dataspace app dataset owned by the calling organization.
 	 * @param id The stored app dataset id.
+	 * @returns A promise that resolves when the dataset has been removed from storage and the catalogue.
 	 */
 	public async deleteAppDataset(id: string): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
@@ -2376,6 +2380,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Cleanup stalled negotiations.
 	 * Called periodically by the task scheduler.
+	 * @returns A promise that resolves when all stalled negotiations have been removed and their callbacks notified.
 	 * @internal
 	 */
 	private async cleanupStalledNegotiations(): Promise<void> {
@@ -2508,9 +2513,9 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Extract dataset ID from Agreement target.
-	 * @param format Agreement.
-	 * @returns Dataset ID.
+	 * Check whether a transfer format string represents a push-mode delivery.
+	 * @param format The transfer format string from the TransferProcess entity.
+	 * @returns True if the format is a push variant (HttpData-PUSH or HttpData-POST).
 	 * @internal
 	 */
 	private isPushFormat(format: string | undefined): boolean {
@@ -2562,6 +2567,7 @@ export class DataspaceControlPlaneService
 	 * Validate that the dataset exists in the Federated Catalogue.
 	 * @param datasetId Dataset identifier extracted from Agreement.
 	 * @param agreement The Agreement being validated.
+	 * @returns A promise that resolves when the dataset has been confirmed in the catalogue and the offer has been validated.
 	 * @internal
 	 */
 	private async validateCatalogDataset(
@@ -2711,6 +2717,7 @@ export class DataspaceControlPlaneService
 	 * Validate that the Agreement policies match at least one Catalog Offer.
 	 * @param agreement Agreement to validate.
 	 * @param catalogDataset Catalog dataset containing Offers.
+	 * @returns A promise that resolves when the agreement has been matched against a catalogue offer.
 	 * @internal
 	 */
 	private async validateAgreementMatchesOffer(

@@ -39,8 +39,8 @@ let nodeIdentity: string | undefined;
 
 /**
  * Push Delivery Task Startup Method.
- * @param engineCloneData The Engine.
- * @returns Nothing.
+ * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
+ * @returns A promise that resolves when the engine has started and all push-delivery components are ready.
  */
 export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone): Promise<void> {
 	startupPromise = (async () => {
@@ -68,7 +68,7 @@ export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone)
 
 /**
  * Push Delivery Task End.
- * @returns Nothing.
+ * @returns A promise that resolves when the engine has stopped and all resources are released.
  */
 export async function pushDeliveryRunnerEnd(): Promise<void> {
 	if (!Is.empty(engine)) {
@@ -80,9 +80,9 @@ export async function pushDeliveryRunnerEnd(): Promise<void> {
 
 /**
  * Push Delivery Task — POSTs an Activity Streams object to a consumer's /inbox.
- * @param engineCloneData The Engine.
- * @param payload The push delivery payload.
- * @returns The result.
+ * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
+ * @param payload The push delivery payload describing the consumer endpoint, auth, and data.
+ * @returns The delivery result containing a success flag on successful POST.
  */
 export async function pushDeliveryRunner(
 	engineCloneData: IEngineCoreClone,
@@ -120,7 +120,7 @@ export async function pushDeliveryRunner(
 /**
  * Inner body of the push delivery runner.
  * @param payload The push delivery payload.
- * @returns The result of the delivery.
+ * @returns The delivery result containing a success flag on successful POST.
  * @internal
  */
 async function pushDeliveryRunnerBody(payload: IPushDeliveryPayload): Promise<unknown> {

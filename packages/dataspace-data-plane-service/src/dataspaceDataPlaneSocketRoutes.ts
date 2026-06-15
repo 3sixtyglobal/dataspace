@@ -42,12 +42,12 @@ export function generateSocketRoutesDataspaceDataPlane(
 }
 
 /**
- * Provides an status update.
+ * Handles an activity log subscribe or unsubscribe operation over a WebSocket.
  * @param socketRequestContext The request context for the API.
  * @param componentName The name of the component to use in the routes.
  * @param request The request.
  * @param emitter The emitter to send message back.
- * @returns The response object with additional http response properties.
+ * @returns A promise that resolves when the subscribe or unsubscribe operation is complete.
  */
 export async function activityLogStatusUpdate(
 	socketRequestContext: ISocketRequestContext,
@@ -83,6 +83,7 @@ export async function activityLogStatusUpdate(
  * Executes when there is a disconnection.
  * @param socketRequestContext Socket Request Context
  * @param componentName Component name.
+ * @returns A promise that resolves when the socket subscription has been removed.
  */
 export async function activityLogStatusDisconnected(
 	socketRequestContext: ISocketRequestContext,
@@ -106,8 +107,9 @@ export async function activityLogStatusDisconnected(
 }
 
 /**
- * Executes when there is a disconnection.
+ * Executes when a new socket connection is established.
  * @param socketRequestContext Socket Request Context
+ * @returns A promise that resolves when the connection event has been logged.
  */
 export async function activityLogStatusConnected(
 	socketRequestContext: ISocketRequestContext

@@ -8,9 +8,15 @@ import { entity, property, SortDirection } from "@twin.org/entity";
  */
 @entity()
 export class PushSubscription {
+	/**
+	 * Consumer process ID identifying the transfer. Also the primary key for this entity.
+	 */
 	@property({ type: "string", isPrimary: true })
 	public consumerPid!: string;
 
+	/**
+	 * Provider process ID from the DSP Transfer Process.
+	 */
 	@property({ type: "string" })
 	public providerPid!: string;
 
@@ -21,6 +27,9 @@ export class PushSubscription {
 	@property({ type: "string" })
 	public followActivityId!: string;
 
+	/**
+	 * Dataset ID identifying which dataset is being delivered.
+	 */
 	@property({ type: "string" })
 	public datasetId!: string;
 
@@ -33,9 +42,16 @@ export class PushSubscription {
 	@property({ type: "string", optional: true })
 	public tenantId?: string;
 
+	/**
+	 * The consumer's /inbox endpoint URL where activities are POSTed.
+	 */
 	@property({ type: "string" })
 	public consumerEndpoint!: string;
 
+	/**
+	 * Pre-packaged bearer token for authenticating pushes to the consumer endpoint.
+	 * When absent a fresh JWT is generated at delivery time.
+	 */
 	@property({ type: "string", optional: true })
 	public consumerAuthToken?: string;
 
@@ -46,6 +62,9 @@ export class PushSubscription {
 	@property({ type: "boolean" })
 	public paused!: boolean;
 
+	/**
+	 * Creation timestamp (ISO string format).
+	 */
 	@property({ type: "string", format: "date-time", sortDirection: SortDirection.Descending })
 	public dateCreated!: string;
 

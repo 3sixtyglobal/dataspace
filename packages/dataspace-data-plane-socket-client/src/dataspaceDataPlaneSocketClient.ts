@@ -212,9 +212,9 @@ export class DataspaceDataPlaneSocketClient
 	}
 
 	/**
-	 * Unsubscribes to the activity log.
-	 * @param subscriptionId The subscription Id.
-	 * @returns The subscription Id.
+	 * Unsubscribes from the activity log.
+	 * @param subscriptionId The subscription Id to remove.
+	 * @returns A promise that resolves when the subscription has been removed.
 	 */
 	public async unSubscribeToActivityLog(subscriptionId: string): Promise<void> {
 		Guards.stringValue(
@@ -317,6 +317,7 @@ export class DataspaceDataPlaneSocketClient
 
 	/**
 	 * Handle the socket connection.
+	 * @returns A promise that resolves when any pending subscribe requests have been re-sent.
 	 */
 	protected async handleConnected(): Promise<void> {
 		// The socket has reconnected so send subscribe requests
@@ -338,6 +339,7 @@ export class DataspaceDataPlaneSocketClient
 	/**
 	 * Handle an error.
 	 * @param err The error to handle.
+	 * @returns A promise that resolves when the error has been logged.
 	 */
 	protected async handleError(err: IError): Promise<void> {
 		await this._logging?.log({
@@ -352,6 +354,7 @@ export class DataspaceDataPlaneSocketClient
 	/**
 	 * Handle an incoming publish event.
 	 * @param event The incoming data.
+	 * @returns A promise that resolves when all subscriber callbacks have been invoked.
 	 * @internal
 	 */
 	private async incomingPublishActivityLog(

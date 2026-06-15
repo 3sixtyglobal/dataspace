@@ -90,9 +90,9 @@ export function isCatalogErrorName(
 }
 
 /**
- * Check if a CatalogError contains a specific error name in its code.
- * @param error The CatalogError to check.
- * @returns True if the error code contains the specified error name.
+ * Type guard that checks whether an unknown value is a DSP CatalogError.
+ * @param error The value to check.
+ * @returns True if the value has the JSON-LD type of a DSP CatalogError.
  */
 export function isCatalogError(error: unknown): error is IDataspaceProtocolCatalogError {
 	return getJsonLdType(error) === DataspaceProtocolCatalogTypes.CatalogError;

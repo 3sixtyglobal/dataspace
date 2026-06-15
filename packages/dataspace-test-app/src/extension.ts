@@ -15,9 +15,10 @@ import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js
 import { TestDataspaceDataPlaneApp } from "./testDataspaceDataPlaneApp.js";
 
 /**
- * Initialise the  extension.
+ * Initialise the extension.
  * @param envVars The environment variables for the node.
  * @param nodeEngineConfig The node engine config.
+ * @returns A promise that resolves when the test app component type has been registered in the engine config.
  */
 export async function extensionInitialise(
 	envVars: { [id: string]: string | unknown },
@@ -38,6 +39,7 @@ export async function extensionInitialise(
 /**
  * Initialise the engine for the extension.
  * @param engineCore The engine core instance.
+ * @returns A promise that resolves when the type initialiser has been registered with the engine.
  */
 export async function extensionInitialiseEngine(engineCore: IEngineCore): Promise<void> {
 	engineCore.addTypeInitialiser(
@@ -51,6 +53,7 @@ export async function extensionInitialiseEngine(engineCore: IEngineCore): Promis
  * Initialise the engine server for the extension.
  * @param engineCore The engine core instance.
  * @param engineServer The engine server instance.
+ * @returns A promise that resolves when the REST route generator has been registered with the engine server.
  */
 export async function extensionInitialiseEngineServer(
 	engineCore: IEngineCore,

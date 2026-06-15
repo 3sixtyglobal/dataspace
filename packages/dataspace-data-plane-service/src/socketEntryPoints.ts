@@ -4,6 +4,10 @@ import type { ISocketRouteEntryPoint } from "@twin.org/api-models";
 import { tagsDataspaceDataPlane } from "./dataspaceDataPlaneRoutes.js";
 import { generateSocketRoutesDataspaceDataPlane } from "./dataspaceDataPlaneSocketRoutes.js";
 
+/**
+ * Entry points for the WebSocket API.
+ * Defines socket routes for the Dataspace Data Plane activity log subscription.
+ */
 export const socketEntryPoints: ISocketRouteEntryPoint[] = [
 	{
 		name: "dataspace-data-plane",

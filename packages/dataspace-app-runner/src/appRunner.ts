@@ -25,8 +25,8 @@ let startupPromise: Promise<void> | undefined;
 
 /**
  * Dataspace Task Startup Method.
- * @param engineCloneData The Engine.
- * @returns Nothing.
+ * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
+ * @returns A promise that resolves when the engine has started and is ready to process tasks.
  */
 export async function appRunnerStart(engineCloneData: IEngineCoreClone): Promise<void> {
 	startupPromise = (async () => {
@@ -49,7 +49,7 @@ export async function appRunnerStart(engineCloneData: IEngineCoreClone): Promise
 
 /**
  * Dataspace Task End.
- * @returns Nothing.
+ * @returns A promise that resolves when the engine has stopped and all resources are released.
  */
 export async function appRunnerEnd(): Promise<void> {
 	if (!Is.empty(engine)) {
@@ -61,9 +61,9 @@ export async function appRunnerEnd(): Promise<void> {
 
 /**
  * Dataspace Task.
- * @param engineCloneData The Engine.
- * @param payload The payload
- * @returns The execution result.
+ * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
+ * @param payload The execution payload describing the activity and target app.
+ * @returns The result produced by the app's handleActivity method.
  */
 export async function appRunner(
 	engineCloneData: IEngineCoreClone,

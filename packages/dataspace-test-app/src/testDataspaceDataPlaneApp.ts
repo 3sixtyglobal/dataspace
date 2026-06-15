@@ -139,7 +139,7 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 
 	/**
 	 * Supported query types.
-	 * @returns Types.
+	 * @returns The query type identifiers supported by this app.
 	 */
 	public supportedQueryTypes(): string[] {
 		return ["TestQueryType"];
@@ -147,7 +147,8 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 
 	/**
 	 * Start method.
-	 * @param nodeLoggingComponentType the logging component type of such a node.
+	 * @param nodeLoggingComponentType The logging component type of such a node.
+	 * @returns A promise that resolves when data type handlers are registered and the node identity is captured.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
 		const contextIds = await ContextIdStore.getContextIds();
@@ -188,8 +189,8 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 
 	/**
 	 * Handle Activity.
-	 * @param activity Activity
-	 * @returns Activity processing result
+	 * @param activity The activity to handle.
+	 * @returns The activity processing result produced by this app.
 	 */
 	public async handleActivity<T>(activity: IDataspaceActivity): Promise<T> {
 		Guards.object<IActivityStreamsActivity>(
@@ -216,10 +217,10 @@ export class TestDataspaceDataPlaneApp implements IDataspaceApp {
 
 	/**
 	 * Handles the Data Request.
-	 * @param dataRequest The data request
+	 * @param dataRequest The data request.
 	 * @param cursor Cursor that points to the next item in the result set.
 	 * @param limit Maximum number of entries retrieved or to be retrieved.
-	 * @returns the Data.
+	 * @returns The matching JSON-LD data and an optional next-page cursor.
 	 */
 	public async handleDataRequest(
 		dataRequest: IDataRequest,

@@ -37,9 +37,9 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	): Promise<string>;
 
 	/**
-	 * Unsubscribes to the activity log.
-	 * @param subscriptionId The subscription Id.
-	 * @returns The subscription Id.
+	 * Unsubscribes from the activity log.
+	 * @param subscriptionId The subscription Id to remove.
+	 * @returns A promise that resolves when the subscription has been removed.
 	 */
 	unSubscribeToActivityLog(subscriptionId: string): Promise<void>;
 

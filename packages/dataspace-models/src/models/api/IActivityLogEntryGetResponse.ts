@@ -3,7 +3,7 @@
 import type { IActivityLogEntry } from "../IActivityLogEntry.js";
 
 /**
- * Service Offering response
+ * Response containing a single activity log entry.
  */
 export interface IActivityLogEntryGetResponse {
 	/**

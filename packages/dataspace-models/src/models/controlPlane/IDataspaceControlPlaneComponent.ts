@@ -360,14 +360,14 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param id The stored app dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
-	 * @returns Nothing.
+	 * @returns A promise that resolves when the dataset has been updated in storage and the catalogue.
 	 */
 	updateAppDataset(id: string, appId: string, dataset: IDataspaceProtocolDataset): Promise<void>;
 
 	/**
 	 * Delete an app dataset record owned by the calling tenant.
 	 * @param id The stored app dataset id.
-	 * @returns Nothing.
+	 * @returns A promise that resolves when the dataset has been removed from storage and the catalogue.
 	 */
 	deleteAppDataset(id: string): Promise<void>;
 }

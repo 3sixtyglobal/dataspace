@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0.
 
 /**
- * Activity log status
+ * WebSocket request to subscribe or unsubscribe from the activity log stream.
  */
 export interface IActivityLogStatusRequest {
 	/**
-	 * Empty body.
+	 * Request body containing the subscribe or unsubscribe operation.
 	 */
 	body: {
 		/**
