@@ -284,10 +284,7 @@ export async function activityStreamNotify(
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
 
-	// Extract JWT from Authorization header for cross-node push deliveries (P5.3).
-	// Internal activities sent without a header still work — trustPayload will be undefined.
-	const extractedBearer = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
-	const trustPayload = Is.stringValue(extractedBearer) ? extractedBearer : undefined;
+	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
 	const result = await component.notifyActivity(request.body, trustPayload);
 
 	if (Is.string(result)) {
