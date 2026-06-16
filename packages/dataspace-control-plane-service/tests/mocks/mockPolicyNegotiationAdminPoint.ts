@@ -4,8 +4,7 @@ import type {
 	IPolicyNegotiation,
 	IPolicyNegotiationAdminPointComponent
 } from "@twin.org/rights-management-models";
-import type { DataspaceProtocolContractNegotiationStateType } from "@twin.org/standards-dataspace-protocol";
-import { DataspaceProtocolContractNegotiationStateType as StateType } from "@twin.org/standards-dataspace-protocol";
+import { DataspaceProtocolContractNegotiationStateType } from "@twin.org/standards-dataspace-protocol";
 
 /**
  * Mock implementation of IPolicyNegotiationAdminPointComponent for testing.
@@ -35,7 +34,7 @@ export class MockPolicyNegotiationAdminPointComponent implements IPolicyNegotiat
 		return {
 			id,
 			correlationId: overrides.correlationId ?? `provider-${id}`,
-			state: overrides.state ?? StateType.FINALIZED,
+			state: overrides.state ?? DataspaceProtocolContractNegotiationStateType.FINALIZED,
 			dateCreated: overrides.dateCreated ?? new Date().toISOString(),
 			offer: overrides.offer,
 			agreement: overrides.agreement,
@@ -58,6 +57,22 @@ export class MockPolicyNegotiationAdminPointComponent implements IPolicyNegotiat
 	 */
 	public className(): string {
 		return "MockPolicyNegotiationAdminPointComponent";
+	}
+
+	/**
+	 * Pre-registers a consumer-side negotiation entry.
+	 * @param id The consumer-side negotiation identifier.
+	 * @returns The negotiation id.
+	 */
+	public async create(id: string): Promise<string> {
+		this._negotiations.set(id, {
+			id,
+			correlationId: "",
+			dateCreated: new Date(Date.now()).toISOString(),
+			state: DataspaceProtocolContractNegotiationStateType.REQUESTED,
+			organizationIdentity: "did:example:123456789"
+		});
+		return id;
 	}
 
 	/**
