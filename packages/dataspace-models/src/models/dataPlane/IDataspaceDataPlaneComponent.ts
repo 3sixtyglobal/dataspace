@@ -46,10 +46,12 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	/**
 	 * Returns Activity Log Entry which contains the Activity processing details.
 	 * @param logEntryId The Id of the Activity Log Entry (a URI).
+	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
 	 */
-	getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry>;
+	getActivityLogEntry(logEntryId: string, trustPayload?: unknown): Promise<IActivityLogEntry>;
 
 	/**
 	 * Get Data Asset entities. Allows to retrieve entities by their type or id.

@@ -171,7 +171,8 @@ export function generateRestRoutesDataspaceDataPlane(
 					}
 				]
 			}
-		]
+		],
+		skipAuth: true
 	};
 
 	const getDataAssetEntitiesRoute: IRestRoute<
@@ -339,8 +340,10 @@ export async function activityLogEntryGet(
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
 
+	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
+
 	return {
-		body: await component.getActivityLogEntry(request.pathParams.id)
+		body: await component.getActivityLogEntry(request.pathParams.id, trustPayload)
 	};
 }
 

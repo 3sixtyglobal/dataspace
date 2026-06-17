@@ -2090,8 +2090,8 @@ describe("DataspaceDataPlaneService", () => {
 				"Bearer test-token"
 			);
 			expect(Is.stringValue(result)).toBe(true);
-			const logEntry = await service.getActivityLogEntry(result as string);
-			expect(logEntry.generator).toBe(TEST_CONSUMER_PID);
+			const stored = await activityLogStorage.get(result as string);
+			expect(stored?.generator).toBe(TEST_CONSUMER_PID);
 		});
 
 		test("rejects when JWT verification fails", async () => {
@@ -2223,8 +2223,8 @@ describe("DataspaceDataPlaneService", () => {
 				"Bearer test-token"
 			);
 			expect(Is.stringValue(result)).toBe(true);
-			const logEntry = await service.getActivityLogEntry(result as string);
-			expect(logEntry.generator).toBe("urn:uuid:pep-manipulated-marker");
+			const stored = await activityLogStorage.get(result as string);
+			expect(stored?.generator).toBe("urn:uuid:pep-manipulated-marker");
 		});
 
 		test("skips the gate when the transfer's agreement has no rules at all (legacy lenience)", async () => {

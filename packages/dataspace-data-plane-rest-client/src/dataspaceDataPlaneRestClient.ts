@@ -270,16 +270,25 @@ export class DataspaceDataPlaneRestClient
 	/**
 	 * Returns Activity Log Entry which contains the Activity processing details.
 	 * @param logEntryId The Id of the Activity Log Entry (a URI).
+	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
 	 */
-	public async getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry> {
+	public async getActivityLogEntry(
+		logEntryId: string,
+		trustPayload?: unknown
+	): Promise<IActivityLogEntry> {
 		Guards.stringValue(DataspaceDataPlaneRestClient.CLASS_NAME, nameof(logEntryId), logEntryId);
+		Guards.stringValue(DataspaceDataPlaneRestClient.CLASS_NAME, nameof(trustPayload), trustPayload);
 
 		const response = await this.fetch<IActivityLogEntryGetRequest, IActivityLogEntryGetResponse>(
 			"/activity-logs/:id",
 			"GET",
 			{
+				headers: {
+					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+				},
 				pathParams: {
 					id: logEntryId
 				}

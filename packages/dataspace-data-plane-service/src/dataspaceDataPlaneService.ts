@@ -629,7 +629,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		if (!Is.undefined(logEntry)) {
 			// Check if there are failed tasks that can be retried
-			const existingEntry = await this.getActivityLogEntry(activityLogEntryId);
+			const existingEntry = await this.retrieveActivityLogEntry(activityLogEntryId);
 
 			// If all tasks completed successfully, this is a duplicate
 			if (existingEntry.status === ActivityProcessingStatus.Completed) {
@@ -760,26 +760,36 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
-	 * Returns the activity processing details of an activity.
+	 * Returns Activity Log Entry which contains the Activity processing details.
+	 * Verifies the trust payload and asserts the caller is the entry's generator.
 	 * @param logEntryId The Id of the Activity Log Entry (a URI).
+	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
 	 */
-	public async getActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry> {
+	public async getActivityLogEntry(
+		logEntryId: string,
+		trustPayload?: unknown
+	): Promise<IActivityLogEntry> {
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(logEntryId), logEntryId);
 
-		const activityLog = await this._entityStorageActivityLogs.get(logEntryId);
-		if (Is.undefined(activityLog)) {
-			throw new NotFoundError(
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"getActivityLogEntry"
+		);
+
+		const entry = await this.retrieveActivityLogEntry(logEntryId);
+
+		if (trustInfo.identity !== entry.generator) {
+			throw new UnauthorizedError(
 				DataspaceDataPlaneService.CLASS_NAME,
-				"activityLogEntryNotFound",
-				logEntryId
+				"activityLogEntryNotAuthorized"
 			);
 		}
 
-		const activityTasks = await this._entityStorageActivityTasks.get(logEntryId);
-
-		return this.constructLogEntry(activityLog, activityTasks);
+		return entry;
 	}
 
 	/**
@@ -1420,6 +1430,29 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	// ============================================================================
 
 	/**
+	 * Fetches an activity log entry from storage without any trust verification.
+	 * Internal use only — public callers must use getActivityLogEntry.
+	 * @param logEntryId The Id of the Activity Log Entry (a URI).
+	 * @returns the Activity Log Entry with the processing details.
+	 * @throws NotFoundError if activity log entry is not known.
+	 * @internal
+	 */
+	private async retrieveActivityLogEntry(logEntryId: string): Promise<IActivityLogEntry> {
+		const activityLog = await this._entityStorageActivityLogs.get(logEntryId);
+		if (Is.undefined(activityLog)) {
+			throw new NotFoundError(
+				DataspaceDataPlaneService.CLASS_NAME,
+				"activityLogEntryNotFound",
+				logEntryId
+			);
+		}
+
+		const activityTasks = await this._entityStorageActivityTasks.get(logEntryId);
+
+		return this.constructLogEntry(activityLog, activityTasks);
+	}
+
+	/**
 	 * Calculates the activity generator from the generator or actor fields.
 	 * @param activity The activity.
 	 * @returns The generator's identity.
@@ -1519,7 +1552,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private async finaliseActivityLogEntry(activityLogEntryId: string): Promise<IActivityLogEntry> {
-		const entry = await this.getActivityLogEntry(activityLogEntryId);
+		const entry = await this.retrieveActivityLogEntry(activityLogEntryId);
 		if (
 			this._retainActivityLogsFor !== -1 &&
 			(entry.status === ActivityProcessingStatus.Completed ||
@@ -1605,7 +1638,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				cursor = result.cursor;
 
 				for (const entity of result.entities) {
-					const logEntryDetails = await this.getActivityLogEntry(entity.id as string);
+					const logEntryDetails = await this.retrieveActivityLogEntry(entity.id as string);
 					if (
 						logEntryDetails.status === ActivityProcessingStatus.Completed ||
 						logEntryDetails.status === ActivityProcessingStatus.Error
