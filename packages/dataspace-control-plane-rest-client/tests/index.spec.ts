@@ -76,4 +76,10 @@ describe("dataspace-control-plane-rest-client", () => {
 			)
 		).rejects.toThrow(NotSupportedError);
 	});
+
+	test("transferStarted rejects with a not supported error", async () => {
+		await expect(
+			client.transferStarted("urn:uuid:pid-123", "https://provider.example", "trust-payload")
+		).rejects.toThrow(NotSupportedError);
+	});
 });

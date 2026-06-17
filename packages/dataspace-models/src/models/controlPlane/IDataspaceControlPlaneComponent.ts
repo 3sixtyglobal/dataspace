@@ -239,6 +239,29 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError>;
 
+	/**
+	 * Start a Transfer Process as the Provider.
+	 * Implements DSP Transfer Process Protocol.
+	 *
+	 * Builds a DSP TransferStartMessage for a transfer this node already accepted (created in
+	 * REQUESTED state by requestTransfer, or in SUSPENDED state to resume), transitions it to
+	 * STARTED, and POSTs the message to the consumer's callback address. Use this when the
+	 * transfer was requested with autoStart=false and the provider now wants to start (or
+	 * resume) it explicitly.
+	 *
+	 * DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#transfer-start-message
+	 *
+	 * @param pid The Process ID (consumerPid or providerPid) identifying the transfer to start.
+	 * @param publicOrigin The public origin URL of this provider node (used to construct the data plane endpoint for PULL transfers).
+	 * @param trustPayload Trust payload proving the caller is the provider (JWT, VC, etc.).
+	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
+	 */
+	transferStarted(
+		pid: string,
+		publicOrigin: string,
+		trustPayload: unknown
+	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError>;
+
 	// ============================================================================
 	// SHARED STATE MANAGEMENT OPERATIONS
 	// Methods that can be called by either Consumer or Provider

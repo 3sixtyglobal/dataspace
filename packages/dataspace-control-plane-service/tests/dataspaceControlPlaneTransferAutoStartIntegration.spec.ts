@@ -110,7 +110,7 @@ function createDecodingTrustComponent(): ITrustComponent {
 	};
 }
 
-describe("DataspaceControlPlaneService - two-node transfer auto-start integration", () => {
+describe("DataspaceControlPlaneService - two-node transfer start integration (auto-start and explicit)", () => {
 	let providerService: DataspaceControlPlaneService;
 	let consumerService: DataspaceControlPlaneService;
 	let consumerStorage: MemoryEntityStorageConnector<TransferProcess>;
@@ -497,5 +497,191 @@ describe("DataspaceControlPlaneService - two-node transfer auto-start integratio
 		expect(consumerCallback.onTerminated).toHaveBeenCalledWith(consumerPid, "policy");
 		const storedConsumer = await consumerStorage.get(consumerPid);
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+	});
+
+	/**
+	 * Prepare a consumer transfer WITHOUT auto-start, so both nodes hold a REQUESTED record and the provider
+	 * start must be triggered explicitly via transferStarted (the #154 use case).
+	 * @returns The consumer and provider pids of the requested (not yet started) transfer.
+	 */
+	async function requestedTransfer(): Promise<{ consumerPid: string; providerPid: string }> {
+		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
+		const { consumerPid } = await ContextIdStore.run(
+			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
+			async () =>
+				consumerService.prepareTransfer(
+					AGREEMENT_ID,
+					PROVIDER_ENDPOINT,
+					CONSUMER_ORIGIN,
+					DataspaceTransferFormat.HttpDataPull,
+					consumerToken
+				)
+		);
+		const providerEntities = await providerStorage.query();
+		const providerRecord = providerEntities.entities.find(
+			e => (e as TransferProcess).consumerPid === consumerPid
+		) as TransferProcess | undefined;
+		if (providerRecord === undefined) {
+			throw new Error("Provider record not found after prepareTransfer");
+		}
+		return { consumerPid, providerPid: providerRecord.providerPid };
+	}
+
+	test("provider explicitly starts a requested transfer via transferStarted (onStarted fires, both nodes STARTED)", async () => {
+		arrangeTwoNodes(false);
+
+		let resolveStarted: (message: IDataspaceProtocolTransferStartMessage) => void = () => {};
+		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
+			(resolve, reject) => {
+				resolveStarted = resolve;
+				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+			}
+		);
+		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
+			resolveStarted(message);
+		});
+
+		const { consumerPid, providerPid } = await requestedTransfer();
+
+		// Nothing has started yet: autoStart was false.
+		const beforeConsumer = await consumerStorage.get(consumerPid);
+		expect(beforeConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+
+		// Provider explicitly starts, authenticated as the provider (agreement assigner) identity.
+		const providerToken = await createDecodingTrustComponent().generate(PROVIDER_ORG);
+		const result = await ContextIdStore.run(
+			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
+			async () => providerService.transferStarted(providerPid, PROVIDER_ENDPOINT, providerToken)
+		);
+
+		// The call returned the TransferStartMessage (not an error) carrying the PULL dataAddress.
+		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferStartMessage);
+		const startResult = result as IDataspaceProtocolTransferStartMessage;
+		expect(startResult.dataAddress?.endpoint).toContain(PROVIDER_ENDPOINT);
+
+		// The start was delivered cross-node: consumer onStarted fired and both records reached STARTED.
+		await onStartedFired;
+		expect(consumerCallback.onStarted).toHaveBeenCalledWith(
+			consumerPid,
+			expect.objectContaining({ consumerPid })
+		);
+		expect(consumerCallback.onStateChanged).toHaveBeenCalledWith(
+			consumerPid,
+			DataspaceProtocolTransferProcessStateType.STARTED
+		);
+		const storedConsumer = await consumerStorage.get(consumerPid);
+		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+		const providerEntities = await providerStorage.query();
+		const providerRecord = providerEntities.entities.find(
+			e => (e as TransferProcess).consumerPid === consumerPid
+		) as TransferProcess | undefined;
+		expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+	});
+
+	test("transferStarted returns a TransferError when the pid is unknown", async () => {
+		arrangeTwoNodes(false);
+
+		const providerToken = await createDecodingTrustComponent().generate(PROVIDER_ORG);
+		const result = await ContextIdStore.run(
+			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
+			async () =>
+				providerService.transferStarted("urn:uuid:does-not-exist", PROVIDER_ENDPOINT, providerToken)
+		);
+
+		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+			expect(result.code).toMatch(/^NotFoundError:/);
+		}
+	});
+
+	test("transferStarted is rejected on a consumer-role record (transferStartNotProvider)", async () => {
+		arrangeTwoNodes(false);
+		const { consumerPid } = await requestedTransfer();
+
+		// The consumer node holds a consumer-role record for consumerPid. Asking ITS service to start it must
+		// be rejected: only the provider initiates a start.
+		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
+		const result = await ContextIdStore.run(
+			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
+			async () => consumerService.transferStarted(consumerPid, CONSUMER_ORIGIN, consumerToken)
+		);
+
+		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+			expect(result.code).toMatch(/transferStartNotProvider/);
+		}
+		// The consumer record is untouched.
+		const storedConsumer = await consumerStorage.get(consumerPid);
+		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+	});
+
+	test("transferStarted is rejected when the caller is not the provider (callerNotAuthorizedAsProvider)", async () => {
+		arrangeTwoNodes(false);
+		const { providerPid } = await requestedTransfer();
+
+		// A token that decodes to the CONSUMER identity, not the provider/assigner: startTransfer's
+		// provider-auth gate must reject it.
+		const wrongToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
+		const result = await ContextIdStore.run(
+			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
+			async () => providerService.transferStarted(providerPid, PROVIDER_ENDPOINT, wrongToken)
+		);
+
+		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+		if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
+			expect(result.code).toMatch(/callerNotAuthorizedAsProvider/);
+		}
+	});
+
+	test("provider resumes a SUSPENDED transfer via transferStarted", async () => {
+		arrangeTwoNodes(true);
+		const { consumerPid, providerPid } = await startedTransfer();
+
+		// Provider suspends the started transfer; both nodes reach SUSPENDED.
+		const providerToken = await createDecodingTrustComponent().generate(PROVIDER_ORG);
+		await ContextIdStore.run(
+			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
+			async () =>
+				providerService.suspendTransfer(
+					{
+						"@context": [DataspaceProtocolContexts.Context],
+						"@type": DataspaceProtocolTransferProcessTypes.TransferSuspensionMessage,
+						consumerPid,
+						providerPid,
+						reason: ["pause"]
+					},
+					providerToken
+				)
+		);
+		const suspended = await consumerStorage.get(consumerPid);
+		expect(suspended?.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
+
+		// Provider resumes via the explicit start; the consumer's onStarted fires again and both reach STARTED.
+		let resolveResumed: () => void = () => {};
+		const resumedFired = new Promise<void>((resolve, reject) => {
+			resolveResumed = resolve;
+			setTimeout(
+				() => reject(new Error("Timed out waiting for consumer onStarted (resume)")),
+				3000
+			);
+		});
+		vi.mocked(consumerCallback.onStarted).mockImplementation(async () => {
+			resolveResumed();
+		});
+
+		const result = await ContextIdStore.run(
+			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
+			async () => providerService.transferStarted(providerPid, PROVIDER_ENDPOINT, providerToken)
+		);
+
+		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferStartMessage);
+		await resumedFired;
+		const resumedConsumer = await consumerStorage.get(consumerPid);
+		expect(resumedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+		const providerEntities = await providerStorage.query();
+		const providerRecord = providerEntities.entities.find(
+			e => (e as TransferProcess).consumerPid === consumerPid
+		) as TransferProcess | undefined;
+		expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 	});
 });

@@ -311,6 +311,27 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
+	 * Not supported on REST client (provider-initiated transfers are in-process only).
+	 * @param pid Unused.
+	 * @param publicOrigin Unused.
+	 * @param trustPayload Unused.
+	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
+	 */
+	public async transferStarted(
+		pid: string,
+		publicOrigin: string,
+		trustPayload: unknown
+	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError> {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "transferStarted"
+			}
+		);
+	}
+
+	/**
 	 * Complete a Transfer Process.
 	 * @param message Transfer completion message (DSP compliant).
 	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).

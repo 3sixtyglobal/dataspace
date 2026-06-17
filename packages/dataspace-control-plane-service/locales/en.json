@@ -63,6 +63,7 @@
 			"transferProcessTerminatedProvider": "Transfer Process \"{providerPid}\" is terminated and cannot be used",
 			"invalidTransferRequest": "Transfer Request does not conform to Dataspace Protocol specification",
 			"invalidStateForStart": "Transfer Process cannot be started: current state is \"{currentState}\", expected REQUESTED or SUSPENDED",
+			"transferStartNotProvider": "Transfer Process cannot be started by this node: it is not acting as the Provider for this transfer (pid: {pid}, role: {role})",
 			"invalidStateForComplete": "Transfer Process cannot be completed: current state is \"{currentState}\", expected STARTED",
 			"invalidStateForSuspend": "Transfer Process cannot be suspended: current state is \"{currentState}\", expected STARTED",
 			"invalidTransferStartMessage": "Transfer Start Message does not conform to Dataspace Protocol specification",

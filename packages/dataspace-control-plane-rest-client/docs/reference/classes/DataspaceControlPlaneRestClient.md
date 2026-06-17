@@ -456,6 +456,44 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or T
 
 ***
 
+### transferStarted() {#transferstarted}
+
+> **transferStarted**(`pid`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+
+Not supported on REST client (provider-initiated transfers are in-process only).
+
+#### Parameters
+
+##### pid
+
+`string`
+
+Unused.
+
+##### publicOrigin
+
+`string`
+
+Unused.
+
+##### trustPayload
+
+`unknown`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+
+Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.transferStarted`
+
+***
+
 ### completeTransfer() {#completetransfer}
 
 > **completeTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>

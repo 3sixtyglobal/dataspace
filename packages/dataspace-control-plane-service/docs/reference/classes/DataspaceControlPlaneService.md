@@ -388,6 +388,50 @@ Role Performed: Provider / Consumer
 
 ***
 
+### transferStarted() {#transferstarted}
+
+> **transferStarted**(`pid`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+
+Start a Transfer Process as the Provider (high-level convenience initiator).
+Builds a TransferStartMessage for a transfer already accepted by this node (REQUESTED, or
+SUSPENDED to resume), transitions it to STARTED, and POSTs the message to the consumer callback.
+consumerPid/providerPid/callbackAddress are resolved from the stored record; the call is then
+forwarded to startTransfer, the single owner of the start state machine (it verifies the caller is
+the provider, builds the dataAddress for PULL, persists STARTED, and delivers to the consumer).
+This is the provider-side mirror of prepareTransfer.
+
+#### Parameters
+
+##### pid
+
+`string`
+
+The Process ID (consumerPid or providerPid) identifying the transfer to start.
+
+##### publicOrigin
+
+`string`
+
+The public origin URL of this provider node (used to build the data plane endpoint for PULL transfers).
+
+##### trustPayload
+
+`unknown`
+
+Trust payload proving the caller is the provider.
+
+#### Returns
+
+`Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+
+Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.transferStarted`
+
+***
+
 ### completeTransfer() {#completetransfer}
 
 > **completeTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>

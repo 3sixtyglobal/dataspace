@@ -1303,6 +1303,67 @@ export class DataspaceControlPlaneService
 		}
 	}
 
+	/**
+	 * Start a Transfer Process as the Provider.
+	 * Builds a TransferStartMessage for a transfer already accepted by this node (REQUESTED, or
+	 * SUSPENDED to resume), transitions it to STARTED, and POSTs the message to the consumer callback.
+	 * consumerPid/providerPid/callbackAddress are resolved from the stored record; the call is then
+	 * forwarded to startTransfer, the single owner of the start state machine (it verifies the caller is
+	 * the provider, builds the dataAddress for PULL, persists STARTED, and delivers to the consumer).
+	 * This is the provider-side mirror of prepareTransfer.
+	 * @param pid The Process ID (consumerPid or providerPid) identifying the transfer to start.
+	 * @param publicOrigin The public origin URL of this provider node (used to build the data plane endpoint for PULL transfers).
+	 * @param trustPayload Trust payload proving the caller is the provider.
+	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
+	 */
+	public async transferStarted(
+		pid: string,
+		publicOrigin: string,
+		trustPayload: unknown
+	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError> {
+		let consumerPid: string | undefined;
+		let providerPid: string | undefined;
+		try {
+			Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(pid), pid);
+			Guards.stringValue(
+				DataspaceControlPlaneService.CLASS_NAME,
+				nameof(publicOrigin),
+				publicOrigin
+			);
+
+			const { entity, role } = await this.lookupTransferByPid(pid);
+			consumerPid = entity.consumerPid;
+			providerPid = entity.providerPid;
+
+			// Only the provider initiates a start. startTransfer branches on role, so guard here to give a
+			// clear error instead of silently running the consumer-receive path on a consumer-role record.
+			if (role !== TransferProcessRole.Provider) {
+				throw new GeneralError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"transferStartNotProvider",
+					{
+						pid,
+						role
+					}
+				);
+			}
+
+			const startMessage: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.Context],
+				"@type": DataspaceProtocolTransferProcessTypes.TransferStartMessage,
+				consumerPid: entity.consumerPid,
+				providerPid: entity.providerPid
+			};
+
+			// startTransfer verifies trustPayload is the provider, checks org ownership, applies the
+			// REQUESTED|SUSPENDED state guard, builds the dataAddress, persists STARTED, and delivers the
+			// TransferStartMessage to the consumer callback.
+			return await this.startTransfer(startMessage, publicOrigin, trustPayload);
+		} catch (error) {
+			return transformToTransferError(error, { consumerPid, providerPid });
+		}
+	}
+
 	// ----------------------------------------------------------------------------
 	// SHARED STATE MANAGEMENT OPERATIONS (Either Side)
 	// ----------------------------------------------------------------------------
@@ -2557,7 +2618,10 @@ export class DataspaceControlPlaneService
 				return;
 			}
 
-			// Self-token issued as the provider so startTransfer's provider-auth check passes.
+			// Self-token issued as the provider so startTransfer's provider-auth check passes. Auto-start's
+			// caller auth already happened upstream at requestTransfer, so minting the proof here (rather than
+			// requiring an inbound token) is the boundary-correct place for it; transferStarted forwards it as
+			// the trustPayload.
 			const selfToken = await this._trustComponent.generate(
 				entity.providerIdentity,
 				this._overrideTrustGeneratorType,
@@ -2570,14 +2634,16 @@ export class DataspaceControlPlaneService
 				}
 			);
 
-			const startMessage: IDataspaceProtocolTransferStartMessage = {
-				"@context": [DataspaceProtocolContexts.Context],
-				"@type": DataspaceProtocolTransferProcessTypes.TransferStartMessage,
-				consumerPid: entity.consumerPid,
-				providerPid: entity.providerPid
-			};
-
-			await this.startTransfer(startMessage, publicOrigin, selfToken);
+			const result = await this.transferStarted(consumerPid, publicOrigin, selfToken);
+			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "autoStartFailed",
+					data: { consumerPid }
+				});
+			}
 		} catch (error) {
 			await this._loggingComponent?.log({
 				level: "error",
