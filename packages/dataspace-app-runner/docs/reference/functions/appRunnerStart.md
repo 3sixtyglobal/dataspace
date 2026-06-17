@@ -10,10 +10,10 @@ Dataspace Task Startup Method.
 
 `IEngineCoreClone`
 
-The Engine.
+Engine clone data used to initialise a worker-thread engine instance.
 
 ## Returns
 
 `Promise`\<`void`\>
 
-Nothing.
+A promise that resolves when the engine has started and is ready to process tasks.

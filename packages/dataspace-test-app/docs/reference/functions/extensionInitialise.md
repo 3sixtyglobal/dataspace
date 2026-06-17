@@ -2,7 +2,7 @@
 
 > **extensionInitialise**(`envVars`, `nodeEngineConfig`): `Promise`\<`void`\>
 
-Initialise the  extension.
+Initialise the extension.
 
 ## Parameters
 
@@ -19,3 +19,5 @@ The node engine config.
 ## Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the test app component type has been registered in the engine config.

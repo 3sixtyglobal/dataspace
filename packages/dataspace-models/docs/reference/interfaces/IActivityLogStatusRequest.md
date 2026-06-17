@@ -1,6 +1,6 @@
 # Interface: IActivityLogStatusRequest
 
-Activity log status
+WebSocket request to subscribe or unsubscribe from the activity log stream.
 
 ## Properties
 
@@ -8,7 +8,7 @@ Activity log status
 
 > **body**: `object`
 
-Empty body.
+Request body containing the subscribe or unsubscribe operation.
 
 #### operation
 

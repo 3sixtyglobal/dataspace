@@ -21,3 +21,5 @@ Component name.
 ## Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the socket subscription has been removed.

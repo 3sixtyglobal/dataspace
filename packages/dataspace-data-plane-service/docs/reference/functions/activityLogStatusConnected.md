@@ -2,7 +2,7 @@
 
 > **activityLogStatusConnected**(`socketRequestContext`): `Promise`\<`void`\>
 
-Executes when there is a disconnection.
+Executes when a new socket connection is established.
 
 ## Parameters
 
@@ -15,3 +15,5 @@ Socket Request Context
 ## Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the connection event has been logged.

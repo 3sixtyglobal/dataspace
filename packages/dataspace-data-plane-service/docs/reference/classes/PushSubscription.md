@@ -19,11 +19,15 @@ Primary key = consumerPid (same as TransferProcess).
 
 > **consumerPid**: `string`
 
+Consumer process ID identifying the transfer. Also the primary key for this entity.
+
 ***
 
 ### providerPid {#providerpid}
 
 > **providerPid**: `string`
+
+Provider process ID from the DSP Transfer Process.
 
 ***
 
@@ -39,6 +43,8 @@ Used by Undo to reference it on teardown.
 ### datasetId {#datasetid}
 
 > **datasetId**: `string`
+
+Dataset ID identifying which dataset is being delivered.
 
 ***
 
@@ -57,11 +63,16 @@ into `consumerEndpoint` so cross-node push deliveries route to the right tenant.
 
 > **consumerEndpoint**: `string`
 
+The consumer's /inbox endpoint URL where activities are POSTed.
+
 ***
 
 ### consumerAuthToken? {#consumerauthtoken}
 
 > `optional` **consumerAuthToken?**: `string`
+
+Pre-packaged bearer token for authenticating pushes to the consumer endpoint.
+When absent a fresh JWT is generated at delivery time.
 
 ***
 
@@ -77,6 +88,8 @@ When false deliveries are flowing normally.
 ### dateCreated {#datecreated}
 
 > **dateCreated**: `string`
+
+Creation timestamp (ISO string format).
 
 ***
 

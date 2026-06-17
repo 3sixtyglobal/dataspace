@@ -10,16 +10,16 @@ Dataspace Task.
 
 `IEngineCoreClone`
 
-The Engine.
+Engine clone data used to initialise a worker-thread engine instance.
 
 ### payload
 
 `IExecutionPayload`
 
-The payload
+The execution payload describing the activity and target app.
 
 ## Returns
 
 `Promise`\<`unknown`\>
 
-The execution result.
+The result produced by the app's handleActivity method.

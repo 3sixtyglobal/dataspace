@@ -2,7 +2,7 @@
 
 > **activityLogStatusUpdate**(`socketRequestContext`, `componentName`, `request`, `emitter`): `Promise`\<`void`\>
 
-Provides an status update.
+Handles an activity log subscribe or unsubscribe operation over a WebSocket.
 
 ## Parameters
 
@@ -34,4 +34,4 @@ The emitter to send message back.
 
 `Promise`\<`void`\>
 
-The response object with additional http response properties.
+A promise that resolves when the subscribe or unsubscribe operation is complete.

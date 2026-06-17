@@ -80,6 +80,8 @@ The node logging component type.
 
 `Promise`\<`void`\>
 
+A promise that resolves when the push-delivery handler and cleanup task are registered.
+
 #### Implementation of
 
 `IDataspaceDataPlaneComponent.start`
@@ -154,7 +156,7 @@ The subscription Id.
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
-Subscribes to the activity log.
+Unsubscribes from the activity log.
 
 #### Parameters
 
@@ -162,11 +164,13 @@ Subscribes to the activity log.
 
 `string`
 
-The Subscription Id.
+The subscription Id to remove.
 
 #### Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the subscription has been removed.
 
 #### Implementation of
 
@@ -176,9 +180,10 @@ The Subscription Id.
 
 ### getActivityLogEntry() {#getactivitylogentry}
 
-> **getActivityLogEntry**(`logEntryId`): `Promise`\<`IActivityLogEntry`\>
+> **getActivityLogEntry**(`logEntryId`, `trustPayload?`): `Promise`\<`IActivityLogEntry`\>
 
-Returns the activity processing details of an activity.
+Returns Activity Log Entry which contains the Activity processing details.
+Verifies the trust payload and asserts the caller is the entry's generator.
 
 #### Parameters
 
@@ -187,6 +192,12 @@ Returns the activity processing details of an activity.
 `string`
 
 The Id of the Activity Log Entry (a URI).
+
+##### trustPayload?
+
+`unknown`
+
+Trust payload to verify the requester's identity.
 
 #### Returns
 
@@ -197,6 +208,10 @@ the Activity Log Entry with the processing details.
 #### Throws
 
 NotFoundError if activity log entry is not known.
+
+#### Throws
+
+UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
 
 #### Implementation of
 
@@ -469,6 +484,8 @@ The outbound activity carrying the data payload.
 #### Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the push delivery task has been scheduled.
 
 #### Implementation of
 

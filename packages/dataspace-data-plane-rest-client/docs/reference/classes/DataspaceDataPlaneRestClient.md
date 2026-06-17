@@ -232,7 +232,7 @@ The subscription Id.
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
-Unsubscribes to the activity log - implemented in Socket Client.
+Unsubscribes from the activity log — implemented in Socket Client.
 
 #### Parameters
 
@@ -240,13 +240,17 @@ Unsubscribes to the activity log - implemented in Socket Client.
 
 `string`
 
-The subscription Id.
+The subscription Id to remove.
 
 #### Returns
 
 `Promise`\<`void`\>
 
-The subscription Id.
+A promise that always rejects since this operation is not supported on the REST client.
+
+#### Throws
+
+NotSupportedError as this method is not supported on the REST client.
 
 #### Implementation of
 
@@ -376,7 +380,7 @@ Unused.
 
 ### getActivityLogEntry() {#getactivitylogentry}
 
-> **getActivityLogEntry**(`logEntryId`): `Promise`\<`IActivityLogEntry`\>
+> **getActivityLogEntry**(`logEntryId`, `trustPayload?`): `Promise`\<`IActivityLogEntry`\>
 
 Returns Activity Log Entry which contains the Activity processing details.
 
@@ -388,6 +392,12 @@ Returns Activity Log Entry which contains the Activity processing details.
 
 The Id of the Activity Log Entry (a URI).
 
+##### trustPayload?
+
+`unknown`
+
+Trust payload to verify the requester's identity.
+
 #### Returns
 
 `Promise`\<`IActivityLogEntry`\>
@@ -397,6 +407,10 @@ the Activity Log Entry with the processing details.
 #### Throws
 
 NotFoundError if activity log entry is not known.
+
+#### Throws
+
+UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
 
 #### Implementation of
 

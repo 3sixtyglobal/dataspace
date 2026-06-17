@@ -644,16 +644,20 @@
 						},
 						"style": "simple",
 						"example": "urn:x-activity-log:1234567"
-					}
-				],
-				"security": [
+					},
 					{
-						"jwtBearerAuthScheme": []
+						"name": "authorization",
+						"in": "header",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"style": "simple"
 					}
 				],
 				"responses": {
 					"200": {
-						"description": "Service Offering response",
+						"description": "Response containing a single activity log entry.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -695,24 +699,6 @@
 											"properties": {
 												"foo": "bar"
 											}
-										}
-									}
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "You are not authorized to use the API or no credentials were supplied, see the content for more details.",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Error"
-								},
-								"examples": {
-									"exampleResponse": {
-										"value": {
-											"name": "UnauthorizedError",
-											"message": "errorMessage"
 										}
 									}
 								}

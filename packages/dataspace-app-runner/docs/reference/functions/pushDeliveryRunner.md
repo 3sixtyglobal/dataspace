@@ -10,16 +10,16 @@ Push Delivery Task — POSTs an Activity Streams object to a consumer's /inbox.
 
 `IEngineCoreClone`
 
-The Engine.
+Engine clone data used to initialise a worker-thread engine instance.
 
 ### payload
 
 `IPushDeliveryPayload`
 
-The push delivery payload.
+The push delivery payload describing the consumer endpoint, auth, and data.
 
 ## Returns
 
 `Promise`\<`unknown`\>
 
-The result.
+The delivery result containing a success flag on successful POST.

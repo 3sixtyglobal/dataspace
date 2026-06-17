@@ -638,7 +638,7 @@ The dataset payload.
 
 `Promise`\<`void`\>
 
-Nothing.
+A promise that resolves when the dataset has been updated in storage and the catalogue.
 
 ***
 
@@ -660,4 +660,4 @@ The stored app dataset id.
 
 `Promise`\<`void`\>
 
-Nothing.
+A promise that resolves when the dataset has been removed from storage and the catalogue.

@@ -2,4 +2,4 @@
 
 > `const` **DataspaceAppFactory**: `Factory`\<[`IDataspaceApp`](../interfaces/IDataspaceApp.md)\>
 
-Factory for creating dataspace apps.
+Factory for registering and retrieving dataspace app instances by name.

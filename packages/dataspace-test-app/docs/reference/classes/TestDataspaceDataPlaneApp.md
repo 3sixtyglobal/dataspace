@@ -90,7 +90,7 @@ Supported query types.
 
 `string`[]
 
-Types.
+The query type identifiers supported by this app.
 
 #### Implementation of
 
@@ -110,11 +110,13 @@ Start method.
 
 `string`
 
-the logging component type of such a node.
+The logging component type of such a node.
 
 #### Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when data type handlers are registered and the node identity is captured.
 
 #### Implementation of
 
@@ -158,13 +160,13 @@ Handle Activity.
 
 `IDataspaceActivity`
 
-Activity
+The activity to handle.
 
 #### Returns
 
 `Promise`\<`T`\>
 
-Activity processing result
+The activity processing result produced by this app.
 
 #### Implementation of
 
@@ -184,7 +186,7 @@ Handles the Data Request.
 
 `IDataRequest`
 
-The data request
+The data request.
 
 ##### cursor?
 
@@ -202,7 +204,7 @@ Maximum number of entries retrieved or to be retrieved.
 
 `Promise`\<\{ `data`: `IJsonLdDocument`; `cursor?`: `string`; \}\>
 
-the Data.
+The matching JSON-LD data and an optional next-page cursor.
 
 #### Implementation of
 

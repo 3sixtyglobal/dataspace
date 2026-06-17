@@ -1,6 +1,6 @@
 # Interface: IActivityLogStatusNotificationPayload
 
-The status supplied to clients of the Dataspace Data Plane
+WebSocket push payload carrying an activity log status notification to connected clients.
 
 ## Properties
 
@@ -8,4 +8,4 @@ The status supplied to clients of the Dataspace Data Plane
 
 > **body**: [`IActivityLogStatusNotification`](IActivityLogStatusNotification.md)
 
-Body
+The activity log status notification.

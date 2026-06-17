@@ -676,6 +676,8 @@ The dataset payload.
 
 `Promise`\<`void`\>
 
+A promise that resolves when the dataset has been updated.
+
 #### Implementation of
 
 `IDataspaceControlPlaneComponent.updateAppDataset`
@@ -699,6 +701,8 @@ The stored app dataset id.
 #### Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the dataset has been deleted.
 
 #### Implementation of
 

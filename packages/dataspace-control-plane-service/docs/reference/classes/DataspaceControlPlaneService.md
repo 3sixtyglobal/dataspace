@@ -186,6 +186,8 @@ The node logging component type.
 
 `Promise`\<`void`\>
 
+A promise that resolves when the federated catalogue is populated and the cleanup task is scheduled.
+
 #### Implementation of
 
 `IDataspaceControlPlaneComponent.start`
@@ -210,6 +212,8 @@ The node logging component type.
 #### Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the cleanup task has been removed.
 
 #### Implementation of
 
@@ -795,6 +799,8 @@ The dataset payload.
 
 `Promise`\<`void`\>
 
+A promise that resolves when the dataset has been updated in storage and the catalogue.
+
 #### Implementation of
 
 `IDataspaceControlPlaneComponent.updateAppDataset`
@@ -818,6 +824,8 @@ The stored app dataset id.
 #### Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the dataset has been removed from storage and the catalogue.
 
 #### Implementation of
 

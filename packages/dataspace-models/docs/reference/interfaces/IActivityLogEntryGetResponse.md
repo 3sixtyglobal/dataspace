@@ -1,6 +1,6 @@
 # Interface: IActivityLogEntryGetResponse
 
-Service Offering response
+Response containing a single activity log entry.
 
 ## Properties
 

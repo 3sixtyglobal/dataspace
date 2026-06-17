@@ -250,7 +250,7 @@ The subscription Id.
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
-Unsubscribes to the activity log.
+Unsubscribes from the activity log.
 
 #### Parameters
 
@@ -258,13 +258,13 @@ Unsubscribes to the activity log.
 
 `string`
 
-The subscription Id.
+The subscription Id to remove.
 
 #### Returns
 
 `Promise`\<`void`\>
 
-The subscription Id.
+A promise that resolves when the subscription has been removed.
 
 #### Implementation of
 
@@ -414,6 +414,8 @@ Handle the socket connection.
 
 `Promise`\<`void`\>
 
+A promise that resolves when any pending subscribe requests have been re-sent.
+
 #### Overrides
 
 `BaseSocketClient.handleConnected`
@@ -437,6 +439,8 @@ The error to handle.
 #### Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the error has been logged.
 
 #### Overrides
 

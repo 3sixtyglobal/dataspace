@@ -8,4 +8,4 @@ Push Delivery Task End.
 
 `Promise`\<`void`\>
 
-Nothing.
+A promise that resolves when the engine has stopped and all resources are released.

@@ -210,7 +210,7 @@ The id of the negotiation.
 
 `Promise`\<`void`\>
 
-Nothing.
+A promise that resolves when all finalisation callbacks have been notified.
 
 #### Implementation of
 
@@ -237,7 +237,7 @@ The id of the negotiation.
 
 `Promise`\<`void`\>
 
-Nothing.
+A promise that resolves when all termination callbacks have been notified.
 
 #### Implementation of
 

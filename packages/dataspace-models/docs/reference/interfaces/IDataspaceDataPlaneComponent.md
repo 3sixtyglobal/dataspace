@@ -69,7 +69,7 @@ The subscription Id.
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
-Unsubscribes to the activity log.
+Unsubscribes from the activity log.
 
 #### Parameters
 
@@ -77,19 +77,19 @@ Unsubscribes to the activity log.
 
 `string`
 
-The subscription Id.
+The subscription Id to remove.
 
 #### Returns
 
 `Promise`\<`void`\>
 
-The subscription Id.
+A promise that resolves when the subscription has been removed.
 
 ***
 
 ### getActivityLogEntry() {#getactivitylogentry}
 
-> **getActivityLogEntry**(`logEntryId`): `Promise`\<[`IActivityLogEntry`](IActivityLogEntry.md)\>
+> **getActivityLogEntry**(`logEntryId`, `trustPayload?`): `Promise`\<[`IActivityLogEntry`](IActivityLogEntry.md)\>
 
 Returns Activity Log Entry which contains the Activity processing details.
 
@@ -101,6 +101,12 @@ Returns Activity Log Entry which contains the Activity processing details.
 
 The Id of the Activity Log Entry (a URI).
 
+##### trustPayload?
+
+`unknown`
+
+Trust payload to verify the requester's identity.
+
 #### Returns
 
 `Promise`\<[`IActivityLogEntry`](IActivityLogEntry.md)\>
@@ -110,6 +116,10 @@ the Activity Log Entry with the processing details.
 #### Throws
 
 NotFoundError if activity log entry is not known.
+
+#### Throws
+
+UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
 
 ***
 

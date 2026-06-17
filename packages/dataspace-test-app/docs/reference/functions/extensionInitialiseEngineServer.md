@@ -21,3 +21,5 @@ The engine server instance.
 ## Returns
 
 `Promise`\<`void`\>
+
+A promise that resolves when the REST route generator has been registered with the engine server.
