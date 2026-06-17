@@ -15,6 +15,16 @@ export interface IRequestTransferRequest {
 	};
 
 	/**
+	 * The query parameters of the request.
+	 */
+	query?: {
+		/**
+		 * When "true", the provider immediately starts the requested transfer once it has been created.
+		 */
+		autoStart?: string;
+	};
+
+	/**
 	 * Transfer request message (DSP compliant).
 	 */
 	body: IDataspaceProtocolTransferRequestMessage;

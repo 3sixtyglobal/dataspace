@@ -183,6 +183,13 @@ export class DataspaceControlPlaneService
 	private readonly _dataPlanePath?: string;
 
 	/**
+	 * Control plane callback mount path (path only, not full URL). Combined with this node's public
+	 * origin to form the consumer callbackAddress the provider POSTs DSP transfer messages back to.
+	 * @internal
+	 */
+	private readonly _callbackPath?: string;
+
+	/**
 	 * Factory key used to look up the data plane component. Resolved lazily at push-time
 	 * (not at construction) so the data plane may register after the control plane is built.
 	 * @internal
@@ -281,6 +288,10 @@ export class DataspaceControlPlaneService
 			? StringHelper.trimTrailingSlashes(
 					StringHelper.trimLeadingSlashes(options.config.dataPlanePath)
 				)
+			: undefined;
+
+		this._callbackPath = Is.stringValue(options?.config?.callbackPath)
+			? StringHelper.trimLeadingAndTrailingSlashes(options.config.callbackPath)
 			: undefined;
 
 		this._taskScheduler = ComponentFactory.getIfExists<ITaskSchedulerComponent>(
@@ -496,6 +507,11 @@ export class DataspaceControlPlaneService
 	 * Request a Transfer Process.
 	 * Creates a new Transfer Process in REQUESTED state.
 	 * @param request Transfer request message (DSP compliant).
+	 * @param publicOrigin The public origin of this provider node, resolved by the REST route from the
+	 * hosting component; used to build the data-plane endpoint when auto-starting.
+	 * @param options Request options.
+	 * @param options.autoStart When true, the provider immediately starts the requested transfer (scheduled
+	 * on the next tick); when omitted/false the provider start must be triggered explicitly.
 	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
 	 * @returns Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the operation fails.
 	 *
@@ -504,6 +520,8 @@ export class DataspaceControlPlaneService
 	 */
 	public async requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
+		publicOrigin: string,
+		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
 		const trustInfo = await TrustHelper.verifyTrust(
@@ -611,6 +629,7 @@ export class DataspaceControlPlaneService
 			datasetId,
 			consumerIdentity,
 			providerIdentity,
+			localRole: TransferProcessRole.Provider,
 			// offerId should reference Catalog Offer (via Agreement)
 			// For now, use agreementId as reference (proper flow: Catalog → Negotiation → Agreement)
 			offerId: request.agreementId,
@@ -639,6 +658,17 @@ export class DataspaceControlPlaneService
 			}
 		});
 
+		// When auto-start is requested, schedule the provider start asynchronously (mirrors negotiation's
+		// setTimeout follow-up). The timer runs inside the request's ALS context, so the [Node, Tenant] + org
+		// partition propagates to the deferred start.
+		if (options?.autoStart) {
+			const consumerPid = request.consumerPid;
+			setTimeout(async () => {
+				// runProviderStart catches internally and can't reject; awaiting satisfies no-floating-promises.
+				await this.runProviderStart(consumerPid, publicOrigin);
+			}, 0);
+		}
+
 		return {
 			"@context": [DataspaceProtocolContexts.Context],
 			"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
@@ -649,7 +679,7 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Start a data transfer as a Consumer.
+	 * Prepare a data transfer as a Consumer.
 	 * Generates a consumerPid, POSTs a TransferRequestMessage to the provider's DSP endpoint,
 	 * and (only if the provider accepts) persists a local TransferProcess in REQUESTED state.
 	 * @param agreementId The finalized agreement ID from contract negotiation.
@@ -667,7 +697,7 @@ export class DataspaceControlPlaneService
 	 * registration ignores the runtime `endpoint` arg and silently POSTs to its
 	 * static endpoint instead.
 	 */
-	public async startDataTransfer(
+	public async prepareTransfer(
 		agreementId: string,
 		providerEndpoint: string,
 		publicOrigin: string,
@@ -693,14 +723,14 @@ export class DataspaceControlPlaneService
 		const trustInfo = await TrustHelper.verifyTrust(
 			this._trustComponent,
 			trustPayload,
-			"startDataTransfer"
+			"prepareTransfer"
 		);
 
 		await this._loggingComponent?.log({
 			level: "info",
 			source: DataspaceControlPlaneService.CLASS_NAME,
 			ts: Date.now(),
-			message: "startingDataTransfer",
+			message: "preparingTransfer",
 			data: { agreementId, providerEndpoint, format, identity: trustInfo.identity }
 		});
 
@@ -728,10 +758,24 @@ export class DataspaceControlPlaneService
 		const datasetId = this.extractDatasetId(agreement);
 
 		const consumerPid = `urn:uuid:${RandomHelper.generateUuidV7()}`;
-		const callbackAddress = StringHelper.trimTrailingSlashes(publicOrigin);
+		const origin = StringHelper.trimTrailingSlashes(publicOrigin);
 
-		// Fetch context once and reuse across the PUSH dataAddress, trust token, and storage entity.
+		// Fetch context once and reuse across the callback, PUSH dataAddress, trust token, and storage.
 		const organizationIdentity = await this.resolveContextOrganizationId();
+
+		// Callback the provider POSTs DSP messages back to: mount path + `?organization=` so the inbound
+		// POST routes to the right consumer tenant (mirrors buildCallbackUrl). The bare `origin` is kept for
+		// the PUSH-inbox base below (a different mount).
+		let callbackAddress = Is.stringValue(this._callbackPath)
+			? `${origin}/${this._callbackPath}`
+			: origin;
+		if (Is.stringValue(organizationIdentity)) {
+			callbackAddress = HttpUrlHelper.addQueryStringParam(
+				callbackAddress,
+				ContextIdKeys.Organization,
+				organizationIdentity
+			);
+		}
 
 		const transferRequestMessage: IDataspaceProtocolTransferRequestMessage = {
 			"@context": [DataspaceProtocolContexts.Context],
@@ -753,7 +797,7 @@ export class DataspaceControlPlaneService
 					{ consumerPid }
 				);
 			}
-			let inboxEndpoint = `${callbackAddress}/${this._dataPlanePath}/inbox`;
+			let inboxEndpoint = `${origin}/${this._dataPlanePath}/inbox`;
 			if (Is.stringValue(organizationIdentity)) {
 				inboxEndpoint = HttpUrlHelper.addQueryStringParam(
 					inboxEndpoint,
@@ -781,7 +825,12 @@ export class DataspaceControlPlaneService
 			{ endpoint: providerEndpoint, pathPrefix: "" }
 		);
 
-		const result = await remoteControlPlane.requestTransfer(transferRequestMessage, outboundToken);
+		const result = await remoteControlPlane.requestTransfer(
+			transferRequestMessage,
+			"",
+			undefined,
+			outboundToken
+		);
 
 		if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
 			const transferError = result as { code?: string };
@@ -817,6 +866,7 @@ export class DataspaceControlPlaneService
 			datasetId,
 			consumerIdentity: trustInfo.identity,
 			providerIdentity,
+			localRole: TransferProcessRole.Consumer,
 			offerId: agreementId,
 			policies: [agreement],
 			callbackAddress,
@@ -833,7 +883,7 @@ export class DataspaceControlPlaneService
 			level: "info",
 			source: DataspaceControlPlaneService.CLASS_NAME,
 			ts: Date.now(),
-			message: "dataTransferStarted",
+			message: "transferPrepared",
 			data: {
 				consumerPid,
 				providerPid: storageEntity.providerPid,
@@ -928,6 +978,35 @@ export class DataspaceControlPlaneService
 				);
 			}
 
+			// CONSUMER-RECEIVE: the provider POSTed a TransferStart to our callback. Use the dataAddress
+			// from the message (rebuilding it is provider work), mark our record STARTED, and notify.
+			if (role === TransferProcessRole.Consumer) {
+				entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
+				entity.dateModified = new Date();
+				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "transferProcessStarted",
+					data: {
+						consumerPid: entity.consumerPid,
+						providerPid: entity.providerPid,
+						role
+					}
+				});
+
+				await this._internalTransferCallback.onStateChanged(
+					entity.consumerPid,
+					DataspaceProtocolTransferProcessStateType.STARTED
+				);
+				await this._internalTransferCallback.onStarted(entity.consumerPid, message);
+
+				return message;
+			}
+
+			// PROVIDER-ACT (role === Provider): build the dataAddress, transition to STARTED, deliver below.
 			// The previous (pre-transition) state drives the push-subscription branch below
 			// (setup vs resume). Do NOT mutate entity.state here as the persisted transition
 			// to STARTED happens after the dispatch block succeeds, so any validation or
@@ -1212,13 +1291,11 @@ export class DataspaceControlPlaneService
 				}
 			});
 
-			if (role === TransferProcessRole.Consumer) {
-				await this._internalTransferCallback.onStateChanged(
-					entity.consumerPid,
-					DataspaceProtocolTransferProcessStateType.STARTED
-				);
-				await this._internalTransferCallback.onStarted(entity.consumerPid, response);
-			}
+			// Notify the consumer by POSTing the TransferStart (with its dataAddress) to the callback.
+			// Best-effort: a delivery failure must not roll back the STARTED transition.
+			await this.deliverToConsumerCallback(entity, "start", async (remoteControlPlane, token) =>
+				remoteControlPlane.startTransfer(response, "", token)
+			);
 
 			return response;
 		} catch (error) {
@@ -1344,6 +1421,8 @@ export class DataspaceControlPlaneService
 				}
 			}
 
+			// Completion is consumer-initiated (the auth above accepts only the consumer): a consumer→provider
+			// notification, so no provider→consumer delivery here — unlike suspend/terminate (either party).
 			if (role === TransferProcessRole.Consumer) {
 				await this._internalTransferCallback.onStateChanged(
 					entity.consumerPid,
@@ -1491,6 +1570,13 @@ export class DataspaceControlPlaneService
 					? (message.reason[0] as string | undefined)
 					: (message.reason as string | undefined);
 				await this._internalTransferCallback.onSuspended(entity.consumerPid, suspendReason);
+			} else {
+				// PROVIDER-ACT: forward the suspension (with its reason) to the consumer callback.
+				await this.deliverToConsumerCallback(
+					entity,
+					"suspension",
+					async (remoteControlPlane, token) => remoteControlPlane.suspendTransfer(message, token)
+				);
 			}
 
 			return {
@@ -1622,6 +1708,13 @@ export class DataspaceControlPlaneService
 					? (message.reason[0] as string | undefined)
 					: (message.reason as string | undefined);
 				await this._internalTransferCallback.onTerminated(entity.consumerPid, terminateReason);
+			} else {
+				// PROVIDER-ACT: forward the termination (with its reason) to the consumer callback.
+				await this.deliverToConsumerCallback(
+					entity,
+					"termination",
+					async (remoteControlPlane, token) => remoteControlPlane.terminateTransfer(message, token)
+				);
 			}
 
 			return {
@@ -2431,6 +2524,153 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
+	 * Perform the provider-side start of a just-requested transfer (build dataAddress, transition to
+	 * STARTED, deliver to the consumer). Only invoked when the request opted into auto-start, so there is no
+	 * approval step. Self-contained: failures are logged, never thrown. Runs inside the request's ALS
+	 * context, so the deferred storage access inherits the [Node, Tenant] + org partition.
+	 * @param consumerPid The consumerPid of the requested transfer.
+	 * @param publicOrigin This provider node's public origin, used to build the data-plane endpoint.
+	 * @internal
+	 */
+	private async runProviderStart(consumerPid: string, publicOrigin?: string): Promise<void> {
+		try {
+			const { entity } = await this.lookupTransferByPid(consumerPid);
+			if (entity.state !== DataspaceProtocolTransferProcessStateType.REQUESTED) {
+				// Already advanced (e.g. an explicit start raced the auto-start). Nothing to do.
+				return;
+			}
+
+			if (!Is.stringValue(entity.providerIdentity)) {
+				throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "providerIdentityMissing");
+			}
+
+			// Fail closed: without a public origin the data-plane endpoint in the dataAddress would be
+			// broken, so hold the transfer rather than ship a relative/empty endpoint to the consumer.
+			if (!Is.stringValue(publicOrigin)) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "autoStartPublicOriginMissing",
+					data: { consumerPid }
+				});
+				return;
+			}
+
+			// Self-token issued as the provider so startTransfer's provider-auth check passes.
+			const selfToken = await this._trustComponent.generate(
+				entity.providerIdentity,
+				this._overrideTrustGeneratorType,
+				{
+					subject: {
+						consumerPid: entity.consumerPid,
+						providerPid: entity.providerPid,
+						agreementId: entity.agreementId
+					}
+				}
+			);
+
+			const startMessage: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.Context],
+				"@type": DataspaceProtocolTransferProcessTypes.TransferStartMessage,
+				consumerPid: entity.consumerPid,
+				providerPid: entity.providerPid
+			};
+
+			await this.startTransfer(startMessage, publicOrigin, selfToken);
+		} catch (error) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "autoStartFailed",
+				error: BaseError.fromError(error),
+				data: { consumerPid }
+			});
+		}
+	}
+
+	/**
+	 * Deliver a transfer state-change DSP message to the consumer's callback (provider → consumer), via a
+	 * remote control-plane client and the supplied sender. Mirrors negotiation's sendOfferToConsumer.
+	 * Best-effort: failures are logged, not thrown, so delivery problems don't roll back the transition.
+	 * @param entity The transfer process (provider side).
+	 * @param messageKind Short label for logging (e.g. "start", "suspension", "termination").
+	 * @param send Performs the remote POST given the remote client and an outbound trust token.
+	 * @internal
+	 */
+	private async deliverToConsumerCallback(
+		entity: ITransferProcess,
+		messageKind: string,
+		send: (
+			remoteControlPlane: IDataspaceControlPlaneComponent,
+			outboundToken: unknown
+		) => Promise<
+			| IDataspaceProtocolTransferStartMessage
+			| IDataspaceProtocolTransferProcess
+			| IDataspaceProtocolTransferError
+		>
+	): Promise<void> {
+		if (!Is.stringValue(entity.callbackAddress) || !Is.stringValue(entity.providerIdentity)) {
+			// Spec-allowed: no callback supplied → the consumer polls GET /transfers/:pid instead.
+			return;
+		}
+
+		try {
+			// Issue the token as the provider party (the agreement assigner) — the identity the consumer's
+			// receive gate checks (`!== providerIdentity`), not the tenant-routing org. Keeps the two
+			// identity spaces separate and works whether or not a node's org == its assigner DID.
+			const outboundToken = await this._trustComponent.generate(
+				entity.providerIdentity,
+				this._overrideTrustGeneratorType,
+				{
+					subject: {
+						consumerPid: entity.consumerPid,
+						providerPid: entity.providerPid,
+						agreementId: entity.agreementId
+					}
+				}
+			);
+
+			const remoteControlPlane = ComponentFactory.create<IDataspaceControlPlaneComponent>(
+				this._remoteControlPlaneComponentType,
+				{ endpoint: entity.callbackAddress, pathPrefix: "" }
+			);
+
+			const result = await send(remoteControlPlane, outboundToken);
+
+			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "transferCallbackRejected",
+					data: {
+						messageKind,
+						consumerPid: entity.consumerPid,
+						providerPid: entity.providerPid,
+						callbackAddress: entity.callbackAddress
+					}
+				});
+			}
+		} catch (error) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "transferCallbackFailed",
+				error: BaseError.fromError(error),
+				data: {
+					messageKind,
+					consumerPid: entity.consumerPid,
+					providerPid: entity.providerPid,
+					callbackAddress: entity.callbackAddress
+				}
+			});
+		}
+	}
+
+	/**
 	 * Convert a storage entity to model.
 	 * @param storageEntity The entity from storage.
 	 * @returns The model representation.
@@ -2447,6 +2687,7 @@ export class DataspaceControlPlaneService
 			offerId: storageEntity.offerId,
 			consumerIdentity: storageEntity.consumerIdentity,
 			providerIdentity: storageEntity.providerIdentity,
+			localRole: storageEntity.localRole,
 			format: storageEntity.format,
 			callbackAddress: storageEntity.callbackAddress,
 			organizationIdentity: storageEntity.organizationIdentity,
@@ -2474,6 +2715,7 @@ export class DataspaceControlPlaneService
 			offerId: entity.offerId,
 			consumerIdentity: entity.consumerIdentity,
 			providerIdentity: entity.providerIdentity,
+			localRole: entity.localRole,
 			format: entity.format,
 			callbackAddress: entity.callbackAddress,
 			organizationIdentity: entity.organizationIdentity,
@@ -2656,33 +2898,37 @@ export class DataspaceControlPlaneService
 	}> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(pid), pid);
 
-		// Check if pid is a consumerPid (primary key lookup)
-		const storageEntity = await this._transferProcessStorage.get(pid);
+		// consumerPid is the primary key on BOTH nodes, so the matched key alone is not a reliable role
+		// signal; locate the record by primary, then the providerPid secondary index.
+		let storageEntity = await this._transferProcessStorage.get(pid);
+		let matchedByConsumerPid = true;
 
-		if (storageEntity) {
-			return {
-				entity: this.storageEntityToModel(storageEntity),
-				role: TransferProcessRole.Consumer
-			};
+		if (!storageEntity) {
+			storageEntity = await this._transferProcessStorage.get(pid, "providerPid");
+			matchedByConsumerPid = false;
 		}
 
-		// Check if pid is a providerPid (secondary key lookup)
-		const providerPidEntity = await this._transferProcessStorage.get(pid, "providerPid");
-		if (providerPidEntity) {
-			return {
-				entity: this.storageEntityToModel(providerPidEntity),
-				role: TransferProcessRole.Provider
-			};
+		if (!storageEntity) {
+			throw new NotFoundError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"transferProcessNotFound",
+				pid,
+				{
+					pid
+				}
+			);
 		}
 
-		throw new NotFoundError(
-			DataspaceControlPlaneService.CLASS_NAME,
-			"transferProcessNotFound",
-			pid,
-			{
-				pid
-			}
-		);
+		// Prefer the role persisted at write time (set in prepareTransfer / requestTransfer). Fall back
+		// to the matched-key heuristic only for legacy records written before localRole existed.
+		const role =
+			storageEntity.localRole ??
+			(matchedByConsumerPid ? TransferProcessRole.Consumer : TransferProcessRole.Provider);
+
+		return {
+			entity: this.storageEntityToModel(storageEntity),
+			role
+		};
 	}
 
 	/**

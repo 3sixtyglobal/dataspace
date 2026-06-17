@@ -247,7 +247,11 @@ describe("dataspaceControlPlaneRoutes", () => {
 			);
 			const initiateRoute = routes.find(r => r.operationId === "requestTransfer");
 
-			const mockContext = {} as IHttpRequestContext;
+			// The handler resolves this provider node's public origin from the hosting component using the
+			// request URL (to pass publicOrigin into requestTransfer for auto-start), so supply a serverRequest.
+			const mockContext = {
+				serverRequest: { url: "https://test-origin.com/transfers/request" }
+			} as unknown as IHttpRequestContext;
 
 			const mockRequest: IHttpRequest = {
 				body: {

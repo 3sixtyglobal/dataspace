@@ -5,6 +5,7 @@ import type {
 	IDataspaceProtocolDataAddress,
 	IDataspaceProtocolPolicy
 } from "@twin.org/standards-dataspace-protocol";
+import type { TransferProcessRole } from "./transferProcessRole.js";
 
 /**
  * Transfer Process for internal storage.
@@ -73,6 +74,12 @@ export interface ITransferProcess {
 	 * Used for auditing.
 	 */
 	providerIdentity?: string;
+
+	/**
+	 * This node's role in the transfer, captured at write time so state transitions and async delivery
+	 * can tell which party we are without inferring it from the matched PID. Optional for back-compat.
+	 */
+	localRole?: TransferProcessRole;
 
 	/**
 	 * Callback address for Consumer notifications.

@@ -6,6 +6,7 @@ import type {
 	IDataspaceProtocolDataAddress,
 	IDataspaceProtocolPolicy
 } from "@twin.org/standards-dataspace-protocol";
+import type { TransferProcessRole } from "../models/controlPlane/transferProcessRole.js";
 
 /**
  * Transfer Process for shared storage between Control Plane and Data Plane.
@@ -69,6 +70,14 @@ export class TransferProcess {
 	 */
 	@property({ type: "string", optional: true })
 	public providerIdentity?: string;
+
+	/**
+	 * This node's role in the transfer, captured at write time so state transitions and async delivery
+	 * can tell which party we are without inferring it from the matched PID (consumerPid is the primary
+	 * key on both nodes). Optional for back-compat with records written before this field existed.
+	 */
+	@property({ type: "string", optional: true })
+	public localRole?: TransferProcessRole;
 
 	/**
 	 * Data format from the Dataset Distribution.

@@ -65,9 +65,9 @@ describe("dataspace-control-plane-rest-client", () => {
 		expect(() => client.unregisterTransferCallback("test")).toThrow(NotSupportedError);
 	});
 
-	test("startDataTransfer rejects with a not supported error", async () => {
+	test("prepareTransfer rejects with a not supported error", async () => {
 		await expect(
-			client.startDataTransfer(
+			client.prepareTransfer(
 				"agreement-123",
 				"https://provider.example",
 				"https://consumer.example",

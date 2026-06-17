@@ -21,4 +21,13 @@ export interface IDataspaceControlPlaneServiceConfig {
 	 * Example: "data-plane/data" or "api/data-plane/data"
 	 */
 	dataPlanePath?: string;
+
+	/**
+	 * Control plane callback mount path (path only). Combined with this node's public origin to form the
+	 * consumer callbackAddress a provider POSTs DSP transfer messages back to (e.g.
+	 * `<origin>/<callbackPath>/transfers/:pid/start`), with `?organization=` appended for tenant routing.
+	 *
+	 * Example: "dataspace" or "api/dataspace".
+	 */
+	callbackPath?: string;
 }

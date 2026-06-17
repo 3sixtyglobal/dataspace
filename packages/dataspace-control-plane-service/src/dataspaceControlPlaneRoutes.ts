@@ -630,8 +630,17 @@ async function requestTransferHandler(
 
 	const trustPayload = HeaderHelper.extractBearer(request.headers[HeaderTypes.Authorization]);
 
+	const hostingComponent = ComponentFactory.get<IHostingComponent>(
+		httpRequestContext.hostingComponentType ?? "hosting"
+	);
+
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
-	const result = await component.requestTransfer(request.body, trustPayload);
+	const result = await component.requestTransfer(
+		request.body,
+		await hostingComponent.getPublicOrigin(httpRequestContext.serverRequest.url),
+		{ autoStart: Coerce.boolean(request.query?.autoStart) },
+		trustPayload
+	);
 
 	return {
 		body: result,

@@ -155,7 +155,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	unregisterTransferCallback(key: string): void;
 
 	/**
-	 * Start a data transfer as a Consumer.
+	 * Prepare a data transfer as a Consumer.
 	 * High-level convenience wrapper around the DSP Transfer Request protocol.
 	 *
 	 * This method:
@@ -178,7 +178,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param trustPayload Trust payload for authentication.
 	 * @returns The consumerPid of the newly created TransferProcess.
 	 */
-	startDataTransfer(
+	prepareTransfer(
 		agreementId: string,
 		providerEndpoint: string,
 		publicOrigin: string,
@@ -197,6 +197,11 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 *
 	 * @param request Transfer request message (DSP compliant) containing agreementId,
 	 * consumerPid, callbackAddress, and format.
+	 * @param publicOrigin The public origin of this provider node (resolved server-side by the REST route
+	 * from the hosting component); used to build the data-plane endpoint when auto-starting.
+	 * @param options Request options.
+	 * @param options.autoStart When true, the provider immediately starts the requested transfer; when
+	 * omitted/false the provider start must be triggered explicitly.
 	 * @param trustPayload Trust payload containing authorization information (JWT, VC, etc.).
 	 * The consumer must prove their identity by providing a valid trust payload.
 	 * @returns Transfer Process (DSP compliant) with state REQUESTED, including
@@ -204,6 +209,8 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 */
 	requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
+		publicOrigin: string,
+		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError>;
 

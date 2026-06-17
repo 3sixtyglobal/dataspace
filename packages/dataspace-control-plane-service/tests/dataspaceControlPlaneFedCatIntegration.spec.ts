@@ -275,6 +275,8 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						callbackAddress: "https://consumer.example.com/callback",
 						format: "application/json"
 					},
+					"",
+					undefined,
 					consumerToken // Real JWT token with consumer identity
 				);
 
@@ -370,6 +372,8 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						callbackAddress: "https://callback.example.com",
 						format: "application/json"
 					},
+					"",
+					undefined,
 					consumerToken // Real JWT token with consumer identity
 				);
 
@@ -419,6 +423,8 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						callbackAddress: "https://callback.example.com",
 						format: "application/json"
 					},
+					"",
+					undefined,
 					consumerToken // Real JWT token with consumer identity
 				);
 
@@ -513,6 +519,8 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						callbackAddress: "https://callback.example.com",
 						format: "application/json"
 					},
+					"",
+					undefined,
 					consumerToken // Real JWT token with consumer identity
 				);
 

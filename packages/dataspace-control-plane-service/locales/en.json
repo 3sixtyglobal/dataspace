@@ -23,8 +23,8 @@
 			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
 			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})",
 			"pushTransferStarted": "PUSH transfer started (consumerPid: {consumerPid}, providerPid: {providerPid}, endpoint: {endpoint})",
-			"startingDataTransfer": "Starting consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
-			"dataTransferStarted": "Consumer data transfer started successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
+			"preparingTransfer": "Preparing consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
+			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"offerReceived": "Offer received from provider (negotiationId: {negotiationId}, offerId: {offerId})",
@@ -53,6 +53,10 @@
 	},
 	"error": {
 		"dataspaceControlPlaneService": {
+			"transferCallbackRejected": "Consumer rejected a transfer state-change callback (messageKind: {messageKind}, consumerPid: {consumerPid}, providerPid: {providerPid}, callbackAddress: {callbackAddress})",
+			"transferCallbackFailed": "Failed to deliver a transfer state-change callback to the consumer (messageKind: {messageKind}, consumerPid: {consumerPid}, providerPid: {providerPid}, callbackAddress: {callbackAddress})",
+			"autoStartFailed": "Provider auto-start of a requested transfer failed (consumerPid: {consumerPid})",
+			"autoStartPublicOriginMissing": "Cannot auto-start the transfer: this node's public origin could not be resolved; holding the transfer in REQUESTED (consumerPid: {consumerPid})",
 			"transferProcessNotFound": "Transfer Process not found",
 			"pullTransfersNotSupported": "PULL transfers are not supported. Configure dataPlanePath in service configuration to enable PULL transfers.",
 			"transferProcessTerminated": "Transfer Process \"{consumerPid}\" is terminated and cannot be used",
