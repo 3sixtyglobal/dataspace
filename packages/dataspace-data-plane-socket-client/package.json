@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-data-plane-socket-client",
-	"version": "0.0.3-next.44",
+	"version": "0.0.3-next.45",
 	"description": "Provides a WebSocket client for subscribing to activity log status notifications.",
 	"repository": {
 		"type": "git",
@@ -31,7 +31,7 @@
 		"@twin.org/api-core": "next",
 		"@twin.org/api-models": "next",
 		"@twin.org/core": "next",
-		"@twin.org/dataspace-models": "0.0.3-next.44",
+		"@twin.org/dataspace-models": "0.0.3-next.45",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
 		"@twin.org/data-json-ld": "next"

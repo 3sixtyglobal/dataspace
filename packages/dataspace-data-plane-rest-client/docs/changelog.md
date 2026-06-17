@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.45](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.0.3-next.44...dataspace-data-plane-rest-client-v0.0.3-next.45) (2026-06-17)
+
+
+### Features
+
+* get activity log add trust payload ([#201](https://github.com/iotaledger/twin-dataspace/issues/201)) ([cdb5486](https://github.com/iotaledger/twin-dataspace/commit/cdb5486942c1b94ddf6435236b9b9d190bea0407))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.44 to 0.0.3-next.45
+
 ## [0.0.3-next.44](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.0.3-next.43...dataspace-data-plane-rest-client-v0.0.3-next.44) (2026-06-12)
 
 

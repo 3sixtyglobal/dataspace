@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.45](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.44...dataspace-models-v0.0.3-next.45) (2026-06-17)
+
+
+### Features
+
+* get activity log add trust payload ([#201](https://github.com/iotaledger/twin-dataspace/issues/201)) ([cdb5486](https://github.com/iotaledger/twin-dataspace/commit/cdb5486942c1b94ddf6435236b9b9d190bea0407))
+
 ## [0.0.3-next.44](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.43...dataspace-models-v0.0.3-next.44) (2026-06-12)
 
 

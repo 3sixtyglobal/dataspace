@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.0.3-next.45](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.44...dataspace-data-plane-service-v0.0.3-next.45) (2026-06-17)
+
+
+### Features
+
+* get activity log add trust payload ([#201](https://github.com/iotaledger/twin-dataspace/issues/201)) ([cdb5486](https://github.com/iotaledger/twin-dataspace/commit/cdb5486942c1b94ddf6435236b9b9d190bea0407))
+
+
+### Bug Fixes
+
+* remove incorrect comment ([c846908](https://github.com/iotaledger/twin-dataspace/commit/c846908c4c20a7ea4fb7184739b524a95b5086db))
+* use async getStore in tests ([739531e](https://github.com/iotaledger/twin-dataspace/commit/739531e1a159f728301835cd39cf06eab7a7bf4a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.44 to 0.0.3-next.45
+    * @twin.org/dataspace-models bumped from 0.0.3-next.44 to 0.0.3-next.45
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.44 to 0.0.3-next.45
+
 ## [0.0.3-next.44](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.43...dataspace-data-plane-service-v0.0.3-next.44) (2026-06-12)
 
 

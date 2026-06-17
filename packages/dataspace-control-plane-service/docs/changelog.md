@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.0.3-next.45](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.44...dataspace-control-plane-service-v0.0.3-next.45) (2026-06-17)
+
+
+### Bug Fixes
+
+* mock pnap ([35f21f8](https://github.com/iotaledger/twin-dataspace/commit/35f21f847d3fb9d2ffcb9191a18835093cd259b9))
+* use async getStore in tests ([739531e](https://github.com/iotaledger/twin-dataspace/commit/739531e1a159f728301835cd39cf06eab7a7bf4a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.44 to 0.0.3-next.45
+
 ## [0.0.3-next.44](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.43...dataspace-control-plane-service-v0.0.3-next.44) (2026-06-12)
 
 
