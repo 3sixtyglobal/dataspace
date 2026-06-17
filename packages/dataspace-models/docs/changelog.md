@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.46](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.45...dataspace-models-v0.0.3-next.46) (2026-06-17)
+
+
+### Features
+
+* cross-node transfer callbacks and DataTransferManager auto-start ([#199](https://github.com/iotaledger/twin-dataspace/issues/199)) ([1089aa3](https://github.com/iotaledger/twin-dataspace/commit/1089aa344e3598e382f37a82ca03230c5cf6cacd))
+
 ## [0.0.3-next.45](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.44...dataspace-models-v0.0.3-next.45) (2026-06-17)
 
 
