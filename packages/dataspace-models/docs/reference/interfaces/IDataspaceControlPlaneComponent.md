@@ -416,7 +416,7 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or T
 
 > **transferStarted**(`pid`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`\>
 
-Start a Transfer Process as the Provider (high-level convenience initiator).
+Start a Transfer Process as the Provider.
 Implements DSP Transfer Process Protocol.
 
 Builds a DSP TransferStartMessage for a transfer this node already accepted (created in
@@ -424,13 +424,6 @@ REQUESTED state by requestTransfer, or in SUSPENDED state to resume), transition
 STARTED, and POSTs the message to the consumer's callback address. Use this when the
 transfer was requested with autoStart=false and the provider now wants to start (or
 resume) it explicitly.
-
-This is the provider-side mirror of the consumer's prepareTransfer. consumerPid,
-providerPid and the consumer callback address are resolved from the stored TransferProcess,
-not supplied by the caller.
-
-The REST client does not support this method and throws a not supported error; use
-ComponentFactory.get() for the in-process service.
 
 DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#transfer-start-message
 

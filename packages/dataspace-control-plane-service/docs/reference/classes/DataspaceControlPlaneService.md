@@ -392,7 +392,7 @@ Role Performed: Provider / Consumer
 
 > **transferStarted**(`pid`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
-Start a Transfer Process as the Provider (high-level convenience initiator).
+Start a Transfer Process as the Provider.
 Builds a TransferStartMessage for a transfer already accepted by this node (REQUESTED, or
 SUSPENDED to resume), transitions it to STARTED, and POSTs the message to the consumer callback.
 consumerPid/providerPid/callbackAddress are resolved from the stored record; the call is then
