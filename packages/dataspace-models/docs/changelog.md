@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.47](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.46...dataspace-models-v0.0.3-next.47) (2026-06-17)
+
+
+### Features
+
+* add transferStarted provider method to start a data transfer ([#206](https://github.com/iotaledger/twin-dataspace/issues/206)) ([3ec2dc8](https://github.com/iotaledger/twin-dataspace/commit/3ec2dc8943c8531cd8d8e4ab07cb970ef7b11090))
+
 ## [0.0.3-next.46](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.45...dataspace-models-v0.0.3-next.46) (2026-06-17)
 
 
