@@ -90,6 +90,16 @@ Provider identity (DID or URI).
 
 ***
 
+### localRole? {#localrole}
+
+> `optional` **localRole?**: [`TransferProcessRole`](../type-aliases/TransferProcessRole.md)
+
+This node's role in the transfer, captured at write time so state transitions and async delivery
+can tell which party we are without inferring it from the matched PID (consumerPid is the primary
+key on both nodes). Optional for back-compat with records written before this field existed.
+
+***
+
 ### format? {#format}
 
 > `optional` **format?**: `string`

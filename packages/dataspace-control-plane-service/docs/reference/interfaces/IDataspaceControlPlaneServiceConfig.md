@@ -24,3 +24,15 @@ REQUIRED if PULL transfers are supported.
 If not specified, PULL transfers will not be available.
 
 Example: "data-plane/data" or "api/data-plane/data"
+
+***
+
+### callbackPath? {#callbackpath}
+
+> `optional` **callbackPath?**: `string`
+
+Control plane callback mount path (path only). Combined with this node's public origin to form the
+consumer callbackAddress a provider POSTs DSP transfer messages back to (e.g.
+`<origin>/<callbackPath>/transfers/:pid/start`), with `?organization=` appended for tenant routing.
+
+Example: "dataspace" or "api/dataspace".

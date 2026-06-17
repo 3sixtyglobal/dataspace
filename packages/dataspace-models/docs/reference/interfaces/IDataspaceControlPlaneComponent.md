@@ -245,11 +245,11 @@ The key used when registering the callback.
 
 ***
 
-### startDataTransfer() {#startdatatransfer}
+### prepareTransfer() {#preparetransfer}
 
-> **startDataTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+> **prepareTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
 
-Start a data transfer as a Consumer.
+Prepare a data transfer as a Consumer.
 High-level convenience wrapper around the DSP Transfer Request protocol.
 
 This method:
@@ -307,7 +307,7 @@ The consumerPid of the newly created TransferProcess.
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
+> **requestTransfer**(`request`, `publicOrigin`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
 Request a Transfer Process.
 Creates a new Transfer Process in REQUESTED state.
@@ -325,6 +325,36 @@ DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#t
 
 Transfer request message (DSP compliant) containing agreementId,
 consumerPid, callbackAddress, and format.
+
+##### publicOrigin
+
+`string`
+
+The public origin of this provider node (resolved server-side by the REST route
+from the hosting component); used to build the data-plane endpoint when auto-starting.
+
+##### options
+
+\{ `autoStart?`: `boolean`; \} \| `undefined`
+
+Request options.
+
+###### Type Literal
+
+\{ `autoStart?`: `boolean`; \}
+
+Request options.
+
+###### autoStart?
+
+`boolean`
+
+When true, the provider immediately starts the requested transfer; when
+omitted/false the provider start must be triggered explicitly.
+
+***
+
+`undefined`
 
 ##### trustPayload
 

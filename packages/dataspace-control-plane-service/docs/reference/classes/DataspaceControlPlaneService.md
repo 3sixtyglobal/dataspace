@@ -223,7 +223,7 @@ A promise that resolves when the cleanup task has been removed.
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
+> **requestTransfer**(`request`, `publicOrigin`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
 Request a Transfer Process.
 Creates a new Transfer Process in REQUESTED state.
@@ -235,6 +235,36 @@ Creates a new Transfer Process in REQUESTED state.
 `IDataspaceProtocolTransferRequestMessage`
 
 Transfer request message (DSP compliant).
+
+##### publicOrigin
+
+`string`
+
+The public origin of this provider node, resolved by the REST route from the
+hosting component; used to build the data-plane endpoint when auto-starting.
+
+##### options
+
+\{ `autoStart?`: `boolean`; \} \| `undefined`
+
+Request options.
+
+###### Type Literal
+
+\{ `autoStart?`: `boolean`; \}
+
+Request options.
+
+###### autoStart?
+
+`boolean`
+
+When true, the provider immediately starts the requested transfer (scheduled
+on the next tick); when omitted/false the provider start must be triggered explicitly.
+
+***
+
+`undefined`
 
 ##### trustPayload
 
@@ -257,11 +287,11 @@ Called by: Consumer when it wants to request a new Transfer Process
 
 ***
 
-### startDataTransfer() {#startdatatransfer}
+### prepareTransfer() {#preparetransfer}
 
-> **startDataTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+> **prepareTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
 
-Start a data transfer as a Consumer.
+Prepare a data transfer as a Consumer.
 Generates a consumerPid, POSTs a TransferRequestMessage to the provider's DSP endpoint,
 and (only if the provider accepts) persists a local TransferProcess in REQUESTED state.
 
@@ -313,7 +343,7 @@ static endpoint instead.
 
 #### Implementation of
 
-`IDataspaceControlPlaneComponent.startDataTransfer`
+`IDataspaceControlPlaneComponent.prepareTransfer`
 
 ***
 

@@ -307,9 +307,9 @@ NotSupportedError as this method is not supported on the REST client.
 
 ***
 
-### startDataTransfer() {#startdatatransfer}
+### prepareTransfer() {#preparetransfer}
 
-> **startDataTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+> **prepareTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
 
 Not supported on REST client — consumer-initiated transfers are in-process only.
 
@@ -353,13 +353,13 @@ The consumerPid of the newly created TransferProcess.
 
 #### Implementation of
 
-`IDataspaceControlPlaneComponent.startDataTransfer`
+`IDataspaceControlPlaneComponent.prepareTransfer`
 
 ***
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
+> **requestTransfer**(`request`, `publicOrigin`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
 Request a Transfer Process.
 
@@ -370,6 +370,35 @@ Request a Transfer Process.
 `IDataspaceProtocolTransferRequestMessage`
 
 Transfer request message (DSP compliant).
+
+##### publicOrigin
+
+`string`
+
+Unused by the client; the receiving server derives its own public origin.
+
+##### options
+
+\{ `autoStart?`: `boolean`; \} \| `undefined`
+
+Request options.
+
+###### Type Literal
+
+\{ `autoStart?`: `boolean`; \}
+
+Request options.
+
+###### autoStart?
+
+`boolean`
+
+When true, sent as a query parameter asking the provider to auto-start the
+transfer once created.
+
+***
+
+`undefined`
 
 ##### trustPayload
 
@@ -391,7 +420,7 @@ Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the o
 
 ### startTransfer() {#starttransfer}
 
-> **startTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+> **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
 Start a Transfer Process (Provider Side).
 
@@ -402,6 +431,12 @@ Start a Transfer Process (Provider Side).
 `IDataspaceProtocolTransferStartMessage`
 
 Transfer start message (DSP compliant).
+
+##### publicOrigin
+
+`string`
+
+Unused by the client; the receiving server derives its own public origin.
 
 ##### trustPayload
 
