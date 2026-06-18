@@ -42,6 +42,8 @@ import {
 	DataRequestType,
 	DataspaceAppFactory,
 	DataspaceContexts,
+	DataspaceDataPlaneMetricIds,
+	DataspaceDataPlaneMetrics,
 	DataspaceDataTypes,
 	DataspaceTypes,
 	getJsonLdType,
@@ -94,6 +96,7 @@ import {
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
 import { OdrlActionType, OdrlContexts, OdrlTypes } from "@twin.org/standards-w3c-odrl";
+import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
@@ -286,6 +289,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _dataspaceAppDatasetStorage: IEntityStorageConnector<DataspaceAppDataset>;
 
 	/**
+	 * The optional telemetry component for metrics.
+	 * @internal
+	 */
+	private readonly _telemetryComponent?: ITelemetryComponent;
+
+	/**
 	 * Create a new instance of DataspaceDataPlane.
 	 * @param options The options for the data plane.
 	 */
@@ -336,6 +345,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		this._dataspaceAppDatasetStorage = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<DataspaceAppDataset>
 		>(options?.dataspaceAppDatasetEntityStorageType ?? nameofKebabCase<DataspaceAppDataset>());
+
+		this._telemetryComponent = ComponentFactory.getIfExists<ITelemetryComponent>(
+			options?.telemetryComponentType
+		);
 
 		JsonLdDataTypes.registerTypes();
 		DataspaceDataTypes.registerTypes();
@@ -442,6 +455,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @returns A promise that resolves when the push-delivery handler and cleanup task are registered.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
+		await MetricHelper.createMetrics(this._telemetryComponent, DataspaceDataPlaneMetrics);
+
 		await this._backgroundTaskComponent.registerHandler<IPushDeliveryPayload, unknown>(
 			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
 			"@twin.org/dataspace-app-runner",
@@ -718,6 +733,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		await this._entityStorageActivityTasks.set(activityTask);
 
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceDataPlaneMetricIds.ActivitiesNotified
+		);
+
 		if (inlineCount === taskEntries.length) {
 			return this.finaliseActivityLogEntry(activityLogEntryId);
 		}
@@ -910,6 +930,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 		}
 
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceDataPlaneMetricIds.DataAssetsRetrieved
+		);
+
 		return result;
 	}
 
@@ -1006,6 +1031,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				result.itemList[SchemaOrgTypes.ItemListElement] = [];
 			}
 		}
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceDataPlaneMetricIds.DataAssetsQueried
+		);
 
 		return result;
 	}
@@ -1173,6 +1203,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			throw storageError;
 		}
 
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceDataPlaneMetricIds.PushSubscriptionsCreated
+		);
+
 		await this._logging?.log({
 			level: "info",
 			source: DataspaceDataPlaneService.CLASS_NAME,
@@ -1290,6 +1325,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		}
 
 		await this.requirePushSubscriptionStorage().remove(consumerPid);
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceDataPlaneMetricIds.PushSubscriptionsRemoved
+		);
 
 		await this._logging?.log({
 			level: "info",
@@ -1415,6 +1455,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
 			payload,
 			{ retainFor: this._retainTasksFor, retryCount: this._retryCount }
+		);
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceDataPlaneMetricIds.PushActivitiesScheduled
 		);
 
 		await this._logging?.log({

@@ -99,6 +99,11 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	platformComponentType?: string;
 
 	/**
+	 * The component type for the optional telemetry component used for metrics, defaults to no telemetry.
+	 */
+	telemetryComponentType?: string;
+
+	/**
 	 * The configuration of the Dataspace Control Plane Service.
 	 */
 	config?: IDataspaceControlPlaneServiceConfig;

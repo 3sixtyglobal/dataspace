@@ -42,6 +42,7 @@
 		"@twin.org/rights-management-models": "next",
 		"@twin.org/standards-dataspace-protocol": "next",
 		"@twin.org/standards-w3c-odrl": "next",
+		"@twin.org/telemetry-models": "next",
 		"@twin.org/trust-models": "next",
 		"@twin.org/vault-models": "next"
 	},

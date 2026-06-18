@@ -7,6 +7,8 @@ export * from "./entities/transferProcess.js";
 
 // Control Plane exports
 export * from "./models/controlPlane/api/ITransferContextResponse.js";
+export * from "./models/controlPlane/dataspaceControlPlaneMetricIds.js";
+export * from "./models/controlPlane/dataspaceControlPlaneMetrics.js";
 export * from "./models/controlPlane/IDataspaceAppDataset.js";
 export * from "./models/controlPlane/IDataspaceControlPlaneComponent.js";
 export * from "./models/controlPlane/IDataspaceControlPlaneResolverComponent.js";
@@ -17,6 +19,8 @@ export * from "./models/controlPlane/ITransferProcess.js";
 export * from "./models/controlPlane/transferProcessRole.js";
 
 // Data Plane exports
+export * from "./models/dataPlane/dataspaceDataPlaneMetricIds.js";
+export * from "./models/dataPlane/dataspaceDataPlaneMetrics.js";
 export * from "./models/dataPlane/IDataspaceDataPlaneComponent.js";
 
 export * from "./models/dataspaceContexts.js";

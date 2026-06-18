@@ -20,6 +20,8 @@ import {
 	ActivityTaskStatus,
 	DataspaceAppDataset,
 	DataspaceAppFactory,
+	DataspaceDataPlaneMetricIds,
+	DataspaceDataPlaneMetrics,
 	DataspaceDataTypes,
 	TransferProcess,
 	type IActivityLogEntry,
@@ -44,6 +46,11 @@ import {
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
+import {
+	MetricType,
+	type ITelemetryComponent,
+	type ITelemetryMetric
+} from "@twin.org/telemetry-models";
 import type { ITrustComponent } from "@twin.org/trust-models";
 import { HeaderHelper, HeaderTypes } from "@twin.org/web";
 import { createMockPolicyEnforcementPoint } from "./setupTestEnv.js";
@@ -3883,5 +3890,127 @@ describe("DataspaceDataPlaneService", () => {
 			terminate: ReturnType<typeof vi.fn>;
 		};
 		expect(firstWorker.terminate).not.toHaveBeenCalled();
+	});
+
+	describe("metrics", () => {
+		interface MetricValueEntry {
+			id: string;
+			value: "inc" | "dec" | number;
+			customData?: { [key: string]: unknown };
+		}
+
+		function makeMockTelemetry(): {
+			component: ITelemetryComponent;
+			created: ITelemetryMetric[];
+			values: MetricValueEntry[];
+		} {
+			const created: ITelemetryMetric[] = [];
+			const values: MetricValueEntry[] = [];
+			const component: ITelemetryComponent = {
+				className: () => "MockTelemetry",
+				start: async () => {},
+				stop: async () => {},
+				createMetric: async m => {
+					created.push({ ...m });
+				},
+				getMetric: async () => ({ metric: {} as never, value: {} as never }),
+				updateMetric: async () => {},
+				addMetricValue: async (id, value, customData) => {
+					values.push({ id, value, customData });
+					return "v";
+				},
+				removeMetric: async () => {},
+				query: async () => ({ entities: [] }),
+				queryValues: async () => ({ metric: {} as never, entities: [] })
+			};
+			return { component, created, values };
+		}
+
+		function makePushAuthActivity(generatorPid: string): IActivityStreamsActivity {
+			return {
+				"@context": "https://www.w3.org/ns/activitystreams",
+				type: "Create",
+				generator: generatorPid,
+				object: {
+					"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+					type: "Consignment",
+					globalId: "24KEP051219453I002610796"
+				},
+				updated: new Date().toISOString()
+			} as unknown as IActivityStreamsActivity;
+		}
+
+		function makeTrustComponent(identity: string): ITrustComponent {
+			return {
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({ verified: true, info: { identity } }),
+				generate: vi.fn()
+			};
+		}
+
+		test("start() registers every data plane metric with the telemetry component", async () => {
+			const { component, created } = makeMockTelemetry();
+			ComponentFactory.register("test-telemetry", () => component);
+
+			const service = new DataspaceDataPlaneService({
+				...options,
+				telemetryComponentType: "test-telemetry"
+			});
+			await service.start();
+
+			const createdIds = created.map(m => m.id);
+			for (const metric of DataspaceDataPlaneMetrics) {
+				expect(createdIds).toContain(metric.id);
+			}
+			expect(created.every(m => m.type === MetricType.Counter)).toBe(true);
+			expect(created).toHaveLength(DataspaceDataPlaneMetrics.length);
+
+			ComponentFactory.unregister("test-telemetry");
+		});
+
+		test("notifyActivity increments the ActivitiesNotified counter", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const { component, values } = makeMockTelemetry();
+			ComponentFactory.register("test-telemetry", () => component);
+
+			const service = new DataspaceDataPlaneService({
+				...options,
+				telemetryComponentType: "test-telemetry"
+			});
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			expect(values).toContainEqual({
+				id: DataspaceDataPlaneMetricIds.ActivitiesNotified,
+				value: "inc",
+				customData: undefined
+			});
+
+			ComponentFactory.unregister("test-telemetry");
+		});
+
+		test("notifyActivity succeeds when no telemetry component is configured", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const result = await service.notifyActivity(
+				makePushAuthActivity(TEST_CONSUMER_PID),
+				"Bearer test-token"
+			);
+			expect(Is.stringValue(result)).toBe(true);
+		});
 	});
 });

@@ -24,6 +24,8 @@ import {
 import { JsonLdHelper, type JsonLdObjectWithNoContext } from "@twin.org/data-json-ld";
 import {
 	DataspaceAppFactory,
+	DataspaceControlPlaneMetricIds,
+	DataspaceControlPlaneMetrics,
 	DataspaceTransferFormat,
 	TransferProcessRole,
 	getJsonLdId,
@@ -78,6 +80,7 @@ import {
 	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
+import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import { DataspaceControlPlanePolicyRequester } from "./dataspaceControlPlanePolicyRequester.js";
 import { EndpointProperties } from "./models/endpointProperties.js";
@@ -215,6 +218,12 @@ export class DataspaceControlPlaneService
 	private readonly _platformComponent?: IPlatformComponent;
 
 	/**
+	 * The optional telemetry component for metrics.
+	 * @internal
+	 */
+	private readonly _telemetryComponent?: ITelemetryComponent;
+
+	/**
 	 * Registered negotiation callbacks from upstream callers, keyed by registration key.
 	 * @internal
 	 */
@@ -302,6 +311,10 @@ export class DataspaceControlPlaneService
 			options?.platformComponentType ?? "platform"
 		);
 
+		this._telemetryComponent = ComponentFactory.getIfExists<ITelemetryComponent>(
+			options?.telemetryComponentType
+		);
+
 		// Data plane component is optional and resolved lazily. The control plane is initialised
 		// BEFORE the data plane in engine startup order, so `getRegisteredInstanceTypeOptional`
 		// returns undefined when the engine constructs us — the wiring override can't fire here.
@@ -384,6 +397,8 @@ export class DataspaceControlPlaneService
 	 * @returns A promise that resolves when the federated catalogue is populated and the cleanup task is scheduled.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
+		await MetricHelper.createMetrics(this._telemetryComponent, DataspaceControlPlaneMetrics);
+
 		const engine = EngineCoreFactory.getIfExists("engine");
 		// Skip if no engine exists OR if this is a clone instance
 		if (Is.empty(engine) || engine.isClone()) {
@@ -667,6 +682,11 @@ export class DataspaceControlPlaneService
 			}, 0);
 		}
 
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.TransfersRequested
+		);
+
 		return {
 			"@context": [DataspaceProtocolContexts.Context],
 			"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
@@ -890,6 +910,11 @@ export class DataspaceControlPlaneService
 			}
 		});
 
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.TransfersPrepared
+		);
+
 		return { consumerPid };
 	}
 
@@ -1000,6 +1025,11 @@ export class DataspaceControlPlaneService
 					DataspaceProtocolTransferProcessStateType.STARTED
 				);
 				await this._internalTransferCallback.onStarted(entity.consumerPid, message);
+
+				await MetricHelper.metricIncrement(
+					this._telemetryComponent,
+					DataspaceControlPlaneMetricIds.TransfersStarted
+				);
 
 				return message;
 			}
@@ -1295,6 +1325,11 @@ export class DataspaceControlPlaneService
 				remoteControlPlane.startTransfer(response, token)
 			);
 
+			await MetricHelper.metricIncrement(
+				this._telemetryComponent,
+				DataspaceControlPlaneMetricIds.TransfersStarted
+			);
+
 			return response;
 		} catch (error) {
 			return transformToTransferError(error, message);
@@ -1483,6 +1518,11 @@ export class DataspaceControlPlaneService
 				await this._internalTransferCallback.onCompleted(entity.consumerPid);
 			}
 
+			await MetricHelper.metricIncrement(
+				this._telemetryComponent,
+				DataspaceControlPlaneMetricIds.TransfersCompleted
+			);
+
 			return {
 				"@context": [DataspaceProtocolContexts.Context],
 				"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
@@ -1631,6 +1671,11 @@ export class DataspaceControlPlaneService
 				);
 			}
 
+			await MetricHelper.metricIncrement(
+				this._telemetryComponent,
+				DataspaceControlPlaneMetricIds.TransfersSuspended
+			);
+
 			return {
 				"@context": [DataspaceProtocolContexts.Context],
 				"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
@@ -1768,6 +1813,11 @@ export class DataspaceControlPlaneService
 					async (remoteControlPlane, token) => remoteControlPlane.terminateTransfer(message, token)
 				);
 			}
+
+			await MetricHelper.metricIncrement(
+				this._telemetryComponent,
+				DataspaceControlPlaneMetricIds.TransfersTerminated
+			);
 
 			return {
 				"@context": [DataspaceProtocolContexts.Context],
@@ -1992,6 +2042,11 @@ export class DataspaceControlPlaneService
 		}
 
 		this._policyRequester.trackNegotiation(negotiationId);
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.NegotiationsInitiated
+		);
 
 		await this._loggingComponent?.log({
 			level: "info",
@@ -2365,6 +2420,11 @@ export class DataspaceControlPlaneService
 		await this.publishAppDataset(entity);
 		await this._dataspaceAppDatasetStorage.set(entity);
 
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.AppDatasetsCreated
+		);
+
 		return resolvedId;
 	}
 
@@ -2479,6 +2539,11 @@ export class DataspaceControlPlaneService
 		// Side effect first, primary storage last
 		await this.publishAppDataset(updated);
 		await this._dataspaceAppDatasetStorage.set(updated);
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.AppDatasetsUpdated
+		);
 	}
 
 	/**
@@ -2517,6 +2582,11 @@ export class DataspaceControlPlaneService
 		}
 
 		await this._dataspaceAppDatasetStorage.remove(id);
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.AppDatasetsDeleted
+		);
 	}
 	// ============================================================================
 	// PRIVATE HELPER METHODS

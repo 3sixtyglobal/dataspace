@@ -40,7 +40,8 @@
 		"@twin.org/standards-schema-org": "next",
 		"@twin.org/standards-w3c-activity-streams": "next",
 		"@twin.org/standards-w3c-dcat": "next",
-		"@twin.org/standards-w3c-odrl": "next"
+		"@twin.org/standards-w3c-odrl": "next",
+		"@twin.org/telemetry-models": "next"
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",

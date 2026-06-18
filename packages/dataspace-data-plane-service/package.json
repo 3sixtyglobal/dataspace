@@ -51,6 +51,7 @@
 		"@twin.org/standards-w3c-dcat": "next",
 		"@twin.org/rights-management-models": "next",
 		"@twin.org/standards-w3c-odrl": "next",
+		"@twin.org/telemetry-models": "next",
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {
