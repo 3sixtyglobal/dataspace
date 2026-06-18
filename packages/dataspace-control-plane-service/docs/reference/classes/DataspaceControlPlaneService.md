@@ -223,7 +223,7 @@ A promise that resolves when the cleanup task has been removed.
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `publicOrigin`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
+> **requestTransfer**(`request`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
 Request a Transfer Process.
 Creates a new Transfer Process in REQUESTED state.
@@ -235,13 +235,6 @@ Creates a new Transfer Process in REQUESTED state.
 `IDataspaceProtocolTransferRequestMessage`
 
 Transfer request message (DSP compliant).
-
-##### publicOrigin
-
-`string`
-
-The public origin of this provider node, resolved by the REST route from the
-hosting component; used to build the data-plane endpoint when auto-starting.
 
 ##### options
 
@@ -289,7 +282,7 @@ Called by: Consumer when it wants to request a new Transfer Process
 
 ### prepareTransfer() {#preparetransfer}
 
-> **prepareTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+> **prepareTransfer**(`agreementId`, `providerEndpoint`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
 
 Prepare a data transfer as a Consumer.
 Generates a consumerPid, POSTs a TransferRequestMessage to the provider's DSP endpoint,
@@ -308,12 +301,6 @@ The finalized agreement ID from contract negotiation.
 `string`
 
 The provider's DSP control plane base URL.
-
-##### publicOrigin
-
-`string`
-
-The public origin URL of this control plane (used as callbackAddress).
 
 ##### format
 
@@ -349,7 +336,7 @@ static endpoint instead.
 
 ### startTransfer() {#starttransfer}
 
-> **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+> **startTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
 Start a Transfer Process.
 Transitions Transfer Process from REQUESTED to STARTED state or resumes from SUSPENDED state.
@@ -361,12 +348,6 @@ Transitions Transfer Process from REQUESTED to STARTED state or resumes from SUS
 `IDataspaceProtocolTransferStartMessage`
 
 Transfer start message (DSP compliant).
-
-##### publicOrigin
-
-`string`
-
-The public origin URL of this service.
 
 ##### trustPayload
 
@@ -390,7 +371,7 @@ Role Performed: Provider / Consumer
 
 ### transferStarted() {#transferstarted}
 
-> **transferStarted**(`pid`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+> **transferStarted**(`pid`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
 Start a Transfer Process as the Provider.
 Builds a TransferStartMessage for a transfer already accepted by this node (REQUESTED, or
@@ -407,12 +388,6 @@ This is the provider-side mirror of prepareTransfer.
 `string`
 
 The Process ID (consumerPid or providerPid) identifying the transfer to start.
-
-##### publicOrigin
-
-`string`
-
-The public origin URL of this provider node (used to build the data plane endpoint for PULL transfers).
 
 ##### trustPayload
 
@@ -562,7 +537,7 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Returns immediately with a negotiationId. The caller is notified
@@ -587,12 +562,6 @@ The offer ID from the provider's catalog.
 `string`
 
 The provider's contract negotiation endpoint URL.
-
-##### publicOrigin
-
-`string`
-
-The public origin URL of this control plane (for callbacks).
 
 ##### trustPayload
 

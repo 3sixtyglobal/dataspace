@@ -18,7 +18,7 @@ If not specified, the default trust generator configured in the trust component 
 > `optional` **dataPlanePath?**: `string`
 
 Data plane endpoint path for PULL transfers (path only, not full URL).
-Will be combined with the public origin from the hosting component.
+Will be combined with the public origin.
 
 REQUIRED if PULL transfers are supported.
 If not specified, PULL transfers will not be available.

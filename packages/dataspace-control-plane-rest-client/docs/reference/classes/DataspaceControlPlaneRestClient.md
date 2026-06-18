@@ -127,7 +127,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
 Not supported on REST client — contract negotiation is in-process only.
 
@@ -146,12 +146,6 @@ Unused.
 Unused.
 
 ##### providerEndpoint
-
-`string`
-
-Unused.
-
-##### publicOrigin
 
 `string`
 
@@ -309,7 +303,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 ### prepareTransfer() {#preparetransfer}
 
-> **prepareTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+> **prepareTransfer**(`agreementId`, `providerEndpoint`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
 
 Not supported on REST client — consumer-initiated transfers are in-process only.
 
@@ -322,12 +316,6 @@ Not supported on REST client — consumer-initiated transfers are in-process onl
 Unused.
 
 ##### providerEndpoint
-
-`string`
-
-Unused.
-
-##### publicOrigin
 
 `string`
 
@@ -359,7 +347,7 @@ The consumerPid of the newly created TransferProcess.
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `publicOrigin`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
+> **requestTransfer**(`request`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
 Request a Transfer Process.
 
@@ -370,12 +358,6 @@ Request a Transfer Process.
 `IDataspaceProtocolTransferRequestMessage`
 
 Transfer request message (DSP compliant).
-
-##### publicOrigin
-
-`string`
-
-Unused by the client; the receiving server derives its own public origin.
 
 ##### options
 
@@ -420,7 +402,7 @@ Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the o
 
 ### startTransfer() {#starttransfer}
 
-> **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+> **startTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
 Start a Transfer Process (Provider Side).
 
@@ -431,12 +413,6 @@ Start a Transfer Process (Provider Side).
 `IDataspaceProtocolTransferStartMessage`
 
 Transfer start message (DSP compliant).
-
-##### publicOrigin
-
-`string`
-
-Unused by the client; the receiving server derives its own public origin.
 
 ##### trustPayload
 
@@ -458,19 +434,13 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or T
 
 ### transferStarted() {#transferstarted}
 
-> **transferStarted**(`pid`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
+> **transferStarted**(`pid`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferStartMessage`\>
 
 Not supported on REST client (provider-initiated transfers are in-process only).
 
 #### Parameters
 
 ##### pid
-
-`string`
-
-Unused.
-
-##### publicOrigin
 
 `string`
 

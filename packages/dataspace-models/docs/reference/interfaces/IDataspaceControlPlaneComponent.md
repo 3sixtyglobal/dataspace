@@ -66,7 +66,7 @@ The key used when registering the callback.
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `publicOrigin`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Implements DSP Contract Negotiation Protocol.
@@ -99,12 +99,6 @@ The offer ID from the provider's catalog.
 `string`
 
 The provider's contract negotiation endpoint URL.
-
-##### publicOrigin
-
-`string`
-
-The public origin URL of this control plane (for callbacks).
 
 ##### trustPayload
 
@@ -247,7 +241,7 @@ The key used when registering the callback.
 
 ### prepareTransfer() {#preparetransfer}
 
-> **prepareTransfer**(`agreementId`, `providerEndpoint`, `publicOrigin`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
+> **prepareTransfer**(`agreementId`, `providerEndpoint`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
 
 Prepare a data transfer as a Consumer.
 High-level convenience wrapper around the DSP Transfer Request protocol.
@@ -279,12 +273,6 @@ The finalized agreement ID (from contract negotiation).
 
 The provider's DSP control plane base URL.
 
-##### publicOrigin
-
-`string`
-
-The public origin URL of this control plane (used as callbackAddress).
-
 ##### format
 
 `string`
@@ -307,7 +295,7 @@ The consumerPid of the newly created TransferProcess.
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `publicOrigin`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
+> **requestTransfer**(`request`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
 Request a Transfer Process.
 Creates a new Transfer Process in REQUESTED state.
@@ -325,13 +313,6 @@ DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#t
 
 Transfer request message (DSP compliant) containing agreementId,
 consumerPid, callbackAddress, and format.
-
-##### publicOrigin
-
-`string`
-
-The public origin of this provider node (resolved server-side by the REST route
-from the hosting component); used to build the data-plane endpoint when auto-starting.
 
 ##### options
 
@@ -374,7 +355,7 @@ both consumerPid and providerPid, or TransferError if the operation fails.
 
 ### startTransfer() {#starttransfer}
 
-> **startTransfer**(`message`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`\>
+> **startTransfer**(`message`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`\>
 
 Start a Transfer Process.
 Transitions Transfer Process from REQUESTED to STARTED state, or resumes from SUSPENDED state.
@@ -392,12 +373,6 @@ DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#t
 
 Transfer start message (DSP compliant).
 
-##### publicOrigin
-
-`string`
-
-The public origin URL of this service (used to construct data plane endpoint for PULL transfers).
-
 ##### trustPayload
 
 `unknown`
@@ -414,7 +389,7 @@ Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or T
 
 ### transferStarted() {#transferstarted}
 
-> **transferStarted**(`pid`, `publicOrigin`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`\>
+> **transferStarted**(`pid`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferStartMessage` \| `IDataspaceProtocolTransferError`\>
 
 Start a Transfer Process as the Provider.
 Implements DSP Transfer Process Protocol.
@@ -434,12 +409,6 @@ DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#t
 `string`
 
 The Process ID (consumerPid or providerPid) identifying the transfer to start.
-
-##### publicOrigin
-
-`string`
-
-The public origin URL of this provider node (used to construct the data plane endpoint for PULL transfers).
 
 ##### trustPayload
 
