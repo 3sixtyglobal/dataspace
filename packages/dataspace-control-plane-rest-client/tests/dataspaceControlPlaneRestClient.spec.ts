@@ -30,7 +30,6 @@ describe("dataspace-control-plane-rest-client", () => {
 			client.negotiateAgreement(
 				"dataset-123",
 				"offer-123",
-				"https://provider.example",
 				"https://consumer.example",
 				"trust-payload"
 			)
@@ -70,7 +69,6 @@ describe("dataspace-control-plane-rest-client", () => {
 			client.prepareTransfer(
 				"agreement-123",
 				"https://provider.example",
-				"https://consumer.example",
 				"HttpData-PULL",
 				"trust-payload"
 			)
@@ -78,8 +76,8 @@ describe("dataspace-control-plane-rest-client", () => {
 	});
 
 	test("transferStarted rejects with a not supported error", async () => {
-		await expect(
-			client.transferStarted("urn:uuid:pid-123", "https://provider.example", "trust-payload")
-		).rejects.toThrow(NotSupportedError);
+		await expect(client.transferStarted("urn:uuid:pid-123", "trust-payload")).rejects.toThrow(
+			NotSupportedError
+		);
 	});
 });

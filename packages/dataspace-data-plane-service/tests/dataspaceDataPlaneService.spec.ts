@@ -399,11 +399,6 @@ describe("DataspaceDataPlaneService", () => {
 			generate: vi.fn()
 		};
 		ComponentFactory.register("trust", () => mockTrustComponent);
-
-		ComponentFactory.register("hosting", () => ({
-			className: () => "HostingComponent",
-			buildPublicUrl: async (url: string) => url
-		}));
 	});
 
 	beforeEach(async () => {

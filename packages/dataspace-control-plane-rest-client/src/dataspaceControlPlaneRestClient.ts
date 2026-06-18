@@ -109,7 +109,6 @@ export class DataspaceControlPlaneRestClient
 	 * @param datasetId Unused.
 	 * @param offerId Unused.
 	 * @param providerEndpoint Unused.
-	 * @param publicOrigin Unused.
 	 * @param trustPayload Unused.
 	 * @returns The negotiation ID for tracking.
 	 */
@@ -117,7 +116,6 @@ export class DataspaceControlPlaneRestClient
 		datasetId: string,
 		offerId: string,
 		providerEndpoint: string,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<{ negotiationId: string }> {
 		throw new NotSupportedError(
@@ -215,7 +213,6 @@ export class DataspaceControlPlaneRestClient
 	 * Not supported on REST client — consumer-initiated transfers are in-process only.
 	 * @param agreementId Unused.
 	 * @param providerEndpoint Unused.
-	 * @param publicOrigin Unused.
 	 * @param format Unused.
 	 * @param trustPayload Unused.
 	 * @returns The consumerPid of the newly created TransferProcess.
@@ -223,7 +220,6 @@ export class DataspaceControlPlaneRestClient
 	public async prepareTransfer(
 		agreementId: string,
 		providerEndpoint: string,
-		publicOrigin: string,
 		format: string,
 		trustPayload: unknown
 	): Promise<{ consumerPid: string }> {
@@ -239,7 +235,6 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Request a Transfer Process.
 	 * @param request Transfer request message (DSP compliant).
-	 * @param publicOrigin Unused by the client; the receiving server derives its own public origin.
 	 * @param options Request options.
 	 * @param options.autoStart When true, sent as a query parameter asking the provider to auto-start the
 	 * transfer once created.
@@ -248,7 +243,6 @@ export class DataspaceControlPlaneRestClient
 	 */
 	public async requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
-		publicOrigin: string,
 		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
@@ -277,13 +271,11 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Start a Transfer Process (Provider Side).
 	 * @param message Transfer start message (DSP compliant).
-	 * @param publicOrigin Unused by the client; the receiving server derives its own public origin.
 	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 */
 	public async startTransfer(
 		message: IDataspaceProtocolTransferStartMessage,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError> {
 		Guards.object(DataspaceControlPlaneRestClient.CLASS_NAME, nameof(message), message);
@@ -293,8 +285,6 @@ export class DataspaceControlPlaneRestClient
 			trustPayload
 		);
 
-		// publicOrigin is a server-side concern (the receiving node derives its own from its hosting
-		// component to build data-plane endpoints); it is not transmitted by the client.
 		const response = await this.fetch<IStartTransferRequest, IStartTransferResponse>(
 			"/transfers/:pid/start",
 			"POST",
@@ -313,13 +303,11 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Not supported on REST client (provider-initiated transfers are in-process only).
 	 * @param pid Unused.
-	 * @param publicOrigin Unused.
 	 * @param trustPayload Unused.
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 */
 	public async transferStarted(
 		pid: string,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError> {
 		throw new NotSupportedError(

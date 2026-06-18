@@ -1,12 +1,13 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { HttpContextIdKeys } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Converter } from "@twin.org/core";
 import {
 	DataspaceTransferFormat,
+	type DataspaceAppDataset,
 	type IDataspaceControlPlaneComponent,
 	type ITransferCallback,
-	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
@@ -123,9 +124,8 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 	/**
 	 * Register the shared mock dependencies (PAP, FedCat, PNP, decoding trust),
-	 * the provider hosting component, the two node storages, and the loopback
-	 * remote control plane factory. The loopback routes outbound calls to the
-	 * peer service, wrapping each in the peer's own organization context.
+	 * the two node storages, and the loopback remote control plane factory.
+	 * The loopback routes outbound calls to the peer service, wrapping each in the peer's own organization context.
 	 * @param autoStart When true, the loopback passes options.autoStart to the provider's requestTransfer so
 	 * the provider auto-starts the requested transfer. Defaults to false (no auto-start).
 	 * @param providerContextOrg The provider node's tenant-routing organization context. Defaults to
@@ -209,7 +209,8 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			// only the provider's Organization can diverge, to model org != assigner.
 			const targetContext = {
 				[ContextIdKeys.Node]: routesToProvider ? PROVIDER_ORG : CONSUMER_ORG,
-				[ContextIdKeys.Organization]: routesToProvider ? providerContextOrg : CONSUMER_ORG
+				[ContextIdKeys.Organization]: routesToProvider ? providerContextOrg : CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: targetOrigin
 			};
 
 			// Only the outbound DSP methods are invoked through the remote; typing the literal as a Pick
@@ -225,11 +226,11 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			> = {
 				requestTransfer: async (request, trustPayload) =>
 					ContextIdStore.run(targetContext, async () =>
-						target.requestTransfer(request, targetOrigin, { autoStart }, trustPayload)
+						target.requestTransfer(request, { autoStart }, trustPayload)
 					),
-				startTransfer: async (message, publicOrigin, trustPayload) =>
+				startTransfer: async (message, trustPayload) =>
 					ContextIdStore.run(targetContext, async () =>
-						target.startTransfer(message, publicOrigin, trustPayload)
+						target.startTransfer(message, trustPayload)
 					),
 				completeTransfer: async (message, trustPayload) =>
 					ContextIdStore.run(targetContext, async () =>
@@ -289,12 +290,15 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// the publicOrigin (callback) contains "consumer".
 		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
 		const { consumerPid } = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
 			async () =>
 				consumerService.prepareTransfer(
 					AGREEMENT_ID,
 					PROVIDER_ENDPOINT,
-					CONSUMER_ORIGIN,
 					DataspaceTransferFormat.HttpDataPull,
 					consumerToken
 				)
@@ -350,12 +354,15 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
 		const { consumerPid } = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
 			async () =>
 				consumerService.prepareTransfer(
 					AGREEMENT_ID,
 					PROVIDER_ENDPOINT,
-					CONSUMER_ORIGIN,
 					DataspaceTransferFormat.HttpDataPull,
 					consumerToken
 				)
@@ -384,12 +391,15 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
 		const { consumerPid } = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
 			async () =>
 				consumerService.prepareTransfer(
 					AGREEMENT_ID,
 					PROVIDER_ENDPOINT,
-					CONSUMER_ORIGIN,
 					DataspaceTransferFormat.HttpDataPull,
 					consumerToken
 				)
@@ -432,12 +442,15 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
 		const { consumerPid } = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
 			async () =>
 				consumerService.prepareTransfer(
 					AGREEMENT_ID,
 					PROVIDER_ENDPOINT,
-					CONSUMER_ORIGIN,
 					DataspaceTransferFormat.HttpDataPull,
 					consumerToken
 				)
@@ -507,12 +520,15 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	async function requestedTransfer(): Promise<{ consumerPid: string; providerPid: string }> {
 		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
 		const { consumerPid } = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
 			async () =>
 				consumerService.prepareTransfer(
 					AGREEMENT_ID,
 					PROVIDER_ENDPOINT,
-					CONSUMER_ORIGIN,
 					DataspaceTransferFormat.HttpDataPull,
 					consumerToken
 				)
@@ -550,8 +566,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// Provider explicitly starts, authenticated as the provider (agreement assigner) identity.
 		const providerToken = await createDecodingTrustComponent().generate(PROVIDER_ORG);
 		const result = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
-			async () => providerService.transferStarted(providerPid, PROVIDER_ENDPOINT, providerToken)
+			{
+				[ContextIdKeys.Node]: PROVIDER_ORG,
+				[ContextIdKeys.Organization]: PROVIDER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: PROVIDER_ENDPOINT
+			},
+			async () => providerService.transferStarted(providerPid, providerToken)
 		);
 
 		// The call returned the TransferStartMessage (not an error) carrying the PULL dataAddress.
@@ -583,9 +603,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		const providerToken = await createDecodingTrustComponent().generate(PROVIDER_ORG);
 		const result = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
-			async () =>
-				providerService.transferStarted("urn:uuid:does-not-exist", PROVIDER_ENDPOINT, providerToken)
+			{
+				[ContextIdKeys.Node]: PROVIDER_ORG,
+				[ContextIdKeys.Organization]: PROVIDER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: PROVIDER_ENDPOINT
+			},
+			async () => providerService.transferStarted("urn:uuid:does-not-exist", providerToken)
 		);
 
 		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
@@ -602,8 +625,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// be rejected: only the provider initiates a start.
 		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
 		const result = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: CONSUMER_ORG, [ContextIdKeys.Organization]: CONSUMER_ORG },
-			async () => consumerService.transferStarted(consumerPid, CONSUMER_ORIGIN, consumerToken)
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
+			async () => consumerService.transferStarted(consumerPid, consumerToken)
 		);
 
 		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
@@ -623,8 +650,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// provider-auth gate must reject it.
 		const wrongToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
 		const result = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
-			async () => providerService.transferStarted(providerPid, PROVIDER_ENDPOINT, wrongToken)
+			{
+				[ContextIdKeys.Node]: PROVIDER_ORG,
+				[ContextIdKeys.Organization]: PROVIDER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: PROVIDER_ENDPOINT
+			},
+			async () => providerService.transferStarted(providerPid, wrongToken)
 		);
 
 		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
@@ -670,8 +701,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		});
 
 		const result = await ContextIdStore.run(
-			{ [ContextIdKeys.Node]: PROVIDER_ORG, [ContextIdKeys.Organization]: PROVIDER_ORG },
-			async () => providerService.transferStarted(providerPid, PROVIDER_ENDPOINT, providerToken)
+			{
+				[ContextIdKeys.Node]: PROVIDER_ORG,
+				[ContextIdKeys.Organization]: PROVIDER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: PROVIDER_ENDPOINT
+			},
+			async () => providerService.transferStarted(providerPid, providerToken)
 		);
 
 		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferStartMessage);

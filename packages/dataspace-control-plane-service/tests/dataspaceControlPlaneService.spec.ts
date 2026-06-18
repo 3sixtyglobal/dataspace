@@ -1,5 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { HttpContextIdKeys } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	ComponentFactory,
@@ -14,9 +15,9 @@ import {
 	DataspaceAppFactory,
 	DataspaceTransferFormat,
 	TransferProcessRole,
+	type DataspaceAppDataset,
 	type INegotiationCallback,
 	type ITransferCallback,
-	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
@@ -132,7 +133,8 @@ describe("DataspaceControlPlaneService", () => {
 			[ContextIdKeys.Node]: "did:iota:test-node",
 			[ContextIdKeys.Tenant]: "did:iota:test-tenant",
 			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-			[ContextIdKeys.User]: "did:iota:test-user"
+			[ContextIdKeys.User]: "did:iota:test-user",
+			[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 		});
 	});
 
@@ -227,7 +229,7 @@ describe("DataspaceControlPlaneService", () => {
 			};
 
 			// 3. Provider receives request and returns Transfer Process with both PIDs
-			const response = await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			const response = await service.requestTransfer(request, undefined, "valid-trust-payload");
 
 			// Check it's a TransferProcess, not an error
 			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
@@ -258,7 +260,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			await service.requestTransfer(request, undefined, "valid-trust-payload");
 
 			const stored = await transferProcessStorage.get(consumerGeneratedPid);
 			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
@@ -279,7 +281,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			await service.requestTransfer(request, undefined, "valid-trust-payload");
 
 			// Both Consumer and Provider can query using consumerPid
 			const retrieved = await service.getTransferProcess(
@@ -332,11 +334,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid: "provider-pid-002"
 			};
 
-			const response = await service.startTransfer(
-				message,
-				"https://test-origin.com",
-				"valid-trust-payload"
-			);
+			const response = await service.startTransfer(message, "valid-trust-payload");
 
 			expect(response).toBeDefined();
 			if (response["@type"] !== DataspaceProtocolTransferProcessTypes.TransferError) {
@@ -359,11 +357,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid: "provider-pid-999"
 			};
 
-			const result = await service.startTransfer(
-				message,
-				"https://test-origin.com",
-				"valid-trust-payload"
-			);
+			const result = await service.startTransfer(message, "valid-trust-payload");
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 				const transferError = result;
@@ -419,7 +413,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "push-consumer-pid-req",
 					providerPid: "push-provider-pid-req"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -494,7 +487,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "push-consumer-pid-susp",
 					providerPid: "push-provider-pid-susp"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -546,7 +538,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "push-consumer-pid-bad",
 					providerPid: "push-provider-pid-bad"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -598,7 +589,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "pull-consumer-pid-noconfig",
 					providerPid: "pull-provider-pid-noconfig"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -651,7 +641,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "push-consumer-pid-noconfig",
 					providerPid: "push-provider-pid-noconfig"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -721,7 +710,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "push-consumer-pid-readback",
 					providerPid: "push-provider-pid-readback"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -779,7 +767,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "push-consumer-pid-atomicity-req",
 					providerPid: "push-provider-pid-atomicity-req"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -842,7 +829,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "push-consumer-pid-atomicity-susp",
 					providerPid: "push-provider-pid-atomicity-susp"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -893,11 +879,7 @@ describe("DataspaceControlPlaneService", () => {
 				const message = await seedPullTransfer();
 				const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
-				const response = await service.startTransfer(
-					message,
-					"https://test-origin.com",
-					"valid-trust-payload"
-				);
+				const response = await service.startTransfer(message, "valid-trust-payload");
 
 				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 					throw new Error(`unexpected TransferError: ${response.code}`);
@@ -914,11 +896,7 @@ describe("DataspaceControlPlaneService", () => {
 					...DEFAULT_SERVICE_OPTIONS
 				});
 
-				const response = await service.startTransfer(
-					message,
-					"https://test-origin.com",
-					"valid-trust-payload"
-				);
+				const response = await service.startTransfer(message, "valid-trust-payload");
 
 				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 					throw new Error(`unexpected TransferError: ${response.code}`);
@@ -939,14 +917,11 @@ describe("DataspaceControlPlaneService", () => {
 				vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 					[ContextIdKeys.Node]: "did:iota:test-node",
 					[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-					[ContextIdKeys.User]: "did:iota:test-user"
+					[ContextIdKeys.User]: "did:iota:test-user",
+					[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 				});
 
-				const response = await service.startTransfer(
-					message,
-					"https://test-origin.com",
-					"valid-trust-payload"
-				);
+				const response = await service.startTransfer(message, "valid-trust-payload");
 
 				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 					throw new Error(`unexpected TransferError: ${response.code}`);
@@ -1001,11 +976,7 @@ describe("DataspaceControlPlaneService", () => {
 					trustComponentType: "s3-real-trust"
 				});
 
-				const response = await service.startTransfer(
-					message,
-					"https://test-origin.com",
-					"valid-trust-payload"
-				);
+				const response = await service.startTransfer(message, "valid-trust-payload");
 				if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
 					throw new Error(`unexpected TransferError: ${response.code}`);
 				}
@@ -1073,7 +1044,6 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "post-push-consumer-pid",
 				providerPid: "post-push-provider-pid"
 			},
-			"https://test-origin.com",
 			"valid-trust-payload"
 		);
 
@@ -1145,7 +1115,6 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "pini-01-consumer-pid",
 				providerPid: "pini-01-provider-pid"
 			},
-			"https://test-origin.com",
 			"valid-trust-payload"
 		);
 
@@ -1202,7 +1171,6 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "pini-02-consumer-pid",
 				providerPid: "pini-02-provider-pid"
 			},
-			"https://test-origin.com",
 			"valid-trust-payload"
 		);
 
@@ -1241,7 +1209,8 @@ describe("DataspaceControlPlaneService", () => {
 		// Caller's organization context is `otherOrg`, but the entity is owned by `ownerOrg`.
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: "did:iota:test-node",
-			[ContextIdKeys.Organization]: otherOrg
+			[ContextIdKeys.Organization]: otherOrg,
+			[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 		});
 
 		const response = await service.startTransfer(
@@ -1251,7 +1220,6 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "wrong-tenant-start-pid",
 				providerPid: "wrong-tenant-start-provider-pid"
 			},
-			"https://test-origin.com",
 			"valid-trust-payload"
 		);
 
@@ -2001,7 +1969,8 @@ describe("DataspaceControlPlaneService", () => {
 				[ContextIdKeys.Node]: "did:iota:test-node",
 				[ContextIdKeys.Tenant]: "did:iota:test-tenant",
 				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz", // Matches assigner in test agreements
-				[ContextIdKeys.User]: "did:iota:test-user"
+				[ContextIdKeys.User]: "did:iota:test-user",
+				[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 			});
 		});
 
@@ -2027,7 +1996,8 @@ describe("DataspaceControlPlaneService", () => {
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-				[ContextIdKeys.User]: "did:iota:test-user"
+				[ContextIdKeys.User]: "did:iota:test-user",
+				[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 			});
 
 			const service = new DataspaceControlPlaneService({
@@ -2059,7 +2029,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2090,7 +2059,6 @@ describe("DataspaceControlPlaneService", () => {
 						consumerPid: transferProcess.consumerPid,
 						providerPid: transferProcess.providerPid
 					},
-					"https://test-origin.com",
 					"valid-trust-payload"
 				);
 			} else {
@@ -2162,7 +2130,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2232,7 +2199,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2258,7 +2224,6 @@ describe("DataspaceControlPlaneService", () => {
 						consumerPid: startResponse.consumerPid,
 						providerPid: startResponse.providerPid
 					},
-					"https://test-origin.com",
 					"valid-trust-payload"
 				);
 			}
@@ -2303,7 +2268,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2351,7 +2315,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2401,7 +2364,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2419,7 +2381,8 @@ describe("DataspaceControlPlaneService", () => {
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-				[ContextIdKeys.User]: "did:iota:test-user"
+				[ContextIdKeys.User]: "did:iota:test-user",
+				[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 			});
 
 			const service = new DataspaceControlPlaneService({
@@ -2456,7 +2419,6 @@ describe("DataspaceControlPlaneService", () => {
 						endpoint: "https://consumer.example.com/dataspace/inbox"
 					}
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2480,7 +2442,6 @@ describe("DataspaceControlPlaneService", () => {
 						consumerPid: transferProcess.consumerPid,
 						providerPid: transferProcess.providerPid
 					},
-					"https://test-origin.com",
 					"valid-trust-payload"
 				);
 			} else {
@@ -2528,7 +2489,8 @@ describe("DataspaceControlPlaneService", () => {
 				[ContextIdKeys.Node]: "did:iota:test-node",
 				[ContextIdKeys.Tenant]: "did:iota:test-tenant",
 				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-				[ContextIdKeys.User]: "did:iota:test-user"
+				[ContextIdKeys.User]: "did:iota:test-user",
+				[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 			});
 		});
 
@@ -2551,7 +2513,8 @@ describe("DataspaceControlPlaneService", () => {
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-				[ContextIdKeys.User]: "did:iota:test-user"
+				[ContextIdKeys.User]: "did:iota:test-user",
+				[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 			});
 
 			const service = new DataspaceControlPlaneService({
@@ -2588,7 +2551,6 @@ describe("DataspaceControlPlaneService", () => {
 						endpoint: "https://consumer.example.com/dataspace/inbox"
 					}
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2617,7 +2579,6 @@ describe("DataspaceControlPlaneService", () => {
 						consumerPid: transferProcess.consumerPid,
 						providerPid: transferProcess.providerPid
 					},
-					"https://test-origin.com",
 					"valid-trust-payload"
 				);
 			} else {
@@ -2699,7 +2660,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2725,7 +2685,6 @@ describe("DataspaceControlPlaneService", () => {
 						consumerPid: transferProcess.consumerPid,
 						providerPid: transferProcess.providerPid
 					},
-					"https://test-origin.com",
 					"valid-trust-payload"
 				);
 			} else {
@@ -2780,7 +2739,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2847,7 +2805,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2903,7 +2860,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2960,7 +2916,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -2986,7 +2941,6 @@ describe("DataspaceControlPlaneService", () => {
 						consumerPid: transferProcess.consumerPid,
 						providerPid: transferProcess.providerPid
 					},
-					"https://test-origin.com",
 					"valid-trust-payload"
 				);
 			} else {
@@ -3029,7 +2983,8 @@ describe("DataspaceControlPlaneService", () => {
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 				[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
-				[ContextIdKeys.User]: "did:iota:test-user"
+				[ContextIdKeys.User]: "did:iota:test-user",
+				[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
 			});
 
 			// Add agreement for the workflow test
@@ -3063,7 +3018,6 @@ describe("DataspaceControlPlaneService", () => {
 
 			const initiateResponse = await service.requestTransfer(
 				initiateRequest,
-				"",
 				undefined,
 				"valid-trust-payload"
 			);
@@ -3098,7 +3052,6 @@ describe("DataspaceControlPlaneService", () => {
 
 			const startResponse = await providerService.startTransfer(
 				startMessage,
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 			if (startResponse["@type"] !== DataspaceProtocolTransferProcessTypes.TransferError) {
@@ -3248,7 +3201,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			const response = await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			const response = await service.requestTransfer(request, undefined, "valid-trust-payload");
 
 			// Verify transfer was created successfully
 			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
@@ -3327,7 +3280,7 @@ describe("DataspaceControlPlaneService", () => {
 			};
 
 			// Should return TransferError (DSP-compliant) instead of throwing
-			const result = await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			const transferError = result as IDataspaceProtocolTransferError;
 			// Semantic error code format: "ErrorName:message"
@@ -3434,7 +3387,7 @@ describe("DataspaceControlPlaneService", () => {
 			};
 
 			// Should return TransferError with specific error key
-			const result = await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
 
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			const transferError = result as IDataspaceProtocolTransferError;
@@ -3461,7 +3414,6 @@ describe("DataspaceControlPlaneService", () => {
 					"dataset-does-not-exist",
 					"offer-does-not-exist",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"valid-trust-payload"
 				)
 			).rejects.toMatchObject({
@@ -3478,7 +3430,6 @@ describe("DataspaceControlPlaneService", () => {
 					"dataset-no-offers",
 					"any-offer-id",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"valid-trust-payload"
 				)
 			).rejects.toMatchObject({
@@ -3495,7 +3446,6 @@ describe("DataspaceControlPlaneService", () => {
 					"urn:uuid:dataset-negotiation-valid",
 					"offer-wrong-id",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"valid-trust-payload"
 				)
 			).rejects.toMatchObject({
@@ -3513,7 +3463,6 @@ describe("DataspaceControlPlaneService", () => {
 				"dataset-multi-offers",
 				"offer-multi-2",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3523,7 +3472,7 @@ describe("DataspaceControlPlaneService", () => {
 				"http://provider.example.com",
 				"dataspace-control-plane-requester",
 				"offer-multi-2",
-				"http://consumer.example.com"
+				"https://test-origin.com"
 			);
 		});
 
@@ -3536,7 +3485,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3553,7 +3501,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3563,7 +3510,7 @@ describe("DataspaceControlPlaneService", () => {
 				"http://provider.example.com",
 				"dataspace-control-plane-requester",
 				"offer-negotiation-valid",
-				"http://consumer.example.com"
+				"https://test-origin.com"
 			);
 		});
 
@@ -3576,7 +3523,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3584,7 +3530,7 @@ describe("DataspaceControlPlaneService", () => {
 				"http://provider.example.com",
 				"dataspace-control-plane-requester",
 				"offer-negotiation-valid",
-				"http://consumer.example.com"
+				"https://test-origin.com"
 			);
 		});
 	});
@@ -3599,7 +3545,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3616,7 +3561,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3625,7 +3569,7 @@ describe("DataspaceControlPlaneService", () => {
 				"http://provider.example.com",
 				"dataspace-control-plane-requester",
 				"offer-negotiation-valid",
-				"http://consumer.example.com"
+				"https://test-origin.com"
 			);
 		});
 	});
@@ -3647,7 +3591,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3692,7 +3635,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3737,7 +3679,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3786,7 +3727,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3819,7 +3759,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3846,7 +3785,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3879,7 +3817,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3915,7 +3852,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -3972,7 +3908,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -4009,7 +3944,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -4047,7 +3981,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"valid-trust-payload"
 			);
 
@@ -4282,7 +4215,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			const result = await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
 
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
@@ -4400,11 +4333,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid: "auth-test-start-provider"
 			};
 
-			const result = await service.startTransfer(
-				message,
-				"https://test-origin.com",
-				"valid-trust-payload"
-			);
+			const result = await service.startTransfer(message, "valid-trust-payload");
 
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
@@ -4465,7 +4394,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			const result = await service.requestTransfer(request, "", undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
 
 			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
@@ -4549,7 +4478,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "g14-start-consumer-pid",
 					providerPid: "g14-start-provider-pid"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -5394,11 +5322,11 @@ describe("DataspaceControlPlaneService", () => {
 	});
 
 	describe("negotiateAgreement trust check", () => {
-		test("negotiateAgreement should declare 5 parameters (trustPayload retained)", () => {
+		test("negotiateAgreement should declare 4 parameters (trustPayload retained)", () => {
 			// The implementation now enforces a real TrustHelper.verifyTrust() check.
 			// Function.length counts formal parameters declared before any default/rest.
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
-			expect(service.negotiateAgreement.length).toBe(5);
+			expect(service.negotiateAgreement.length).toBe(4);
 		});
 
 		test("getNegotiation should declare 2 parameters (regression lock-in)", () => {
@@ -5430,7 +5358,6 @@ describe("DataspaceControlPlaneService", () => {
 				"urn:uuid:dataset-negotiation-valid",
 				"offer-negotiation-valid",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"the-trust-payload-under-test"
 			);
 
@@ -5453,7 +5380,6 @@ describe("DataspaceControlPlaneService", () => {
 					"urn:uuid:dataset-negotiation-valid",
 					"offer-negotiation-valid",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"invalid-trust-payload"
 				)
 			).rejects.toThrow();
@@ -5534,11 +5460,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid: "cb-start-provider-01"
 			};
 
-			const result = await service.startTransfer(
-				message,
-				"https://test-origin.com",
-				"valid-trust-payload"
-			);
+			const result = await service.startTransfer(message, "valid-trust-payload");
 
 			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
@@ -5602,7 +5524,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid: "cb-provider-pid-01"
 			};
 
-			await service.startTransfer(message, "https://test-origin.com", "valid-trust-payload");
+			await service.startTransfer(message, "valid-trust-payload");
 
 			// No callbacks should have fired because THIS node is acting as Provider
 			expect(callback.onStateChanged).not.toHaveBeenCalled();
@@ -5645,7 +5567,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "cb-unreg-consumer-01",
 					providerPid: "cb-unreg-provider-01"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -5694,7 +5615,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "cb-fanout-consumer-01",
 					providerPid: "cb-fanout-provider-01"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -5736,7 +5656,6 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "cb-throw-consumer-01",
 					providerPid: "cb-throw-provider-01"
 				},
-				"https://test-origin.com",
 				"valid-trust-payload"
 			);
 
@@ -5914,7 +5833,6 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"HttpData-PULL",
 					"valid-trust-payload"
 				)
@@ -5925,13 +5843,7 @@ describe("DataspaceControlPlaneService", () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			await expect(
-				service.prepareTransfer(
-					"agreement-123",
-					"",
-					"http://consumer.example.com",
-					"HttpData-PULL",
-					"valid-trust-payload"
-				)
+				service.prepareTransfer("agreement-123", "", "HttpData-PULL", "valid-trust-payload")
 			).rejects.toThrow();
 		});
 
@@ -5942,7 +5854,6 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"agreement-123",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"not-a-valid-format",
 					"valid-trust-payload"
 				)
@@ -5956,7 +5867,6 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"agreement-does-not-exist",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"HttpData-PULL",
 					"valid-trust-payload"
 				)
@@ -5978,7 +5888,6 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"agreement-123",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"HttpData-PULL",
 					"valid-trust-payload"
 				)
@@ -6009,7 +5918,6 @@ describe("DataspaceControlPlaneService", () => {
 			const result = await service.prepareTransfer(
 				"agreement-123",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				"HttpData-PULL",
 				"valid-trust-payload"
 			);
@@ -6026,7 +5934,6 @@ describe("DataspaceControlPlaneService", () => {
 					agreementId: "agreement-123",
 					format: "HttpData-PULL"
 				}),
-				"",
 				undefined,
 				expect.anything()
 			);
@@ -6064,7 +5971,6 @@ describe("DataspaceControlPlaneService", () => {
 			const result = await service.prepareTransfer(
 				"agreement-123",
 				"http://provider.example.com",
-				"http://consumer.example.com",
 				DataspaceTransferFormat.HttpDataPush,
 				"valid-trust-payload"
 			);
@@ -6080,7 +5986,6 @@ describe("DataspaceControlPlaneService", () => {
 						endpoint: expect.stringContaining("/data-plane/data/inbox")
 					})
 				}),
-				"",
 				undefined,
 				expect.anything()
 			);
@@ -6103,7 +6008,6 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"agreement-123",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					DataspaceTransferFormat.HttpDataPush,
 					"valid-trust-payload"
 				)
@@ -6132,7 +6036,6 @@ describe("DataspaceControlPlaneService", () => {
 			await service.prepareTransfer(
 				"agreement-123",
 				"http://provider.example.com",
-				"https://consumer.example.com",
 				"HttpData-PULL",
 				"valid-trust-payload"
 			);
@@ -6146,7 +6049,7 @@ describe("DataspaceControlPlaneService", () => {
 			// org (`resolveContextOrganizationId()`), which this shared fixture pins to
 			// "did:iota:provider-node-xyz"; in a real consumer-initiated flow it is the consumer node's org.
 			expect(sentMessage.callbackAddress).toBe(
-				`https://consumer.example.com/dataspace?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
+				`https://test-origin.com/dataspace?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
 			);
 
 			ComponentFactory.unregister("test-remote-cp-callback");
@@ -6173,7 +6076,6 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"agreement-123",
 					"http://provider.example.com",
-					"http://consumer.example.com",
 					"HttpData-PULL",
 					"valid-trust-payload"
 				)

@@ -136,7 +136,6 @@ export class MockPolicyNegotiationPointComponent implements IPolicyNegotiationPo
 		throw new Error("Not implemented in mock");
 	}) as unknown as (
 		message: IDataspaceProtocolContractRequestMessage,
-		publicOrigin: string,
 		trustPayload: unknown
 	) => Promise<IDataspaceProtocolContractNegotiation | IDataspaceProtocolContractNegotiationError>;
 

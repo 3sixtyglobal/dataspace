@@ -65,7 +65,6 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param datasetId The dataset ID from the provider's catalog.
 	 * @param offerId The offer ID from the provider's catalog.
 	 * @param providerEndpoint The provider's contract negotiation endpoint URL.
-	 * @param publicOrigin The public origin URL of this control plane (for callbacks).
 	 * @param trustPayload Trust payload for authentication (JWT or Verifiable Credential).
 	 * @returns The negotiation ID for tracking. Use registered callback for completion.
 	 */
@@ -73,7 +72,6 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 		datasetId: string,
 		offerId: string,
 		providerEndpoint: string,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<{ negotiationId: string }>;
 
@@ -173,7 +171,6 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 *
 	 * @param agreementId The finalized agreement ID (from contract negotiation).
 	 * @param providerEndpoint The provider's DSP control plane base URL.
-	 * @param publicOrigin The public origin URL of this control plane (used as callbackAddress).
 	 * @param format The transfer format (e.g. "HttpData-PULL", "HttpData-PUSH").
 	 * @param trustPayload Trust payload for authentication.
 	 * @returns The consumerPid of the newly created TransferProcess.
@@ -181,7 +178,6 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	prepareTransfer(
 		agreementId: string,
 		providerEndpoint: string,
-		publicOrigin: string,
 		format: string,
 		trustPayload: unknown
 	): Promise<{ consumerPid: string }>;
@@ -197,8 +193,6 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 *
 	 * @param request Transfer request message (DSP compliant) containing agreementId,
 	 * consumerPid, callbackAddress, and format.
-	 * @param publicOrigin The public origin of this provider node (resolved server-side by the REST route
-	 * from the hosting component); used to build the data-plane endpoint when auto-starting.
 	 * @param options Request options.
 	 * @param options.autoStart When true, the provider immediately starts the requested transfer; when
 	 * omitted/false the provider start must be triggered explicitly.
@@ -209,7 +203,6 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 */
 	requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
-		publicOrigin: string,
 		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError>;
@@ -229,13 +222,11 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#transfer-start-message
 	 *
 	 * @param message Transfer start message (DSP compliant).
-	 * @param publicOrigin The public origin URL of this service (used to construct data plane endpoint for PULL transfers).
 	 * @param trustPayload Trust payload containing authorization information (JWT, VC, etc.).
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 */
 	startTransfer(
 		message: IDataspaceProtocolTransferStartMessage,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError>;
 
@@ -252,13 +243,11 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#transfer-start-message
 	 *
 	 * @param pid The Process ID (consumerPid or providerPid) identifying the transfer to start.
-	 * @param publicOrigin The public origin URL of this provider node (used to construct the data plane endpoint for PULL transfers).
 	 * @param trustPayload Trust payload proving the caller is the provider (JWT, VC, etc.).
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 */
 	transferStarted(
 		pid: string,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError>;
 

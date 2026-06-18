@@ -1,12 +1,14 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import {
+	HttpContextIdKeys,
 	HttpParameterHelper,
-	type IHostingComponent,
+	HttpUrlHelper,
 	type IHttpRequestContext,
 	type IRestRoute,
 	type ITag
 } from "@twin.org/api-models";
+import { ContextIdStore } from "@twin.org/context";
 import {
 	BaseError,
 	Coerce,
@@ -368,10 +370,6 @@ export async function getDataAssetEntities(
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.query.type), request.query.type);
 	Guards.stringValue(ROUTES_SOURCE, nameof(request.query.consumerPid), request.query.consumerPid);
 
-	const hostingComponent = ComponentFactory.get<IHostingComponent>(
-		httpRequestContext.hostingComponentType ?? "hosting"
-	);
-
 	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
@@ -390,8 +388,12 @@ export async function getDataAssetEntities(
 	const headers: IDataAssetEntitiesResponse["headers"] = {};
 
 	if (Is.stringValue(result.cursor)) {
+		const contextIds = await ContextIdStore.getContextIds();
 		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
-			await hostingComponent.buildPublicUrl(httpRequestContext.serverRequest.url),
+			HttpUrlHelper.replaceOrigin(
+				httpRequestContext.serverRequest.url,
+				contextIds?.[HttpContextIdKeys.PublicOrigin]
+			),
 			{ cursor: result.cursor },
 			"next"
 		);
@@ -423,10 +425,6 @@ export async function queryDataAsset(
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.type), request.body.query.type);
 	Guards.string(ROUTES_SOURCE, nameof(request.body.query.q), request.body.query.q);
 
-	const hostingComponent = ComponentFactory.get<IHostingComponent>(
-		httpRequestContext.hostingComponentType ?? "hosting"
-	);
-
 	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
@@ -442,8 +440,12 @@ export async function queryDataAsset(
 	const headers: IDataAssetEntitiesResponse["headers"] = {};
 
 	if (Is.stringValue(result.cursor)) {
+		const contextIds = await ContextIdStore.getContextIds();
 		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
-			await hostingComponent.buildPublicUrl(httpRequestContext.serverRequest.url),
+			HttpUrlHelper.replaceOrigin(
+				httpRequestContext.serverRequest.url,
+				contextIds?.[HttpContextIdKeys.PublicOrigin]
+			),
 			{ cursor: result.cursor },
 			"next"
 		);

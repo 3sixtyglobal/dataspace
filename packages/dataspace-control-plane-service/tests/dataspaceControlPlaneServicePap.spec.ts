@@ -118,7 +118,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -173,7 +172,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -202,7 +200,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -228,7 +225,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -272,7 +268,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -302,7 +297,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -329,7 +323,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -401,7 +394,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);
@@ -424,7 +416,6 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				callbackAddress: "https://consumer.example.com/callback",
 				format: "application/json"
 			},
-			"",
 			undefined,
 			"valid-trust-payload"
 		);

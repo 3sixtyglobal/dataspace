@@ -1,11 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpUrlHelper, type IPlatformComponent } from "@twin.org/api-models";
+import { HttpContextIdKeys, HttpUrlHelper, type IPlatformComponent } from "@twin.org/api-models";
 import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
-import { ContextIdKeys, ContextIdStore, ContextIdHelper } from "@twin.org/context";
+import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
-	ArrayHelper,
 	AlreadyExistsError,
+	ArrayHelper,
 	BaseError,
 	ComponentFactory,
 	Converter,
@@ -28,16 +28,16 @@ import {
 	TransferProcessRole,
 	getJsonLdId,
 	getJsonLdType,
+	type DataspaceAppDataset,
 	type IDataspaceApp,
+	type IDataspaceAppDataset,
 	type IDataspaceControlPlaneComponent,
 	type IDataspaceControlPlaneResolverComponent,
 	type IDataspaceDataPlaneComponent,
 	type INegotiationCallback,
 	type ITransferCallback,
-	type IDataspaceAppDataset,
 	type ITransferContext,
 	type ITransferProcess,
-	type DataspaceAppDataset,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
@@ -176,7 +176,7 @@ export class DataspaceControlPlaneService
 
 	/**
 	 * Data plane endpoint path (path only, not full URL).
-	 * Will be combined with public origin from hosting component.
+	 * Will be combined with public origin.
 	 * If not configured, PULL transfers are not supported.
 	 * @internal
 	 */
@@ -408,7 +408,7 @@ export class DataspaceControlPlaneService
 		let totalDatasets = 0;
 
 		// The platform component execute is used so that the dataset publication runs in the
-		// tenant context of the hosting component, also works in single tenant mode
+		// tenant context, also works in single tenant mode
 		await this._platformComponent?.execute(async () => {
 			// The tenant context id is set here for each system tenant
 			let cursor: string | undefined;
@@ -507,8 +507,6 @@ export class DataspaceControlPlaneService
 	 * Request a Transfer Process.
 	 * Creates a new Transfer Process in REQUESTED state.
 	 * @param request Transfer request message (DSP compliant).
-	 * @param publicOrigin The public origin of this provider node, resolved by the REST route from the
-	 * hosting component; used to build the data-plane endpoint when auto-starting.
 	 * @param options Request options.
 	 * @param options.autoStart When true, the provider immediately starts the requested transfer (scheduled
 	 * on the next tick); when omitted/false the provider start must be triggered explicitly.
@@ -520,7 +518,6 @@ export class DataspaceControlPlaneService
 	 */
 	public async requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
-		publicOrigin: string,
 		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
@@ -662,10 +659,11 @@ export class DataspaceControlPlaneService
 		// setTimeout follow-up). The timer runs inside the request's ALS context, so the [Node, Tenant] + org
 		// partition propagates to the deferred start.
 		if (options?.autoStart) {
+			const contextIds = await ContextIdStore.getContextIds();
 			const consumerPid = request.consumerPid;
 			setTimeout(async () => {
 				// runProviderStart catches internally and can't reject; awaiting satisfies no-floating-promises.
-				await this.runProviderStart(consumerPid, publicOrigin);
+				await this.runProviderStart(consumerPid, contextIds?.[HttpContextIdKeys.PublicOrigin]);
 			}, 0);
 		}
 
@@ -684,7 +682,6 @@ export class DataspaceControlPlaneService
 	 * and (only if the provider accepts) persists a local TransferProcess in REQUESTED state.
 	 * @param agreementId The finalized agreement ID from contract negotiation.
 	 * @param providerEndpoint The provider's DSP control plane base URL.
-	 * @param publicOrigin The public origin URL of this control plane (used as callbackAddress).
 	 * @param format The transfer format (e.g. "HttpData-PULL", "HttpData-PUSH").
 	 * @param trustPayload Trust payload for authenticating this call.
 	 * @returns The consumerPid of the newly created TransferProcess.
@@ -700,7 +697,6 @@ export class DataspaceControlPlaneService
 	public async prepareTransfer(
 		agreementId: string,
 		providerEndpoint: string,
-		publicOrigin: string,
 		format: string,
 		trustPayload: unknown
 	): Promise<{ consumerPid: string }> {
@@ -710,8 +706,11 @@ export class DataspaceControlPlaneService
 			nameof(providerEndpoint),
 			providerEndpoint
 		);
-		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(publicOrigin), publicOrigin);
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(format), format);
+
+		const contextIds = await ContextIdStore.getContextIds();
+		ContextIdHelper.guard(contextIds, HttpContextIdKeys.PublicOrigin);
+		const publicOrigin = contextIds[HttpContextIdKeys.PublicOrigin];
 
 		if (!(Object.values(DataspaceTransferFormat) as string[]).includes(format)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "unsupportedTransferFormat", {
@@ -827,7 +826,6 @@ export class DataspaceControlPlaneService
 
 		const result = await remoteControlPlane.requestTransfer(
 			transferRequestMessage,
-			"",
 			undefined,
 			outboundToken
 		);
@@ -903,7 +901,6 @@ export class DataspaceControlPlaneService
 	 * Start a Transfer Process.
 	 * Transitions Transfer Process from REQUESTED to STARTED state or resumes from SUSPENDED state.
 	 * @param message Transfer start message (DSP compliant).
-	 * @param publicOrigin The public origin URL of this service.
 	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 *
@@ -911,10 +908,11 @@ export class DataspaceControlPlaneService
 	 */
 	public async startTransfer(
 		message: IDataspaceProtocolTransferStartMessage,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError> {
-		publicOrigin = StringHelper.trimTrailingSlashes(publicOrigin);
+		const contextIds = await ContextIdStore.getContextIds();
+		ContextIdHelper.guard(contextIds, HttpContextIdKeys.PublicOrigin);
+		const publicOrigin = contextIds[HttpContextIdKeys.PublicOrigin];
 
 		const trustInfo = await TrustHelper.verifyTrust(
 			this._trustComponent,
@@ -1294,7 +1292,7 @@ export class DataspaceControlPlaneService
 			// Notify the consumer by POSTing the TransferStart (with its dataAddress) to the callback.
 			// Best-effort: a delivery failure must not roll back the STARTED transition.
 			await this.deliverToConsumerCallback(entity, "start", async (remoteControlPlane, token) =>
-				remoteControlPlane.startTransfer(response, "", token)
+				remoteControlPlane.startTransfer(response, token)
 			);
 
 			return response;
@@ -1312,24 +1310,17 @@ export class DataspaceControlPlaneService
 	 * the provider, builds the dataAddress for PULL, persists STARTED, and delivers to the consumer).
 	 * This is the provider-side mirror of prepareTransfer.
 	 * @param pid The Process ID (consumerPid or providerPid) identifying the transfer to start.
-	 * @param publicOrigin The public origin URL of this provider node (used to build the data plane endpoint for PULL transfers).
 	 * @param trustPayload Trust payload proving the caller is the provider.
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 */
 	public async transferStarted(
 		pid: string,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferStartMessage | IDataspaceProtocolTransferError> {
 		let consumerPid: string | undefined;
 		let providerPid: string | undefined;
 		try {
 			Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(pid), pid);
-			Guards.stringValue(
-				DataspaceControlPlaneService.CLASS_NAME,
-				nameof(publicOrigin),
-				publicOrigin
-			);
 
 			const { entity, role } = await this.lookupTransferByPid(pid);
 			consumerPid = entity.consumerPid;
@@ -1358,7 +1349,7 @@ export class DataspaceControlPlaneService
 			// startTransfer verifies trustPayload is the provider, checks org ownership, applies the
 			// REQUESTED|SUSPENDED state guard, builds the dataAddress, persists STARTED, and delivers the
 			// TransferStartMessage to the consumer callback.
-			return await this.startTransfer(startMessage, publicOrigin, trustPayload);
+			return await this.startTransfer(startMessage, trustPayload);
 		} catch (error) {
 			return transformToTransferError(error, { consumerPid, providerPid });
 		}
@@ -1855,7 +1846,6 @@ export class DataspaceControlPlaneService
 	 * @param datasetId The dataset ID from the provider's catalog.
 	 * @param offerId The offer ID from the provider's catalog.
 	 * @param providerEndpoint The provider's contract negotiation endpoint URL.
-	 * @param publicOrigin The public origin URL of this control plane (for callbacks).
 	 * @param trustPayload The trust payload for authentication.
 	 * @returns The negotiation ID. Use the registered callback for completion notification.
 	 */
@@ -1863,7 +1853,6 @@ export class DataspaceControlPlaneService
 		datasetId: string,
 		offerId: string,
 		providerEndpoint: string,
-		publicOrigin: string,
 		trustPayload: unknown
 	): Promise<{ negotiationId: string }> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
@@ -1873,7 +1862,9 @@ export class DataspaceControlPlaneService
 			nameof(providerEndpoint),
 			providerEndpoint
 		);
-		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(publicOrigin), publicOrigin);
+		const contextIds = await ContextIdStore.getContextIds();
+		ContextIdHelper.guard(contextIds, HttpContextIdKeys.PublicOrigin);
+		const publicOrigin = contextIds[HttpContextIdKeys.PublicOrigin];
 
 		const trustInfo = await TrustHelper.verifyTrust(
 			this._trustComponent,
@@ -2634,7 +2625,7 @@ export class DataspaceControlPlaneService
 				}
 			);
 
-			const result = await this.transferStarted(consumerPid, publicOrigin, selfToken);
+			const result = await this.transferStarted(consumerPid, selfToken);
 			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
 				await this._loggingComponent?.log({
 					level: "error",

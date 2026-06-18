@@ -1,7 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type {
-	IHostingComponent,
 	IHttpRequestContext,
 	INoContentResponse,
 	INotFoundResponse,
@@ -630,14 +629,9 @@ async function requestTransferHandler(
 
 	const trustPayload = HeaderHelper.extractBearer(request.headers[HeaderTypes.Authorization]);
 
-	const hostingComponent = ComponentFactory.get<IHostingComponent>(
-		httpRequestContext.hostingComponentType ?? "hosting"
-	);
-
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
 	const result = await component.requestTransfer(
 		request.body,
-		await hostingComponent.getPublicOrigin(httpRequestContext.serverRequest.url),
 		{ autoStart: Coerce.boolean(request.query?.autoStart) },
 		trustPayload
 	);
@@ -692,16 +686,8 @@ async function startTransferHandler(
 
 	const trustPayload = HeaderHelper.extractBearer(request.headers[HeaderTypes.Authorization]);
 
-	const hostingComponent = ComponentFactory.get<IHostingComponent>(
-		httpRequestContext.hostingComponentType ?? "hosting"
-	);
-
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
-	const result = await component.startTransfer(
-		request.body,
-		await hostingComponent.getPublicOrigin(httpRequestContext.serverRequest.url),
-		trustPayload
-	);
+	const result = await component.startTransfer(request.body, trustPayload);
 
 	return {
 		body: result,

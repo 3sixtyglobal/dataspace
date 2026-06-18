@@ -13,7 +13,7 @@ export interface IDataspaceControlPlaneServiceConfig {
 
 	/**
 	 * Data plane endpoint path for PULL transfers (path only, not full URL).
-	 * Will be combined with the public origin from the hosting component.
+	 * Will be combined with the public origin.
 	 *
 	 * REQUIRED if PULL transfers are supported.
 	 * If not specified, PULL transfers will not be available.

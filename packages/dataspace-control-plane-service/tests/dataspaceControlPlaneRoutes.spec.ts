@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IHostingComponent, IHttpRequest, IHttpRequestContext } from "@twin.org/api-models";
+import type { IHttpRequest, IHttpRequestContext } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory } from "@twin.org/core";
 import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
@@ -58,15 +58,6 @@ describe("dataspaceControlPlaneRoutes", () => {
 		ComponentFactory.register("test-fedcat-routes", () => mockFedCat);
 		ComponentFactory.register("test-trust-routes", () => createMockTrustComponent());
 
-		const mockHostingComponent: IHostingComponent = {
-			className: () => "MockHostingComponent",
-			getPublicOrigin: async () => "https://test-origin.com",
-			getTenantOrigin: async () => "https://test-origin.com",
-			buildPublicUrl: async (path: string) => `https://test-origin.com${path}`,
-			matchesLocalOrigin: async (origin: string) => ""
-		};
-		ComponentFactory.register("hosting", () => mockHostingComponent);
-
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: "did:iota:test-node",
 			[ContextIdKeys.Tenant]: "did:iota:test-tenant",
@@ -101,7 +92,6 @@ describe("dataspaceControlPlaneRoutes", () => {
 			ComponentFactory.unregister("test-pnp-routes");
 			ComponentFactory.unregister("test-fedcat-routes");
 			ComponentFactory.unregister("test-trust-routes");
-			ComponentFactory.unregister("hosting");
 			ComponentFactory.unregister("url-transformer");
 		} catch {
 			// Ignore errors if already unregistered
@@ -247,8 +237,6 @@ describe("dataspaceControlPlaneRoutes", () => {
 			);
 			const initiateRoute = routes.find(r => r.operationId === "requestTransfer");
 
-			// The handler resolves this provider node's public origin from the hosting component using the
-			// request URL (to pass publicOrigin into requestTransfer for auto-start), so supply a serverRequest.
 			const mockContext = {
 				serverRequest: { url: "https://test-origin.com/transfers/request" }
 			} as unknown as IHttpRequestContext;
