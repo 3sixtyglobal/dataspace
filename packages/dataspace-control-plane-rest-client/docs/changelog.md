@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.48](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.47...dataspace-control-plane-rest-client-v0.0.3-next.48) (2026-06-18)
+
+
+### Features
+
+* remove hosting component ([#209](https://github.com/iotaledger/twin-dataspace/issues/209)) ([5e19328](https://github.com/iotaledger/twin-dataspace/commit/5e1932823aa8a0f88f559f096610b9df1f3b8615))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.47 to 0.0.3-next.48
+
 ## [0.0.3-next.47](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.46...dataspace-control-plane-rest-client-v0.0.3-next.47) (2026-06-17)
 
 
