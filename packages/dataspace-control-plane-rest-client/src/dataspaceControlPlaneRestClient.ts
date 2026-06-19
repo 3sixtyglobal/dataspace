@@ -117,7 +117,7 @@ export class DataspaceControlPlaneRestClient
 		offerId: string,
 		providerEndpoint: string,
 		trustPayload: unknown
-	): Promise<{ negotiationId: string }> {
+	): Promise<{ negotiationId?: string; agreementId?: string }> {
 		throw new NotSupportedError(
 			DataspaceControlPlaneRestClient.CLASS_NAME,
 			"notSupportedOnClient",

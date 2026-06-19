@@ -21,7 +21,11 @@ import {
 	Urn,
 	ValidationError
 } from "@twin.org/core";
-import { JsonLdHelper, type JsonLdObjectWithNoContext } from "@twin.org/data-json-ld";
+import {
+	JsonLdHelper,
+	type JsonLdObjectWithOptionalAtId,
+	type JsonLdObjectWithNoContext
+} from "@twin.org/data-json-ld";
 import {
 	DataspaceControlPlaneMetricIds,
 	DataspaceControlPlaneMetrics,
@@ -78,6 +82,7 @@ import {
 	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
+import { OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
 import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import { DataspaceControlPlanePolicyRequester } from "./dataspaceControlPlanePolicyRequester.js";
@@ -1890,14 +1895,14 @@ export class DataspaceControlPlaneService
 	 * @param offerId The offer ID from the provider's catalog.
 	 * @param providerEndpoint The provider's contract negotiation endpoint URL.
 	 * @param trustPayload The trust payload for authentication.
-	 * @returns The negotiation ID. Use the registered callback for completion notification.
+	 * @returns For implicit trust: `{ agreementId }`. For external negotiation: `{ negotiationId }`.
 	 */
 	public async negotiateAgreement(
 		datasetId: string,
 		offerId: string,
 		providerEndpoint: string,
 		trustPayload: unknown
-	): Promise<{ negotiationId: string }> {
+	): Promise<{ negotiationId?: string; agreementId?: string }> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(offerId), offerId);
 		Guards.stringValue(
@@ -2015,6 +2020,10 @@ export class DataspaceControlPlaneService
 				offerType: getJsonLdType(matchingOffer)
 			}
 		});
+
+		if (trustInfo.identity === organizationId) {
+			return this.negotiateImplicitTrustAgreement(organizationId, datasetId);
+		}
 
 		const negotiationId = await this._policyNegotiationPointComponent.sendRequestToProvider(
 			providerEndpoint,
@@ -3479,5 +3488,80 @@ export class DataspaceControlPlaneService
 	private async resolveContextTenantId(): Promise<string | undefined> {
 		const contextIds = await ContextIdStore.getContextIds();
 		return contextIds?.[ContextIdKeys.Tenant];
+	}
+
+	/**
+	 * Return an existing full-access agreement for the same-organization (implicit trust) case,
+	 * or create and store one if none exists. Fires onFinalized on all registered callbacks in
+	 * both cases.
+	 * @param organizationId The local organization ID (both assigner and assignee).
+	 * @param datasetId The dataset being granted access to.
+	 * @returns The agreement ID.
+	 * @internal
+	 */
+	private async negotiateImplicitTrustAgreement(
+		organizationId: string,
+		datasetId: string
+	): Promise<{ agreementId: string }> {
+		const { policies } = await this._policyAdministrationPointComponent.query({
+			type: OdrlPolicyType.Agreement,
+			assigner: organizationId,
+			assignee: organizationId,
+			target: datasetId
+		});
+
+		let agreementId: string;
+
+		if (policies.length > 0) {
+			agreementId = OdrlPolicyHelper.getUid(policies[0]) as string;
+
+			await this._loggingComponent?.log({
+				level: "info",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "implicitTrustAgreementReused",
+				data: { agreementId, datasetId, organizationId }
+			});
+		} else {
+			const implicitAgreement: JsonLdObjectWithOptionalAtId<IDataspaceProtocolAgreement> = {
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				assigner: organizationId,
+				assignee: organizationId,
+				target: datasetId,
+				permission: [{ action: "use" }]
+			};
+
+			agreementId = await this._policyAdministrationPointComponent.create(implicitAgreement);
+
+			await MetricHelper.metricIncrement(
+				this._telemetryComponent,
+				DataspaceControlPlaneMetricIds.NegotiationsInitiated
+			);
+
+			await this._loggingComponent?.log({
+				level: "info",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "implicitTrustAgreementCreated",
+				data: { agreementId, datasetId, organizationId }
+			});
+		}
+
+		for (const [key, cb] of this._negotiationCallbacks.entries()) {
+			try {
+				await cb.onFinalized(undefined, agreementId);
+			} catch (error) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "negotiationCallbackError",
+					data: { key, negotiationId: agreementId, method: "onFinalized", error }
+				});
+			}
+		}
+
+		return { agreementId };
 	}
 }

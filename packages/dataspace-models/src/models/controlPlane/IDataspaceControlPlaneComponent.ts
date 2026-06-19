@@ -53,8 +53,12 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * Negotiate a contract agreement with a provider.
 	 * Implements DSP Contract Negotiation Protocol.
 	 *
-	 * Returns immediately with a negotiationId. The caller is notified
-	 * via the registered INegotiationCallback when the negotiation completes.
+	 * When the caller's identity matches the local organization ID (implicit trust), an
+	 * agreement with full access is created and stored immediately, registered callbacks
+	 * are fired synchronously, and only `agreementId` is returned (no `negotiationId`).
+	 *
+	 * Otherwise the method returns immediately with a `negotiationId`. The caller is
+	 * notified via the registered INegotiationCallback when the negotiation completes.
 	 * The negotiation follows DSP state machine: REQUESTED → OFFERED → AGREED → VERIFIED → FINALIZED.
 	 *
 	 * The REST client does not support this method and throws a not supported error —
@@ -66,14 +70,14 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param offerId The offer ID from the provider's catalog.
 	 * @param providerEndpoint The provider's contract negotiation endpoint URL.
 	 * @param trustPayload Trust payload for authentication (JWT or Verifiable Credential).
-	 * @returns The negotiation ID for tracking. Use registered callback for completion.
+	 * @returns For implicit trust: `{ agreementId }`. For external negotiation: `{ negotiationId }`.
 	 */
 	negotiateAgreement(
 		datasetId: string,
 		offerId: string,
 		providerEndpoint: string,
 		trustPayload: unknown
-	): Promise<{ negotiationId: string }>;
+	): Promise<{ negotiationId?: string; agreementId?: string }>;
 
 	/**
 	 * Get the current state of a contract negotiation.

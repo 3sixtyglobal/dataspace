@@ -30,11 +30,11 @@ export interface INegotiationCallback {
 
 	/**
 	 * Called when the negotiation finalizes.
-	 * @param negotiationId The negotiation ID.
+	 * @param negotiationId The negotiation ID, or undefined for implicit-trust agreements.
 	 * @param agreementId The agreement ID (from agreement.uid).
 	 * @returns Nothing.
 	 */
-	onFinalized(negotiationId: string, agreementId: string): Promise<void>;
+	onFinalized(negotiationId: string | undefined, agreementId: string): Promise<void>;
 
 	/**
 	 * Called when the negotiation fails (terminated or stalled).

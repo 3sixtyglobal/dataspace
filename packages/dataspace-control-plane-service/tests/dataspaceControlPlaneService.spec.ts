@@ -3998,6 +3998,212 @@ describe("DataspaceControlPlaneService", () => {
 		});
 	});
 
+	describe("Contract Negotiation - Implicit Trust", () => {
+		test("should return agreementId when caller identity matches organization (new agreement)", async () => {
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPap.clearAgreements();
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBeDefined();
+			expect(result.negotiationId).toBeUndefined();
+		});
+
+		test("should not call sendRequestToProvider for implicit trust negotiations", async () => {
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPap.clearAgreements();
+
+			const sendSpy = vi.spyOn(mockPnp, "sendRequestToProvider");
+
+			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(sendSpy).not.toHaveBeenCalled();
+		});
+
+		test("should call onFinalized(undefined, agreementId) when creating a new implicit agreement", async () => {
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPap.clearAgreements();
+
+			const callbackSpy: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("implicit-trust-test", callbackSpy);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
+			expect(callbackSpy.onStateChanged).not.toHaveBeenCalled();
+			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
+		});
+
+		test("should call onFinalized(undefined, agreementId) when reusing an existing implicit agreement", async () => {
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "implicit-reuse-agreement-1",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "use" }]
+			} as unknown as IDataspaceProtocolAgreement);
+
+			const callbackSpy: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("implicit-reuse-test", callbackSpy);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("implicit-reuse-agreement-1");
+			expect(result.negotiationId).toBeUndefined();
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(undefined, "implicit-reuse-agreement-1");
+		});
+
+		test("should not create a new agreement when one already exists", async () => {
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "implicit-existing-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "use" }]
+			} as unknown as IDataspaceProtocolAgreement);
+
+			const createSpy = vi.spyOn(mockPap, "create");
+
+			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(createSpy).not.toHaveBeenCalled();
+		});
+
+		test("should fan out onFinalized to multiple callbacks for implicit trust", async () => {
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPap.clearAgreements();
+
+			const callbackSpy1: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			const callbackSpy2: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("cb-a", callbackSpy1);
+			service.registerNegotiationCallback("cb-b", callbackSpy2);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(callbackSpy1.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
+			expect(callbackSpy2.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
+		});
+
+		test("should still return agreementId if a callback throws during implicit trust", async () => {
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPap.clearAgreements();
+
+			const throwingCallback: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockRejectedValue(new Error("callback boom")),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("throwing-cb", throwingCallback);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBeDefined();
+			expect(result.negotiationId).toBeUndefined();
+		});
+
+		test("should not call implicit trust callbacks for external negotiations", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const callbackSpy: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("external-test", callbackSpy);
+
+			mockPnpToReturnNegotiationId(mockPnp, "external-neg-001");
+
+			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(callbackSpy.onFinalized).not.toHaveBeenCalled();
+		});
+	});
+
 	describe("Negotiation History", () => {
 		test("should retrieve negotiation history from PNAP", async () => {
 			const mockPnapAdmin = new MockPolicyNegotiationAdminPointComponent();

@@ -17,6 +17,8 @@
 			"startingContractNegotiation": "Starting contract negotiation with provider",
 			"offerFoundInCatalog": "Offer found in Federated Catalogue and validated",
 			"negotiationInitiated": "Contract negotiation initiated successfully",
+			"implicitTrustAgreementCreated": "Implicit trust agreement created (agreementId: {agreementId}, datasetId: {datasetId}, organizationId: {organizationId})",
+			"implicitTrustAgreementReused": "Existing implicit trust agreement reused (agreementId: {agreementId}, datasetId: {datasetId}, organizationId: {organizationId})",
 			"getNegotiation": "Retrieving negotiation status",
 			"negotiationStateRetrieved": "Negotiation state retrieved successfully",
 			"getNegotiationHistory": "Retrieving negotiation history",
