@@ -82,7 +82,7 @@ import {
 	type IDataspaceProtocolTransferTerminationMessage
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
-import { OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
+import { OdrlActionType, OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
 import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import { DataspaceControlPlanePolicyRequester } from "./dataspaceControlPlanePolicyRequester.js";
@@ -3550,12 +3550,12 @@ export class DataspaceControlPlaneService
 			});
 		} else {
 			const implicitAgreement: JsonLdObjectWithOptionalAtId<IDataspaceProtocolAgreement> = {
-				"@context": "http://www.w3.org/ns/odrl.jsonld",
-				"@type": "Agreement",
+				"@context": OdrlContexts.Context,
+				"@type": OdrlPolicyType.Agreement,
 				assigner: organizationId,
 				assignee: organizationId,
 				target: datasetId,
-				permission: [{ action: "use" }]
+				permission: [{ action: OdrlActionType.Use }]
 			};
 
 			agreementId = await this._policyAdministrationPointComponent.create(implicitAgreement);
