@@ -61,9 +61,9 @@ Called when the negotiation finalizes.
 
 ##### negotiationId
 
-`string`
+`string` \| `undefined`
 
-The negotiation ID.
+The negotiation ID, or undefined for implicit-trust agreements.
 
 ##### agreementId
 

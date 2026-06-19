@@ -263,7 +263,7 @@ on the next tick); when omitted/false the provider start must be triggered expli
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -353,7 +353,7 @@ Transfer start message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -425,7 +425,7 @@ Transfer completion message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -457,7 +457,7 @@ Transfer suspension message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -489,7 +489,7 @@ Transfer termination message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -521,7 +521,7 @@ Process ID (consumerPid or providerPid).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -537,7 +537,7 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Returns immediately with a negotiationId. The caller is notified
@@ -571,9 +571,9 @@ The trust payload for authentication.
 
 #### Returns
 
-`Promise`\<\{ `negotiationId`: `string`; \}\>
+`Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
 
-The negotiation ID. Use the registered callback for completion notification.
+For implicit trust: `{ agreementId }`. For external negotiation: `{ negotiationId }`.
 
 #### Implementation of
 
@@ -669,7 +669,7 @@ Consumer Process ID.
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -701,7 +701,7 @@ Provider Process ID.
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 

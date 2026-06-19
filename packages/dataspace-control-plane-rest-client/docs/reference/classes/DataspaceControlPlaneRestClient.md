@@ -127,7 +127,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
 
 Not supported on REST client — contract negotiation is in-process only.
 
@@ -159,7 +159,7 @@ Unused.
 
 #### Returns
 
-`Promise`\<\{ `negotiationId`: `string`; \}\>
+`Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
 
 The negotiation ID for tracking.
 
@@ -386,7 +386,7 @@ transfer once created.
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -418,7 +418,7 @@ Transfer start message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -482,7 +482,7 @@ Transfer completion message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -514,7 +514,7 @@ Transfer suspension message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -546,7 +546,7 @@ Transfer termination message (DSP compliant).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 
@@ -578,7 +578,7 @@ Process ID (consumerPid or providerPid).
 
 `unknown`
 
-Trust payload containing authorization information (Base64-encoded token).
+Trust payload containing authorization information.
 
 #### Returns
 

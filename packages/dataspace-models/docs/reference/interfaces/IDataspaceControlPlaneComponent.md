@@ -66,13 +66,17 @@ The key used when registering the callback.
 
 ### negotiateAgreement() {#negotiateagreement}
 
-> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId`: `string`; \}\>
+> **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
 
 Negotiate a contract agreement with a provider.
 Implements DSP Contract Negotiation Protocol.
 
-Returns immediately with a negotiationId. The caller is notified
-via the registered INegotiationCallback when the negotiation completes.
+When the caller's identity matches the local organization ID (implicit trust), an
+agreement with full access is created and stored immediately, registered callbacks
+are fired synchronously, and only `agreementId` is returned (no `negotiationId`).
+
+Otherwise the method returns immediately with a `negotiationId`. The caller is
+notified via the registered INegotiationCallback when the negotiation completes.
 The negotiation follows DSP state machine: REQUESTED → OFFERED → AGREED → VERIFIED → FINALIZED.
 
 The REST client does not support this method and throws a not supported error —
@@ -108,9 +112,9 @@ Trust payload for authentication (JWT or Verifiable Credential).
 
 #### Returns
 
-`Promise`\<\{ `negotiationId`: `string`; \}\>
+`Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
 
-The negotiation ID for tracking. Use registered callback for completion.
+For implicit trust: `{ agreementId }`. For external negotiation: `{ negotiationId }`.
 
 ***
 
