@@ -4592,8 +4592,7 @@ describe("DataspaceControlPlaneService", () => {
 		const TEST_APP_ID = "https://twin.example.org/app1";
 
 		// Register a minimal mock app under TEST_APP_ID so publishDataset's
-		// DataspaceAppFactory.get lookup succeeds. The mock has no
-		// `datasetsHandled` override so the default populate path is exercised.
+		// DataspaceAppFactory.get lookup succeeds.
 		beforeEach(() => {
 			DataspaceAppFactory.register(TEST_APP_ID, () => ({
 				className: () => "MockDataspaceApp",
@@ -4998,44 +4997,6 @@ describe("DataspaceControlPlaneService", () => {
 				([dataset]) => (dataset as { "@id"?: string })["@id"] === "ds-publish-tenant"
 			);
 			expect(publishedOurDataset).toBe(true);
-		});
-
-		test("publishDataset calls populateDefaults even when app overrides datasetsHandled", async () => {
-			// Register an app whose datasetsHandled returns a dataset WITHOUT
-			// `dcterms:publisher`. The framework should stamp publisher from the
-			// organization DID regardless of which path produced the dataset.
-			const APP_WITH_OVERRIDE = "https://twin.example.org/app-with-override";
-			DataspaceAppFactory.register(APP_WITH_OVERRIDE, () => ({
-				className: () => "MockAppWithOverride",
-				activitiesHandled: () => [],
-				supportedQueryTypes: () => [],
-				datasetsHandled: async () => [
-					{
-						"@context": [DataspaceProtocolContexts.JsonLdContext],
-						"@id": "https://twin.example.org/from-override",
-						"@type": "Dataset",
-						hasPolicy: [],
-						distribution: []
-					} as never
-				]
-			}));
-
-			try {
-				const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
-				const setSpy = vi.spyOn(mockFedCat, "set");
-
-				await service.createAppDataset(
-					"https://twin.example.org/seed",
-					APP_WITH_OVERRIDE,
-					buildDataset("https://twin.example.org/seed") as never
-				);
-
-				expect(setSpy).toHaveBeenCalledTimes(1);
-				const publishedDataset = setSpy.mock.calls[0][0] as { "dcterms:publisher"?: string };
-				expect(publishedDataset["dcterms:publisher"]).toBe("did:iota:provider-node-xyz");
-			} finally {
-				DataspaceAppFactory.unregister(APP_WITH_OVERRIDE);
-			}
 		});
 
 		describe("platform component — single-tenant vs multi-tenant mode", () => {

@@ -23,7 +23,6 @@ import {
 } from "@twin.org/core";
 import { JsonLdHelper, type JsonLdObjectWithNoContext } from "@twin.org/data-json-ld";
 import {
-	DataspaceAppFactory,
 	DataspaceControlPlaneMetricIds,
 	DataspaceControlPlaneMetrics,
 	DataspaceTransferFormat,
@@ -31,7 +30,6 @@ import {
 	getJsonLdId,
 	getJsonLdType,
 	type DataspaceAppDataset,
-	type IDataspaceApp,
 	type IDataspaceAppDataset,
 	type IDataspaceControlPlaneComponent,
 	type IDataspaceControlPlaneResolverComponent,
@@ -3444,13 +3442,9 @@ export class DataspaceControlPlaneService
 		const tenantContextIds = { ...contextIds, [ContextIdKeys.Tenant]: appDataset.tenantId };
 
 		await ContextIdStore.run(tenantContextIds, async () => {
-			const app = DataspaceAppFactory.get<IDataspaceApp>(appDataset.appId);
 			const datasetPayload = this.restampDatasetId(appDataset.dataset, appDataset.id);
-			const overrideHandler = app.datasetsHandled?.bind(app);
 
-			const rawDatasets: IDataspaceProtocolDataset[] = overrideHandler
-				? await overrideHandler(datasetPayload)
-				: [datasetPayload];
+			const rawDatasets: IDataspaceProtocolDataset[] = [datasetPayload];
 
 			const datasets = await Promise.all(rawDatasets.map(async d => this.populateDefaults(d)));
 

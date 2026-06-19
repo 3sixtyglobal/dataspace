@@ -41,8 +41,7 @@ import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolDataTypes,
-	DataspaceProtocolTransferProcessStateType,
-	type IDataspaceProtocolDataset
+	DataspaceProtocolTransferProcessStateType
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
@@ -94,7 +93,6 @@ async function sleep(ms: number): Promise<void> {
 /**
  * Seed a dataspace app dataset record into the dataspace-app-dataset storage so the
  * dataspace data plane's dataset id → app lookup resolves to TestDataspaceDataPlaneApp.
- * Replaces what the legacy `datasetsHandled` returned at app start.
  * @param storage The dataspace-app-dataset storage connector.
  */
 async function seedTestAppDataset(
@@ -515,10 +513,6 @@ describe("DataspaceDataPlaneService", () => {
 			const subscribeCalls: IFollowActivity[] = [];
 			const mockApp = {
 				className: () => "MockApp",
-				datasetsHandled: async () =>
-					[
-						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
-					] as unknown as IDataspaceProtocolDataset[],
 				activitiesHandled: () => [],
 				supportedQueryTypes: () => [],
 				subscribeToData: async (activity: IFollowActivity) => {
@@ -771,10 +765,6 @@ describe("DataspaceDataPlaneService", () => {
 
 			DataspaceAppFactory.register("mock-no-subscribe-app", () => ({
 				className: () => "MockApp",
-				datasetsHandled: async () =>
-					[
-						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
-					] as unknown as IDataspaceProtocolDataset[],
 				activitiesHandled: () => [],
 				supportedQueryTypes: () => []
 			}));
@@ -830,10 +820,6 @@ describe("DataspaceDataPlaneService", () => {
 			const unsubscribeCalls: IUndoActivity[] = [];
 			DataspaceAppFactory.register("mock-compensation-app", () => ({
 				className: () => "MockApp",
-				datasetsHandled: async () =>
-					[
-						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
-					] as unknown as IDataspaceProtocolDataset[],
 				activitiesHandled: () => [],
 				supportedQueryTypes: () => [],
 				subscribeToData: async (activity: IFollowActivity) => {
@@ -985,10 +971,6 @@ describe("DataspaceDataPlaneService", () => {
 			const undoCalls: IUndoActivity[] = [];
 			DataspaceAppFactory.register("mock-teardown-app", () => ({
 				className: () => "MockApp",
-				datasetsHandled: async () =>
-					[
-						{ "@id": SERVICE_DATASET_ID, "@type": "dcat:Dataset" }
-					] as unknown as IDataspaceProtocolDataset[],
 				activitiesHandled: () => [],
 				supportedQueryTypes: () => [],
 				unsubscribeToData: async (activity: IUndoActivity) => {
