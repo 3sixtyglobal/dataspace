@@ -238,7 +238,7 @@ export class DataspaceControlPlaneRestClient
 	 * @param options Request options.
 	 * @param options.autoStart When true, sent as a query parameter asking the provider to auto-start the
 	 * transfer once created.
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the operation fails.
 	 */
 	public async requestTransfer(
@@ -271,7 +271,7 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Start a Transfer Process (Provider Side).
 	 * @param message Transfer start message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 */
 	public async startTransfer(
@@ -322,7 +322,7 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Complete a Transfer Process.
 	 * @param message Transfer completion message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state COMPLETED, or TransferError if the operation fails.
 	 */
 	public async completeTransfer(
@@ -354,7 +354,7 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Suspend a Transfer Process.
 	 * @param message Transfer suspension message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state SUSPENDED, or TransferError if the operation fails.
 	 */
 	public async suspendTransfer(
@@ -386,7 +386,7 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Terminate a Transfer Process.
 	 * @param message Transfer termination message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state TERMINATED, or TransferError if the operation fails.
 	 */
 	public async terminateTransfer(
@@ -418,7 +418,7 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Get Transfer Process state (DSP compliant).
 	 * @param pid Process ID (consumerPid or providerPid).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with current state, or TransferError if the operation fails.
 	 */
 	public async getTransferProcess(

@@ -523,7 +523,7 @@ export class DataspaceControlPlaneService
 	 * @param options Request options.
 	 * @param options.autoStart When true, the provider immediately starts the requested transfer (scheduled
 	 * on the next tick); when omitted/false the provider start must be triggered explicitly.
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the operation fails.
 	 *
 	 * Role Performed: Provider
@@ -924,7 +924,7 @@ export class DataspaceControlPlaneService
 	 * Start a Transfer Process.
 	 * Transitions Transfer Process from REQUESTED to STARTED state or resumes from SUSPENDED state.
 	 * @param message Transfer start message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Start Message (DSP compliant) with dataAddress for PULL transfers, or TransferError if the operation fails.
 	 *
 	 * Role Performed: Provider / Consumer
@@ -1395,7 +1395,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Complete a Transfer Process.
 	 * @param message Transfer completion message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state COMPLETED, or TransferError if the operation fails.
 	 */
 	public async completeTransfer(
@@ -1536,7 +1536,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Suspend a Transfer Process.
 	 * @param message Transfer suspension message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state SUSPENDED, or TransferError if the operation fails.
 	 */
 	public async suspendTransfer(
@@ -1689,7 +1689,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Terminate a Transfer Process.
 	 * @param message Transfer termination message (DSP compliant).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state TERMINATED, or TransferError if the operation fails.
 	 */
 	public async terminateTransfer(
@@ -1832,7 +1832,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Get Transfer Process state.
 	 * @param pid Process ID (consumerPid or providerPid).
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with current state, or TransferError if the operation fails.
 	 */
 	public async getTransferProcess(
@@ -2181,7 +2181,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Resolve consumerPid to Transfer Context.
 	 * @param consumerPid Consumer Process ID.
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Context with Agreement, datasetId, and Transfer Process metadata.
 	 */
 	public async resolveConsumerPid(
@@ -2262,7 +2262,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Resolve providerPid to Transfer Context.
 	 * @param providerPid Provider Process ID.
-	 * @param trustPayload Trust payload containing authorization information (Base64-encoded token).
+	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Context with Agreement, datasetId, and Transfer Process metadata.
 	 */
 	public async resolveProviderPid(
