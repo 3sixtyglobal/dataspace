@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.51](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.50...dataspace-control-plane-service-v0.0.3-next.51) (2026-06-19)
+
+
+### Features
+
+* local optimization ([#218](https://github.com/iotaledger/twin-dataspace/issues/218)) ([1daae6b](https://github.com/iotaledger/twin-dataspace/commit/1daae6be8be44abdbe2b4c883c35938506cdd34a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.50 to 0.0.3-next.51
+
 ## [0.0.3-next.50](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.49...dataspace-control-plane-service-v0.0.3-next.50) (2026-06-19)
 
 
