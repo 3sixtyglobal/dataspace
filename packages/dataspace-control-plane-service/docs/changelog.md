@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.50](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.49...dataspace-control-plane-service-v0.0.3-next.50) (2026-06-19)
+
+
+### Features
+
+* shortcut implicit trust ([#215](https://github.com/iotaledger/twin-dataspace/issues/215)) ([f9bcfea](https://github.com/iotaledger/twin-dataspace/commit/f9bcfeab8f069b62017502833c108b4ee3791414))
+
+
+### Bug Fixes
+
+* remove inline i18n ([edde37e](https://github.com/iotaledger/twin-dataspace/commit/edde37e90ac397f253f57bc0d306b4bd0c797920))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.49 to 0.0.3-next.50
+
 ## [0.0.3-next.49](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.48...dataspace-control-plane-service-v0.0.3-next.49) (2026-06-19)
 
 
