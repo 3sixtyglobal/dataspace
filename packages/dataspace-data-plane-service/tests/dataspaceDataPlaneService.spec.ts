@@ -479,7 +479,8 @@ describe("DataspaceDataPlaneService", () => {
 			isMultiTenant: () => false,
 			execute: async (method: () => Promise<void>) => {
 				await method();
-			}
+			},
+			getLocalOriginContext: async () => undefined
 		}));
 
 		options = {

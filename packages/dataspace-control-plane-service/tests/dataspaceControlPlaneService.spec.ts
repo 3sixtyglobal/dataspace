@@ -6251,4 +6251,223 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-remote-cp-error");
 		});
 	});
+
+	describe("resolveControlPlaneComponent() - locality-aware dispatch", () => {
+		const LOCAL_CALLBACK = "https://local.example.com/callback";
+		const REMOTE_CALLBACK = "https://remote.example.com/callback";
+
+		async function seedProviderTransfer(
+			consumerPid: string,
+			callbackAddress: string
+		): Promise<void> {
+			await transferProcessStorage.set({
+				id: consumerPid,
+				consumerPid,
+				providerPid: `provider-pid-for-${consumerPid}`,
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				agreementId: "agreement-123",
+				datasetId: "dataset-123",
+				offerId: "offer-123",
+				format: DataspaceTransferFormat.HttpDataPull,
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				organizationIdentity: "did:iota:provider-node-xyz",
+				localRole: TransferProcessRole.Provider,
+				callbackAddress,
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+		}
+
+		test("dispatches to remote REST client when callbackAddress is not a local origin", async () => {
+			const mockRemoteCP = {
+				className: () => "MockRemoteCP",
+				terminateTransfer: vi.fn().mockResolvedValue({
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
+					consumerPid: "locality-remote-consumer",
+					providerPid: "provider-pid-for-locality-remote-consumer",
+					state: DataspaceProtocolTransferProcessStateType.TERMINATED
+				})
+			};
+			ComponentFactory.register("test-locality-remote-cp", () => mockRemoteCP);
+			ComponentFactory.register("test-locality-remote-platform", () => ({
+				...createSingleTenantPlatformComponent(),
+				getLocalOriginContext: vi.fn().mockResolvedValue(undefined)
+			}));
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-locality-remote-cp",
+				platformComponentType: "test-locality-remote-platform"
+			});
+
+			await seedProviderTransfer("locality-remote-consumer", REMOTE_CALLBACK);
+
+			await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "locality-remote-consumer",
+					providerPid: "provider-pid-for-locality-remote-consumer"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(mockRemoteCP.terminateTransfer).toHaveBeenCalledOnce();
+
+			try {
+				ComponentFactory.unregister("test-locality-remote-cp");
+				ComponentFactory.unregister("test-locality-remote-platform");
+			} catch {}
+		});
+
+		test("dispatches in-process when callbackAddress is a local origin", async () => {
+			const mockRemoteCP = {
+				className: () => "MockRemoteCP",
+				terminateTransfer: vi.fn().mockResolvedValue({
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
+					consumerPid: "locality-local-consumer",
+					providerPid: "provider-pid-for-locality-local-consumer",
+					state: DataspaceProtocolTransferProcessStateType.TERMINATED
+				})
+			};
+			ComponentFactory.register("test-locality-local-remote-cp", () => mockRemoteCP);
+			ComponentFactory.register("test-locality-local-platform", () => ({
+				...createSingleTenantPlatformComponent(),
+				getLocalOriginContext: vi.fn().mockResolvedValue({
+					[ContextIdKeys.Node]: "did:iota:test-node",
+					[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+					[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+					[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
+				})
+			}));
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-locality-local-remote-cp",
+				platformComponentType: "test-locality-local-platform"
+			});
+
+			await seedProviderTransfer("locality-local-consumer", LOCAL_CALLBACK);
+
+			await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "locality-local-consumer",
+					providerPid: "provider-pid-for-locality-local-consumer"
+				},
+				"valid-trust-payload"
+			);
+
+			// Remote component must NOT be invoked — the service called itself in-process.
+			expect(mockRemoteCP.terminateTransfer).not.toHaveBeenCalled();
+
+			try {
+				ComponentFactory.unregister("test-locality-local-remote-cp");
+				ComponentFactory.unregister("test-locality-local-platform");
+			} catch {}
+		});
+
+		test("runs the in-process call under the target tenant context, not the caller context", async () => {
+			// TARGET_CONTEXT deliberately uses a different Organization than the caller's ambient
+			// "did:iota:provider-node-xyz" — this verifies the ContextIdStore.run receives the
+			// context returned by getLocalOriginContext, not whatever the calling tenant happens to have.
+			const TARGET_CONTEXT = {
+				[ContextIdKeys.Node]: "did:iota:test-node",
+				[ContextIdKeys.Tenant]: "did:iota:consumer-tenant",
+				[ContextIdKeys.Organization]: "did:iota:consumer-node-abc",
+				[HttpContextIdKeys.PublicOrigin]: "https://local.example.com"
+			};
+
+			const mockRemoteCP = {
+				className: () => "MockRemoteCP",
+				terminateTransfer: vi.fn()
+			};
+			ComponentFactory.register("test-locality-ctx-cp", () => mockRemoteCP);
+			ComponentFactory.register("test-locality-ctx-platform", () => ({
+				...createSingleTenantPlatformComponent(),
+				getLocalOriginContext: vi.fn().mockResolvedValue(TARGET_CONTEXT)
+			}));
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-locality-ctx-cp",
+				platformComponentType: "test-locality-ctx-platform"
+			});
+
+			await seedProviderTransfer("locality-ctx-consumer", LOCAL_CALLBACK);
+
+			const runSpy = vi.spyOn(ContextIdStore, "run");
+
+			await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "locality-ctx-consumer",
+					providerPid: "provider-pid-for-locality-ctx-consumer"
+				},
+				"valid-trust-payload"
+			);
+
+			// Remote was not used — routing was in-process.
+			expect(mockRemoteCP.terminateTransfer).not.toHaveBeenCalled();
+
+			// ContextIdStore.run must have been called with exactly TARGET_CONTEXT so the inner
+			// call executes in the target tenant's context, not the caller's.
+			expect(runSpy).toHaveBeenCalledWith(TARGET_CONTEXT, expect.any(Function));
+
+			runSpy.mockRestore();
+
+			try {
+				ComponentFactory.unregister("test-locality-ctx-cp");
+				ComponentFactory.unregister("test-locality-ctx-platform");
+			} catch {}
+		});
+
+		test("falls back to remote REST client when locality check throws", async () => {
+			const mockRemoteCP = {
+				className: () => "MockRemoteCP",
+				terminateTransfer: vi.fn().mockResolvedValue({
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": DataspaceProtocolTransferProcessTypes.TransferProcess,
+					consumerPid: "locality-no-platform-consumer",
+					providerPid: "provider-pid-for-locality-no-platform-consumer",
+					state: DataspaceProtocolTransferProcessStateType.TERMINATED
+				})
+			};
+			ComponentFactory.register("test-locality-no-platform-cp", () => mockRemoteCP);
+			ComponentFactory.register("test-locality-throw-platform", () => ({
+				...createSingleTenantPlatformComponent(),
+				getLocalOriginContext: vi.fn().mockRejectedValue(new Error("platform unavailable"))
+			}));
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-locality-no-platform-cp",
+				platformComponentType: "test-locality-throw-platform"
+			});
+
+			await seedProviderTransfer("locality-no-platform-consumer", REMOTE_CALLBACK);
+
+			await service.terminateTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferTerminationMessage",
+					consumerPid: "locality-no-platform-consumer",
+					providerPid: "provider-pid-for-locality-no-platform-consumer"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(mockRemoteCP.terminateTransfer).toHaveBeenCalledOnce();
+
+			try {
+				ComponentFactory.unregister("test-locality-no-platform-cp");
+				ComponentFactory.unregister("test-locality-throw-platform");
+			} catch {}
+		});
+	});
 });

@@ -235,7 +235,8 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			isMultiTenant: () => false,
 			execute: async (method: () => Promise<void>) => {
 				await method();
-			}
+			},
+			getLocalOriginContext: async () => undefined
 		}));
 
 		// Create service with transfer process storage configured

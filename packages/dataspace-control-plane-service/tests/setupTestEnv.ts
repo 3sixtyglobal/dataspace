@@ -176,6 +176,7 @@ export function createMockEngineCore(isClone: boolean = false): IEngineCore {
 /**
  * Creates a single-tenant platform component mock.
  * execute() runs the callback once in the current context.
+ * isLocalOrigin() always returns false (no URL is treated as local by default).
  * @returns A mock IPlatformComponent for single-tenant mode.
  */
 export function createSingleTenantPlatformComponent(): IPlatformComponent {
@@ -184,7 +185,8 @@ export function createSingleTenantPlatformComponent(): IPlatformComponent {
 		isMultiTenant: () => false,
 		execute: async (method: () => Promise<void>) => {
 			await method();
-		}
+		},
+		getLocalOriginContext: async () => undefined
 	};
 }
 
@@ -194,6 +196,7 @@ export function createSingleTenantPlatformComponent(): IPlatformComponent {
  * ContextIdKeys.Tenant into the async context before invoking the callback.
  * This mirrors the production behaviour where the tenant component iterates
  * every registered tenant and wraps execution in its context.
+ * isLocalOrigin() always returns false (no URL is treated as local by default).
  * @param tenants Array of tenant context objects to iterate.
  * @returns A mock IPlatformComponent for multi-tenant mode.
  */
@@ -208,6 +211,7 @@ export function createMultiTenantPlatformComponent(
 			for (const tenantContextIds of tenants) {
 				await ContextIdStore.run({ ...baseContextIds, ...tenantContextIds }, method);
 			}
-		}
+		},
+		getLocalOriginContext: async () => undefined
 	};
 }

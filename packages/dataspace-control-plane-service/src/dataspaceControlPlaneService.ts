@@ -218,7 +218,7 @@ export class DataspaceControlPlaneService
 	 * Platform component.
 	 * @internal
 	 */
-	private readonly _platformComponent?: IPlatformComponent;
+	private readonly _platformComponent: IPlatformComponent;
 
 	/**
 	 * The optional telemetry component for metrics.
@@ -310,7 +310,7 @@ export class DataspaceControlPlaneService
 			options?.taskSchedulerComponentType ?? "task-scheduler"
 		);
 
-		this._platformComponent = ComponentFactory.getIfExists<IPlatformComponent>(
+		this._platformComponent = ComponentFactory.get<IPlatformComponent>(
 			options?.platformComponentType ?? "platform"
 		);
 
@@ -427,7 +427,7 @@ export class DataspaceControlPlaneService
 
 		// The platform component execute is used so that the dataset publication runs in the
 		// tenant context, also works in single tenant mode
-		await this._platformComponent?.execute(async () => {
+		await this._platformComponent.execute(async () => {
 			// The tenant context id is set here for each system tenant
 			let cursor: string | undefined;
 			do {
@@ -2720,6 +2720,35 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
+	 * Resolve the control-plane component for the given URL and invoke an action with it. When the
+	 * URL maps to a local origin the action runs against this instance inside that origin's context
+	 * (avoiding HTTP serialisation). Otherwise the action runs against a remote REST client. Falls
+	 * back to remote when no platform component is available or the locality check throws.
+	 * @param url The endpoint URL to resolve.
+	 * @param action The action to run with the resolved component.
+	 * @returns The result of the action.
+	 * @internal
+	 */
+	private async withControlPlaneComponent<T>(
+		url: string,
+		action: (component: IDataspaceControlPlaneComponent) => Promise<T>
+	): Promise<T> {
+		try {
+			const localContext = await this._platformComponent.getLocalOriginContext(url);
+			if (!Is.empty(localContext)) {
+				return await ContextIdStore.run(localContext, async () => action(this));
+			}
+		} catch {
+			// Fall back to remote component if locality check throws
+		}
+		const remoteComponent = ComponentFactory.create<IDataspaceControlPlaneComponent>(
+			this._remoteControlPlaneComponentType,
+			{ endpoint: url, pathPrefix: "" }
+		);
+		return action(remoteComponent);
+	}
+
+	/**
 	 * Deliver a transfer state-change DSP message to the consumer's callback (provider → consumer), via a
 	 * remote control-plane client and the supplied sender. Mirrors negotiation's sendOfferToConsumer.
 	 * Best-effort: failures are logged, not thrown, so delivery problems don't roll back the transition.
@@ -2761,12 +2790,9 @@ export class DataspaceControlPlaneService
 				}
 			);
 
-			const remoteControlPlane = ComponentFactory.create<IDataspaceControlPlaneComponent>(
-				this._remoteControlPlaneComponentType,
-				{ endpoint: entity.callbackAddress, pathPrefix: "" }
+			const result = await this.withControlPlaneComponent(entity.callbackAddress, async component =>
+				send(component, outboundToken)
 			);
-
-			const result = await send(remoteControlPlane, outboundToken);
 
 			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
 				await this._loggingComponent?.log({
