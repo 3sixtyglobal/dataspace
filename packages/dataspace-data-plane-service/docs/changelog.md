@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.0.3-next.49](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.48...dataspace-data-plane-service-v0.0.3-next.49) (2026-06-19)
+
+
+### Features
+
+* add telemetry metrics to dataspace control and data plane services ([#212](https://github.com/iotaledger/twin-dataspace/issues/212)) ([b5b0248](https://github.com/iotaledger/twin-dataspace/commit/b5b024899ed12c0f639c5d51aefa3e509753eac6))
+* remove datasetsHandled method from apps ([9fdc950](https://github.com/iotaledger/twin-dataspace/commit/9fdc95018d38ab49c4a1094642be2ee83ee0e4cd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.0.3-next.48 to 0.0.3-next.49
+    * @twin.org/dataspace-models bumped from 0.0.3-next.48 to 0.0.3-next.49
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.48 to 0.0.3-next.49
+
 ## [0.0.3-next.48](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.0.3-next.47...dataspace-data-plane-service-v0.0.3-next.48) (2026-06-18)
 
 
