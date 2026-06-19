@@ -46,8 +46,6 @@ register datasets without a tenant context.
 
 The dataspace app that this dataset belongs to. Matches the app's
 registered name in `DataspaceAppFactory` (typically the app's URI).
-Used as the join key when dispatching to an app's optional
-`datasetsHandled` override.
 
 ***
 

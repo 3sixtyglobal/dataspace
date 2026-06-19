@@ -3,12 +3,7 @@
 Data Asset query for internal service matching of datasets to apps.
 
 This interface is used internally by the Dataspace Data Plane service to match
-datasets with their corresponding apps. Apps should use `datasetsHandled(): IDataset[]`
-to declare which datasets they handle.
-
-## See
-
-IDataspaceDataPlaneApp.datasetsHandled
+datasets with their corresponding apps.
 
 ## Properties
 

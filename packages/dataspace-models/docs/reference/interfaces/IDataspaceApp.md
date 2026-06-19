@@ -36,31 +36,6 @@ A query that describes the set of activities handled by the App.
 
 ***
 
-### datasetsHandled()? {#datasetshandled}
-
-> `optional` **datasetsHandled**(`payload`): `Promise`\<`IDataspaceProtocolDataset`[]\>
-
-Optional override called by the Control Plane when publishing a stored dataset for this app.
-The Control Plane always calls `populateDefaults` (e.g. `dcterms:publisher`)
-on every dataset returned here, so apps don't need to populate publisher themselves.
-
-#### Parameters
-
-##### payload
-
-`IDataspaceProtocolDataset`
-
-The user-stored dataset payload.
-
-#### Returns
-
-`Promise`\<`IDataspaceProtocolDataset`[]\>
-
-One or more datasets to publish to the catalogue. System-stamped
-fields like `dcterms:publisher` may be omitted — the Control Plane fills them in.
-
-***
-
 ### supportedQueryTypes() {#supportedquerytypes}
 
 > **supportedQueryTypes**(): `string`[]

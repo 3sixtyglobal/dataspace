@@ -203,6 +203,14 @@ platform
 
 ***
 
+### telemetryComponentType? {#telemetrycomponenttype}
+
+> `optional` **telemetryComponentType?**: `string`
+
+The component type for the optional telemetry component used for metrics, defaults to no telemetry.
+
+***
+
 ### config? {#config}
 
 > `optional` **config?**: [`IDataspaceControlPlaneServiceConfig`](IDataspaceControlPlaneServiceConfig.md)
