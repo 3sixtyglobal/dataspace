@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.49](https://github.com/iotaledger/twin-dataspace/compare/dataspace-rest-server-v0.0.3-next.48...dataspace-rest-server-v0.0.3-next.49) (2026-06-19)
+
+
+### Miscellaneous Chores
+
+* **dataspace-rest-server:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.48 to 0.0.3-next.49
+    * @twin.org/dataspace-data-plane-rest-client bumped from 0.0.3-next.48 to 0.0.3-next.49
+    * @twin.org/dataspace-data-plane-socket-client bumped from 0.0.3-next.48 to 0.0.3-next.49
+    * @twin.org/dataspace-data-plane-service bumped from 0.0.3-next.48 to 0.0.3-next.49
+    * @twin.org/dataspace-control-plane-service bumped from 0.0.3-next.48 to 0.0.3-next.49
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.48 to 0.0.3-next.49
+
 ## [0.0.3-next.48](https://github.com/iotaledger/twin-dataspace/compare/dataspace-rest-server-v0.0.3-next.47...dataspace-rest-server-v0.0.3-next.48) (2026-06-18)
 
 
