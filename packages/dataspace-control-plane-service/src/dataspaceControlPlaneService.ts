@@ -580,19 +580,14 @@ export class DataspaceControlPlaneService
 					ts: Date.now(),
 					message: "agreementNotFound",
 					data: {
-						agreementId: request.agreementId,
-						hint: "Agreement must exist before transfer. Use contract negotiation to create agreement first."
+						notFoundId: request.agreementId
 					}
 				});
 
 				throw new NotFoundError(
 					DataspaceControlPlaneService.CLASS_NAME,
 					"agreementNotFound",
-					request.agreementId,
-					{
-						agreementId: request.agreementId,
-						hint: "Perform contract negotiation first to create an agreement"
-					}
+					request.agreementId
 				);
 			}
 

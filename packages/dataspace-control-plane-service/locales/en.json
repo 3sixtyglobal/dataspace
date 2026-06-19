@@ -71,7 +71,7 @@
 			"invalidTransferSuspensionMessage": "Transfer Suspension Message does not conform to Dataspace Protocol specification",
 			"invalidTransferTerminationMessage": "Transfer Termination Message does not conform to Dataspace Protocol specification",
 			"agreementLookupFailed": "Failed to lookup Agreement: {agreementId}",
-			"agreementNotFound": "Agreement not found",
+			"agreementNotFound": "Agreement not found \"{notFoundId}\"",
 			"agreementMissingTarget": "Agreement is missing target (dataset): {agreementId}",
 			"agreementMultipleTargetsNotSupported": "Agreement has multiple targets which is not supported. Only single target Agreements are allowed: {agreementId}, target count: {targetCount}",
 			"agreementTargetMissingUid": "Agreement target object is missing required \"uid\" property: {agreementId}",
