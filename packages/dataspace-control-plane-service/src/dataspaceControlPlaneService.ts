@@ -2021,7 +2021,14 @@ export class DataspaceControlPlaneService
 			}
 		});
 
-		if (trustInfo.identity === organizationId) {
+		// Implicit-trust shortcut: create a local agreement without an external round-trip when
+		// the consumer and provider are the same organisation on the same node.
+		const localProviderContext =
+			await this._platformComponent.getLocalOriginContext(providerEndpoint);
+		if (
+			localProviderContext?.[ContextIdKeys.Organization] === organizationId &&
+			trustInfo.identity === organizationId
+		) {
 			return this.negotiateImplicitTrustAgreement(organizationId, datasetId);
 		}
 

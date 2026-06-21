@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IPlatformComponent } from "@twin.org/api-models";
-import { ContextIdStore } from "@twin.org/context";
+import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { Converter, ComponentFactory, I18n } from "@twin.org/core";
 import {
 	DataspaceAppDataset,
@@ -176,17 +176,24 @@ export function createMockEngineCore(isClone: boolean = false): IEngineCore {
 /**
  * Creates a single-tenant platform component mock.
  * execute() runs the callback once in the current context.
- * isLocalOrigin() always returns false (no URL is treated as local by default).
+ * getLocalOriginContext() returns a local context whose Organization is
+ * `localOriginOrg` when provided (i.e. the URL is treated as local to that org),
+ * otherwise undefined (no URL is treated as local).
+ * @param localOriginOrg When set, getLocalOriginContext resolves any URL to a
+ * local context with this Organization; used to exercise the same-org implicit-trust path.
  * @returns A mock IPlatformComponent for single-tenant mode.
  */
-export function createSingleTenantPlatformComponent(): IPlatformComponent {
+export function createSingleTenantPlatformComponent(localOriginOrg?: string): IPlatformComponent {
+	const localContext = localOriginOrg
+		? { [ContextIdKeys.Organization]: localOriginOrg }
+		: undefined;
 	return {
 		className: () => "MockSingleTenantPlatformComponent",
 		isMultiTenant: () => false,
 		execute: async (method: () => Promise<void>) => {
 			await method();
 		},
-		getLocalOriginContext: async () => undefined
+		getLocalOriginContext: async () => localContext
 	};
 }
 

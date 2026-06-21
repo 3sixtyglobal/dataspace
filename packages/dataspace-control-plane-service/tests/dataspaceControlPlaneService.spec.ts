@@ -128,6 +128,10 @@ describe("DataspaceControlPlaneService", () => {
 		// Register mock trust component
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
 
+		// Default platform: no URL is treated as local (getLocalOriginContext -> undefined).
+		// Re-registered each test so any per-block override (e.g. the implicit-trust block) cannot leak.
+		ComponentFactory.register("platform", () => createSingleTenantPlatformComponent());
+
 		// Mock ContextIdStore to return test organization ID
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: "did:iota:test-node",
@@ -3999,6 +4003,41 @@ describe("DataspaceControlPlaneService", () => {
 	});
 
 	describe("Contract Negotiation - Implicit Trust", () => {
+		// The implicit-trust shortcut requires the provider endpoint to resolve to a local
+		// context whose Organization matches the caller (in addition to the matching trust
+		// identity). Model that by making getLocalOriginContext return the local org here.
+		beforeEach(() => {
+			ComponentFactory.register("platform", () =>
+				createSingleTenantPlatformComponent("did:iota:provider-node-xyz")
+			);
+		});
+
+		test("should NOT shortcut to implicit trust for a cross-org provider whose endpoint is not local, even with a self-issued token", async () => {
+			// Regression for the cross-org bug: on the consumer's own control plane the trust
+			// identity is always == organizationId, so it cannot be the sole discriminant. When
+			// the provider endpoint does not resolve to this node (getLocalOriginContext ->
+			// undefined), the negotiation MUST go to the provider, not become a local agreement.
+			ComponentFactory.register("test-trust", () =>
+				createMockTrustComponent("did:iota:provider-node-xyz")
+			);
+			// Provider endpoint is NOT local to this node (override the block's local-origin mock).
+			ComponentFactory.register("platform", () => createSingleTenantPlatformComponent());
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			mockPnpToReturnNegotiationId(mockPnp);
+			const sendSpy = vi.spyOn(mockPnp, "sendRequestToProvider");
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.negotiationId).toBe("test-negotiation-id");
+			expect(result.agreementId).toBeUndefined();
+			expect(sendSpy).toHaveBeenCalled();
+		});
+
 		test("should return agreementId when caller identity matches organization (new agreement)", async () => {
 			ComponentFactory.register("test-trust", () =>
 				createMockTrustComponent("did:iota:provider-node-xyz")
