@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.0.3-next.52](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.51...dataspace-control-plane-service-v0.0.3-next.52) (2026-06-21)
+
+
+### Features
+
+* use inbuilt constants ([256bc03](https://github.com/iotaledger/twin-dataspace/commit/256bc0332bf439fcc16022e0b984b9035e9b0100))
+
+
+### Bug Fixes
+
+* gate implicit-trust shortcut on local provider endpoint ([#221](https://github.com/iotaledger/twin-dataspace/issues/221)) ([1167c53](https://github.com/iotaledger/twin-dataspace/commit/1167c53d2a94d4672191d278fed69b4f2d607a3c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.51 to 0.0.3-next.52
+
 ## [0.0.3-next.51](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.0.3-next.50...dataspace-control-plane-service-v0.0.3-next.51) (2026-06-19)
 
 
