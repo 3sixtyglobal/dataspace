@@ -4,30 +4,30 @@ Dataspace Data Plane service configuration
 
 ## Properties
 
-### retainActivityLogsFor? {#retainactivitylogsfor}
+### retainActivityLogsForMs? {#retainactivitylogsfor}
 
-> `optional` **retainActivityLogsFor?**: `number`
+> `optional` **retainActivityLogsForMs?**: `number`
 
-The amount of time in minutes to retain activity log entries until removal, set to -1 to keep forever.
+The amount of time in ms to retain activity log entries until removal, set to -1 to keep forever.
 
 #### Default
 
 ```ts
-10
+600000
 ```
 
 ***
 
-### activityLogsCleanUpInterval? {#activitylogscleanupinterval}
+### activityLogsCleanUpIntervalMs? {#activitylogscleanupinterval}
 
-> `optional` **activityLogsCleanUpInterval?**: `number`
+> `optional` **activityLogsCleanUpIntervalMs?**: `number`
 
-The interval in minutes in between activity log clean ups. -1 indicates no clean up shall be done.
+The interval in ms between activity log clean ups. -1 indicates no clean up shall be done.
 
 #### Default
 
 ```ts
-60 minutes
+3600000
 ```
 
 ***

@@ -11,8 +11,8 @@ const service = new DataspaceDataPlaneService({
   loggingComponentType: 'logging',
   trustComponentType: 'trust',
   config: {
-    retainActivityLogsFor: 30,
-    activityLogsCleanUpInterval: 15
+    retainActivityLogsForMs: 1800000,
+    activityLogsCleanUpIntervalMs: 900000
   }
 });
 

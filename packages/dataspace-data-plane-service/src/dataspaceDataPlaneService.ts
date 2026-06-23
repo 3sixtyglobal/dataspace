@@ -123,28 +123,28 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	public static readonly PUSH_DELIVERY_TASK_TYPE = "push-delivery";
 
 	/**
-	 * Milliseconds per minute (60 * 1000).
+	 * The default cleanup interval in ms. (1 hour)
 	 * @internal
 	 */
-	private static readonly _MS_PER_MINUTE: number = 60 * 1000;
+	private static readonly _DEFAULT_CLEANUP_INTERVAL_MS: number = 60 * 60 * 1000;
 
 	/**
-	 * Minutes per day (24 * 60 = 1440).
+	 * The default retain interval in ms. (10 minutes)
 	 * @internal
 	 */
-	private static readonly _MINUTES_PER_DAY: number = 24 * 60;
+	private static readonly _DEFAULT_RETAIN_INTERVAL_MS: number = 10 * 60 * 1000;
 
 	/**
-	 * The default cleanup interval in minutes. (1 hour)
+	 * The margin in ms added to task retention over activity log retention. (5 minutes)
 	 * @internal
 	 */
-	private static readonly _DEFAULT_CLEANUP_INTERVAL: number = 60;
+	private static readonly _TASK_RETENTION_MARGIN_MS: number = 5 * 60 * 1000;
 
 	/**
-	 * The default retain interval in minutes. (10 minutes)
+	 * The default push subscription cleanup interval in ms. (1 hour)
 	 * @internal
 	 */
-	private static readonly _DEFAULT_RETAIN_INTERVAL: number = 10;
+	private static readonly _DEFAULT_PUSH_SUBSCRIPTION_CLEANUP_INTERVAL_MS: number = 60 * 60 * 1000;
 
 	/**
 	 * Logging service type.
@@ -194,13 +194,13 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * Task retention. -1 retain forever.
 	 * @internal
 	 */
-	private readonly _retainTasksFor: number;
+	private readonly _retainTasksForMs: number;
 
 	/**
 	 * Activity Log Entry retention. -1 retain forever.
 	 * @internal
 	 */
-	private readonly _retainActivityLogsFor: number;
+	private readonly _retainActivityLogsForMs: number;
 
 	/**
 	 * Retry count for failed tasks.
@@ -230,13 +230,13 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * Clean up interval for activity logs.
 	 * @internal
 	 */
-	private readonly _activityLogCleanUpInterval: number;
+	private readonly _activityLogCleanUpIntervalMs: number;
 
 	/**
-	 * Interval in minutes between orphaned PushSubscription cleanup scans.
+	 * Interval in ms between orphaned PushSubscription cleanup scans.
 	 * @internal
 	 */
-	private readonly _pushSubscriptionCleanupIntervalMinutes: number;
+	private readonly _pushSubscriptionCleanupIntervalMs: number;
 
 	/**
 	 * Whether there is an ongoing clean up process.
@@ -359,63 +359,60 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		this._activityLogStatusCallbacks = {};
 		this._registeredTaskTypes = [];
 
-		this._retainTasksFor =
-			DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL * DataspaceDataPlaneService._MS_PER_MINUTE;
-		this._retainActivityLogsFor =
-			DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL * DataspaceDataPlaneService._MS_PER_MINUTE;
+		this._retainTasksForMs = DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL_MS;
+		this._retainActivityLogsForMs = DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL_MS;
 		this._retryCount = options?.config?.retryCount;
 		this._pushRetryCount = options?.config?.pushRetryCount ?? 3;
 		this._pushRetryBaseDelayMs = options?.config?.pushRetryBaseDelayMs ?? 1000;
 		this._pushTimeoutMs = options?.config?.pushTimeoutMs ?? 30000;
-		this._activityLogCleanUpInterval = DataspaceDataPlaneService._DEFAULT_CLEANUP_INTERVAL;
-		this._pushSubscriptionCleanupIntervalMinutes = Math.max(
-			1,
-			Math.round((options?.config?.pushSubscriptionCleanupIntervalMs ?? 3_600_000) / 60_000)
-		);
+		this._activityLogCleanUpIntervalMs = DataspaceDataPlaneService._DEFAULT_CLEANUP_INTERVAL_MS;
+		this._pushSubscriptionCleanupIntervalMs =
+			options?.config?.pushSubscriptionCleanupIntervalMs ??
+			DataspaceDataPlaneService._DEFAULT_PUSH_SUBSCRIPTION_CLEANUP_INTERVAL_MS;
 		this._cleanUpProcessOngoing = false;
 
 		const validationErrors: IValidationFailure[] = [];
-		if (!Is.empty(options?.config?.retainActivityLogsFor)) {
+		if (!Is.empty(options?.config?.retainActivityLogsForMs)) {
 			Guards.integer(
 				DataspaceDataPlaneService.CLASS_NAME,
-				nameof(options.config.retainActivityLogsFor),
-				options.config.retainActivityLogsFor
+				nameof(options.config.retainActivityLogsForMs),
+				options.config.retainActivityLogsForMs
 			);
 
-			if (options.config.retainActivityLogsFor === -1) {
-				this._retainTasksFor = -1;
-				this._retainActivityLogsFor = -1;
+			if (options.config.retainActivityLogsForMs === -1) {
+				this._retainTasksForMs = -1;
+				this._retainActivityLogsForMs = -1;
 			} else {
 				Validation.integer(
-					nameof(options.config.retainActivityLogsFor),
-					options.config.retainActivityLogsFor,
+					nameof(options.config.retainActivityLogsForMs),
+					options.config.retainActivityLogsForMs,
 					validationErrors,
 					undefined,
 					{ minValue: 1 }
 				);
 				// Retention of internal tasks launched
 				// 5 minutes of margin with respect to the Activity Log Entry to ensure proper removal
-				this._retainTasksFor =
-					(options.config.retainActivityLogsFor + 5) * DataspaceDataPlaneService._MS_PER_MINUTE;
-				this._retainActivityLogsFor =
-					options.config.retainActivityLogsFor * DataspaceDataPlaneService._MS_PER_MINUTE;
+				this._retainTasksForMs =
+					options.config.retainActivityLogsForMs +
+					DataspaceDataPlaneService._TASK_RETENTION_MARGIN_MS;
+				this._retainActivityLogsForMs = options.config.retainActivityLogsForMs;
 			}
 		}
 
-		if (!Is.empty(options?.config?.activityLogsCleanUpInterval)) {
+		if (!Is.empty(options?.config?.activityLogsCleanUpIntervalMs)) {
 			Guards.integer(
 				DataspaceDataPlaneService.CLASS_NAME,
-				nameof(options.config.activityLogsCleanUpInterval),
-				options.config.activityLogsCleanUpInterval
+				nameof(options.config.activityLogsCleanUpIntervalMs),
+				options.config.activityLogsCleanUpIntervalMs
 			);
 			Validation.integer(
-				nameof(options.config.activityLogsCleanUpInterval),
-				options.config.activityLogsCleanUpInterval,
+				nameof(options.config.activityLogsCleanUpIntervalMs),
+				options.config.activityLogsCleanUpIntervalMs,
 				validationErrors,
 				undefined,
 				{ minValue: 1 }
 			);
-			this._activityLogCleanUpInterval = options.config.activityLogsCleanUpInterval;
+			this._activityLogCleanUpIntervalMs = options.config.activityLogsCleanUpIntervalMs;
 		}
 
 		if (!Is.empty(options?.config?.pushTimeoutMs)) {
@@ -480,11 +477,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		}
 
 		// Only we have a task scheduler if there is a retention different than -1
-		if (this._retainActivityLogsFor !== -1) {
+		if (this._retainActivityLogsForMs !== -1) {
 			const taskTime: IScheduledTaskTime[] = [
 				{
 					nextTriggerTime: Date.now() + 5000,
-					...this.calculateCleaningTaskSchedule(this._activityLogCleanUpInterval)
+					...this.calculateCleaningTaskSchedule(this._activityLogCleanUpIntervalMs)
 				}
 			];
 
@@ -511,7 +508,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const pushCleanupTaskTime: IScheduledTaskTime[] = [
 			{
 				nextTriggerTime: Date.now() + 10_000,
-				...this.calculateCleaningTaskSchedule(this._pushSubscriptionCleanupIntervalMinutes)
+				...this.calculateCleaningTaskSchedule(this._pushSubscriptionCleanupIntervalMs)
 			}
 		];
 
@@ -1454,7 +1451,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const taskId = await this._backgroundTaskComponent.create<IPushDeliveryPayload>(
 			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
 			payload,
-			{ retainFor: this._retainTasksFor, retryCount: this._retryCount }
+			{ retainFor: this._retainTasksForMs, retryCount: this._retryCount }
 		);
 
 		await MetricHelper.metricIncrement(
@@ -1599,11 +1596,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private async finaliseActivityLogEntry(activityLogEntryId: string): Promise<IActivityLogEntry> {
 		const entry = await this.retrieveActivityLogEntry(activityLogEntryId);
 		if (
-			this._retainActivityLogsFor !== -1 &&
+			this._retainActivityLogsForMs !== -1 &&
 			(entry.status === ActivityProcessingStatus.Completed ||
 				entry.status === ActivityProcessingStatus.Error)
 		) {
-			const retainUntil = Date.now() + this._retainActivityLogsFor;
+			const retainUntil = Date.now() + this._retainActivityLogsForMs;
 			const updatedEntry: ActivityLogDetails = {
 				id: entry.id,
 				activityId: entry.activityId,
@@ -1859,20 +1856,23 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Calculates the cleaning task schedule.
-	 * @param minutes The period in minutes.
+	 * @param ms The period in ms.
 	 * @returns The cleaning task schedule.
 	 * @internal
 	 */
-	private calculateCleaningTaskSchedule(minutes: number): IScheduledTaskTime {
-		let minutesRemain = minutes;
+	private calculateCleaningTaskSchedule(ms: number): IScheduledTaskTime {
+		const msPerMinute = 60_000;
+		const msPerHour = 60 * msPerMinute;
+		const msPerDay = 24 * msPerHour;
 
-		const days = Math.floor(minutesRemain / DataspaceDataPlaneService._MINUTES_PER_DAY);
-		minutesRemain %= DataspaceDataPlaneService._MINUTES_PER_DAY;
+		let remain = ms;
+		const days = Math.floor(remain / msPerDay);
+		remain %= msPerDay;
+		const hours = Math.floor(remain / msPerHour);
+		remain %= msPerHour;
+		const minutes = Math.floor(remain / msPerMinute);
 
-		const hours = Math.floor(minutesRemain / 60);
-		minutesRemain %= 60;
-
-		return { intervalDays: days, intervalHours: hours, intervalMinutes: minutesRemain };
+		return { intervalDays: days, intervalHours: hours, intervalMinutes: minutes };
 	}
 
 	/**
@@ -2049,8 +2049,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		if (logEntry) {
 			logEntry.dateModified = new Date().toISOString();
 			// Extend retention to allow retry to complete
-			if (this._retainActivityLogsFor !== -1) {
-				logEntry.retainUntil = Date.now() + this._retainActivityLogsFor;
+			if (this._retainActivityLogsForMs !== -1) {
+				logEntry.retainUntil = Date.now() + this._retainActivityLogsForMs;
 			}
 			await this._entityStorageActivityLogs.set(logEntry);
 		}
@@ -2348,7 +2348,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				taskType,
 				payload,
 				{
-					retainFor: this._retainTasksFor,
+					retainFor: this._retainTasksForMs,
 					retryCount: processingGroupOptions?.retryCount ?? this._retryCount
 				}
 			);

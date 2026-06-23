@@ -6,16 +6,16 @@
  */
 export interface IDataspaceDataPlaneServiceConfig {
 	/**
-	 * The amount of time in minutes to retain activity log entries until removal, set to -1 to keep forever.
-	 * @default 10
+	 * The amount of time in ms to retain activity log entries until removal, set to -1 to keep forever.
+	 * @default 600000
 	 */
-	retainActivityLogsFor?: number;
+	retainActivityLogsForMs?: number;
 
 	/**
-	 * The interval in minutes in between activity log clean ups. -1 indicates no clean up shall be done.
-	 * @default 60 minutes
+	 * The interval in ms between activity log clean ups. -1 indicates no clean up shall be done.
+	 * @default 3600000
 	 */
-	activityLogsCleanUpInterval?: number;
+	activityLogsCleanUpIntervalMs?: number;
 
 	/**
 	 * The number of times to retry failed tasks, defaults to forever.
