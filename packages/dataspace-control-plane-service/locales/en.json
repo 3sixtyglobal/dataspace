@@ -24,6 +24,7 @@
 			"getNegotiationHistory": "Retrieving negotiation history",
 			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
 			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})",
+			"stalledTransfersCleanupComplete": "Stalled transfers cleanup completed (cleanedUp: {cleanedUp})",
 			"pushTransferStarted": "PUSH transfer started (consumerPid: {consumerPid}, providerPid: {providerPid}, endpoint: {endpoint})",
 			"preparingTransfer": "Preparing consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
 			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
@@ -45,7 +46,8 @@
 	"warn": {
 		"dataspaceControlPlaneService": {
 			"catalogDatasetHasNoOffers": "Dataset has no Offers (odrl:hasPolicy) in Federated Catalogue",
-			"stalledNegotiationCleanedUp": "Stalled negotiation cleaned up (negotiationId: {negotiationId})"
+			"stalledNegotiationCleanedUp": "Stalled negotiation cleaned up (negotiationId: {negotiationId})",
+			"stalledTransferCleanedUp": "Stalled transfer cleaned up (consumerPid: {consumerPid})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"unknownNegotiationFinalized": "Unknown negotiation finalized (negotiationId: {negotiationId})",

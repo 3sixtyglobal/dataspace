@@ -235,15 +235,13 @@ export class DataspaceControlPlaneRestClient
 	/**
 	 * Request a Transfer Process.
 	 * @param request Transfer request message (DSP compliant).
-	 * @param options Request options.
-	 * @param options.autoStart When true, sent as a query parameter asking the provider to auto-start the
-	 * transfer once created.
 	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the operation fails.
+	 * @remarks Whether the transfer auto-starts is a provider-side decision (service config); the consumer
+	 * cannot request it.
 	 */
 	public async requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
-		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
 		Guards.object(DataspaceControlPlaneRestClient.CLASS_NAME, nameof(request), request);
@@ -257,7 +255,6 @@ export class DataspaceControlPlaneRestClient
 			"/transfers/request",
 			"POST",
 			{
-				query: { autoStart: options?.autoStart ? "true" : undefined },
 				body: request,
 				headers: {
 					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)

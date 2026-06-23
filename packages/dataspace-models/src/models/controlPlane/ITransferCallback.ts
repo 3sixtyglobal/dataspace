@@ -54,4 +54,21 @@ export interface ITransferCallback {
 	 * @returns Nothing.
 	 */
 	onTerminated(consumerPid: string, reason?: string): Promise<void>;
+
+	/**
+	 * Called when the transfer fails. Optional, for parity with INegotiationCallback.
+	 * @param consumerPid The consumer-side process ID.
+	 * @param reason The failure reason.
+	 * @returns Nothing.
+	 */
+	onFailed?(consumerPid: string, reason: string): Promise<void>;
+
+	/**
+	 * Called when the transfer times out, i.e. the provider did not progress it (it sat in REQUESTED)
+	 * within the configured window. Optional: implement it to be notified specifically of a non-response
+	 * (otherwise the control plane falls back to `onFailed(consumerPid, "transferStalled")`).
+	 * @param consumerPid The consumer-side process ID.
+	 * @returns Nothing.
+	 */
+	onTimeout?(consumerPid: string): Promise<void>;
 }

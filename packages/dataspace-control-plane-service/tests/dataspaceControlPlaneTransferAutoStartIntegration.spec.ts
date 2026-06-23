@@ -126,8 +126,9 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	 * Register the shared mock dependencies (PAP, FedCat, PNP, decoding trust),
 	 * the two node storages, and the loopback remote control plane factory.
 	 * The loopback routes outbound calls to the peer service, wrapping each in the peer's own organization context.
-	 * @param autoStart When true, the loopback passes options.autoStart to the provider's requestTransfer so
-	 * the provider auto-starts the requested transfer. Defaults to false (no auto-start).
+	 * @param autoStart When true, the provider node is configured with autoStartTransfers=true so it
+	 * auto-starts a requested transfer (a provider-side decision; the consumer never requests it).
+	 * Defaults to false (no auto-start).
 	 * @param providerContextOrg The provider node's tenant-routing organization context. Defaults to
 	 * PROVIDER_ORG (org == agreement assigner). Pass a distinct value to exercise the org != assigner split.
 	 */
@@ -175,11 +176,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			config: { dataPlanePath: "data-plane/data" }
 		};
 
-		// Provider node. Auto-start is driven per-request (the loopback passes options.autoStart and the
-		// provider's public origin into requestTransfer, as a provider's REST route would), not by config.
+		// Provider node. Auto-start is a provider-side decision via the autoStartTransfers config
+		// (the consumer cannot request it); the loopback calls requestTransfer with no consumer options.
 		providerService = new DataspaceControlPlaneService({
 			...sharedDeps,
-			transferProcessEntityStorageType: PROVIDER_TP_STORAGE
+			transferProcessEntityStorageType: PROVIDER_TP_STORAGE,
+			config: { ...sharedDeps.config, autoStartTransfers: autoStart }
 		});
 
 		// Consumer node (consumers never auto-start).
@@ -226,7 +228,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			> = {
 				requestTransfer: async (request, trustPayload) =>
 					ContextIdStore.run(targetContext, async () =>
-						target.requestTransfer(request, { autoStart }, trustPayload)
+						target.requestTransfer(request, trustPayload)
 					),
 				startTransfer: async (message, trustPayload) =>
 					ContextIdStore.run(targetContext, async () =>

@@ -43,4 +43,13 @@ export interface INegotiationCallback {
 	 * @returns Nothing.
 	 */
 	onFailed(negotiationId: string, reason: string): Promise<void>;
+
+	/**
+	 * Called when the negotiation times out, i.e. the provider did not progress it within the configured
+	 * window. Optional: implement it to be notified specifically of a non-response (otherwise the
+	 * control plane falls back to `onFailed(negotiationId, "negotiationStalled")`).
+	 * @param negotiationId The negotiation ID.
+	 * @returns Nothing.
+	 */
+	onTimeout?(negotiationId: string): Promise<void>;
 }

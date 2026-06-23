@@ -30,4 +30,32 @@ export interface IDataspaceControlPlaneServiceConfig {
 	 * Example: "dataspace" or "api/dataspace".
 	 */
 	callbackPath?: string;
+
+	/**
+	 * Whether the provider immediately starts a transfer once it has been requested. This is a
+	 * provider-side decision only; the consumer cannot request or influence auto-start. When false
+	 * (the default) the transfer stays in REQUESTED until the provider explicitly calls transferStarted.
+	 *
+	 * Defaults to false.
+	 */
+	autoStartTransfers?: boolean;
+
+	/**
+	 * How long (ms) a negotiation may sit without progress before the periodic cleanup treats it as
+	 * timed out, removes it, and notifies the registered callbacks (onTimeout, falling back to
+	 * onFailed with reason "negotiationStalled"). Requires a task-scheduler component to be configured.
+	 *
+	 * Defaults to 1800000 (30 minutes).
+	 */
+	stalledNegotiationTimeoutMs?: number;
+
+	/**
+	 * How long (ms) a consumer-initiated transfer may sit in REQUESTED without the provider progressing
+	 * it before the periodic cleanup treats it as timed out, removes it, and notifies the registered
+	 * transfer callbacks (onTimeout, falling back to onFailed with reason "transferStalled"). Requires a
+	 * task-scheduler component to be configured.
+	 *
+	 * Defaults to 1800000 (30 minutes).
+	 */
+	stalledTransferTimeoutMs?: number;
 }

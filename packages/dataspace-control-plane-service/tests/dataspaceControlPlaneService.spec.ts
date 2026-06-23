@@ -233,7 +233,7 @@ describe("DataspaceControlPlaneService", () => {
 			};
 
 			// 3. Provider receives request and returns Transfer Process with both PIDs
-			const response = await service.requestTransfer(request, undefined, "valid-trust-payload");
+			const response = await service.requestTransfer(request, "valid-trust-payload");
 
 			// Check it's a TransferProcess, not an error
 			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
@@ -264,7 +264,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			await service.requestTransfer(request, undefined, "valid-trust-payload");
+			await service.requestTransfer(request, "valid-trust-payload");
 
 			const stored = await transferProcessStorage.get(consumerGeneratedPid);
 			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
@@ -285,7 +285,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			await service.requestTransfer(request, undefined, "valid-trust-payload");
+			await service.requestTransfer(request, "valid-trust-payload");
 
 			// Both Consumer and Provider can query using consumerPid
 			const retrieved = await service.getTransferProcess(
@@ -2033,7 +2033,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2134,7 +2133,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2203,7 +2201,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2272,7 +2269,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2319,7 +2315,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2368,7 +2363,6 @@ describe("DataspaceControlPlaneService", () => {
 					callbackAddress: "https://consumer.example.com/callback",
 					format: "application/json"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2423,7 +2417,6 @@ describe("DataspaceControlPlaneService", () => {
 						endpoint: "https://consumer.example.com/dataspace/inbox"
 					}
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2555,7 +2548,6 @@ describe("DataspaceControlPlaneService", () => {
 						endpoint: "https://consumer.example.com/dataspace/inbox"
 					}
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2664,7 +2656,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2743,7 +2734,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2809,7 +2799,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2864,7 +2853,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -2920,7 +2908,6 @@ describe("DataspaceControlPlaneService", () => {
 					format: DataspaceTransferFormat.HttpDataPush,
 					callbackAddress: "https://consumer.example.com/callback"
 				},
-				undefined,
 				"valid-trust-payload"
 			);
 
@@ -3022,7 +3009,6 @@ describe("DataspaceControlPlaneService", () => {
 
 			const initiateResponse = await service.requestTransfer(
 				initiateRequest,
-				undefined,
 				"valid-trust-payload"
 			);
 			expect(initiateResponse["@type"]).not.toBe(
@@ -3205,7 +3191,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			const response = await service.requestTransfer(request, undefined, "valid-trust-payload");
+			const response = await service.requestTransfer(request, "valid-trust-payload");
 
 			// Verify transfer was created successfully
 			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
@@ -3284,7 +3270,7 @@ describe("DataspaceControlPlaneService", () => {
 			};
 
 			// Should return TransferError (DSP-compliant) instead of throwing
-			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, "valid-trust-payload");
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			const transferError = result as IDataspaceProtocolTransferError;
 			// Semantic error code format: "ErrorName:message"
@@ -3391,7 +3377,7 @@ describe("DataspaceControlPlaneService", () => {
 			};
 
 			// Should return TransferError with specific error key
-			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, "valid-trust-payload");
 
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			const transferError = result as IDataspaceProtocolTransferError;
@@ -4460,7 +4446,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, "valid-trust-payload");
 
 			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 			if (result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError) {
@@ -4639,7 +4625,7 @@ describe("DataspaceControlPlaneService", () => {
 				format: "application/json"
 			};
 
-			const result = await service.requestTransfer(request, undefined, "valid-trust-payload");
+			const result = await service.requestTransfer(request, "valid-trust-payload");
 
 			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
@@ -6132,15 +6118,14 @@ describe("DataspaceControlPlaneService", () => {
 			expect(result.consumerPid).toBeDefined();
 			expect(typeof result.consumerPid).toBe("string");
 
-			// Verify the remote control plane was called with a valid TransferRequestMessage, the (empty)
-			// options object, and the trust payload last.
+			// Verify the remote control plane was called with a valid TransferRequestMessage and the trust
+			// payload last (no consumer options; auto-start is a provider-side decision, never the consumer's).
 			expect(mockRemoteControlPlane.requestTransfer).toHaveBeenCalledWith(
 				expect.objectContaining({
 					"@type": "TransferRequestMessage",
 					agreementId: "agreement-123",
 					format: "HttpData-PULL"
 				}),
-				undefined,
 				expect.anything()
 			);
 
@@ -6192,7 +6177,6 @@ describe("DataspaceControlPlaneService", () => {
 						endpoint: expect.stringContaining("/data-plane/data/inbox")
 					})
 				}),
-				undefined,
 				expect.anything()
 			);
 
@@ -6507,6 +6491,160 @@ describe("DataspaceControlPlaneService", () => {
 				ComponentFactory.unregister("test-locality-no-platform-cp");
 				ComponentFactory.unregister("test-locality-throw-platform");
 			} catch {}
+		});
+	});
+
+	describe("Stalled negotiation timeout (#225)", () => {
+		test("cleanupStalledNegotiations notifies onTimeout for a timed-out negotiation and removes it", async () => {
+			// A negative threshold forces any still-active negotiation to be treated as timed out, so the
+			// assertion does not depend on wall-clock timing.
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, stalledNegotiationTimeoutMs: -1 }
+			});
+
+			const callbackSpy = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined),
+				onTimeout: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("timeout-listener", callbackSpy);
+
+			mockPnpToReturnNegotiationId(mockPnp, "to-neg-001");
+			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			const requester = PolicyRequesterFactory.get<DataspaceControlPlanePolicyRequester>(
+				"dataspace-control-plane-requester"
+			);
+			expect(requester.getActiveNegotiations().has("to-neg-001")).toBe(true);
+
+			await (
+				service as unknown as { cleanupStalledNegotiations(): Promise<void> }
+			).cleanupStalledNegotiations();
+
+			expect(callbackSpy.onTimeout).toHaveBeenCalledWith("to-neg-001");
+			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
+			expect(requester.getActiveNegotiations().has("to-neg-001")).toBe(false);
+		});
+
+		test("cleanupStalledNegotiations falls back to onFailed(negotiationStalled) when onTimeout is not implemented", async () => {
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, stalledNegotiationTimeoutMs: -1 }
+			});
+
+			const callbackSpy = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("fallback-listener", callbackSpy);
+
+			mockPnpToReturnNegotiationId(mockPnp, "to-neg-002");
+			await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			await (
+				service as unknown as { cleanupStalledNegotiations(): Promise<void> }
+			).cleanupStalledNegotiations();
+
+			expect(callbackSpy.onFailed).toHaveBeenCalledWith("to-neg-002", "negotiationStalled");
+		});
+	});
+
+	describe("Stalled transfer timeout (#226)", () => {
+		async function seedRequestedTransfer(
+			id: string,
+			consumerPid: string,
+			localRole: TransferProcessRole
+		): Promise<void> {
+			await transferProcessStorage.set({
+				id,
+				consumerPid,
+				providerPid: "urn:uuid:provider-pid-stalled",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				agreementId: "agreement-stalled",
+				datasetId: "urn:uuid:dataset-stalled",
+				consumerIdentity: "did:iota:consumer",
+				providerIdentity: "did:iota:provider",
+				localRole,
+				offerId: "agreement-stalled",
+				policies: [],
+				format: "HttpData-PULL",
+				organizationIdentity: "did:iota:provider-node-xyz",
+				// 1970: far older than any threshold, so it is unambiguously past the timeout window.
+				dateCreated: new Date(0).toISOString(),
+				dateModified: new Date(0).toISOString()
+			});
+		}
+
+		test("cleanupStalledTransfers notifies onTimeout for a stalled consumer transfer and removes it", async () => {
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, stalledTransferTimeoutMs: 0 }
+			});
+
+			const id = Converter.bytesToHex(RandomHelper.generate(32));
+			const consumerPid = "urn:uuid:stalled-transfer-001";
+			await seedRequestedTransfer(id, consumerPid, TransferProcessRole.Consumer);
+
+			const callbackSpy = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined),
+				onTimeout: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerTransferCallback("timeout-listener", callbackSpy);
+
+			await (
+				service as unknown as { cleanupStalledTransfers(): Promise<void> }
+			).cleanupStalledTransfers();
+
+			expect(callbackSpy.onTimeout).toHaveBeenCalledWith(consumerPid);
+			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
+			// consumerPid is the primary key of TransferProcess.
+			expect(await transferProcessStorage.get(consumerPid)).toBeUndefined();
+		});
+
+		test("cleanupStalledTransfers leaves a provider-side REQUESTED transfer alone", async () => {
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, stalledTransferTimeoutMs: 0 }
+			});
+
+			const id = Converter.bytesToHex(RandomHelper.generate(32));
+			const consumerPid = "urn:uuid:provider-side-001";
+			await seedRequestedTransfer(id, consumerPid, TransferProcessRole.Provider);
+
+			const callbackSpy = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onTimeout: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerTransferCallback("provider-side-listener", callbackSpy);
+
+			await (
+				service as unknown as { cleanupStalledTransfers(): Promise<void> }
+			).cleanupStalledTransfers();
+
+			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
+			expect(await transferProcessStorage.get(consumerPid)).toBeDefined();
 		});
 	});
 });

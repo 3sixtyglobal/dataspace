@@ -197,17 +197,15 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 *
 	 * @param request Transfer request message (DSP compliant) containing agreementId,
 	 * consumerPid, callbackAddress, and format.
-	 * @param options Request options.
-	 * @param options.autoStart When true, the provider immediately starts the requested transfer; when
-	 * omitted/false the provider start must be triggered explicitly.
 	 * @param trustPayload Trust payload containing authorization information (JWT, VC, etc.).
 	 * The consumer must prove their identity by providing a valid trust payload.
 	 * @returns Transfer Process (DSP compliant) with state REQUESTED, including
 	 * both consumerPid and providerPid, or TransferError if the operation fails.
+	 * @remarks Whether the transfer auto-starts is a provider-side decision (service config), not
+	 * something the consumer can request.
 	 */
 	requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
-		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError>;
 
@@ -241,8 +239,8 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * Builds a DSP TransferStartMessage for a transfer this node already accepted (created in
 	 * REQUESTED state by requestTransfer, or in SUSPENDED state to resume), transitions it to
 	 * STARTED, and POSTs the message to the consumer's callback address. Use this when the
-	 * transfer was requested with autoStart=false and the provider now wants to start (or
-	 * resume) it explicitly.
+	 * provider did not auto-start the transfer (the autoStartTransfers config is off) and now
+	 * wants to start (or resume) it explicitly.
 	 *
 	 * DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/#transfer-start-message
 	 *

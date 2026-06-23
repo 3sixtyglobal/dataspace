@@ -124,6 +124,13 @@ export class DataspaceControlPlaneService
 	private static readonly _STALLED_NEGOTIATION_THRESHOLD_MS = 30 * 60 * 1000;
 
 	/**
+	 * Stalled transfer threshold in milliseconds (30 minutes).
+	 * Consumer-initiated transfers left in REQUESTED beyond this time are considered timed out.
+	 * @internal
+	 */
+	private static readonly _STALLED_TRANSFER_THRESHOLD_MS = 30 * 60 * 1000;
+
+	/**
 	 * The logging component.
 	 * @internal
 	 */
@@ -252,6 +259,24 @@ export class DataspaceControlPlaneService
 	private readonly _remoteControlPlaneComponentType: string;
 
 	/**
+	 * Whether the provider auto-starts a transfer once requested (provider-side decision, never the consumer's).
+	 * @internal
+	 */
+	private readonly _autoStartTransfers: boolean;
+
+	/**
+	 * How long (ms) a negotiation may sit without progress before the periodic cleanup times it out.
+	 * @internal
+	 */
+	private readonly _stalledNegotiationTimeoutMs: number;
+
+	/**
+	 * How long (ms) a consumer-initiated transfer may sit in REQUESTED before the periodic cleanup times it out.
+	 * @internal
+	 */
+	private readonly _stalledTransferTimeoutMs: number;
+
+	/**
 	 * Create a new instance of DataspaceControlPlaneService.
 	 * @param options The options for the service.
 	 */
@@ -305,6 +330,16 @@ export class DataspaceControlPlaneService
 		this._callbackPath = Is.stringValue(options?.config?.callbackPath)
 			? StringHelper.trimLeadingAndTrailingSlashes(options.config.callbackPath)
 			: undefined;
+
+		this._autoStartTransfers = options?.config?.autoStartTransfers ?? false;
+
+		this._stalledNegotiationTimeoutMs =
+			options?.config?.stalledNegotiationTimeoutMs ??
+			DataspaceControlPlaneService._STALLED_NEGOTIATION_THRESHOLD_MS;
+
+		this._stalledTransferTimeoutMs =
+			options?.config?.stalledTransferTimeoutMs ??
+			DataspaceControlPlaneService._STALLED_TRANSFER_THRESHOLD_MS;
 
 		this._taskScheduler = ComponentFactory.getIfExists<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
@@ -502,6 +537,19 @@ export class DataspaceControlPlaneService
 					await this.cleanupStalledNegotiations();
 				}
 			);
+
+			await this._taskScheduler.addTask(
+				"control-plane-transfer-cleanup",
+				[
+					{
+						nextTriggerTime: Date.now(),
+						intervalMinutes: 5
+					}
+				],
+				async () => {
+					await this.cleanupStalledTransfers();
+				}
+			);
 		}
 	}
 
@@ -514,6 +562,7 @@ export class DataspaceControlPlaneService
 	public async stop(nodeLoggingComponentType?: string): Promise<void> {
 		if (this._taskScheduler) {
 			await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
+			await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
 		}
 	}
 
@@ -523,11 +572,9 @@ export class DataspaceControlPlaneService
 
 	/**
 	 * Request a Transfer Process.
-	 * Creates a new Transfer Process in REQUESTED state.
+	 * Creates a new Transfer Process in REQUESTED state. Whether it auto-starts is a provider-side
+	 * decision (the `autoStartTransfers` service config), never something the consumer can request.
 	 * @param request Transfer request message (DSP compliant).
-	 * @param options Request options.
-	 * @param options.autoStart When true, the provider immediately starts the requested transfer (scheduled
-	 * on the next tick); when omitted/false the provider start must be triggered explicitly.
 	 * @param trustPayload Trust payload containing authorization information.
 	 * @returns Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the operation fails.
 	 *
@@ -536,7 +583,6 @@ export class DataspaceControlPlaneService
 	 */
 	public async requestTransfer(
 		request: IDataspaceProtocolTransferRequestMessage,
-		options: { autoStart?: boolean } | undefined,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError> {
 		const trustInfo = await TrustHelper.verifyTrust(
@@ -668,10 +714,11 @@ export class DataspaceControlPlaneService
 			}
 		});
 
-		// When auto-start is requested, schedule the provider start asynchronously (mirrors negotiation's
+		// Auto-start is a provider-side decision (the autoStartTransfers config), never the consumer's.
+		// When the provider opts in, schedule the provider start asynchronously (mirrors negotiation's
 		// setTimeout follow-up). The timer runs inside the request's ALS context, so the [Node, Tenant] + org
 		// partition propagates to the deferred start.
-		if (options?.autoStart) {
+		if (this._autoStartTransfers) {
 			const contextIds = await ContextIdStore.getContextIds();
 			const consumerPid = request.consumerPid;
 			setTimeout(async () => {
@@ -842,11 +889,7 @@ export class DataspaceControlPlaneService
 			{ endpoint: providerEndpoint, pathPrefix: "" }
 		);
 
-		const result = await remoteControlPlane.requestTransfer(
-			transferRequestMessage,
-			undefined,
-			outboundToken
-		);
+		const result = await remoteControlPlane.requestTransfer(transferRequestMessage, outboundToken);
 
 		if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
 			const transferError = result as { code?: string };
@@ -2612,7 +2655,7 @@ export class DataspaceControlPlaneService
 		const stalled: string[] = [];
 
 		for (const [negotiationId, state] of this._policyRequester.getActiveNegotiations()) {
-			if (now - state.updatedAt > DataspaceControlPlaneService._STALLED_NEGOTIATION_THRESHOLD_MS) {
+			if (now - state.updatedAt > this._stalledNegotiationTimeoutMs) {
 				stalled.push(negotiationId);
 			}
 		}
@@ -2628,16 +2671,24 @@ export class DataspaceControlPlaneService
 				data: { negotiationId }
 			});
 
+			// Notify each registered callback that the negotiation timed out. Prefer the dedicated
+			// onTimeout hook; fall back to onFailed(reason: "negotiationStalled") for callbacks that
+			// predate onTimeout.
 			for (const [key, cb] of this._negotiationCallbacks.entries()) {
+				const onTimeout = cb.onTimeout?.bind(cb);
 				try {
-					await cb.onFailed(negotiationId, "negotiationStalled");
+					if (onTimeout) {
+						await onTimeout(negotiationId);
+					} else {
+						await cb.onFailed(negotiationId, "negotiationStalled");
+					}
 				} catch (error) {
 					await this._loggingComponent?.log({
 						level: "error",
 						source: DataspaceControlPlaneService.CLASS_NAME,
 						ts: Date.now(),
 						message: "negotiationCallbackError",
-						data: { key, negotiationId, method: "onFailed", error }
+						data: { key, negotiationId, method: onTimeout ? "onTimeout" : "onFailed", error }
 					});
 				}
 			}
@@ -2652,6 +2703,96 @@ export class DataspaceControlPlaneService
 				data: { cleanedUp: stalled.length }
 			});
 		}
+	}
+
+	/**
+	 * Cleanup stalled consumer-initiated transfers.
+	 * Called periodically by the task scheduler. A consumer transfer left in REQUESTED beyond the
+	 * configured window means the provider never progressed it; remove it and notify the registered
+	 * transfer callbacks (onTimeout, falling back to onFailed with reason "transferStalled").
+	 * @returns A promise that resolves when stalled transfers have been removed and callbacks notified.
+	 * @internal
+	 */
+	private async cleanupStalledTransfers(): Promise<void> {
+		const now = Date.now();
+
+		// Runs per tenant so the storage access inherits the correct [Node, Tenant] + org partition.
+		await this._platformComponent.execute(async () => {
+			// consumerPid is the primary key of TransferProcess, so it is used for both removal and callbacks.
+			const stalled: string[] = [];
+			let cursor: string | undefined;
+
+			do {
+				const page = await this._transferProcessStorage.query(
+					{
+						property: "state",
+						value: DataspaceProtocolTransferProcessStateType.REQUESTED,
+						comparison: ComparisonOperator.Equals
+					},
+					undefined,
+					undefined,
+					cursor
+				);
+
+				for (const entity of page.entities) {
+					const transfer = entity as TransferProcess;
+					// Only the initiating (consumer) side times out waiting for the provider; a provider-side
+					// REQUESTED transfer is awaiting the provider's own start decision, not a non-response.
+					if (
+						transfer.localRole === TransferProcessRole.Consumer &&
+						now - new Date(transfer.dateModified).getTime() > this._stalledTransferTimeoutMs
+					) {
+						stalled.push(transfer.consumerPid);
+					}
+				}
+
+				cursor = page.cursor;
+			} while (Is.stringValue(cursor));
+
+			for (const consumerPid of stalled) {
+				await this._transferProcessStorage.remove(consumerPid);
+
+				await this._loggingComponent?.log({
+					level: "warn",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "stalledTransferCleanedUp",
+					data: { consumerPid }
+				});
+
+				// Prefer the dedicated onTimeout hook; fall back to onFailed(reason: "transferStalled") for
+				// callbacks that implement it. Both are optional, so a callback may receive neither.
+				for (const [key, cb] of this._transferCallbacks.entries()) {
+					const onTimeout = cb.onTimeout?.bind(cb);
+					const onFailed = cb.onFailed?.bind(cb);
+					try {
+						if (onTimeout) {
+							await onTimeout(consumerPid);
+						} else if (onFailed) {
+							await onFailed(consumerPid, "transferStalled");
+						}
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "transferCallbackError",
+							data: { key, consumerPid, method: onTimeout ? "onTimeout" : "onFailed", error }
+						});
+					}
+				}
+			}
+
+			if (Is.arrayValue(stalled)) {
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "stalledTransfersCleanupComplete",
+					data: { cleanedUp: stalled.length }
+				});
+			}
+		});
 	}
 
 	/**

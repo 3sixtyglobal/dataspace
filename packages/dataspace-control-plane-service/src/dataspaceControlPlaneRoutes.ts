@@ -630,11 +630,7 @@ async function requestTransferHandler(
 	const trustPayload = HeaderHelper.extractBearer(request.headers[HeaderTypes.Authorization]);
 
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
-	const result = await component.requestTransfer(
-		request.body,
-		{ autoStart: Coerce.boolean(request.query?.autoStart) },
-		trustPayload
-	);
+	const result = await component.requestTransfer(request.body, trustPayload);
 
 	return {
 		body: result,
