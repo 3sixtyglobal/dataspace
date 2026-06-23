@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.0.3-next.55](https://github.com/iotaledger/twin-dataspace/compare/dataspace-rest-server-v0.0.3-next.54...dataspace-rest-server-v0.0.3-next.55) (2026-06-23)
+
+
+### Features
+
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+* endpoint encryption + getDatasetTargets multi-target fix ([#112](https://github.com/iotaledger/twin-dataspace/issues/112)) ([3288941](https://github.com/iotaledger/twin-dataspace/commit/328894113c19c7402f7d00dfa77b6a97ae40ca91))
+* improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* resolve DSP transfer flow bugs for cross-node communication ([#76](https://github.com/iotaledger/twin-dataspace/issues/76)) ([506a45c](https://github.com/iotaledger/twin-dataspace/commit/506a45c94e63d5f958b1fc7131adfe452c3e2974))
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+* unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+* update dependencies ([55cb41c](https://github.com/iotaledger/twin-dataspace/commit/55cb41c1d0ce7ebddcce41c60fe944650bcf0499))
+
+
+### Bug Fixes
+
+* docs and component init ([9219cc2](https://github.com/iotaledger/twin-dataspace/commit/9219cc2c81b354116a63cc1ca729f37f526f8b9b))
+* docs and component init ([8557233](https://github.com/iotaledger/twin-dataspace/commit/8557233fb3b8273c5c9a5b580fb43061f8efe47c))
+* missing dependency control plane - server ([#85](https://github.com/iotaledger/twin-dataspace/issues/85)) ([0647637](https://github.com/iotaledger/twin-dataspace/commit/064763742d7f6586d274a2fa6392d798e66532f9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.54 to 0.0.3-next.55
+    * @twin.org/dataspace-data-plane-rest-client bumped from 0.0.3-next.54 to 0.0.3-next.55
+    * @twin.org/dataspace-data-plane-socket-client bumped from 0.0.3-next.54 to 0.0.3-next.55
+    * @twin.org/dataspace-data-plane-service bumped from 0.0.3-next.54 to 0.0.3-next.55
+    * @twin.org/dataspace-control-plane-service bumped from 0.0.3-next.54 to 0.0.3-next.55
+    * @twin.org/dataspace-test-app bumped from 0.0.3-next.54 to 0.0.3-next.55
+
 ## [0.0.3-next.54](https://github.com/iotaledger/twin-dataspace/compare/dataspace-rest-server-v0.0.3-next.53...dataspace-rest-server-v0.0.3-next.54) (2026-06-23)
 
 
