@@ -104,3 +104,27 @@ The failure reason.
 `Promise`\<`void`\>
 
 Nothing.
+
+***
+
+### onTimeout()? {#ontimeout}
+
+> `optional` **onTimeout**(`negotiationId`): `Promise`\<`void`\>
+
+Called when the negotiation times out, i.e. the provider did not progress it within the configured
+window. Optional: implement it to be notified specifically of a non-response (otherwise the
+control plane falls back to `onFailed(negotiationId, "negotiationStalled")`).
+
+#### Parameters
+
+##### negotiationId
+
+`string`
+
+The negotiation ID.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Nothing.

@@ -223,10 +223,11 @@ A promise that resolves when the cleanup task has been removed.
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
+> **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferError` \| `IDataspaceProtocolTransferProcess`\>
 
 Request a Transfer Process.
-Creates a new Transfer Process in REQUESTED state.
+Creates a new Transfer Process in REQUESTED state. Whether it auto-starts is a provider-side
+decision (the `autoStartTransfers` service config), never something the consumer can request.
 
 #### Parameters
 
@@ -235,29 +236,6 @@ Creates a new Transfer Process in REQUESTED state.
 `IDataspaceProtocolTransferRequestMessage`
 
 Transfer request message (DSP compliant).
-
-##### options
-
-\{ `autoStart?`: `boolean`; \} \| `undefined`
-
-Request options.
-
-###### Type Literal
-
-\{ `autoStart?`: `boolean`; \}
-
-Request options.
-
-###### autoStart?
-
-`boolean`
-
-When true, the provider immediately starts the requested transfer (scheduled
-on the next tick); when omitted/false the provider start must be triggered explicitly.
-
-***
-
-`undefined`
 
 ##### trustPayload
 

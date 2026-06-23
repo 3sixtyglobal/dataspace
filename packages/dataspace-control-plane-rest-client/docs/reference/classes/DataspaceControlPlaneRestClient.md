@@ -347,7 +347,7 @@ The consumerPid of the newly created TransferProcess.
 
 ### requestTransfer() {#requesttransfer}
 
-> **requestTransfer**(`request`, `options`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
+> **requestTransfer**(`request`, `trustPayload`): `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
 Request a Transfer Process.
 
@@ -358,29 +358,6 @@ Request a Transfer Process.
 `IDataspaceProtocolTransferRequestMessage`
 
 Transfer request message (DSP compliant).
-
-##### options
-
-\{ `autoStart?`: `boolean`; \} \| `undefined`
-
-Request options.
-
-###### Type Literal
-
-\{ `autoStart?`: `boolean`; \}
-
-Request options.
-
-###### autoStart?
-
-`boolean`
-
-When true, sent as a query parameter asking the provider to auto-start the
-transfer once created.
-
-***
-
-`undefined`
 
 ##### trustPayload
 
@@ -393,6 +370,11 @@ Trust payload containing authorization information.
 `Promise`\<`IDataspaceProtocolTransferProcess` \| `IDataspaceProtocolTransferError`\>
 
 Transfer Process (DSP compliant) with state REQUESTED, or TransferError if the operation fails.
+
+#### Remarks
+
+Whether the transfer auto-starts is a provider-side decision (service config); the consumer
+cannot request it.
 
 #### Implementation of
 

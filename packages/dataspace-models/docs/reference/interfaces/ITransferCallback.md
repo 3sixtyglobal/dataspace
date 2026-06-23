@@ -139,3 +139,55 @@ Optional termination reason from the DSP message.
 `Promise`\<`void`\>
 
 Nothing.
+
+***
+
+### onFailed()? {#onfailed}
+
+> `optional` **onFailed**(`consumerPid`, `reason`): `Promise`\<`void`\>
+
+Called when the transfer fails. Optional, for parity with INegotiationCallback.
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+The consumer-side process ID.
+
+##### reason
+
+`string`
+
+The failure reason.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Nothing.
+
+***
+
+### onTimeout()? {#ontimeout}
+
+> `optional` **onTimeout**(`consumerPid`): `Promise`\<`void`\>
+
+Called when the transfer times out, i.e. the provider did not progress it (it sat in REQUESTED)
+within the configured window. Optional: implement it to be notified specifically of a non-response
+(otherwise the control plane falls back to `onFailed(consumerPid, "transferStalled")`).
+
+#### Parameters
+
+##### consumerPid
+
+`string`
+
+The consumer-side process ID.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+Nothing.
