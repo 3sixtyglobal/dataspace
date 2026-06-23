@@ -39,11 +39,6 @@
 		"packages/dataspace-data-plane-service": {
 			"package-name": "dataspace-data-plane-service",
 			"changelog-path": "docs/changelog.md"
-		},
-		"apps/dataspace-rest-server": {
-			"package-name": "dataspace-rest-server",
-			"changelog-path": "docs/changelog.md",
-			"extra-files": ["src/index.ts"]
 		}
 	},
 	"plugins": [
@@ -59,8 +54,7 @@
 				"dataspace-data-plane-rest-client",
 				"dataspace-data-plane-socket-client",
 				"dataspace-app-runner",
-				"dataspace-data-plane-service",
-				"dataspace-rest-server"
+				"dataspace-data-plane-service"
 			]
 		}
 	]

@@ -66,8 +66,7 @@
 		"packages/dataspace-data-plane-rest-client",
 		"packages/dataspace-data-plane-socket-client",
 		"packages/dataspace-app-runner",
-		"packages/dataspace-data-plane-service",
-		"apps/dataspace-rest-server"
+		"packages/dataspace-data-plane-service"
 	],
 	"type": "module",
 	"keywords": [

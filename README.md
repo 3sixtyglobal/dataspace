@@ -15,10 +15,6 @@ The workspace is structured to support interoperable transfer and activity workf
 - [dataspace-app-runner](packages/dataspace-app-runner/README.md) - Runs dataspace app activity handlers in background execution contexts.
 - [dataspace-data-plane-service](packages/dataspace-data-plane-service/README.md) - Processes activities and data requests while enforcing transfer and policy constraints in the data plane.
 
-## Apps
-
-- [dataspace-rest-server](apps/dataspace-rest-server/README.md) - Hosts control plane and data plane APIs in a single deployable REST server.
-
 ## Contributing
 
 To contribute to this package see the guidelines for building and publishing in [CONTRIBUTING](./CONTRIBUTING.md)

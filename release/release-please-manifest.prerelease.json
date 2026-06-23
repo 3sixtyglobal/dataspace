@@ -6,6 +6,5 @@
 	"packages/dataspace-data-plane-socket-client": "0.0.3-next.55",
 	"packages/dataspace-test-app": "0.0.3-next.55",
 	"packages/dataspace-data-plane-service": "0.0.3-next.55",
-	"packages/dataspace-app-runner": "0.0.3-next.55",
-	"apps/dataspace-rest-server": "0.0.3-next.55"
+	"packages/dataspace-app-runner": "0.0.3-next.55"
 }
