@@ -6,7 +6,7 @@ import { type INodeEnvironmentVariables, run } from "@twin.org/node-core";
 
 await run({
 	serverName: "Dataspace Server",
-	serverVersion: "0.0.3-next.52", // x-release-please-version
+	serverVersion: "0.0.3-next.53", // x-release-please-version
 	envPrefix: "DATASPACE_",
 	localesDirectory: path.resolve("dist/locales"),
 	openApiSpecFile: path.resolve("docs/open-api/spec.json"),

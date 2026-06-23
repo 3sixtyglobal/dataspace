@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.53](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.52...dataspace-control-plane-rest-client-v0.0.3-next.53) (2026-06-23)
+
+
+### Features
+
+* provider-side transfer auto-start and negotiation/transfer timeout callbacks ([#227](https://github.com/iotaledger/twin-dataspace/issues/227)) ([619d858](https://github.com/iotaledger/twin-dataspace/commit/619d858e8d44e59744dc8a0f73e06be976932b53))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.52 to 0.0.3-next.53
+
 ## [0.0.3-next.52](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.0.3-next.51...dataspace-control-plane-rest-client-v0.0.3-next.52) (2026-06-21)
 
 
