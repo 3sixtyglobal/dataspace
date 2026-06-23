@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.0.3-next.54](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.0.3-next.53...dataspace-app-runner-v0.0.3-next.54) (2026-06-23)
+
+
+### Features
+
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.0.3-next.53 to 0.0.3-next.54
+
 ## [0.0.3-next.53](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.0.3-next.52...dataspace-app-runner-v0.0.3-next.53) (2026-06-23)
 
 

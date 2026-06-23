@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.0.3-next.54](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.53...dataspace-models-v0.0.3-next.54) (2026-06-23)
+
+
+### Features
+
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+
 ## [0.0.3-next.53](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.0.3-next.52...dataspace-models-v0.0.3-next.53) (2026-06-23)
 
 

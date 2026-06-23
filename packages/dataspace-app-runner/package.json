@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-app-runner",
-	"version": "0.0.3-next.53",
+	"version": "0.0.3-next.54",
 	"description": "Runs dataspace app activity handlers in background execution contexts.",
 	"repository": {
 		"type": "git",
@@ -31,7 +31,7 @@
 	"dependencies": {
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
-		"@twin.org/dataspace-models": "0.0.3-next.53",
+		"@twin.org/dataspace-models": "0.0.3-next.54",
 		"@twin.org/engine-models": "next",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
