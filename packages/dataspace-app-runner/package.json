@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-app-runner",
-	"version": "0.0.3-next.55",
+	"version": "0.9.0-next.0",
 	"description": "Runs dataspace app activity handlers in background execution contexts.",
 	"repository": {
 		"type": "git",
@@ -29,22 +29,22 @@
 		"dist:no-test": "npm run clean && npm run build && npm run test:build"
 	},
 	"dependencies": {
-		"@twin.org/context": "next",
-		"@twin.org/core": "next",
-		"@twin.org/dataspace-models": "0.0.3-next.55",
-		"@twin.org/engine-core": "next",
-		"@twin.org/engine-models": "next",
-		"@twin.org/logging-models": "next",
-		"@twin.org/nameof": "next",
-		"@twin.org/rights-management-models": "next",
-		"@twin.org/standards-w3c-activity-streams": "next",
-		"@twin.org/trust-models": "next",
-		"@twin.org/web": "next"
+		"@twin.org/context": "0.9.0-next.1",
+		"@twin.org/core": "0.9.0-next.1",
+		"@twin.org/dataspace-models": "0.9.0-next.0",
+		"@twin.org/engine-core": "0.0.3-next.56",
+		"@twin.org/engine-models": "0.0.3-next.56",
+		"@twin.org/logging-models": "0.9.0-next.1",
+		"@twin.org/nameof": "0.9.0-next.1",
+		"@twin.org/rights-management-models": "0.9.0-next.1",
+		"@twin.org/standards-w3c-activity-streams": "0.9.0-next.1",
+		"@twin.org/trust-models": "0.9.0-next.1",
+		"@twin.org/web": "0.9.0-next.1"
 	},
 	"devDependencies": {
-		"@twin.org/nameof-transformer": "next",
-		"@twin.org/nameof-vitest-plugin": "next",
-		"@twin.org/validate-locales": "next",
+		"@twin.org/nameof-transformer": "0.9.0-next.1",
+		"@twin.org/nameof-vitest-plugin": "0.9.0-next.1",
+		"@twin.org/validate-locales": "0.9.0-next.1",
 		"@types/node": "26.0.0",
 		"copyfiles": "2.4.1",
 		"nodemon": "3.1.14",
