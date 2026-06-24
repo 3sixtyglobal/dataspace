@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.0-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-socket-client-v0.9.0-next.0...dataspace-data-plane-socket-client-v0.9.0-next.1) (2026-06-24)
+
+
+### Features
+
+* add inline tasks and concurrent options ([#104](https://github.com/iotaledger/twin-dataspace/issues/104)) ([2227a21](https://github.com/iotaledger/twin-dataspace/commit/2227a212d906f58ba77850c79bb20bf2cb7195a8))
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+* implement DSP push transfer mode ([#109](https://github.com/iotaledger/twin-dataspace/issues/109)) ([71f5fee](https://github.com/iotaledger/twin-dataspace/commit/71f5feec1d92dfec8ed6899c951809818e1bf2a3))
+* improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* organization identifiers ([#188](https://github.com/iotaledger/twin-dataspace/issues/188)) ([af643d3](https://github.com/iotaledger/twin-dataspace/commit/af643d3bb7f212d6cbb672e362a9e1bbe886d1a5))
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+* unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.0-next.0 to 0.9.0-next.1
+
 ## [0.0.3-next.55](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-socket-client-v0.0.3-next.54...dataspace-data-plane-socket-client-v0.0.3-next.55) (2026-06-23)
 
 
