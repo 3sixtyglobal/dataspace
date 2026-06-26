@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.1...dataspace-models-v0.9.1-next.2) (2026-06-26)
+
+
+### Features
+
+* add well known versions endpoint ([#251](https://github.com/iotaledger/twin-dataspace/issues/251)) ([4b4cbe9](https://github.com/iotaledger/twin-dataspace/commit/4b4cbe91a40980481dad6e0650c1ee73c53ae360))
+
 ## [0.9.1-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.0...dataspace-models-v0.9.1-next.1) (2026-06-26)
 
 
