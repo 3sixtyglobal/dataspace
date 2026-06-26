@@ -421,7 +421,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		summary: "Get supported Dataspace Protocol versions (DSP 2025-1)",
 		tag: tagsDataspaceControlPlane[2].name,
 		method: "GET",
-		path: ".well-known/dspace-version",
+		path: "/.well-known/dspace-version",
 		skipAuth: true,
 		skipTenant: true,
 		handler: async (httpRequestContext, request) =>

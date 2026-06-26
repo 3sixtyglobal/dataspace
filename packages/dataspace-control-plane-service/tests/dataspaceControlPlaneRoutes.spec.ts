@@ -238,7 +238,7 @@ describe("dataspaceControlPlaneRoutes", () => {
 
 			expect(versionRoute).toBeDefined();
 			expect(versionRoute?.method).toBe("GET");
-			expect(versionRoute?.path).toBe(".well-known/dspace-version");
+			expect(versionRoute?.path).toBe("/.well-known/dspace-version");
 			expect(versionRoute?.skipAuth).toBe(true);
 			expect(versionRoute?.skipTenant).toBe(true);
 		});

@@ -4,14 +4,6 @@ import { BaseRestClient } from "@twin.org/api-core";
 import type { IBaseRestClientConfig, INoContentRequest } from "@twin.org/api-models";
 import { Guards, NotSupportedError } from "@twin.org/core";
 import type {
-	ICompleteTransferRequest,
-	ICompleteTransferResponse,
-	IDataspaceControlPlaneComponent,
-	IGetTransferProcessRequest,
-	IGetTransferProcessResponse,
-	IDataspaceAppDataset,
-	INegotiationCallback,
-	ITransferCallback,
 	IAppDatasetCreateRequest,
 	IAppDatasetCreateResponse,
 	IAppDatasetDeleteRequest,
@@ -20,6 +12,14 @@ import type {
 	IAppDatasetListRequest,
 	IAppDatasetListResponse,
 	IAppDatasetUpdateRequest,
+	ICompleteTransferRequest,
+	ICompleteTransferResponse,
+	IDataspaceAppDataset,
+	IDataspaceControlPlaneComponent,
+	IGetProtocolVersionsResponse,
+	IGetTransferProcessRequest,
+	IGetTransferProcessResponse,
+	INegotiationCallback,
 	IRequestTransferRequest,
 	IRequestTransferResponse,
 	IStartTransferRequest,
@@ -28,7 +28,7 @@ import type {
 	ISuspendTransferResponse,
 	ITerminateTransferRequest,
 	ITerminateTransferResponse,
-	IGetProtocolVersionsResponse
+	ITransferCallback
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type {
@@ -44,7 +44,7 @@ import type {
 	IDataspaceProtocolTransferTerminationMessage,
 	IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
-import { FetchHelper, HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
+import { HeaderHelper, HeaderTypes } from "@twin.org/web";
 
 /**
  * Client for performing dataspace control plane operations through REST endpoints.
@@ -567,7 +567,12 @@ export class DataspaceControlPlaneRestClient
 	 * @returns The protocol version response listing all supported DSP versions.
 	 */
 	public async getProtocolVersions(): Promise<IDataspaceProtocolVersionResponse> {
-		const response = await this.fetch<INoContentRequest, IGetProtocolVersionsResponse>("/.well-known/dspace-version", "GET", undefined, { overridePrefix: ""});
+		const response = await this.fetch<INoContentRequest, IGetProtocolVersionsResponse>(
+			"/.well-known/dspace-version",
+			"GET",
+			undefined,
+			{ overridePrefix: "" }
+		);
 		return response.body;
 	}
 }
