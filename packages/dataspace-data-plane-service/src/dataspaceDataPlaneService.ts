@@ -953,7 +953,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		trustPayload?: unknown
 	): Promise<IDataAssetItemListResult> {
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
-		Guards.object(DataspaceDataPlaneService.CLASS_NAME, nameof(query), query);
+		Guards.object<IFilteringQuery>(DataspaceDataPlaneService.CLASS_NAME, nameof(query), query);
 		Guards.string(DataspaceDataPlaneService.CLASS_NAME, nameof(query.type), query.type);
 
 		const trustInfo = await TrustHelper.verifyTrust(

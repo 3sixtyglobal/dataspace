@@ -2816,6 +2816,62 @@ describe("DataspaceDataPlaneService", () => {
 		});
 	});
 
+	test("It should accept a query that omits the q field", async () => {
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_ORGANIZATION_IDENTITY
+		});
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
+
+		const transferProcess = createTestTransferProcess();
+		await transferProcessStorage.set(transferProcess);
+
+		const result = await dataspaceDataPlaneService.queryDataAsset(
+			TEST_CONSUMER_PID,
+			{ type: "TestQueryType" },
+			undefined,
+			undefined,
+			TEST_TRANSFER_TOKEN
+		);
+
+		expect(result).toBeDefined();
+		expect(result.itemList).toBeDefined();
+	});
+
+	test("It should accept a query where q is an object, not a string", async () => {
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_ORGANIZATION_IDENTITY
+		});
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
+
+		const transferProcess = createTestTransferProcess();
+		await transferProcessStorage.set(transferProcess);
+
+		const result = await dataspaceDataPlaneService.queryDataAsset(
+			TEST_CONSUMER_PID,
+			{ type: "TestQueryType", q: { field: "loadingLocation", value: "unece:LOCODE#NLRTM" } },
+			undefined,
+			undefined,
+			TEST_TRANSFER_TOKEN
+		);
+
+		expect(result).toBeDefined();
+		expect(result.itemList).toBeDefined();
+	});
+
 	test.skip("Pagination cursor is passed through to app", async () => {
 		// Ensure context IDs are set
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
