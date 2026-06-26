@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1-next.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.9.1-next.2...dataspace-control-plane-rest-client-v0.9.1-next.3) (2026-06-26)
+
+
+### Features
+
+* well-known endpoint ([9ff2607](https://github.com/iotaledger/twin-dataspace/commit/9ff2607a345ee9e038a2915179a926353251e59c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.2 to 0.9.1-next.3
+
 ## [0.9.1-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.9.1-next.1...dataspace-control-plane-rest-client-v0.9.1-next.2) (2026-06-26)
 
 
