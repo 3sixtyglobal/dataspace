@@ -851,3 +851,21 @@ A promise that resolves when the dataset has been removed from storage and the c
 #### Implementation of
 
 `IDataspaceControlPlaneComponent.deleteAppDataset`
+
+***
+
+### getProtocolVersions() {#getprotocolversions}
+
+> **getProtocolVersions**(): `Promise`\<`IDataspaceProtocolVersionResponse`\>
+
+Return the Dataspace Protocol versions supported by this connector.
+
+#### Returns
+
+`Promise`\<`IDataspaceProtocolVersionResponse`\>
+
+The protocol version response listing all supported DSP versions.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.getProtocolVersions`

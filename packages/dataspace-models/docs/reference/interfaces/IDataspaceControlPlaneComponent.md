@@ -689,3 +689,19 @@ The stored app dataset id.
 `Promise`\<`void`\>
 
 A promise that resolves when the dataset has been removed from storage and the catalogue.
+
+***
+
+### getProtocolVersions() {#getprotocolversions}
+
+> **getProtocolVersions**(): `Promise`\<`IDataspaceProtocolVersionResponse`\>
+
+Return the Dataspace Protocol versions supported by this connector.
+Used by the GET /.well-known/dspace-version discovery endpoint.
+The path for each entry is derived from the connector's configured base route.
+
+#### Returns
+
+`Promise`\<`IDataspaceProtocolVersionResponse`\>
+
+The protocol version response listing all supported DSP versions.
