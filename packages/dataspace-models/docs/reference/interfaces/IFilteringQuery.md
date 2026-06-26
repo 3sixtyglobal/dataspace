@@ -12,11 +12,11 @@ The query type.
 
 ***
 
-### q {#q}
+### q? {#q}
 
-> **q**: `unknown`
+> `optional` **q?**: `unknown`
 
-The representation of the query.
+The representation of the query, optional depending on the query type.
 
 ***
 

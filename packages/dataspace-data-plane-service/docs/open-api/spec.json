@@ -720,7 +720,7 @@
 						"description": "The query type."
 					},
 					"q": {
-						"description": "The representation of the query."
+						"description": "The representation of the query, optional depending on the query type."
 					},
 					"jsonLdContext": {
 						"type": "array",
@@ -731,8 +731,7 @@
 					}
 				},
 				"required": [
-					"type",
-					"q"
+					"type"
 				]
 			}
 		},
