@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type {
 	IHttpRequestContext,
+	INoContentRequest,
 	INoContentResponse,
 	INotFoundResponse,
 	IRestRoute,
@@ -12,6 +13,7 @@ import type {
 	ICompleteTransferRequest,
 	ICompleteTransferResponse,
 	IDataspaceControlPlaneComponent,
+	IGetProtocolVersionsResponse,
 	IGetTransferProcessRequest,
 	IGetTransferProcessResponse,
 	IAppDatasetCreateRequest,
@@ -58,6 +60,11 @@ export const tagsDataspaceControlPlane: ITag[] = [
 		name: "Datasets",
 		description:
 			"Tenant-scoped CRUD over the datasets the Control Plane reads at start time to populate the federated catalogue."
+	},
+	{
+		name: "Version Discovery",
+		description:
+			"RFC 8615 well-known endpoint for advertising the Dataspace Protocol versions supported by this connector."
 	}
 ];
 
@@ -405,6 +412,54 @@ export function generateRestRoutesDataspaceControlPlane(
 		};
 
 	// ============================================================================
+	// DSP VERSION DISCOVERY
+	// ============================================================================
+
+	// GET /.well-known/dspace-version - DSP version discovery (unauthenticated, RFC 8615)
+	const getProtocolVersionsRoute: IRestRoute<INoContentRequest, IGetProtocolVersionsResponse> = {
+		operationId: "getProtocolVersions",
+		summary: "Get supported Dataspace Protocol versions (DSP 2025-1)",
+		tag: tagsDataspaceControlPlane[2].name,
+		method: "GET",
+		path: ".well-known/dspace-version",
+		skipAuth: true,
+		skipTenant: true,
+		handler: async (httpRequestContext, request) =>
+			getProtocolVersionsHandler(httpRequestContext, componentName, request),
+		requestType: {
+			type: nameof<INoContentRequest>(),
+			examples: [
+				{
+					id: "getProtocolVersionsRequestExample",
+					request: {}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<IGetProtocolVersionsResponse>(),
+				examples: [
+					{
+						id: "getProtocolVersionsResponseExample",
+						response: {
+							body: {
+								protocolVersions: [
+									{
+										version: "2025-1",
+										path: "/dataspace-control-plane/2025-1",
+										binding: "HTTPS",
+										serviceId: "twin-connector"
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		]
+	};
+
+	// ============================================================================
 	// DATASPACE APP DATASET MANAGEMENT
 	// ============================================================================
 
@@ -594,6 +649,7 @@ export function generateRestRoutesDataspaceControlPlane(
 	};
 
 	return [
+		getProtocolVersionsRoute,
 		requestTransferRoute,
 		getTransferProcessRoute,
 		startTransferRoute,
@@ -606,6 +662,28 @@ export function generateRestRoutesDataspaceControlPlane(
 		updateDataspaceAppDatasetRoute,
 		deleteDataspaceAppDatasetRoute
 	];
+}
+
+// ============================================================================
+// DSP VERSION DISCOVERY HANDLER
+// ============================================================================
+
+/**
+ * Get Protocol Versions handler.
+ * @param httpRequestContext The request context for the API.
+ * @param componentName The name of the component to use.
+ * @param request The API request (no parameters required).
+ * @returns The response with the list of supported DSP versions.
+ */
+async function getProtocolVersionsHandler(
+	httpRequestContext: IHttpRequestContext,
+	componentName: string,
+	request: INoContentRequest
+): Promise<IGetProtocolVersionsResponse> {
+	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
+	const result = await component.getProtocolVersions();
+
+	return { body: result };
 }
 
 // ============================================================================

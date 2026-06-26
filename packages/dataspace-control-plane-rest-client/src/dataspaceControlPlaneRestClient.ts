@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseRestClient } from "@twin.org/api-core";
-import type { IBaseRestClientConfig } from "@twin.org/api-models";
+import type { IBaseRestClientConfig, INoContentRequest } from "@twin.org/api-models";
 import { Guards, NotSupportedError } from "@twin.org/core";
 import type {
 	ICompleteTransferRequest,
@@ -27,7 +27,8 @@ import type {
 	ISuspendTransferRequest,
 	ISuspendTransferResponse,
 	ITerminateTransferRequest,
-	ITerminateTransferResponse
+	ITerminateTransferResponse,
+	IGetProtocolVersionsResponse
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type {
@@ -40,9 +41,10 @@ import type {
 	IDataspaceProtocolTransferRequestMessage,
 	IDataspaceProtocolTransferStartMessage,
 	IDataspaceProtocolTransferSuspensionMessage,
-	IDataspaceProtocolTransferTerminationMessage
+	IDataspaceProtocolTransferTerminationMessage,
+	IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
-import { HeaderHelper, HeaderTypes } from "@twin.org/web";
+import { FetchHelper, HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
 
 /**
  * Client for performing dataspace control plane operations through REST endpoints.
@@ -557,5 +559,15 @@ export class DataspaceControlPlaneRestClient
 		await this.fetch<IAppDatasetDeleteRequest, never>("/app-datasets/:id", "DELETE", {
 			pathParams: { id }
 		});
+	}
+
+	/**
+	 * Get the Dataspace Protocol versions supported by the remote connector.
+	 * Calls the unauthenticated GET /.well-known/dspace-version endpoint at the connector origin.
+	 * @returns The protocol version response listing all supported DSP versions.
+	 */
+	public async getProtocolVersions(): Promise<IDataspaceProtocolVersionResponse> {
+		const response = await this.fetch<INoContentRequest, IGetProtocolVersionsResponse>("/.well-known/dspace-version", "GET", undefined, { overridePrefix: ""});
+		return response.body;
 	}
 }

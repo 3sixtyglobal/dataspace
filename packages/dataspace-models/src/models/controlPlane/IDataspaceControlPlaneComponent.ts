@@ -11,7 +11,8 @@ import type {
 	IDataspaceProtocolTransferRequestMessage,
 	IDataspaceProtocolTransferStartMessage,
 	IDataspaceProtocolTransferSuspensionMessage,
-	IDataspaceProtocolTransferTerminationMessage
+	IDataspaceProtocolTransferTerminationMessage,
+	IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDataspaceAppDataset } from "./IDataspaceAppDataset.js";
 import type { INegotiationCallback } from "./INegotiationCallback.js";
@@ -391,4 +392,16 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @returns A promise that resolves when the dataset has been removed from storage and the catalogue.
 	 */
 	deleteAppDataset(id: string): Promise<void>;
+
+	// ============================================================================
+	// DSP VERSION DISCOVERY
+	// ============================================================================
+
+	/**
+	 * Return the Dataspace Protocol versions supported by this connector.
+	 * Used by the GET /.well-known/dspace-version discovery endpoint.
+	 * The path for each entry is derived from the connector's configured base route.
+	 * @returns The protocol version response listing all supported DSP versions.
+	 */
+	getProtocolVersions(): Promise<IDataspaceProtocolVersionResponse>;
 }

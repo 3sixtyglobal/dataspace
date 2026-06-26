@@ -127,25 +127,36 @@ describe("dataspaceControlPlaneRoutes", () => {
 			expect(dspRoutes.find(r => r.operationId === "completeTransfer")).toBeDefined();
 			expect(dspRoutes.find(r => r.operationId === "suspendTransfer")).toBeDefined();
 			expect(dspRoutes.find(r => r.operationId === "terminateTransfer")).toBeDefined();
+
+			// Version discovery route should be present
+			expect(dspRoutes.find(r => r.operationId === "getProtocolVersions")).toBeDefined();
 		});
 
-		test("every skipAuth route requires tenant context (skipTenant unset, tenant key required via tenantToken)", () => {
+		test("DSP protocol skipAuth routes require tenant context; version discovery route is fully unauthenticated", () => {
 			const dspRoutes = generateRestRoutesDataspaceControlPlane(
 				"/api/dataspace-control-plane",
 				componentName
 			);
 
-			expect(dspRoutes).toHaveLength(11);
+			expect(dspRoutes).toHaveLength(12);
 
-			const skipAuthRoutes = dspRoutes.filter(r => r.skipAuth === true);
-			expect(skipAuthRoutes.length).toBeGreaterThan(0);
+			// DSP protocol routes: skipAuth but tenant context still required (via tenantToken)
+			const dspProtocolRoutes = dspRoutes.filter(
+				r => r.skipAuth === true && r.operationId !== "getProtocolVersions"
+			);
+			expect(dspProtocolRoutes.length).toBeGreaterThan(0);
 
-			for (const route of skipAuthRoutes) {
+			for (const route of dspProtocolRoutes) {
 				expect(
 					route.skipTenant ?? false,
 					`${route.operationId} should not set skipTenant: true (tenant context required via encrypted tenantToken)`
 				).toBe(false);
 			}
+
+			// Version discovery route: fully unauthenticated per RFC 8615
+			const versionRoute = dspRoutes.find(r => r.operationId === "getProtocolVersions");
+			expect(versionRoute?.skipAuth).toBe(true);
+			expect(versionRoute?.skipTenant).toBe(true);
 		});
 	});
 
@@ -214,6 +225,46 @@ describe("dataspaceControlPlaneRoutes", () => {
 					expect(response.statusCode).toBe(404);
 				}
 			}
+		});
+	});
+
+	describe("GET /.well-known/dspace-version - getProtocolVersions endpoint", () => {
+		test("should have correct route configuration", () => {
+			const routes = generateRestRoutesDataspaceControlPlane(
+				"/api/dataspace-control-plane",
+				componentName
+			);
+			const versionRoute = routes.find(r => r.operationId === "getProtocolVersions");
+
+			expect(versionRoute).toBeDefined();
+			expect(versionRoute?.method).toBe("GET");
+			expect(versionRoute?.path).toBe(".well-known/dspace-version");
+			expect(versionRoute?.skipAuth).toBe(true);
+			expect(versionRoute?.skipTenant).toBe(true);
+		});
+
+		test("should return a valid protocol version response", async () => {
+			const routes = generateRestRoutesDataspaceControlPlane(
+				"/api/dataspace-control-plane",
+				componentName
+			);
+			const versionRoute = routes.find(r => r.operationId === "getProtocolVersions");
+
+			const mockContext = {} as IHttpRequestContext;
+			const mockRequest = {};
+
+			const response = await versionRoute?.handler(mockContext, mockRequest);
+
+			expect(response).toBeDefined();
+			expect(response?.body).toBeDefined();
+			expect(Array.isArray(response?.body.protocolVersions)).toBe(true);
+			expect(response?.body.protocolVersions.length).toBeGreaterThanOrEqual(1);
+
+			const entry = response?.body.protocolVersions[0];
+			expect(entry?.version).toBe("2025-1");
+			expect(entry?.binding).toBe("HTTPS");
+			expect(typeof entry?.path).toBe("string");
+			expect(entry?.path).toMatch(/^\//);
 		});
 	});
 

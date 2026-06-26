@@ -50,6 +50,7 @@ export * from "./models/api/IDataAssetGetEntitiesRequest.js";
 export * from "./models/api/IDataAssetQueryRequest.js";
 
 // Control Plane API exports - Transfer Process Protocol
+export * from "./models/api/controlPlane/IGetProtocolVersionsResponse.js";
 export * from "./models/api/controlPlane/IAppDatasetCreateRequest.js";
 export * from "./models/api/controlPlane/IAppDatasetCreateResponse.js";
 export * from "./models/api/controlPlane/IAppDatasetDeleteRequest.js";

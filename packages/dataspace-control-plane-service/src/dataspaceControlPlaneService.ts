@@ -67,6 +67,7 @@ import {
 	DataspaceProtocolHelper,
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes,
+	DataspaceProtocolVersionBindingType,
 	type DataspaceProtocolContractNegotiationStateType,
 	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolContractNegotiation,
@@ -79,7 +80,8 @@ import {
 	type IDataspaceProtocolTransferRequestMessage,
 	type IDataspaceProtocolTransferStartMessage,
 	type IDataspaceProtocolTransferSuspensionMessage,
-	type IDataspaceProtocolTransferTerminationMessage
+	type IDataspaceProtocolTransferTerminationMessage,
+	type IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
 import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
 import { OdrlActionType, OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
@@ -329,7 +331,7 @@ export class DataspaceControlPlaneService
 
 		this._callbackPath = Is.stringValue(options?.config?.callbackPath)
 			? StringHelper.trimLeadingAndTrailingSlashes(options.config.callbackPath)
-			: undefined;
+			: "dataspace-control-plane";
 
 		this._autoStartTransfers = options?.config?.autoStartTransfers ?? false;
 
@@ -2640,6 +2642,27 @@ export class DataspaceControlPlaneService
 			DataspaceControlPlaneMetricIds.AppDatasetsDeleted
 		);
 	}
+	// ============================================================================
+	// DSP VERSION DISCOVERY
+	// ============================================================================
+
+	/**
+	 * Return the Dataspace Protocol versions supported by this connector.
+	 * @returns The protocol version response listing all supported DSP versions.
+	 */
+	public async getProtocolVersions(): Promise<IDataspaceProtocolVersionResponse> {
+		return {
+			protocolVersions: [
+				{
+					version: "2025-1",
+					path: `/${this._callbackPath}`,
+					binding: DataspaceProtocolVersionBindingType.HTTPS,
+					serviceId: "twin-connector"
+				}
+			]
+		};
+	}
+
 	// ============================================================================
 	// PRIVATE HELPER METHODS
 	// ============================================================================
