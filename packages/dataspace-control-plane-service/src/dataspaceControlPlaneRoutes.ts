@@ -1,12 +1,13 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type {
-	IHttpRequestContext,
-	INoContentRequest,
-	INoContentResponse,
-	INotFoundResponse,
-	IRestRoute,
-	ITag
+import {
+	HttpHeaderHelper,
+	type IHttpRequestContext,
+	type INoContentRequest,
+	type INoContentResponse,
+	type INotFoundResponse,
+	type IRestRoute,
+	type ITag
 } from "@twin.org/api-models";
 import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
 import type {
@@ -39,7 +40,13 @@ import {
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes
 } from "@twin.org/standards-dataspace-protocol";
-import { HeaderHelper, HeaderTypes, HttpStatusCode, MimeTypes } from "@twin.org/web";
+import {
+	HeaderHelper,
+	HeaderTypes,
+	HttpStatusCode,
+	type IHttpHeaders,
+	MimeTypes
+} from "@twin.org/web";
 import { transformErrorToStatusCode } from "./utils/transferErrorUtils.js";
 
 /**
@@ -875,11 +882,12 @@ async function createAppDatasetHandler(
 		request.body.dataset
 	);
 
+	const headers: IHttpHeaders = {};
+	HttpHeaderHelper.buildId(headers, resolvedId);
+
 	return {
-		statusCode: 201,
-		headers: {
-			[HeaderTypes.Location]: resolvedId
-		}
+		statusCode: HttpStatusCode.created,
+		headers
 	};
 }
 

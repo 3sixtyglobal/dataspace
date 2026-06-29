@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0.
 import {
 	HttpContextIdKeys,
+	HttpHeaderHelper,
 	HttpParameterHelper,
-	HttpUrlHelper,
 	type IHttpRequestContext,
 	type IRestRoute,
 	type ITag
@@ -33,7 +33,13 @@ import {
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { HeaderHelper, HeaderTypes, HttpStatusCode, MimeTypes } from "@twin.org/web";
+import {
+	HeaderHelper,
+	HeaderTypes,
+	HttpStatusCode,
+	type IHttpHeaders,
+	MimeTypes
+} from "@twin.org/web";
 
 /**
  * The source used when communicating about these routes.
@@ -294,10 +300,11 @@ export async function activityStreamNotify(
 	const result = await component.notifyActivity(request.body, trustPayload);
 
 	if (Is.string(result)) {
+		const headers: IHttpHeaders = {};
+		HttpHeaderHelper.buildId(headers, result, `${baseRouteName}/activity-logs/:id`);
+
 		return {
-			headers: {
-				[HeaderTypes.Location]: `${baseRouteName}/activity-logs/${result}`
-			},
+			headers,
 			statusCode: HttpStatusCode.accepted
 		};
 	}
@@ -314,10 +321,11 @@ export async function activityStreamNotify(
 			: HttpStatusCode.internalServerError;
 	}
 
+	const headers: IHttpHeaders = {};
+	HttpHeaderHelper.buildId(headers, result.id, `${baseRouteName}/activity-logs/:id`);
+
 	return {
-		headers: {
-			[HeaderTypes.Location]: `${baseRouteName}/activity-logs/${result.id}`
-		},
+		headers,
 		statusCode,
 		body: result
 	};
@@ -387,17 +395,13 @@ export async function getDataAssetEntities(
 
 	const headers: IDataAssetEntitiesResponse["headers"] = {};
 
-	if (Is.stringValue(result.cursor)) {
-		const contextIds = await ContextIdStore.getContextIds();
-		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
-			HttpUrlHelper.replaceOrigin(
-				httpRequestContext.serverRequest.url,
-				contextIds?.[HttpContextIdKeys.PublicOrigin]
-			),
-			{ cursor: result.cursor },
-			"next"
-		);
-	}
+	const contextIds = await ContextIdStore.getContextIds();
+	HttpHeaderHelper.buildCursor(
+		headers,
+		httpRequestContext.serverRequest.url,
+		contextIds?.[HttpContextIdKeys.PublicOrigin],
+		result.cursor
+	);
 
 	return {
 		headers,
@@ -433,17 +437,13 @@ export async function queryDataAsset(
 
 	const headers: IDataAssetEntitiesResponse["headers"] = {};
 
-	if (Is.stringValue(result.cursor)) {
-		const contextIds = await ContextIdStore.getContextIds();
-		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
-			HttpUrlHelper.replaceOrigin(
-				httpRequestContext.serverRequest.url,
-				contextIds?.[HttpContextIdKeys.PublicOrigin]
-			),
-			{ cursor: result.cursor },
-			"next"
-		);
-	}
+	const contextIds = await ContextIdStore.getContextIds();
+	HttpHeaderHelper.buildCursor(
+		headers,
+		httpRequestContext.serverRequest.url,
+		contextIds?.[HttpContextIdKeys.PublicOrigin],
+		result.cursor
+	);
 
 	return {
 		headers,

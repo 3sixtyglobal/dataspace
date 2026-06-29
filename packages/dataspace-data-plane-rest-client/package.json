@@ -38,6 +38,8 @@
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",
+		"@twin.org/standards-schema-org": "next",
+		"@twin.org/standards-w3c-activity-streams": "next",
 		"@twin.org/nameof-vitest-plugin": "next",
 		"@twin.org/validate-locales": "next",
 		"@vitest/coverage-v8": "4.1.9",

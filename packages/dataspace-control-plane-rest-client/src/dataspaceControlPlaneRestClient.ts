@@ -1,7 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseRestClient } from "@twin.org/api-core";
-import type { IBaseRestClientConfig, INoContentRequest } from "@twin.org/api-models";
+import {
+	HttpHeaderHelper,
+	type IBaseRestClientConfig,
+	type INoContentRequest
+} from "@twin.org/api-models";
 import { Guards, NotSupportedError } from "@twin.org/core";
 import type {
 	IAppDatasetCreateRequest,
@@ -44,7 +48,7 @@ import type {
 	IDataspaceProtocolTransferTerminationMessage,
 	IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
-import { HeaderHelper, HeaderTypes } from "@twin.org/web";
+import { HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
 
 /**
  * Client for performing dataspace control plane operations through REST endpoints.
@@ -255,7 +259,7 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<IRequestTransferRequest, IRequestTransferResponse>(
 			"/transfers/request",
-			"POST",
+			HttpMethod.POST,
 			{
 				body: request,
 				headers: {
@@ -286,7 +290,7 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<IStartTransferRequest, IStartTransferResponse>(
 			"/transfers/:pid/start",
-			"POST",
+			HttpMethod.POST,
 			{
 				pathParams: { pid: message.consumerPid },
 				body: message,
@@ -337,7 +341,7 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<ICompleteTransferRequest, ICompleteTransferResponse>(
 			"/transfers/:pid/complete",
-			"POST",
+			HttpMethod.POST,
 			{
 				pathParams: { pid: message.consumerPid },
 				body: message,
@@ -369,7 +373,7 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<ISuspendTransferRequest, ISuspendTransferResponse>(
 			"/transfers/:pid/suspend",
-			"POST",
+			HttpMethod.POST,
 			{
 				pathParams: { pid: message.consumerPid },
 				body: message,
@@ -401,7 +405,7 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<ITerminateTransferRequest, ITerminateTransferResponse>(
 			"/transfers/:pid/terminate",
-			"POST",
+			HttpMethod.POST,
 			{
 				pathParams: { pid: message.consumerPid },
 				body: message,
@@ -433,7 +437,7 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<IGetTransferProcessRequest, IGetTransferProcessResponse>(
 			"/transfers/:pid",
-			"GET",
+			HttpMethod.GET,
 			{
 				pathParams: { pid },
 				headers: {
@@ -467,13 +471,13 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<IAppDatasetCreateRequest, IAppDatasetCreateResponse>(
 			"/app-datasets",
-			"POST",
+			HttpMethod.POST,
 			{
 				body: { id, appId, dataset }
 			}
 		);
 
-		return response.headers[HeaderTypes.Location];
+		return HttpHeaderHelper.extractId(response.headers);
 	}
 
 	/**
@@ -486,7 +490,7 @@ export class DataspaceControlPlaneRestClient
 
 		const response = await this.fetch<IAppDatasetGetRequest, IAppDatasetGetResponse>(
 			"/app-datasets/:id",
-			"GET",
+			HttpMethod.GET,
 			{
 				pathParams: { id }
 			}
@@ -510,7 +514,7 @@ export class DataspaceControlPlaneRestClient
 	}> {
 		const response = await this.fetch<IAppDatasetListRequest, IAppDatasetListResponse>(
 			"/app-datasets",
-			"GET",
+			HttpMethod.GET,
 			{
 				query: {
 					cursor,
@@ -542,7 +546,7 @@ export class DataspaceControlPlaneRestClient
 			dataset
 		);
 
-		await this.fetch<IAppDatasetUpdateRequest, never>("/app-datasets/:id", "PUT", {
+		await this.fetch<IAppDatasetUpdateRequest, never>("/app-datasets/:id", HttpMethod.PUT, {
 			pathParams: { id },
 			body: { appId, dataset }
 		});
@@ -556,7 +560,7 @@ export class DataspaceControlPlaneRestClient
 	public async deleteAppDataset(id: string): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneRestClient.CLASS_NAME, nameof(id), id);
 
-		await this.fetch<IAppDatasetDeleteRequest, never>("/app-datasets/:id", "DELETE", {
+		await this.fetch<IAppDatasetDeleteRequest, never>("/app-datasets/:id", HttpMethod.DELETE, {
 			pathParams: { id }
 		});
 	}
@@ -569,7 +573,7 @@ export class DataspaceControlPlaneRestClient
 	public async getProtocolVersions(): Promise<IDataspaceProtocolVersionResponse> {
 		const response = await this.fetch<INoContentRequest, IGetProtocolVersionsResponse>(
 			"/.well-known/dspace-version",
-			"GET",
+			HttpMethod.GET,
 			undefined,
 			{ overridePrefix: "" }
 		);
