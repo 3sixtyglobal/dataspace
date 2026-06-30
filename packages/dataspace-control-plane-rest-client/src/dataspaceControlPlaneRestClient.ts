@@ -477,7 +477,7 @@ export class DataspaceControlPlaneRestClient
 			}
 		);
 
-		return HttpHeaderHelper.extractId(response.headers);
+		return HttpHeaderHelper.extractId(response.headers, `${this.getPathPrefix()}/app-datasets/:id`);
 	}
 
 	/**

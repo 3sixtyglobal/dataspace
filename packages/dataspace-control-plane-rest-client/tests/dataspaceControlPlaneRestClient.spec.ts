@@ -41,6 +41,8 @@ const TEST_DATASET_ID = "dataset-001";
 const TEST_APP_ID = "app-123";
 const TEST_AGREEMENT_ID = "agreement-789";
 
+const LOCATION = `${ENDPOINT}/${PREFIX}/app-datasets/${TEST_DATASET_ID}`;
+
 const TEST_DATASET: IDataspaceProtocolDataset = {
 	"@context": DataspaceProtocolContexts.Context,
 	"@type": DataspaceProtocolCatalogTypes.Dataset,
@@ -538,7 +540,7 @@ describe("DataspaceControlPlaneRestClient", () => {
 		});
 
 		test("sends POST to /dataspace-control-plane/app-datasets", async () => {
-			fetchMock.mockResolvedValueOnce(createdResponse(TEST_DATASET_ID));
+			fetchMock.mockResolvedValueOnce(createdResponse(LOCATION));
 
 			await client.createAppDataset(undefined, TEST_APP_ID, TEST_DATASET);
 
@@ -548,7 +550,7 @@ describe("DataspaceControlPlaneRestClient", () => {
 		});
 
 		test("sends appId and dataset in request body", async () => {
-			fetchMock.mockResolvedValueOnce(createdResponse(TEST_DATASET_ID));
+			fetchMock.mockResolvedValueOnce(createdResponse(LOCATION));
 
 			await client.createAppDataset(undefined, TEST_APP_ID, TEST_DATASET);
 
@@ -559,7 +561,9 @@ describe("DataspaceControlPlaneRestClient", () => {
 		});
 
 		test("sends explicit id in request body when provided", async () => {
-			fetchMock.mockResolvedValueOnce(createdResponse("explicit-id"));
+			fetchMock.mockResolvedValueOnce(
+				createdResponse(`${ENDPOINT}/${PREFIX}/app-datasets/explicit-id`)
+			);
 
 			await client.createAppDataset("explicit-id", TEST_APP_ID, TEST_DATASET);
 
@@ -569,7 +573,7 @@ describe("DataspaceControlPlaneRestClient", () => {
 		});
 
 		test("returns the dataset id from the Location header", async () => {
-			fetchMock.mockResolvedValueOnce(createdResponse(TEST_DATASET_ID));
+			fetchMock.mockResolvedValueOnce(createdResponse(LOCATION));
 
 			const result = await client.createAppDataset(undefined, TEST_APP_ID, TEST_DATASET);
 

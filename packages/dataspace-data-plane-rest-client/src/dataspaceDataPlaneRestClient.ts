@@ -185,7 +185,10 @@ export class DataspaceDataPlaneRestClient
 				body: activity
 			}
 		);
-		return response.body ?? HttpHeaderHelper.extractId(response.headers);
+		return (
+			response.body ??
+			HttpHeaderHelper.extractId(response.headers, `${this.getPathPrefix()}/activity-logs/:id`)
+		);
 	}
 
 	/**

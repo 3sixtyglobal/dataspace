@@ -4,6 +4,7 @@ import {
 	HttpContextIdKeys,
 	HttpHeaderHelper,
 	HttpParameterHelper,
+	HttpUrlHelper,
 	type IHttpRequestContext,
 	type IRestRoute,
 	type ITag
@@ -300,8 +301,15 @@ export async function activityStreamNotify(
 	const result = await component.notifyActivity(request.body, trustPayload);
 
 	if (Is.string(result)) {
+		const contextIds = await ContextIdStore.getContextIds();
+		const publicOrigin = contextIds?.[HttpContextIdKeys.PublicOrigin];
+
 		const headers: IHttpHeaders = {};
-		HttpHeaderHelper.buildId(headers, result, `${baseRouteName}/activity-logs/:id`);
+		HttpHeaderHelper.buildId(
+			headers,
+			result,
+			HttpUrlHelper.combineOriginPath(publicOrigin, `${baseRouteName}/activity-logs/:id`)
+		);
 
 		return {
 			headers,
@@ -321,8 +329,15 @@ export async function activityStreamNotify(
 			: HttpStatusCode.internalServerError;
 	}
 
+	const contextIds = await ContextIdStore.getContextIds();
+	const publicOrigin = contextIds?.[HttpContextIdKeys.PublicOrigin];
+
 	const headers: IHttpHeaders = {};
-	HttpHeaderHelper.buildId(headers, result.id, `${baseRouteName}/activity-logs/:id`);
+	HttpHeaderHelper.buildId(
+		headers,
+		result.id,
+		HttpUrlHelper.combineOriginPath(publicOrigin, `${baseRouteName}/activity-logs/:id`)
+	);
 
 	return {
 		headers,

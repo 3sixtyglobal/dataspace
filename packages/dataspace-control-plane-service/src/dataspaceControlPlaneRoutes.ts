@@ -1,7 +1,9 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import {
+	HttpContextIdKeys,
 	HttpHeaderHelper,
+	HttpUrlHelper,
 	type IHttpRequestContext,
 	type INoContentRequest,
 	type INoContentResponse,
@@ -9,14 +11,9 @@ import {
 	type IRestRoute,
 	type ITag
 } from "@twin.org/api-models";
+import { ContextIdStore } from "@twin.org/context";
 import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
 import type {
-	ICompleteTransferRequest,
-	ICompleteTransferResponse,
-	IDataspaceControlPlaneComponent,
-	IGetProtocolVersionsResponse,
-	IGetTransferProcessRequest,
-	IGetTransferProcessResponse,
 	IAppDatasetCreateRequest,
 	IAppDatasetCreateResponse,
 	IAppDatasetDeleteRequest,
@@ -25,6 +22,12 @@ import type {
 	IAppDatasetListRequest,
 	IAppDatasetListResponse,
 	IAppDatasetUpdateRequest,
+	ICompleteTransferRequest,
+	ICompleteTransferResponse,
+	IDataspaceControlPlaneComponent,
+	IGetProtocolVersionsResponse,
+	IGetTransferProcessRequest,
+	IGetTransferProcessResponse,
 	IRequestTransferRequest,
 	IRequestTransferResponse,
 	IStartTransferRequest,
@@ -480,7 +483,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/app-datasets`,
 		handler: async (httpRequestContext, request) =>
-			createAppDatasetHandler(httpRequestContext, componentName, request),
+			createAppDatasetHandler(httpRequestContext, componentName, request, baseRouteName),
 		requestType: {
 			type: nameof<IAppDatasetCreateRequest>(),
 			examples: [
@@ -863,12 +866,14 @@ async function terminateTransferHandler(
  * @param httpRequestContext The request context.
  * @param componentName The name of the component to use.
  * @param request The API request containing the dataset payload.
+ * @param baseRouteName The base route name for constructing the Location header.
  * @returns The response with a Location header pointing at the new resource.
  */
 async function createAppDatasetHandler(
 	httpRequestContext: IHttpRequestContext,
 	componentName: string,
-	request: IAppDatasetCreateRequest
+	request: IAppDatasetCreateRequest,
+	baseRouteName: string
 ): Promise<IAppDatasetCreateResponse> {
 	Guards.object<IAppDatasetCreateRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object(ROUTES_SOURCE, nameof(request.body), request.body);
@@ -876,14 +881,21 @@ async function createAppDatasetHandler(
 	Guards.object(ROUTES_SOURCE, nameof(request.body.dataset), request.body.dataset);
 
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
-	const resolvedId = await component.createAppDataset(
+	const id = await component.createAppDataset(
 		request.body.id,
 		request.body.appId,
 		request.body.dataset
 	);
 
+	const contextIds = await ContextIdStore.getContextIds();
+	const publicOrigin = contextIds?.[HttpContextIdKeys.PublicOrigin];
+
 	const headers: IHttpHeaders = {};
-	HttpHeaderHelper.buildId(headers, resolvedId);
+	HttpHeaderHelper.buildId(
+		headers,
+		id,
+		HttpUrlHelper.combineOriginPath(publicOrigin, `${baseRouteName}/app-datasets/:id`)
+	);
 
 	return {
 		statusCode: HttpStatusCode.created,
