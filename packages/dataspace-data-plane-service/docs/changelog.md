@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.1-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.9.1-next.4...dataspace-data-plane-service-v0.9.1-next.5) (2026-06-30)
+
+
+### Features
+
+* rest enhancements ([f6dbd24](https://github.com/iotaledger/twin-dataspace/commit/f6dbd24c186a382769c97e697e54f0b6e28488a9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.9.1-next.4 to 0.9.1-next.5
+    * @twin.org/dataspace-models bumped from 0.9.1-next.4 to 0.9.1-next.5
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.9.1-next.4 to 0.9.1-next.5
+
 ## [0.9.1-next.4](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.9.1-next.3...dataspace-data-plane-service-v0.9.1-next.4) (2026-06-29)
 
 
