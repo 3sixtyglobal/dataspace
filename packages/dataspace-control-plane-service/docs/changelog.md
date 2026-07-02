@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1-next.8](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.7...dataspace-control-plane-service-v0.9.1-next.8) (2026-07-02)
+
+
+### Bug Fixes
+
+* defer catalogue reconciliation to background on startup ([#260](https://github.com/iotaledger/twin-dataspace/issues/260)) ([0824e46](https://github.com/iotaledger/twin-dataspace/commit/0824e465f5cedc9557abad90fb4d18a524210ddd))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.7 to 0.9.1-next.8
+
 ## [0.9.1-next.7](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.6...dataspace-control-plane-service-v0.9.1-next.7) (2026-07-02)
 
 
