@@ -4657,15 +4657,15 @@ describe("DataspaceControlPlaneService", () => {
 		});
 	});
 
-	describe("data plane component (optional, push-only)", () => {
-		test("constructor does NOT throw when the data plane component type is not registered (pull-only deployments)", () => {
+	describe("data plane component", () => {
+		test("constructor throws when the data plane component type is not registered", () => {
 			expect(
 				() =>
 					new DataspaceControlPlaneService({
 						...DEFAULT_SERVICE_OPTIONS,
 						dataPlaneComponentType: "not-a-registered-component"
 					})
-			).not.toThrow();
+			).toThrow(GeneralError);
 		});
 
 		test("setupPushSubscription is called with consumerPid on REQUESTED → STARTED (HttpData-PUSH)", async () => {

@@ -63,7 +63,6 @@ import {
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolContractNegotiationTypes,
-	DataspaceProtocolEndpointType,
 	DataspaceProtocolHelper,
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes,
@@ -88,7 +87,10 @@ import { OdrlActionType, OdrlContexts, OdrlPolicyType } from "@twin.org/standard
 import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import { DataspaceControlPlanePolicyRequester } from "./dataspaceControlPlanePolicyRequester.js";
-import { EndpointProperties } from "./models/endpointProperties.js";
+import { TransferHandlerFactory } from "./factories/transferHandlerFactory.js";
+import { HttpDataPostTransferHandler } from "./handlers/httpDataPostTransferHandler.js";
+import { HttpDataPullTransferHandler } from "./handlers/httpDataPullTransferHandler.js";
+import { HttpDataPushTransferHandler } from "./handlers/httpDataPushTransferHandler.js";
 import type { IDataspaceControlPlaneServiceConstructorOptions } from "./models/IDataspaceControlPlaneServiceConstructorOptions.js";
 import {
 	isCatalogError,
@@ -205,11 +207,10 @@ export class DataspaceControlPlaneService
 	private readonly _callbackPath?: string;
 
 	/**
-	 * Factory key used to look up the data plane component. Resolved lazily at push-time
-	 * (not at construction) so the data plane may register after the control plane is built.
+	 * Data plane component.
 	 * @internal
 	 */
-	private readonly _dataPlaneComponentType: string;
+	private readonly _dataPlaneComponent: IDataspaceDataPlaneComponent;
 
 	/**
 	 * Policy requester instance for handling negotiation callbacks.
@@ -355,14 +356,9 @@ export class DataspaceControlPlaneService
 			options?.telemetryComponentType
 		);
 
-		// Data plane component is optional and resolved lazily. The control plane is initialised
-		// BEFORE the data plane in engine startup order, so `getRegisteredInstanceTypeOptional`
-		// returns undefined when the engine constructs us — the wiring override can't fire here.
-		// The default therefore matches the engine's actual factory key
-		// (`nameofKebabCase(DataspaceDataPlaneService)`) so the late-bound `requireDataPlane()`
-		// lookup at push time finds it regardless of init order.
-		this._dataPlaneComponentType =
-			options?.dataPlaneComponentType ?? "dataspace-data-plane-service";
+		this._dataPlaneComponent = ComponentFactory.get<IDataspaceDataPlaneComponent>(
+			options?.dataPlaneComponentType ?? "dataspace-data-plane-service"
+		);
 
 		this._negotiationCallbacks = new Map();
 		this._transferCallbacks = new Map();
@@ -380,6 +376,19 @@ export class DataspaceControlPlaneService
 		PolicyRequesterFactory.register(
 			DataspaceControlPlaneService._REQUESTER_TYPE,
 			() => this._policyRequester
+		);
+
+		TransferHandlerFactory.register(
+			DataspaceTransferFormat.HttpDataPull,
+			() => new HttpDataPullTransferHandler()
+		);
+		TransferHandlerFactory.register(
+			DataspaceTransferFormat.HttpDataPush,
+			() => new HttpDataPushTransferHandler()
+		);
+		TransferHandlerFactory.register(
+			DataspaceTransferFormat.HttpDataPost,
+			() => new HttpDataPostTransferHandler()
 		);
 	}
 
@@ -852,31 +861,15 @@ export class DataspaceControlPlaneService
 			format
 		};
 
-		// For consumer-initiated PUSH transfers the consumer must supply its /inbox endpoint as
-		// dataAddress so the provider knows where to push ActivityStreams objects. Without it the
-		// provider silently falls through to PULL mode on startTransfer.
-		if (format === DataspaceTransferFormat.HttpDataPush) {
-			if (!Is.stringValue(this._dataPlanePath)) {
-				throw new GeneralError(
-					DataspaceControlPlaneService.CLASS_NAME,
-					"pushTransferDataPathNotConfigured",
-					{ consumerPid }
-				);
-			}
-			let inboxEndpoint = `${origin}/${this._dataPlanePath}/inbox`;
-			if (Is.stringValue(organizationIdentity)) {
-				inboxEndpoint = HttpUrlHelper.addQueryStringParam(
-					inboxEndpoint,
-					ContextIdKeys.Organization,
-					organizationIdentity
-				);
-			}
-			transferRequestMessage.dataAddress = {
-				"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
-				endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
-				endpoint: inboxEndpoint
-			};
-		}
+		// Delegate consumer dataAddress construction to the format-specific handler.
+		// PUSH supplies its /inbox; PULL and POST return undefined (no consumer address needed).
+		const transferHandler = TransferHandlerFactory.get(format);
+		transferRequestMessage.dataAddress = transferHandler.buildConsumerDataAddress({
+			consumerPid,
+			origin,
+			dataPlanePath: this._dataPlanePath,
+			organizationIdentity
+		});
 
 		// Generate outbound trust token to authenticate this node to the provider.
 		const outboundToken = await this._trustComponent.generate(
@@ -1091,264 +1084,37 @@ export class DataspaceControlPlaneService
 				providerPid: entity.providerPid
 			};
 
-			// ============================================================================
-			// PULL vs PUSH Transfer Mode Detection (DSP Protocol)
-			// ============================================================================
-			// The transfer mode is determined by whether the consumer provided a dataAddress
-			// in the original TransferRequestMessage:
-			//
-			// PULL Mode (dataAddress NOT provided by consumer):
-			//   - Consumer requests data but doesn't specify where to receive it
-			//   - Provider generates access token and returns dataAddress in TransferStartMessage
-			//   - Consumer uses the returned endpoint + token to PULL data from provider
-			//   - Flow: Consumer → GET /entities?consumerPid=X (with Bearer token) → Provider
-			//
-			// PUSH Mode (dataAddress PROVIDED by consumer):
-			//   - Consumer specifies endpoint where they want data sent (e.g., webhook URL)
-			//   - Provider will PUSH data to the consumer's specified endpoint
-			//   - Flow: Provider → POST to consumer's dataAddress endpoint → Consumer
-			//
-			// See: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1-err1/#transfer-start-message
-			// ============================================================================
-
-			if (Is.empty(entity.dataAddress) && entity.format === DataspaceTransferFormat.HttpDataPost) {
-				// PROVIDER-INITIATED PUSH: Consumer requested push but did not supply an /inbox.
-				// Provider returns its own /inbox URL + a signed JWT so the consumer can verify
-				// the incoming activities (HttpData-POST / DataspaceTransferFormat.HttpDataPost).
-				if (!Is.stringValue(this._dataPlanePath)) {
-					return transformToTransferError(
-						new GeneralError(
-							DataspaceControlPlaneService.CLASS_NAME,
-							"pushTransferDataPathNotConfigured",
-							{ consumerPid: entity.consumerPid }
-						),
-						message
-					);
-				}
-
-				if (!Is.stringValue(entity.providerIdentity)) {
-					throw new GeneralError(
-						DataspaceControlPlaneService.CLASS_NAME,
-						"providerIdentityMissing"
-					);
-				}
-				const pushProviderId = entity.providerIdentity;
-				const accessToken = await this._trustComponent.generate(
-					pushProviderId,
-					this._overrideTrustGeneratorType,
-					{
-						subject: {
-							consumerPid: entity.consumerPid,
-							providerPid: entity.providerPid,
-							agreementId: entity.agreementId,
-							datasetId: entity.datasetId
-						}
-					}
-				);
-
-				Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "accessToken", accessToken);
-				const tokenString = accessToken;
-				let fullEndpoint = `${publicOrigin}/${this._dataPlanePath}/inbox`;
-
-				// Bake the provider's organization identity into the /inbox URL so the consumer's
-				// inbound POST routes to the right organization via TenantProcessor — mirrors the
-				// pull-mode endpoint baking below.
-				const organizationIdentity = await this.resolveContextOrganizationId();
-				fullEndpoint = HttpUrlHelper.addQueryStringParam(
-					fullEndpoint,
-					ContextIdKeys.Organization,
-					organizationIdentity
-				);
-
-				response.dataAddress = {
-					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
-					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
-					endpoint: fullEndpoint,
-					endpointProperties: [
-						{
-							"@type": DataspaceProtocolTransferProcessTypes.EndpointProperty,
-							name: EndpointProperties.Authorization,
-							value: tokenString
-						},
-						{
-							"@type": DataspaceProtocolTransferProcessTypes.EndpointProperty,
-							name: EndpointProperties.AuthType,
-							value: "bearer"
-						}
-					]
-				};
-
-				await this._loggingComponent?.log({
-					level: "info",
-					source: DataspaceControlPlaneService.CLASS_NAME,
-					ts: Date.now(),
-					message: "pushTransferStarted",
-					data: {
-						consumerPid: entity.consumerPid,
-						providerPid: entity.providerPid,
-						endpoint: fullEndpoint,
-						transferMode: DataspaceTransferFormat.HttpDataPost
-					}
-				});
-			} else if (Is.empty(entity.dataAddress)) {
-				if (!Is.stringValue(this._dataPlanePath)) {
-					return transformToTransferError(
-						new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "pullTransfersNotSupported", {
-							consumerPid: entity.consumerPid,
-							providerPid: entity.providerPid
-						}),
-						message
-					);
-				}
-
-				// Provider signs the data access token with its own identity.
-				// The subject contains the transfer context claims that the data plane
-				// will verify when the consumer presents this token
-				if (!Is.stringValue(entity.providerIdentity)) {
-					throw new GeneralError(
-						DataspaceControlPlaneService.CLASS_NAME,
-						"providerIdentityMissing"
-					);
-				}
-				const pullProviderId = entity.providerIdentity;
-				const accessToken = await this._trustComponent.generate(
-					pullProviderId,
-					this._overrideTrustGeneratorType,
-					{
-						subject: {
-							consumerPid: entity.consumerPid,
-							providerPid: entity.providerPid,
-							agreementId: entity.agreementId,
-							datasetId: entity.datasetId
-						}
-					}
-				);
-
-				Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "accessToken", accessToken);
-				const tokenString = accessToken;
-				let fullEndpoint = `${publicOrigin}/${this._dataPlanePath}`;
-
-				const organizationIdentity = await this.resolveContextOrganizationId();
-				fullEndpoint = HttpUrlHelper.addQueryStringParam(
-					fullEndpoint,
-					ContextIdKeys.Organization,
-					organizationIdentity
-				);
-
-				response.dataAddress = {
-					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
-					endpointType: DataspaceProtocolEndpointType.HttpsQueryEndpoint,
-					endpoint: fullEndpoint,
-					endpointProperties: [
-						{
-							"@type": DataspaceProtocolTransferProcessTypes.EndpointProperty,
-							name: EndpointProperties.Authorization,
-							value: tokenString
-						},
-						{
-							"@type": DataspaceProtocolTransferProcessTypes.EndpointProperty,
-							name: EndpointProperties.AuthType,
-							value: "bearer"
-						}
-					]
-				};
-
-				await this._loggingComponent?.log({
-					level: "info",
-					source: DataspaceControlPlaneService.CLASS_NAME,
-					ts: Date.now(),
-					message: "dataAccessTokenGenerated",
-					data: {
-						consumerPid: entity.consumerPid,
-						providerPid: entity.providerPid,
-						endpoint: fullEndpoint,
-						transferMode: "PULL"
-					}
-				});
-			} else {
-				// PUSH MODE (consumer-initiated): Consumer provided their /inbox endpoint in
-				// the TransferRequestMessage.dataAddress. Provider responds with its own /inbox
-				// URL so the consumer knows where to route data notifications.
-				if (
-					!Is.stringValue(entity.dataAddress?.endpoint) ||
-					!Is.stringValue(entity.dataAddress?.endpointType)
-				) {
-					return transformToTransferError(
-						new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "invalidPushDataAddress", {
-							consumerPid: entity.consumerPid
-						}),
-						message
-					);
-				}
-
-				if (!Is.stringValue(this._dataPlanePath)) {
-					return transformToTransferError(
-						new GeneralError(
-							DataspaceControlPlaneService.CLASS_NAME,
-							"pushTransferDataPathNotConfigured",
-							{ consumerPid: entity.consumerPid }
-						),
-						message
-					);
-				}
-
-				let fullEndpoint = `${publicOrigin}/${this._dataPlanePath}/inbox`;
-
-				// Bake the provider's organization identity into the /inbox URL so the consumer's
-				// inbound POST routes to the right organization via TenantProcessor — mirrors the
-				// pull-mode endpoint baking.
-				const organizationIdentity = await this.resolveContextOrganizationId();
-				fullEndpoint = HttpUrlHelper.addQueryStringParam(
-					fullEndpoint,
-					ContextIdKeys.Organization,
-					organizationIdentity
-				);
-
-				response.dataAddress = {
-					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
-					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
-					endpoint: fullEndpoint
-				};
-
-				await this._loggingComponent?.log({
-					level: "info",
-					source: DataspaceControlPlaneService.CLASS_NAME,
-					ts: Date.now(),
-					message: "pushTransferStarted",
-					data: {
-						consumerPid: entity.consumerPid,
-						providerPid: entity.providerPid,
-						endpoint: fullEndpoint,
-						transferMode: DataspaceTransferFormat.HttpDataPush
-					}
-				});
-
-				const dataPlane = this.requireDataPlane();
-
-				// Push subscription setup reads the entity from storage and requires state=STARTED.
-				// Persist STARTED before the data-plane call, and roll back if subscription setup
-				// fails so the row doesn't leak to STARTED on a setup-time error.
-				entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
-				entity.dateModified = new Date();
-				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
-
-				try {
-					if (previousState === DataspaceProtocolTransferProcessStateType.REQUESTED) {
-						await dataPlane.setupPushSubscription(entity.consumerPid);
-					} else if (previousState === DataspaceProtocolTransferProcessStateType.SUSPENDED) {
-						await dataPlane.resumePushSubscription(entity.consumerPid);
-					}
-				} catch (subscriptionError) {
-					entity.state = previousState;
-					entity.dateModified = new Date();
-					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
-					throw subscriptionError;
-				}
-			}
+			// Delegate dataAddress construction and post-start actions to the format-specific handler.
+			// Push subscription setup reads the entity from storage and requires state=STARTED,
+			// so STARTED is persisted before calling onProviderStart. If subscription setup fails,
+			// the state is rolled back so the client can retry.
+			const organizationIdentity = await this.resolveContextOrganizationId();
+			const transferHandler = TransferHandlerFactory.get(this.inferTransferFormat(entity));
+			response.dataAddress = await transferHandler.buildProviderStartDataAddress({
+				entity,
+				publicOrigin,
+				dataPlanePath: this._dataPlanePath,
+				organizationIdentity,
+				trustComponent: this._trustComponent,
+				overrideTrustGeneratorType: this._overrideTrustGeneratorType
+			});
 
 			entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
 			entity.dateModified = new Date();
 			await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+
+			try {
+				await transferHandler.onProviderStart(
+					this._dataPlaneComponent,
+					entity.consumerPid,
+					previousState
+				);
+			} catch (subscriptionError) {
+				entity.state = previousState;
+				entity.dateModified = new Date();
+				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+				throw subscriptionError;
+			}
 
 			await this._loggingComponent?.log({
 				level: "info",
@@ -1537,18 +1303,17 @@ export class DataspaceControlPlaneService
 				}
 			});
 
-			if (this.isPushFormat(entity.format)) {
-				try {
-					await this.requireDataPlane().teardownPushSubscription(entity.consumerPid);
-				} catch (teardownError) {
-					// Symmetric rollback: data-plane teardown failed, revert the transfer state
-					// so the client can retry. Without this the storage row is COMPLETED but
-					// the subscription is still flowing, and a retry hits invalidStateForComplete.
-					entity.state = previousState;
-					entity.dateModified = new Date();
-					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
-					throw teardownError;
-				}
+			const transferHandler = TransferHandlerFactory.get(this.inferTransferFormat(entity));
+			try {
+				await transferHandler.onComplete(this._dataPlaneComponent, entity.consumerPid);
+			} catch (teardownError) {
+				// Symmetric rollback: data-plane teardown failed, revert the transfer state
+				// so the client can retry. Without this the storage row is COMPLETED but
+				// the subscription is still flowing, and a retry hits invalidStateForComplete.
+				entity.state = previousState;
+				entity.dateModified = new Date();
+				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+				throw teardownError;
 			}
 
 			// Completion is consumer-initiated (the auth above accepts only the consumer): a consumer→provider
@@ -1681,17 +1446,16 @@ export class DataspaceControlPlaneService
 				}
 			});
 
-			if (this.isPushFormat(entity.format)) {
-				try {
-					await this.requireDataPlane().suspendPushSubscription(entity.consumerPid);
-				} catch (suspendError) {
-					// Symmetric rollback: data-plane suspend failed, revert transfer state so
-					// a retry can repair the subscription instead of failing invalidStateForSuspend.
-					entity.state = previousState;
-					entity.dateModified = new Date();
-					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
-					throw suspendError;
-				}
+			const transferHandler = TransferHandlerFactory.get(this.inferTransferFormat(entity));
+			try {
+				await transferHandler.onSuspend(this._dataPlaneComponent, entity.consumerPid);
+			} catch (suspendError) {
+				// Symmetric rollback: data-plane suspend failed, revert transfer state so
+				// a retry can repair the subscription instead of failing invalidStateForSuspend.
+				entity.state = previousState;
+				entity.dateModified = new Date();
+				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+				throw suspendError;
 			}
 
 			if (role === TransferProcessRole.Consumer) {
@@ -1823,18 +1587,17 @@ export class DataspaceControlPlaneService
 				}
 			});
 
-			if (this.isPushFormat(entity.format)) {
-				try {
-					await this.requireDataPlane().teardownPushSubscription(entity.consumerPid);
-				} catch (teardownError) {
-					// Symmetric rollback: data-plane teardown failed, revert transfer state so
-					// a retry can repair the subscription. Terminate is reachable from multiple
-					// states (REQUESTED/STARTED/SUSPENDED), so restore the actual previous one.
-					entity.state = previousState;
-					entity.dateModified = new Date();
-					await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
-					throw teardownError;
-				}
+			const transferHandler = TransferHandlerFactory.get(this.inferTransferFormat(entity));
+			try {
+				await transferHandler.onTerminate(this._dataPlaneComponent, entity.consumerPid);
+			} catch (teardownError) {
+				// Symmetric rollback: data-plane teardown failed, revert transfer state so
+				// a retry can repair the subscription. Terminate is reachable from multiple
+				// states (REQUESTED/STARTED/SUSPENDED), so restore the actual previous one.
+				entity.state = previousState;
+				entity.dateModified = new Date();
+				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
+				throw teardownError;
 			}
 
 			if (role === TransferProcessRole.Consumer) {
@@ -3081,19 +2844,6 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Check whether a transfer format string represents a push-mode delivery.
-	 * @param format The transfer format string from the TransferProcess entity.
-	 * @returns True if the format is a push variant (HttpData-PUSH or HttpData-POST).
-	 * @internal
-	 */
-	private isPushFormat(format: string | undefined): boolean {
-		return (
-			format === DataspaceTransferFormat.HttpDataPush ||
-			format === DataspaceTransferFormat.HttpDataPost
-		);
-	}
-
-	/**
 	 * Extract the dataset ID from an ODRL agreement's target.
 	 * @param agreement The ODRL agreement containing the target.
 	 * @returns The dataset ID extracted from the target URN.
@@ -3447,23 +3197,6 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Resolve the data plane component or throw if it isn't registered. Push-mode transfers
-	 * require the data plane; pull-only deployments may run without it.
-	 * @returns The data plane component.
-	 * @throws GeneralError if the data plane component is not registered.
-	 * @internal
-	 */
-	private requireDataPlane(): IDataspaceDataPlaneComponent {
-		const dataPlane = ComponentFactory.getIfExists<IDataspaceDataPlaneComponent>(
-			this._dataPlaneComponentType
-		);
-		if (!dataPlane) {
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "dataPlaneNotRegistered");
-		}
-		return dataPlane;
-	}
-
-	/**
 	 * Creates the internal INegotiationCallback that fans out to all registered callbacks.
 	 * @returns The internal negotiation callback.
 	 * @internal
@@ -3685,6 +3418,29 @@ export class DataspaceControlPlaneService
 	private async resolveContextTenantId(): Promise<string | undefined> {
 		const contextIds = await ContextIdStore.getContextIds();
 		return contextIds?.[ContextIdKeys.Tenant];
+	}
+
+	/**
+	 * Resolve the transfer format for handler dispatch. When the entity already carries a
+	 * format string (all transfers created by requestTransfer), that value is used directly.
+	 * For entities seeded without a format (e.g. older storage records), the format is inferred
+	 * from the presence of a consumer-supplied dataAddress — matching the pre-factory dispatch
+	 * logic so existing records continue to work correctly.
+	 * @param entity The transfer process entity.
+	 * @returns The effective DataspaceTransferFormat for handler lookup.
+	 * @internal
+	 */
+	private inferTransferFormat(entity: ITransferProcess): DataspaceTransferFormat {
+		const knownFormats = Object.values(DataspaceTransferFormat) as string[];
+		if (Is.stringValue(entity.format) && knownFormats.includes(entity.format)) {
+			return entity.format as DataspaceTransferFormat;
+		}
+		// Backward-compat: entities without a recognized format string (e.g. stored before
+		// the factory was introduced, or using a non-standard format value) fall back to
+		// dataAddress-based dispatch matching the pre-factory logic.
+		return Is.empty(entity.dataAddress)
+			? DataspaceTransferFormat.HttpDataPull
+			: DataspaceTransferFormat.HttpDataPush;
 	}
 
 	/**
