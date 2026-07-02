@@ -325,9 +325,7 @@ export class DataspaceControlPlaneService
 		this._overrideTrustGeneratorType = options?.config?.overrideTrustGeneratorType;
 
 		this._dataPlanePath = Is.stringValue(options?.config?.dataPlanePath)
-			? StringHelper.trimTrailingSlashes(
-					StringHelper.trimLeadingSlashes(options.config.dataPlanePath)
-				)
+			? StringHelper.trimLeadingAndTrailingSlashes(options.config.dataPlanePath)
 			: undefined;
 
 		this._callbackPath = Is.stringValue(options?.config?.callbackPath)
@@ -841,16 +839,11 @@ export class DataspaceControlPlaneService
 		// Callback the provider POSTs DSP messages back to: mount path + `?organization=` so the inbound
 		// POST routes to the right consumer tenant (mirrors buildCallbackUrl). The bare `origin` is kept for
 		// the PUSH-inbox base below (a different mount).
-		let callbackAddress = Is.stringValue(this._callbackPath)
-			? `${origin}/${this._callbackPath}`
-			: origin;
-		if (Is.stringValue(organizationIdentity)) {
-			callbackAddress = HttpUrlHelper.addQueryStringParam(
-				callbackAddress,
-				ContextIdKeys.Organization,
-				organizationIdentity
-			);
-		}
+		const callbackAddress = HttpUrlHelper.addQueryStringParam(
+			Is.stringValue(this._callbackPath) ? `${origin}/${this._callbackPath}` : origin,
+			ContextIdKeys.Organization,
+			organizationIdentity
+		);
 
 		const transferRequestMessage: IDataspaceProtocolTransferRequestMessage = {
 			"@context": [DataspaceProtocolContexts.Context],

@@ -56,14 +56,11 @@ export class HttpDataPushTransferHandler implements ITransferHandler {
 			);
 		}
 
-		let inboxEndpoint = `${origin}/${dataPlanePath}/inbox`;
-		if (Is.stringValue(organizationIdentity)) {
-			inboxEndpoint = HttpUrlHelper.addQueryStringParam(
-				inboxEndpoint,
-				ContextIdKeys.Organization,
-				organizationIdentity
-			);
-		}
+		const inboxEndpoint = HttpUrlHelper.addQueryStringParam(
+			`${origin}/${dataPlanePath}/inbox`,
+			ContextIdKeys.Organization,
+			organizationIdentity
+		);
 
 		return {
 			"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
@@ -102,9 +99,8 @@ export class HttpDataPushTransferHandler implements ITransferHandler {
 			);
 		}
 
-		let fullEndpoint = `${publicOrigin}/${dataPlanePath}/inbox`;
-		fullEndpoint = HttpUrlHelper.addQueryStringParam(
-			fullEndpoint,
+		const fullEndpoint = HttpUrlHelper.addQueryStringParam(
+			`${publicOrigin}/${dataPlanePath}/inbox`,
 			ContextIdKeys.Organization,
 			organizationIdentity
 		);

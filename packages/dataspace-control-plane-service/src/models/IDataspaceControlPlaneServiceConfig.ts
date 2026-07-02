@@ -12,13 +12,18 @@ export interface IDataspaceControlPlaneServiceConfig {
 	overrideTrustGeneratorType?: string;
 
 	/**
-	 * Data plane endpoint path for PULL transfers (path only, not full URL).
-	 * Will be combined with the public origin.
+	 * Base route path for the data plane service (path only, not full URL).
+	 * Combined with the public origin to form the `dataAddress.endpoint` sent to PULL consumers
+	 * and the inbox URL sent to PUSH providers.
 	 *
-	 * REQUIRED if PULL transfers are supported.
-	 * If not specified, PULL transfers will not be available.
+	 * This must be the mount-point prefix of the data plane routes, NOT a specific route path.
+	 * Do NOT append sub-paths such as `/entities` or `/inbox` — those are appended automatically
+	 * by each transfer handler and by the data plane REST client.
 	 *
-	 * Example: "data-plane/data" or "api/data-plane/data"
+	 * REQUIRED if PULL or PUSH transfers are supported.
+	 * If not specified, PULL and PUSH transfers will not be available.
+	 *
+	 * Example: "dataspace"
 	 */
 	dataPlanePath?: string;
 

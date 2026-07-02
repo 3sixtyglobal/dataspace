@@ -92,9 +92,8 @@ export class HttpDataPullTransferHandler implements ITransferHandler {
 
 		Guards.stringValue(HttpDataPullTransferHandler.CLASS_NAME, nameof(accessToken), accessToken);
 
-		let fullEndpoint = `${publicOrigin}/${dataPlanePath}`;
-		fullEndpoint = HttpUrlHelper.addQueryStringParam(
-			fullEndpoint,
+		const fullEndpoint = HttpUrlHelper.addQueryStringParam(
+			`${publicOrigin}/${dataPlanePath}`,
 			ContextIdKeys.Organization,
 			organizationIdentity
 		);
