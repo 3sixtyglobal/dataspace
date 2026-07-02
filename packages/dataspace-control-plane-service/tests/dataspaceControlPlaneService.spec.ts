@@ -889,7 +889,7 @@ describe("DataspaceControlPlaneService", () => {
 					throw new Error(`unexpected TransferError: ${response.code}`);
 				}
 				expect(response.dataAddress?.endpoint).toBe(
-					`https://test-origin.com/data-plane/data?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
+					`https://test-origin.com/data-plane/data/entities?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
 				);
 			});
 
@@ -906,7 +906,7 @@ describe("DataspaceControlPlaneService", () => {
 					throw new Error(`unexpected TransferError: ${response.code}`);
 				}
 				expect(response.dataAddress?.endpoint).toBe(
-					`https://test-origin.com/data-plane/data?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
+					`https://test-origin.com/data-plane/data/entities?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
 				);
 			});
 
@@ -931,7 +931,7 @@ describe("DataspaceControlPlaneService", () => {
 					throw new Error(`unexpected TransferError: ${response.code}`);
 				}
 				expect(response.dataAddress?.endpoint).toBe(
-					`https://test-origin.com/data-plane/data?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
+					`https://test-origin.com/data-plane/data/entities?${ContextIdKeys.Organization}=did%3Aiota%3Aprovider-node-xyz`
 				);
 			});
 
