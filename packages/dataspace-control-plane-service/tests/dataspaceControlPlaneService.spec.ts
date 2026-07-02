@@ -20,7 +20,6 @@ import {
 	type ITransferCallback,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
-import { EngineCoreFactory } from "@twin.org/engine-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
@@ -54,7 +53,6 @@ import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiati
 import {
 	createFailingMockTrustComponent,
 	createMockDataspaceDataPlaneComponent,
-	createMockEngineCore,
 	createMockTrustComponent,
 	createSingleTenantPlatformComponent,
 	DEFAULT_SERVICE_OPTIONS,
@@ -5102,6 +5100,43 @@ describe("DataspaceControlPlaneService", () => {
 			expect(stored?.id).toBe("urn:test:ds-upd");
 		});
 
+		test("re-publishing the same dataset via CRUD keeps a single fedcat entry (idempotent, not duplicated)", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			const setSpy = vi.spyOn(mockFedCat, "set");
+
+			const datasetId = "urn:test:ds-idempotent";
+			await service.createAppDataset(
+				datasetId,
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-idempotent-v1") as never
+			);
+			await service.updateAppDataset(
+				datasetId,
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-idempotent-v2") as never
+			);
+			await service.updateAppDataset(
+				datasetId,
+				TEST_APP_ID,
+				buildDataset("https://twin.example.org/ds-idempotent-v3") as never
+			);
+
+			// Three publishes over the lifetime of one dataset — restampDatasetId always
+			// stamps the entity's own id as @id, so every publish targets the same fedcat
+			// row (an upsert), never a new one.
+			expect(setSpy).toHaveBeenCalledTimes(3);
+			const publishedIds = setSpy.mock.calls.map(
+				([dataset]) => (dataset as { "@id"?: string })["@id"]
+			);
+			expect(new Set(publishedIds)).toEqual(new Set([datasetId]));
+
+			const { result } = await mockFedCat.query();
+			const matching = (result as { dataset: { "@id"?: string }[] }).dataset.filter(
+				d => d["@id"] === datasetId
+			);
+			expect(matching).toHaveLength(1);
+		});
+
 		test("updateAppDataset rejects cross-tenant writes with datasetWrongOrganization", async () => {
 			const serviceA = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 			await serviceA.createAppDataset(
@@ -5198,38 +5233,6 @@ describe("DataspaceControlPlaneService", () => {
 			});
 		});
 
-		test("publishDataset publishes stored datasets to fedcat using organizationIdentity during start()", async () => {
-			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
-
-			// Spy on the fedcat set method to verify publish is called for the stored dataset.
-			const fedcatSetSpy = vi.spyOn(mockFedCat, "set");
-
-			const now = new Date().toISOString();
-			const appDataset: DataspaceAppDataset = {
-				id: "ds-publish-tenant",
-				organizationIdentity: "did:iota:provider-node-xyz",
-				tenantId: TEST_TENANT_B,
-				appId: TEST_APP_ID,
-				dataset: buildDataset("https://twin.example.org/ds-publish-tenant") as never,
-				dateCreated: now,
-				dateModified: now
-			};
-			await dataspaceAppDatasetStorage.set(appDataset);
-
-			EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-			try {
-				await service.start();
-			} finally {
-				EngineCoreFactory.unregister("engine");
-			}
-
-			// Verify fedcat.set was called for our stored dataset (publish happened).
-			const publishedOurDataset = fedcatSetSpy.mock.calls.some(
-				([dataset]) => (dataset as { "@id"?: string })["@id"] === "ds-publish-tenant"
-			);
-			expect(publishedOurDataset).toBe(true);
-		});
-
 		describe("platform component — single-tenant vs multi-tenant mode", () => {
 			const TENANT_A = "did:iota:tenant-a";
 			const TENANT_B = "did:iota:tenant-b";
@@ -5243,107 +5246,6 @@ describe("DataspaceControlPlaneService", () => {
 				} catch {
 					// Ignore.
 				}
-			});
-
-			test("single-tenant start() publishes datasets once with the ambient context", async () => {
-				ComponentFactory.register("test-platform-st", () => createSingleTenantPlatformComponent());
-				const service = new DataspaceControlPlaneService({
-					...DEFAULT_SERVICE_OPTIONS,
-					platformComponentType: "test-platform-st"
-				});
-
-				const now = new Date().toISOString();
-				await dataspaceAppDatasetStorage.set({
-					id: "urn:test:st-ds-1",
-					organizationIdentity: "did:iota:provider-node-xyz",
-					tenantId: undefined,
-					appId: TEST_APP_ID,
-					dataset: buildDataset("https://twin.example.org/st-ds-1") as never,
-					dateCreated: now,
-					dateModified: now
-				});
-
-				const setSpy = vi.spyOn(mockFedCat, "set");
-				EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-				try {
-					await service.start();
-				} finally {
-					EngineCoreFactory.unregister("engine");
-				}
-
-				// Dataset published exactly once — no per-tenant iteration.
-				expect(setSpy).toHaveBeenCalledTimes(1);
-				expect(
-					setSpy.mock.calls.some(([ds]) => (ds as { "@id"?: string })["@id"] === "urn:test:st-ds-1")
-				).toBe(true);
-			});
-
-			test("multi-tenant start() iterates each tenant and tenantId is available inside the callback", async () => {
-				// Restore the global getContextIds mock so ContextIdStore.run()
-				// actually propagates per-tenant context through AsyncLocalStorage.
-				vi.mocked(ContextIdStore.getContextIds).mockRestore();
-
-				const observedTenantIds: (string | undefined)[] = [];
-
-				// Inline platform mock: calls execute's callback once per tenant,
-				// each time with a complete isolated context injected via run().
-				ComponentFactory.register("test-platform-mt", () => ({
-					className: () => "MockMultiTenantPlatformComponent",
-					isMultiTenant: () => true,
-					execute: async (method: () => Promise<void>) => {
-						for (const [tenant, org] of [
-							[TENANT_A, ORG_A],
-							[TENANT_B, ORG_B]
-						]) {
-							await ContextIdStore.run(
-								{
-									[ContextIdKeys.Node]: "did:iota:test-node",
-									[ContextIdKeys.Tenant]: tenant,
-									[ContextIdKeys.Organization]: org
-								},
-								method
-							);
-						}
-					}
-				}));
-
-				const service = new DataspaceControlPlaneService({
-					...DEFAULT_SERVICE_OPTIONS,
-					platformComponentType: "test-platform-mt"
-				});
-
-				// Intercept publishAppDataset to capture the tenant context each
-				// iteration runs under without making real fedcat calls.
-				const inner = service as unknown as {
-					publishAppDataset: (d: DataspaceAppDataset) => Promise<void>;
-				};
-				vi.spyOn(inner, "publishAppDataset").mockImplementation(async () => {
-					const ctx = await ContextIdStore.getContextIds();
-					observedTenantIds.push(ctx?.[ContextIdKeys.Tenant]);
-				});
-
-				// One shared dataset — published in both tenant contexts, proving
-				// tenantId is available inside the callback on each iteration.
-				const now = new Date().toISOString();
-				await dataspaceAppDatasetStorage.set({
-					id: "urn:test:mt-shared",
-					organizationIdentity: ORG_A,
-					tenantId: TENANT_A,
-					appId: TEST_APP_ID,
-					dataset: buildDataset("https://twin.example.org/mt-shared") as never,
-					dateCreated: now,
-					dateModified: now
-				});
-
-				EngineCoreFactory.register("engine", () => createMockEngineCore(false));
-				try {
-					await service.start();
-				} finally {
-					EngineCoreFactory.unregister("engine");
-				}
-
-				// publishAppDataset ran once per tenant; both tenant IDs were propagated.
-				expect(observedTenantIds).toEqual([TENANT_A, TENANT_B]);
 			});
 
 			test("multi-tenant listAppDatasets scopes to the calling organization within the tenant partition", async () => {

@@ -11,8 +11,6 @@
 			"resolvedProviderPid": "Resolved providerPid to Transfer Context",
 			"catalogDatasetFound": "Dataset validated in Federated Catalogue",
 			"agreementMatchedOffer": "Agreement matched Catalog Offer",
-			"populatingFederatedCatalogue": "Populating Federated Catalogue with stored app datasets",
-			"federatedCataloguePopulated": "Federated Catalogue population completed (registered: {registeredCount}, errors: {errorCount}, datasets: {totalDatasets})",
 			"startingContractNegotiation": "Starting contract negotiation with provider",
 			"offerFoundInCatalog": "Offer found in Federated Catalogue and validated",
 			"negotiationInitiated": "Contract negotiation initiated successfully",
@@ -37,8 +35,7 @@
 	},
 	"debug": {
 		"dataspaceControlPlaneService": {
-			"engineCloneStart": "Skipping Federated Catalogue population (engine clone or no engine)",
-			"datasetRegistered": "Dataset {datasetId} registered for app {appId} (tenant: {tenantId})"
+			"engineCloneStart": "Skipping control plane startup tasks (engine clone or no engine)"
 		}
 	},
 	"warn": {
