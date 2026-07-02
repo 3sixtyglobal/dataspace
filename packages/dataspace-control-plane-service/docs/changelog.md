@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1-next.6](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.5...dataspace-control-plane-service-v0.9.1-next.6) (2026-07-02)
+
+
+### Features
+
+* add transfer handlers ([#259](https://github.com/iotaledger/twin-dataspace/issues/259)) ([06e21b1](https://github.com/iotaledger/twin-dataspace/commit/06e21b179f548f3d93d81192b68ea710e5b9aafb))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.5 to 0.9.1-next.6
+
 ## [0.9.1-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.4...dataspace-control-plane-service-v0.9.1-next.5) (2026-06-30)
 
 
