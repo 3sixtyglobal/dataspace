@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.1-next.7](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.6...dataspace-control-plane-service-v0.9.1-next.7) (2026-07-02)
+
+
+### Features
+
+* simplify url construction ([49986d1](https://github.com/iotaledger/twin-dataspace/commit/49986d1b67b58c0918a5744794d06baf6b6c6461))
+
+
+### Bug Fixes
+
+* data plane path is base not full url for pull ([68092ac](https://github.com/iotaledger/twin-dataspace/commit/68092acf707b6ba6679f5b75d4dc355c6629396c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.6 to 0.9.1-next.7
+
 ## [0.9.1-next.6](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.5...dataspace-control-plane-service-v0.9.1-next.6) (2026-07-02)
 
 
