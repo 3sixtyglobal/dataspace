@@ -10,7 +10,10 @@ import {
 	type IEngineCoreClone
 } from "@twin.org/engine-models";
 import { nameof } from "@twin.org/nameof";
-import type { IPolicyEnforcementPointComponent } from "@twin.org/rights-management-models";
+import type {
+	IPolicyEnforcementPointComponent,
+	IRightsManagementAgreement
+} from "@twin.org/rights-management-models";
 import {
 	ActivityStreamsContexts,
 	ActivityStreamsTypes,
@@ -127,7 +130,12 @@ async function pushDeliveryRunnerBody(payload: IPushDeliveryPayload): Promise<un
 	// Apply PEP policy filter if available
 	let data = payload.data;
 	if (!Is.empty(pepComponent)) {
-		data = await pepComponent.interceptWithPolicy(payload.agreement, payload.data);
+		data = await pepComponent.interceptWithPolicy(
+			payload.agreement,
+			payload.data,
+			undefined,
+			(payload.agreement as IRightsManagementAgreement).trustData
+		);
 	}
 
 	// Build Activity Streams Create wrapper

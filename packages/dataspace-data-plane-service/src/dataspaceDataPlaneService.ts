@@ -47,6 +47,7 @@ import {
 	DataspaceDataTypes,
 	DataspaceTypes,
 	getJsonLdType,
+	TransferProcessRole,
 	type DataspaceAppDataset,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
@@ -77,7 +78,8 @@ import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
-	type IPolicyEnforcementPointComponent
+	type IPolicyEnforcementPointComponent,
+	type IRightsManagementAgreement
 } from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolDataTypes,
@@ -2072,7 +2074,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// Eventually, this should fetch fresh policies from Rights Management (PAP) using:
 		//   const freshAgreement = await this._policyAdministrationPoint.get(transferProcess.agreementId);
 		// This would ensure policies are always up-to-date and support dynamic policy updates.
-		const agreement: IDataspaceProtocolAgreement = {
+		const agreement: IRightsManagementAgreement = {
 			"@context": OdrlContexts.Context,
 			"@type": OdrlTypes.Agreement,
 			"@id": transferProcess.agreementId,
@@ -2085,13 +2087,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// Extract policies from the stored Agreement
 		// Extract permission, prohibition, and obligation
 		if (Is.arrayValue(transferProcess.policies)) {
-			const storedAgreement = transferProcess.policies[0] as
-				| IDataspaceProtocolAgreement
-				| undefined;
+			const storedAgreement = transferProcess.policies[0] as IRightsManagementAgreement | undefined;
 			if (storedAgreement) {
 				agreement.permission = storedAgreement.permission;
 				agreement.prohibition = storedAgreement.prohibition;
 				agreement.obligation = storedAgreement.obligation;
+				// Only the provider's cached agreement carries the CONSUMER's verified attributes
+				// (captured from the negotiation trust token). On a consumer node the cached
+				// trustData holds the provider's verification info instead, so forwarding it
+				// would evaluate trust-subject constraints against the wrong party.
+				if (transferProcess.localRole === TransferProcessRole.Provider) {
+					agreement.trustData = storedAgreement.trustData;
+				}
 			}
 		}
 
@@ -2131,7 +2138,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const processed =
 			await this._policyEnforcementPoint.interceptWithPolicy<IDataAssetItemListResult>(
 				agreement,
-				result
+				result,
+				undefined,
+				(agreement as IRightsManagementAgreement).trustData
 			);
 
 		if (Is.arrayValue(agreement.obligation)) {
@@ -2177,7 +2186,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const processed = await this._policyEnforcementPoint.interceptWithPolicy<
 			IActivityStreamsActivity,
 			IActivityStreamsActivity
-		>(agreement, activity, action);
+		>(agreement, activity, action, (agreement as IRightsManagementAgreement).trustData);
 
 		// The enforcement processor returns the (possibly manipulated) activity when
 		// the action is permitted, and an empty object when it is denied.

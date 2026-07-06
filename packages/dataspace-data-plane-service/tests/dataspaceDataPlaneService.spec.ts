@@ -24,6 +24,7 @@ import {
 	DataspaceDataPlaneMetrics,
 	DataspaceDataTypes,
 	TransferProcess,
+	TransferProcessRole,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IDataRequest,
@@ -38,6 +39,7 @@ import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
+import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolDataTypes,
@@ -2264,6 +2266,122 @@ describe("DataspaceDataPlaneService", () => {
 			expect(agreement.permission).toEqual([{ action: "read" }]);
 			expect(payload).toMatchObject({ type: "Create" });
 			expect(action).toBe("write");
+		});
+
+		test("forwards the agreement's trustData to the PEP so trust-subject constraints can evaluate", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			// The provider-side transfer cache stores the PAP agreement, which carries the
+			// consumer's trust verification data captured at negotiation start.
+			const trustData = { subject: { role: "BorderAgency", location: "GB" } };
+			const agreementWithTrust: IRightsManagementAgreement = {
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": TEST_AGREEMENT_ID,
+				assigner: TEST_ORGANIZATION_IDENTITY,
+				assignee: DATA_CONSUMER_IDENTITY,
+				target: SERVICE_DATASET_ID,
+				permission: [{ action: "read" }],
+				trustData
+			};
+			const transferProcess = createTestTransferProcess();
+			transferProcess.localRole = TransferProcessRole.Provider;
+			transferProcess.policies = [agreementWithTrust];
+			await transferProcessStorage.set(transferProcess);
+
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			const callArgs = interceptSpy.mock.calls[0];
+			expect(callArgs[0]["@id"]).toBe(TEST_AGREEMENT_ID);
+			expect(callArgs[3]).toEqual(trustData);
+		});
+
+		test("does not forward trustData on a consumer-role transfer (it holds the provider's attributes)", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			// On a consumer node the cached agreement's trustData holds the PROVIDER's
+			// verification info, so it must not be evaluated as the trust subject.
+			const agreementWithTrust: IRightsManagementAgreement = {
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": TEST_AGREEMENT_ID,
+				assigner: TEST_ORGANIZATION_IDENTITY,
+				assignee: DATA_CONSUMER_IDENTITY,
+				target: SERVICE_DATASET_ID,
+				permission: [{ action: "read" }],
+				trustData: { subject: { providerPid: TEST_PROVIDER_PID } }
+			};
+			const transferProcess = createTestTransferProcess();
+			transferProcess.localRole = TransferProcessRole.Consumer;
+			transferProcess.policies = [agreementWithTrust];
+			await transferProcessStorage.set(transferProcess);
+
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			expect(interceptSpy.mock.calls[0][3]).toBeUndefined();
+		});
+
+		test("forwards trustData on the pull path (applyPolicyFilters) for a provider-role transfer", async () => {
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const trustData = { subject: { role: "BorderAgency" } };
+			const agreementWithTrust: IRightsManagementAgreement = {
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": TEST_AGREEMENT_ID,
+				assigner: TEST_ORGANIZATION_IDENTITY,
+				assignee: DATA_CONSUMER_IDENTITY,
+				target: SERVICE_DATASET_ID,
+				permission: [{ action: "read" }],
+				trustData
+			};
+			const transferProcess = createTestTransferProcess();
+			transferProcess.localRole = TransferProcessRole.Provider;
+			transferProcess.policies = [agreementWithTrust];
+
+			// Drive the pull-path enforcement directly: buildTransferContext -> applyPolicyFilters.
+			const exposedService = service as unknown as {
+				buildTransferContext: (tp: TransferProcess) => { agreement: IRightsManagementAgreement };
+				applyPolicyFilters: (
+					result: unknown,
+					agreement?: IRightsManagementAgreement
+				) => Promise<unknown>;
+			};
+			const context = exposedService.buildTransferContext(transferProcess);
+			const result = { itemList: { itemListElement: [] } };
+			await exposedService.applyPolicyFilters(result, context.agreement);
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			const callArgs = interceptSpy.mock.calls[0];
+			expect(callArgs[0]["@id"]).toBe(TEST_AGREEMENT_ID);
+			expect(callArgs[3]).toEqual(trustData);
 		});
 
 		test("derives a read action from a provider-generated delivery", async () => {
