@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1-next.9](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.1-next.8...dataspace-app-runner-v0.9.1-next.9) (2026-07-06)
+
+
+### Bug Fixes
+
+* forward agreement trustData to the PEP at data-plane enforcement ([#269](https://github.com/iotaledger/twin-dataspace/issues/269)) ([fa538e7](https://github.com/iotaledger/twin-dataspace/commit/fa538e7f1834bb3eb11452865055d18dfe7a70fa))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.8 to 0.9.1-next.9
+
 ## [0.9.1-next.8](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.1-next.7...dataspace-app-runner-v0.9.1-next.8) (2026-07-02)
 
 

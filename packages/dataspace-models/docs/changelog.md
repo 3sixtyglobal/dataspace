@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1-next.9](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.8...dataspace-models-v0.9.1-next.9) (2026-07-06)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
 ## [0.9.1-next.8](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.7...dataspace-models-v0.9.1-next.8) (2026-07-02)
 
 
