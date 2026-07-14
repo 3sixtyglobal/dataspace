@@ -1,0 +1,105 @@
+---
+category: dataspace
+order: 2
+---
+
+import { PlaneSeparationDiagram, TransferFormatsDiagram } from './dataspace-connector-diagrams.jsx';
+
+# Dataspace Connector
+
+The connector is the participant-side runtime of the dataspace: the set of components an organisation operates to negotiate agreements and exchange data with other participants. It follows the control plane / data plane separation established by the [Dataspace Protocol](https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/) and Eclipse Dataspace Components: the control plane deals in agreements and transfer state, the data plane deals in the data itself.
+
+{PlaneSeparationDiagram()}
+
+## Control Plane
+
+`DataspaceControlPlaneService` (in `dataspace-control-plane-service`) implements the `IDataspaceControlPlaneComponent` contract. Its responsibilities fall into four groups:
+
+- **Contract negotiation.** `negotiateAgreement` starts a Dataspace Protocol contract negotiation for a catalogue dataset and offer, `getNegotiation` reports its state, and `getNegotiationHistory` pages through past negotiations. Upstream services can register `INegotiationCallback` receivers to be notified when a negotiation finalises or fails.
+- **Transfer processes.** Grouped by acting party rather than by the node the code runs on: the consumer acts through `prepareTransfer` and `requestTransfer` (the latter executes on the provider node, receiving the consumer's request), the provider acts through `startTransfer` and `transferStarted`, and `completeTransfer`, `suspendTransfer`, `terminateTransfer`, and `getTransferProcess` operate on either role. Callers of `prepareTransfer` learn of transfer state changes by registering an `ITransferCallback` receiver through `registerTransferCallback`.
+- **Dataset management.** `createAppDataset`, `getAppDataset`, `listAppDatasets`, `updateAppDataset`, and `deleteAppDataset` manage the datasets a local dataspace app offers, and publish them to the federated catalogue.
+- **Discovery.** `getProtocolVersions` answers the well-known Dataspace Protocol version request.
+
+### Dataspace Protocol surface
+
+All protocol messages are JSON-LD using the Dataspace Protocol 2025-1 context (`https://w3id.org/dspace/2025/1/context.jsonld`), with types such as `TransferRequestMessage`, `TransferStartMessage`, `TransferCompletionMessage`, `TransferSuspensionMessage`, `TransferTerminationMessage`, `TransferProcess`, and `TransferError` provided by the `standards-dataspace-protocol` package. The control plane exposes the transfer process endpoints:
+
+| Method | Path                                               | Purpose                                    |
+| ------ | -------------------------------------------------- | ------------------------------------------ |
+| `POST` | `dataspace-control-plane/transfers/request`        | Receive a transfer request from a consumer |
+| `GET`  | `dataspace-control-plane/transfers/:pid`           | Retrieve a transfer process by process id  |
+| `POST` | `dataspace-control-plane/transfers/:pid/start`     | Receive a transfer start message           |
+| `POST` | `dataspace-control-plane/transfers/:pid/complete`  | Complete a transfer                        |
+| `POST` | `dataspace-control-plane/transfers/:pid/suspend`   | Suspend a transfer                         |
+| `POST` | `dataspace-control-plane/transfers/:pid/terminate` | Terminate a transfer                       |
+| `GET`  | `/.well-known/dspace-version`                      | Protocol version discovery                 |
+
+Authentication does not use the platform session mechanism: each request carries a verifiable credential as a bearer token, verified inside the service, see [Trust and Identity](./dataspace-trust-and-identity.mdx).
+
+A pull `TransferRequestMessage` looks like this on the wire (a `dataAddress` is only present for the push format, where it carries the consumer's own inbox):
+
+```json
+{
+  "@context": ["https://w3id.org/dspace/2025/1/context.jsonld"],
+  "@type": "TransferRequestMessage",
+  "consumerPid": "urn:uuid:consumer-process-12345",
+  "agreementId": "urn:uuid:agreement-12345",
+  "callbackAddress": "https://consumer.example.com/dataspace-control-plane?organization=did:iota:consumer-org",
+  "format": "HttpData-PULL"
+}
+```
+
+### Negotiation lifecycle
+
+The contract negotiation state machine follows the Dataspace Protocol states `REQUESTED`, `OFFERED`, `ACCEPTED`, `AGREED`, `VERIFIED`, `FINALIZED`, and `TERMINATED`. The wire protocol itself is not implemented in the connector: it is delegated to the rights management policy negotiation point (PNP), which exposes its own inbound negotiation routes. The connector participates through `DataspaceControlPlanePolicyRequester`, a policy requester that tracks each negotiation in memory and reacts to PNP callbacks: an incoming offer is automatically accepted, the agreement is captured when it arrives, and on finalisation the agreement identifier is delivered to registered negotiation callbacks. Stalled negotiations are swept by a scheduled cleanup task.
+
+When the provider endpoint resolves to the same node and organisation as the caller, `negotiateAgreement` short-circuits the external protocol entirely and creates an implicit full-access agreement locally, so intra-organisation flows do not pay the negotiation round-trip.
+
+The negotiated agreement is an ODRL `Agreement` persisted by the rights management policy administration point, see [ODRL Policies](./dataspace-odrl-policies.mdx).
+
+### Transfer processes
+
+Each transfer is persisted as a `TransferProcess` entity keyed by the consumer process id, recording both party identities, the local role (consumer or provider), the agreement id, the dataset id, the requested format, the callback address, the agreement policies, and the current state (`REQUESTED`, `STARTED`, `COMPLETED`, `SUSPENDED`, or `TERMINATED`). Both planes read this entity: the control plane drives its lifecycle and the data plane validates data access against it.
+
+## Transfer Formats and the Token Flow
+
+Three transfer formats are supported, dispatched through the `TransferHandlerFactory` to a handler per format:
+
+{TransferFormatsDiagram()}
+
+- **`HttpData-PULL`.** The provider mints a bearer token scoped to the transfer (consumer and provider process ids, agreement id, dataset id) and returns a Dataspace Protocol `DataAddress` in the `TransferStartMessage` whose endpoint points at the provider data plane, with the token and auth type carried in `endpointProperties`. This data address plays the role that other connector stacks call an endpoint data reference (EDR). The consumer then queries the endpoint directly for as long as the transfer is started.
+- **`HttpData-PUSH`.** The consumer supplies its data plane inbox address; the provider sets up a push subscription and delivers Activity Streams activities to the consumer inbox as new data becomes available. Each delivery carries a freshly minted token unless the consumer supplied its own authorisation token with the transfer request, in which case that token is reused for every delivery.
+- **`HttpData-POST`.** The inverted push: the provider returns its own inbox address and a signed token, and the consumer posts data to the provider. This supports flows where the agreement covers data contribution rather than consumption.
+
+On every payload read and write (the `entities`, `entities/query`, and `inbox` routes) the token is verified and the transfer is validated: the transfer process must exist for the presented process id and be in the `STARTED` state before any data is served or accepted. Activity log reads verify the token and that the caller generated the entry, without a transfer state check.
+
+## Data Plane
+
+`DataspaceDataPlaneService` (in `dataspace-data-plane-service`) implements `IDataspaceDataPlaneComponent` and is the only component that touches payload data. It exposes:
+
+| Method | Path                                     | Purpose                                                                  |
+| ------ | ---------------------------------------- | ------------------------------------------------------------------------ |
+| `POST` | `dataspace-data-plane/inbox`             | Receive an Activity Streams activity (push deliveries and contributions) |
+| `GET`  | `dataspace-data-plane/entities`          | List data asset entities for a pull transfer                             |
+| `POST` | `dataspace-data-plane/entities/query`    | Run a typed query against a data asset                                   |
+| `GET`  | `dataspace-data-plane/activity-logs/:id` | Retrieve an activity log entry                                           |
+
+A WebSocket route provides live activity log status notifications, consumed by `dataspace-data-plane-socket-client`. Read results and inbound activities pass through the rights management policy enforcement point before they are returned or accepted: inbound activities are enforced with the ODRL action derived from the transfer direction and the Activity Streams verb, while read results are enforced without a specific action. Read enforcement is skipped when the transfer carries no agreement, and inbox enforcement is skipped when the agreement carries no rules, see [Rights Management](./dataspace-rights-management.mdx).
+
+## Dataspace Apps and the App Runner
+
+The data plane does not own data: it delegates to dataspace apps. An app implements `IDataspaceApp` (declaring the activities it handles, the query types it supports, and handlers for activities and data requests) and registers itself in the `DataspaceAppFactory`. The `dataspace-test-app` package provides a reference implementation used in integration tests.
+
+Activity processing is asynchronous for apps that declare a processing group: incoming activities are recorded, then executed by the `appRunner` background task, which runs the app handler on a cloned engine in a worker thread and restores the owning tenant context. An app without a processing group has its handler executed inline, synchronously, as the activity arrives. Push deliveries run through the `pushDeliveryRunner` background task, which applies policy enforcement before posting the activity to the consumer inbox with retry.
+
+## Deployment and Clients
+
+Both planes are wired into a node runtime through engine extension types that register the components and their routes; there is no standalone server app in this repository. For integration from other services, `dataspace-control-plane-rest-client` covers the transfer process endpoints (negotiation is in-process only), `dataspace-data-plane-rest-client` covers data queries and activity logs, and `dataspace-data-plane-socket-client` covers activity log subscriptions.
+
+## Related
+
+- [Dataspace Overview](./dataspace.mdx)
+- [Trust and Identity](./dataspace-trust-and-identity.mdx)
+- [Federated Catalogue](./dataspace-federated-catalogue.mdx)
+- [Rights Management](./dataspace-rights-management.mdx)
+- [End-to-End Data Exchange](./dataspace-end-to-end.mdx)

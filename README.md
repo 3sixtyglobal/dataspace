@@ -15,6 +15,17 @@ The workspace is structured to support interoperable transfer and activity workf
 - [dataspace-app-runner](packages/dataspace-app-runner/README.md) - Runs dataspace app activity handlers in background execution contexts.
 - [dataspace-data-plane-service](packages/dataspace-data-plane-service/README.md) - Processes activities and data requests while enforcing transfer and policy constraints in the data plane.
 
+## Architecture
+
+- [Dataspace Overview](docs/architecture/dataspace.mdx) - What a dataspace is, key principles, participant roles, and the component landscape.
+- [Dataspace Connector](docs/architecture/dataspace-connector.mdx) - Control plane and data plane separation, Dataspace Protocol surface, transfer formats, and token flow.
+- [Trust and Identity](docs/architecture/dataspace-trust-and-identity.mdx) - DIDs, verifiable credentials, trust payloads, and trust data.
+- [Federated Catalogue](docs/architecture/dataspace-federated-catalogue.mdx) - DCAT dataset descriptions, catalogue APIs, and entry lifecycle.
+- [ODRL Policies](docs/architecture/dataspace-odrl-policies.mdx) - The policy model, constraint patterns, and the dataspace ODRL profile.
+- [Rights Management](docs/architecture/dataspace-rights-management.mdx) - The policy point architecture, evaluation pipeline, usage control, and audit trail.
+- [End-to-End Data Exchange](docs/architecture/dataspace-end-to-end.mdx) - A worked example from registration through publication, discovery, negotiation, transfer, and audit.
+- [Glossary](docs/architecture/dataspace-glossary.mdx) - Terms and acronyms used across the documentation.
+
 ## Contributing
 
 To contribute to this package see the guidelines for building and publishing in [CONTRIBUTING](./CONTRIBUTING.md)

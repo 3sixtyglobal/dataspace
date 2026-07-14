@@ -1,0 +1,60 @@
+---
+category: dataspace
+order: 7
+---
+
+import {
+  ExchangeLifecycleDiagram,
+  LifecycleStatesDiagram
+} from './dataspace-end-to-end-diagrams.jsx';
+
+# End-to-End Data Exchange
+
+This walkthrough follows one dataset from publication to audited delivery, naming the components and methods involved at each stage. Two organisations participate: a provider offering consignment event data and a consumer wanting to read it. Each runs a connector node with the control plane, data plane, trust, identity, and rights management components; a federated catalogue is reachable by both.
+
+{ExchangeLifecycleDiagram()}
+
+## 1. Registration
+
+Before anything can be exchanged, each organisation establishes its identity and its data capability:
+
+- Each participant creates a decentralised identifier through the identity component, anchoring its DID document on the ledger. This DID is the identity everything else refers to: catalogue publisher, agreement party, credential issuer.
+- Trust is configured on each node: the credential verifier chain, and optionally allow and deny identity lists to restrict which participants are admitted, see [Trust and Identity](./dataspace-trust-and-identity.mdx).
+- The provider registers its dataspace app (an `IDataspaceApp` implementation in the `DataspaceAppFactory`), which owns the data and will serve queries and produce activities.
+
+## 2. Publish
+
+The provider describes its dataset as a DCAT document with an ODRL offer and registers it through the control plane: `createAppDataset` stores the app dataset locally and publishes it to the federated catalogue, stamping the owning organisation as the publisher and validating Dataspace Protocol conformance. The catalogue now holds the metadata (title, distribution, access service endpoint, usage offer); the data itself has not moved, see [Federated Catalogue](./dataspace-federated-catalogue.mdx).
+
+## 3. Discover
+
+The consumer queries the catalogue (`POST catalog/request` with a filter, or a direct dataset `get`) and receives a Dataspace Protocol `Catalog` containing the provider's dataset, its distribution with the data service endpoint, and the ODRL `Offer` stating the usage conditions. From this the consumer takes the three identifiers it needs: the dataset id, the offer id, and the provider endpoint.
+
+## 4. Negotiate
+
+The consumer's control plane starts negotiation with `negotiateAgreement(datasetId, offerId, providerEndpoint, trustPayload)`. The control plane verifies the caller, fetches the dataset from the catalogue to confirm the offer exists, and hands over to the policy negotiation point, which runs the Dataspace Protocol contract negotiation with the provider: request, offer, acceptance, agreement, and verification messages, each authenticated with a verifiable credential trust payload. The connector's policy requester tracks the state transitions and auto-accepts the provider's offer; when the negotiation reaches `FINALIZED`, the ODRL `Agreement` naming both party DIDs is persisted by the policy administration point together with the trust data verified during the exchange, and registered negotiation callbacks receive the agreement id. If provider and consumer are the same organisation on the same node, an implicit local agreement replaces the external protocol.
+
+{LifecycleStatesDiagram()}
+
+## 5. Transfer
+
+With an agreement in hand, the consumer prepares and requests the transfer:
+
+- `prepareTransfer(agreementId, providerEndpoint, format, trustPayload)` validates the agreement (the caller must be the assignee), creates the consumer-side transfer process, and dispatches the Dataspace Protocol `TransferRequestMessage` to the provider's `requestTransfer` endpoint, where the provider validates the agreement against the catalogued offer and persists its own transfer process.
+- The provider starts the transfer (`transferStarted`, or automatically when auto-start is enabled), sending a `TransferStartMessage` whose `DataAddress` carries the access endpoint and, for the pull and provider-inbox formats, a bearer token scoped to the transfer (a push start address carries no token; the provider authenticates each delivery it makes instead).
+- Data now flows according to the format: the consumer pulls entity queries from the provider data plane (`HttpData-PULL`), or the provider pushes Activity Streams deliveries to the consumer inbox (`HttpData-PUSH`), or the consumer posts contributions to the provider inbox (`HttpData-POST`).
+
+Every entity read and inbox delivery validates the transfer is in the `STARTED` state and passes the payload through the policy enforcement point with the agreement (on the provider side including the trust data verified at negotiation), so only what the agreement grants leaves the node, with non-granted fields withheld, see [Rights Management](./dataspace-rights-management.mdx). Either party can suspend or terminate, the provider resumes a suspended transfer via a new start, and the consumer completes the transfer, each through the corresponding control plane method and notified to the counterparty as a Dataspace Protocol message.
+
+## 6. Audit
+
+After the exchange, both sides hold an account of what happened: the negotiation history is queryable through the negotiation admin point, every activity processed by the data plane has an activity log entry (observable live over the WebSocket status subscription), and the enforcement pipeline has logged its decisions and the obligations that applied to each payload. Together with the persisted agreement and transfer process records this reconstructs who accessed what, under which agreement, and under which conditions.
+
+## Related
+
+- [Dataspace Overview](./dataspace.mdx)
+- [Dataspace Connector](./dataspace-connector.mdx)
+- [Federated Catalogue](./dataspace-federated-catalogue.mdx)
+- [ODRL Policies](./dataspace-odrl-policies.mdx)
+- [Rights Management](./dataspace-rights-management.mdx)
+- [Glossary](./dataspace-glossary.mdx)

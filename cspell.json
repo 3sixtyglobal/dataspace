@@ -43,6 +43,7 @@
 		"odrl",
 		"openapi",
 		"PNAP",
+		"repudiable",
 		"Stiftung",
 		"teardown",
 		"transferspid",
@@ -53,6 +54,8 @@
 		"twinfoundation",
 		"unece",
 		"Unrevoke",
+		"XACML",
+		"xone",
 		"XVCJ"
 	],
 	"ignoreRegExpList": [

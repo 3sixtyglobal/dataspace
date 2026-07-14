@@ -1,0 +1,118 @@
+---
+category: dataspace
+order: 4
+---
+
+import { EntryLifecycleDiagram } from './dataspace-federated-catalogue-diagrams.jsx';
+
+# Federated Catalogue
+
+The federated catalogue is the discovery surface of the dataspace: the place where providers publish descriptions of the datasets they offer and consumers find them. It stores metadata only, never the data itself, so discovery works without centralising data custody. The implementation is a dataset registry built on the [W3C DCAT 3 vocabulary](https://www.w3.org/TR/vocab-dcat-3/) with query results shaped as [Dataspace Protocol](https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/) catalogue messages.
+
+## What a Catalogue Entry Is
+
+An entry is a DCAT `Dataset` described in JSON-LD. Alongside the descriptive properties (title, description, keywords, themes), each dataset carries the two elements that make it actionable in the dataspace:
+
+- one or more `dcat:distribution` entries, each with a format and a `dcat:accessService` pointing at the data service endpoint through which the data plane serves the data, and
+- an `odrl:hasPolicy` offer stating the conditions under which the publisher is willing to grant usage, see [ODRL Policies](./dataspace-odrl-policies.mdx).
+
+Participants appear in the catalogue as the `dcterms:publisher` of their datasets, identified by their DID or participant URI. There are no separate participant, service offering, or connector self-description entry types: the dataset is the single entry kind, and validation enforces Dataspace Protocol conformance on each one.
+
+This example mirrors the shape the catalogue accepts and stores:
+
+```json
+{
+  "@context": {
+    "dcat": "http://www.w3.org/ns/dcat#",
+    "dcterms": "http://purl.org/dc/terms/",
+    "odrl": "http://www.w3.org/ns/odrl/2/"
+  },
+  "@id": "https://example.com/datasets/consignment-events",
+  "@type": "dcat:Dataset",
+  "dcterms:title": "Consignment Events",
+  "dcterms:description": "Logistics consignment event data offered for authorised partners",
+  "dcterms:publisher": "did:iota:provider-org",
+  "dcat:distribution": {
+    "@type": "dcat:Distribution",
+    "@id": "https://example.com/distributions/consignment-events-json",
+    "dcterms:format": "application/json",
+    "dcat:accessService": "https://provider.example.com/dataspace-data-plane"
+  },
+  "odrl:hasPolicy": {
+    "@context": "http://www.w3.org/ns/odrl.jsonld",
+    "@type": "Offer",
+    "uid": "https://example.com/policies/consignment-events-offer",
+    "assigner": "did:iota:provider-org",
+    "permission": [{ "action": "use" }]
+  }
+}
+```
+
+## Component Surface and API
+
+The `IFederatedCatalogueComponent` contract has four methods, each taking the caller's trust payload: `set` inserts or updates a dataset, `get` retrieves one by id, `query` runs a filtered paginated query returning a Dataspace Protocol `Catalog`, and `remove` deletes an entry. `FederatedCatalogueService` implements it, with `FederatedCatalogueRestClient` as the HTTP counterpart. The REST surface (default base route `catalog`):
+
+| Method   | Path                          | Purpose                                                                                         |
+| -------- | ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `POST`   | `catalog/request`             | Query the catalogue (Dataspace Protocol `CatalogRequestMessage`), paginated via a `Link` header |
+| `GET`    | `catalog/datasets/:datasetId` | Retrieve a single dataset                                                                       |
+| `POST`   | `catalog/datasets`            | Insert or update a dataset                                                                      |
+| `DELETE` | `catalog/datasets/:datasetId` | Remove a dataset                                                                                |
+
+As with the connector, authorisation is a verifiable credential bearer token verified inside the service, and failures are returned as Dataspace Protocol `CatalogError` objects with semantic error codes.
+
+## Entry Lifecycle
+
+{EntryLifecycleDiagram()}
+
+Registration runs through a strict pipeline. The caller's trust payload is verified first and the resulting identity becomes the entry's owner. The dataset id is normalised (derived from `dcterms:identifier` when absent, and required to be a valid URL or URN), the structure is checked for the mandatory type and publisher, and the whole document is validated for Dataspace Protocol conformance, including the distribution format, access service, and offer. The document is then compacted to prefixed JSON-LD for storage. Writes are serialised per dataset with a mutex, and an update from anyone other than the owning identity is rejected, so an entry can only ever be modified by its publisher. Before persisting, the owning organisation is baked into each distribution's access endpoint as a query parameter, so a consumer that later dereferences the endpoint reaches the correct organisation context on a multi-tenant node. Registered filter plugins are also invoked to compute index data for the entry before it is stored, although their output is currently recorded only in logs and metrics rather than persisted, so queries match on the entity's own columns.
+
+Entries have no expiry or refresh cycle: a dataset remains until its owner removes it, and removal enforces the same ownership check. The trust token used on each call can carry an expiry (when the deployment configures a token time to live), keeping authorisation fresh even though entries are durable.
+
+## Querying and Federation Shape
+
+Queries go through pluggable filter components registered in the `FederatedCatalogueFilterFactory`. A query names one filter by type and passes its criteria; the shipped `FilterByMetadata` filter matches on dataset metadata such as title, description, keywords, and publisher, translating criteria into entity storage conditions so filtering happens in the database rather than in memory. The dataset entity indexes only its id and owner columns, so metadata filters scan on most storage backends, and a query without a filter bypasses the filter plugins entirely.
+
+Results are shaped into a Dataspace Protocol `Catalog` grouped by publisher: datasets published by the requesting identity appear at the catalogue root, while other participants' datasets are grouped into nested catalogues per publisher, each stamped with its `participantId`. Pagination uses an opaque cursor surfaced through an RFC 8288 `Link` header.
+
+```json
+{
+  "@context": ["https://w3id.org/dspace/2025/1/context.jsonld"],
+  "@id": "urn:x-catalog:a1b2c3d4e5f6",
+  "@type": "Catalog",
+  "participantId": "did:iota:provider-org",
+  "dataset": [
+    {
+      "@id": "urn:uuid:dataset-123",
+      "@type": "Dataset",
+      "dcterms:title": "Consignment Events",
+      "hasPolicy": [
+        { "@id": "urn:uuid:policy-456", "@type": "Offer", "assigner": "did:iota:provider-org" }
+      ],
+      "distribution": [
+        {
+          "@id": "urn:uuid:distribution-789",
+          "@type": "Distribution",
+          "format": "application/json",
+          "accessService": {
+            "@id": "urn:uuid:access-service-321",
+            "@type": "DataService",
+            "endpointURL": "https://provider.example.com/dataspace-data-plane"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## How the Connector Uses the Catalogue
+
+The control plane is the catalogue's main client, through four integration points: publishing a dataspace app's dataset (`set`, with the publisher defaulted to the owning organisation when not supplied), fetching the dataset and its offers when a negotiation starts (`get`), re-fetching it to validate that a returned agreement genuinely derives from a published offer (`get`), and withdrawing the entry when the app dataset is deleted (`remove`). Each call is made with a locally minted trust payload for the owning organisation, so catalogue operations carry the same credential-based authorisation as everything else.
+
+## Related
+
+- [Dataspace Overview](./dataspace.mdx)
+- [Dataspace Connector](./dataspace-connector.mdx)
+- [ODRL Policies](./dataspace-odrl-policies.mdx)
+- [End-to-End Data Exchange](./dataspace-end-to-end.mdx)

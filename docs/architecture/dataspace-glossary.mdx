@@ -1,0 +1,54 @@
+---
+category: dataspace
+order: 8
+---
+
+# Dataspace Glossary
+
+Terms and acronyms used throughout the dataspace documentation.
+
+| Term              | Meaning                                                                                                                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agreement         | An ODRL policy type binding a named assigner and assignee to usage conditions over a target asset; the outcome of contract negotiation and the input to every enforcement decision.                 |
+| Activity Streams  | The W3C vocabulary for describing activities in JSON-LD, used for the payloads delivered to and from the data plane inbox.                                                                          |
+| Catalogue broker  | The dataspace role that enables asset discovery; realised by the federated catalogue.                                                                                                               |
+| Clearing house    | The dataspace role that records evidence of exchanges; realised through negotiation history, activity logs, and decision and obligation logging rather than a dedicated component.                  |
+| Connector         | The participant-side runtime (control plane plus data plane) through which an organisation negotiates agreements and exchanges data.                                                                |
+| Consumer          | The role of the participant requesting and receiving data under an agreement.                                                                                                                       |
+| Control plane     | The connector half that manages agreements and transfer process state, but never payload data.                                                                                                      |
+| Data plane        | The connector half that moves payload data, enforcing policy on every access.                                                                                                                       |
+| Dataspace         | A federation of independent organisations exchanging data under agreed rules without a central data custodian.                                                                                      |
+| Dataspace app     | An application component owning the data behind a dataset, registered in the app factory and invoked by the data plane to serve queries and handle activities.                                      |
+| DCAT              | The W3C Data Catalogue vocabulary, version 3, used to describe datasets, distributions, and data services in the federated catalogue.                                                               |
+| DID               | Decentralised Identifier, the W3C identifier scheme for participants; the primary method anchors DID documents on the IOTA Rebased ledger.                                                          |
+| DSP               | The Dataspace Protocol, the connector-to-connector protocol for catalogue requests, contract negotiation, and transfer processes; this platform implements the 2025-1 series.                       |
+| Duty / obligation | An ODRL rule requiring an action to be fulfilled as part of a policy; unfulfilled policy obligations cause evaluation to deny.                                                                      |
+| EDR               | Endpoint Data Reference, the common name for the token-bearing data address a provider issues at transfer start; here it is the DSP `DataAddress` with the bearer token in its endpoint properties. |
+| JSON-LD           | JSON for Linked Data, the serialisation used for all protocol messages, catalogue entries, and policies.                                                                                            |
+| JSONPath          | An expression language for addressing values inside a JSON document, used by the dataspace ODRL profile for field-level targets and by decisions to name what they apply to.                        |
+| JWT               | JSON Web Token, the compact signed form in which verifiable credentials travel as trust payloads.                                                                                                   |
+| NFT               | Non-Fungible Token, the on-ledger anchor used by the attestation packages.                                                                                                                          |
+| ODRL              | The W3C Open Digital Rights Language, version 2.2, the policy expression language for offers and agreements.                                                                                        |
+| Offer             | An ODRL policy type stating the conditions a provider is willing to grant over an asset, published in the catalogue without a named assignee.                                                       |
+| PAP               | Policy Administration Point, the component that stores and manages policies and agreements.                                                                                                         |
+| PDP               | Policy Decision Point, the component that evaluates an agreement against an action, payload, and context to produce decisions.                                                                      |
+| PEP               | Policy Enforcement Point, the component that applies decisions to payloads, removing or replacing what is not granted.                                                                              |
+| PID               | Process identifier, the consumer or provider side identifier of a transfer process in DSP messages.                                                                                                 |
+| PIP               | Policy Information Point, the component that gathers context facts from registered information sources for evaluation.                                                                              |
+| PMP               | Policy Management Point, the component that locates candidate policies for a locator.                                                                                                               |
+| PNAP              | Policy Negotiation Admin Point, the component providing negotiation history.                                                                                                                        |
+| PNP               | Policy Negotiation Point, the component that runs the DSP contract negotiation state machine.                                                                                                       |
+| Provider          | The role of the participant offering datasets and serving the data under an agreement.                                                                                                              |
+| PXP               | Policy Execution Point, the component that runs side effects (logging, automation) before and after evaluation.                                                                                     |
+| Trust payload     | The credential presented as a bearer token on every protocol call and verified into an identity plus attribute data.                                                                                |
+| URN               | Uniform Resource Name, the location-independent identifier form (for example `urn:uuid:...`) used for dataset, policy, and process identifiers.                                                     |
+| Usage control     | Enforcing the conditions of an agreement on every access to the data, down to individual fields, rather than only at the moment of transfer.                                                        |
+| VC                | Verifiable Credential, the W3C model for cryptographically verifiable claims, used both as the trust payload and as the basis for attestation.                                                      |
+| XACML             | The OASIS eXtensible Access Control Markup Language, origin of the policy point (PAP, PDP, PEP, PIP) pattern the rights management components follow.                                               |
+| XSD               | XML Schema Definition datatypes, used to type ODRL constraint operand values such as dates and integers.                                                                                            |
+
+## Related
+
+- [Dataspace Overview](./dataspace.mdx)
+- [ODRL Policies](./dataspace-odrl-policies.mdx)
+- [Rights Management](./dataspace-rights-management.mdx)

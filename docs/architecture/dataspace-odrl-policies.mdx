@@ -1,0 +1,172 @@
+---
+category: dataspace
+order: 5
+---
+
+# ODRL Policies
+
+Usage conditions in the dataspace are expressed in the [W3C Open Digital Rights Language 2.2](https://www.w3.org/TR/odrl-model/). ODRL gives the dataspace a machine-evaluable contract language: a provider states its conditions as an `Offer` attached to a catalogue dataset, contract negotiation turns an accepted offer into an `Agreement` binding two named parties, and the rights management components evaluate that agreement on every data access. The vocabulary types are provided by the `standards-w3c-odrl` package, and policies are JSON-LD documents using the ODRL context `http://www.w3.org/ns/odrl.jsonld`.
+
+## Policy Types
+
+Three policy types matter in the dataspace flow:
+
+- **`Offer`** states what a provider (the `assigner`) is willing to permit over an asset. Offers carry no assignee: they are open proposals published in the federated catalogue as a dataset's `odrl:hasPolicy`. The `assigner` is declared at policy level, and a catalogue offer carries no explicit rule `target`: it implicitly targets the dataset it is attached to.
+- **`Agreement`** is the outcome of negotiation: it binds a concrete `assigner` and `assignee` (the participant DIDs) to a target asset and is the document every enforcement decision evaluates. During negotiation the connector validates that the returned agreement genuinely derives from the published offer.
+- **`Set`** is the plain rule container from the ODRL model, available for policies that are neither offers nor agreements (for example administrative policies managed directly through the policy administration point).
+
+In Dataspace Protocol negotiation messages the consumer's proposal (the request) carries the offer it is responding to, so no separate policy type is used for requests.
+
+## Rules: Permissions, Prohibitions, Obligations
+
+A policy contains up to three rule lists. Each rule names an `action` (from the standard ODRL action vocabulary, for example `use`, `read`, `distribute`, `delete`) and may scope it to a `target` and to parties:
+
+- `permission` grants an action, optionally conditional on constraints,
+- `prohibition` forbids an action,
+- `obligation` (a `Duty`) requires an action to be fulfilled; unfulfilled policy obligations cause evaluation to deny.
+
+Evaluation is closed world: if no permission applies to a request, the result is deny, and an empty policy denies everything. When a permission and a prohibition both apply to the same target, the policy's `conflict` strategy decides (`perm` lets the permission win, `prohibit` the prohibition; the default is deny).
+
+An offer as published in the catalogue, identified by `@id`, with the assigner at policy level and no explicit rule target:
+
+```json
+{
+  "@context": "http://www.w3.org/ns/odrl.jsonld",
+  "@type": "Offer",
+  "@id": "https://example.com/policies/consignment-events-offer",
+  "profile": "https://schema.twindev.org/odrl/v1/profile",
+  "assigner": "did:iota:provider-org",
+  "permission": [
+    {
+      "action": "read",
+      "constraint": [
+        {
+          "leftOperand": "dateTime",
+          "operator": "lt",
+          "rightOperand": { "@value": "2027-01-01", "@type": "xsd:date" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+The agreement produced from it names both parties. Like the offer, it carries no explicit `target`: the asset scope is the dataset the agreement was negotiated for, which the transfer process records. The evaluation engine resolves untargeted rules to the whole payload under evaluation, and the default arbiter rejects rules that target a plain asset IRI, so anything finer than whole-payload scope uses the profile's JSONPath targets described below.
+
+```json
+{
+  "@context": "http://www.w3.org/ns/odrl.jsonld",
+  "@type": "Agreement",
+  "@id": "urn:uuid:agreement-12345",
+  "profile": "https://schema.twindev.org/odrl/v1/profile",
+  "assigner": "did:iota:provider-org",
+  "assignee": "did:iota:consumer-org",
+  "permission": [{ "action": "read" }]
+}
+```
+
+A richer agreement combines all three rule kinds. Because it carries obligations, evaluating it requires at least one registered policy obligation enforcer: deployments configure enforcers explicitly (there is no default), the shipped enforcer treats every duty as fulfilled, and with none registered the arbiter fails rather than deciding. Given an enforcer and a payload that carries the prohibited fields, evaluation on the read path (which supplies no specific action) produces one decision per target: the whole payload is granted (while the validity window holds) and the two prohibited fields are denied.
+
+```json
+{
+  "@context": ["http://www.w3.org/ns/odrl.jsonld", "https://schema.twindev.org/odrl/v1/"],
+  "@type": "Agreement",
+  "@id": "urn:uuid:agreement-67890",
+  "profile": "https://schema.twindev.org/odrl/v1/profile",
+  "assigner": "did:iota:provider-org",
+  "assignee": "did:iota:consumer-org",
+  "permission": [
+    {
+      "action": "read",
+      "constraint": [
+        {
+          "leftOperand": "dateTime",
+          "operator": "lteq",
+          "rightOperand": { "@value": "2026-12-31", "@type": "xsd:date" }
+        }
+      ]
+    }
+  ],
+  "prohibition": [
+    { "action": "read", "target": "twin:jsonPath:$.sensitiveData" },
+    { "action": "derive", "target": "twin:jsonPath:$.personalInfo" }
+  ],
+  "obligation": [
+    { "action": "attribute", "attributedParty": "did:iota:provider-org" },
+    {
+      "action": "delete",
+      "constraint": [
+        {
+          "leftOperand": "dateTime",
+          "operator": "gteq",
+          "rightOperand": { "@value": "2027-06-30", "@type": "xsd:date" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Constraints
+
+A constraint compares a `leftOperand` against a `rightOperand` using an `operator`. The evaluation engine supports the ODRL comparison operators `eq`, `neq`, `gt`, `gteq`, `lt`, `lteq`, `isAnyOf`, `isAllOf`, and `isNoneOf`, plus `locTimeEq` and `locTimeGteq` (currently evaluated as plain equality and ordering), with XSD-typed right operands coerced to numbers, dates, durations, and booleans. Logical constraints compose operands with `and`, `andSequence`, `or`, and `xone`.
+
+Left operands resolve from three sources:
+
+- **Built-in operands.** `dateTime` resolves to the evaluation time, which is how validity windows work.
+- **Information keys.** A bare left operand such as `purpose` is looked up in the evaluation information: the merged view of the policy information sources and the agreement's trust data, see [Rights Management](./dataspace-rights-management.mdx). This is how credential-verified attributes become policy conditions. Standard vocabulary operands with no built-in implementation resolve the same way: for example `count` (in ODRL, the number of times an action has been exercised) is not tracked by the engine, so a `count` constraint evaluates only when an information source supplies the value and evaluation fails when the key is absent.
+- **Data references.** The platform profile's JSONPath operand reads values from the payload being evaluated or from the information (see below).
+
+Common patterns, a validity window and a purpose condition:
+
+```json
+{
+  "leftOperand": "dateTime",
+  "operator": "lteq",
+  "rightOperand": { "@value": "2026-12-31", "@type": "xsd:date" }
+}
+```
+
+```json
+{ "leftOperand": "purpose", "operator": "eq", "rightOperand": "research" }
+```
+
+For conditions over verified party attributes, see the profile section below.
+
+## The Dataspace ODRL Profile
+
+Policies evaluated by the platform declare the profile `https://schema.twindev.org/odrl/v1/profile`; the evaluation engine rejects policies declaring any unsupported profile. The profile extends standard ODRL with a JSONPath vocabulary for field-level control, using the additional context entry `https://schema.twindev.org/odrl/v1/` when the extension terms appear:
+
+- `twin:jsonPath` as a rule target type or constraint left operand,
+- `twin:jsonPathExpression` holding the JSONPath expression,
+- `twin:jsonPathDataSource` selecting the source: `data` (the payload, the default) or `information` (the merged information and trust data).
+
+Rule targets may also use the compact string form `twin:jsonPath:$.expression` (optionally with an explicit source, `twin:jsonPath:information:$.expression`), as the richer agreement above shows. A JSONPath target must match at least one location in its source: when the expression matches nothing, the whole evaluation fails with an error rather than skipping the rule, so an agreement that prohibits a field can only be enforced against payloads that carry that field.
+
+A permission gated on verified attributes uses a constraint over the information source, where the credential subject captured at negotiation lands under `$.subject`:
+
+```json
+{
+  "action": "read",
+  "constraint": [
+    {
+      "leftOperand": "twin:jsonPath",
+      "twin:jsonPathDataSource": "information",
+      "twin:jsonPathExpression": "$.subject.region",
+      "operator": "eq",
+      "rightOperand": "EU"
+    }
+  ]
+}
+```
+
+ODRL party collections are not the mechanism for attribute conditions: the default arbiter rejects a `PartyCollection` carrying a `source` value, and a refinement-only party collection resolves to no party identifiers and therefore never grants, so attribute conditions belong in rule constraints as shown above.
+
+Policies may also inherit from other stored policies via `inheritFrom`, with parent rules merged into the child during evaluation (cycle detection and a depth limit apply). ODRL features that the engine does not support, such as `rightOperandReference` and the constraint `unit` and `dataType` attributes, are rejected explicitly rather than silently ignored, so a policy either evaluates with full fidelity or fails loudly.
+
+## Related
+
+- [Rights Management](./dataspace-rights-management.mdx)
+- [Federated Catalogue](./dataspace-federated-catalogue.mdx)
+- [End-to-End Data Exchange](./dataspace-end-to-end.mdx)
+- [Glossary](./dataspace-glossary.mdx)

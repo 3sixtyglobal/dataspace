@@ -2,7 +2,7 @@
 
 This package implements agreement negotiation and transfer process lifecycle management for control plane operations. It coordinates protocol-compliant state transitions and persists transfer state that can be consumed by downstream data plane components.
 
-Its behaviour follows the [Eclipse Dataspace Protocol](https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/) and is designed for policy-aware transfer orchestration.
+Its behaviour follows the [Eclipse Dataspace Protocol](https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/) and is designed for policy-aware transfer orchestration. For the architectural context see the [dataspace architecture documentation](https://github.com/iotaledger/twin-dataspace/blob/next/docs/architecture/dataspace.mdx).
 
 ## Installation
 
