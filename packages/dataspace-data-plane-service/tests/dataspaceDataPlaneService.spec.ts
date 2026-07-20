@@ -2422,6 +2422,136 @@ describe("DataspaceDataPlaneService", () => {
 		// acts on the PEP's grant / deny / manipulate result.
 	});
 
+	// ============================================================================
+	// Pull-read party binding: validateTransfer must bind the verified caller
+	// identity to a party of the transfer, not just check token validity.
+	// ============================================================================
+
+	describe("Pull-read party binding (validateTransfer)", () => {
+		function makeTrustComponent(identity: string): ITrustComponent {
+			return {
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({ verified: true, info: { identity } }),
+				generate: vi.fn()
+			};
+		}
+
+		afterAll(() => {
+			// Restore the suite-wide trust component registered in beforeAll so later
+			// tests keep the consumer identity and transfer token.
+			ComponentFactory.register("trust", () => ({
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({
+					verified: true,
+					info: {
+						token: TEST_TRANSFER_TOKEN,
+						identity: DATA_CONSUMER_IDENTITY
+					}
+				}),
+				generate: vi.fn()
+			}));
+		});
+
+		test("returns the transfer context when the verified identity is the consumer", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const context = await service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN);
+			expect(context.consumerPid).toBe(TEST_CONSUMER_PID);
+			expect(context.datasetId).toBe(SERVICE_DATASET_ID);
+		});
+
+		test("returns the transfer context when the verified identity is the provider", async () => {
+			// A caller relaying the provider-self-issued pull token verifies as the
+			// provider identity, which is a legitimate transfer party.
+			ComponentFactory.register("trust", () => makeTrustComponent(TEST_ORGANIZATION_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const context = await service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN);
+			expect(context.consumerPid).toBe(TEST_CONSUMER_PID);
+			expect(context.providerIdentity).toBe(TEST_ORGANIZATION_IDENTITY);
+		});
+
+		test("rejects when the verified identity is not a party to the transfer", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("rejects a non-party before revealing the transfer state", async () => {
+			// The party check runs before the STARTED-state validation, so a non-party
+			// gets UnauthorizedError rather than the state-specific GeneralError.
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess({ state: "REQUESTED" }));
+
+			await expect(
+				service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("rejects when the transfer carries no party identities", async () => {
+			// Fail-secure: a transfer without stamped party identities cannot bind the
+			// caller, matching the inbox path's behaviour.
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(
+				createTestTransferProcess({ consumerIdentity: undefined, providerIdentity: undefined })
+			);
+
+			await expect(
+				service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("getDataAssetEntities rejects a non-party caller", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.getDataAssetEntities(
+					{
+						entityType: "https://vocabulary.uncefact.org/Consignment"
+					},
+					TEST_CONSUMER_PID,
+					undefined,
+					undefined,
+					TEST_TRANSFER_TOKEN
+				)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("queryDataAsset rejects a non-party caller", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.queryDataAsset(
+					TEST_CONSUMER_PID,
+					{ type: "TestQueryType", q: "test-query" },
+					undefined,
+					undefined,
+					TEST_TRANSFER_TOKEN
+				)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+	});
+
 	// ============================================
 	// Restored Data Asset Entity Tests
 	// ============================================

@@ -1047,7 +1047,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @returns The transfer context containing datasetId, agreement, and other transfer details.
 	 * @throws GeneralError if transfer process storage is not configured.
 	 * @throws NotFoundError if transfer process is not found.
-	 * @throws UnauthorizedError if trust verification fails.
+	 * @throws UnauthorizedError if trust verification fails or the verified identity is not a party to the transfer.
 	 * @throws GeneralError if transfer is not in STARTED state.
 	 */
 	public async validateTransfer(
@@ -1058,7 +1058,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		// Verify trust payload (validates JWT signature, expiry, and returns verification info)
 		// The trust verifier handles all token validation including expiry
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "validateTransfer");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"validateTransfer"
+		);
 
 		// Direct lookup from shared entity storage by consumerPid (which is the primary key)
 		const transferProcess = await this._transferProcessStorage.get(consumerPid);
@@ -1069,6 +1073,22 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				"transferProcessNotFound",
 				consumerPid
 			);
+		}
+
+		// Token validity alone must not grant access: the trust payload and consumerPid
+		// are independent inputs, so any credential holder who knows a started consumerPid
+		// could read the data. Either party is accepted because a relayed provider-self-issued
+		// pull token verifies as the provider. Runs before the state check so a non-party
+		// learns nothing about the transfer.
+		const isTransferParty =
+			(Is.stringValue(transferProcess.consumerIdentity) &&
+				trustInfo.identity === transferProcess.consumerIdentity) ||
+			(Is.stringValue(transferProcess.providerIdentity) &&
+				trustInfo.identity === transferProcess.providerIdentity);
+		if (!isTransferParty) {
+			throw new UnauthorizedError(DataspaceDataPlaneService.CLASS_NAME, "dataReadNotAuthorized", {
+				consumerPid
+			});
 		}
 
 		// Validate state: must be STARTED
