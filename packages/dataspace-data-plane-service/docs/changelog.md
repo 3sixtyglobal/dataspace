@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.1-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.9.1-next.9...dataspace-data-plane-service-v0.9.1-next.10) (2026-07-20)
+
+
+### Bug Fixes
+
+* bind pull-read caller identity to a transfer party ([#293](https://github.com/iotaledger/twin-dataspace/issues/293)) ([f99e142](https://github.com/iotaledger/twin-dataspace/commit/f99e1423c24c7bdfad3f3b0b0b72981f35025ba6))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.9.1-next.9 to 0.9.1-next.10
+    * @twin.org/dataspace-models bumped from 0.9.1-next.9 to 0.9.1-next.10
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.9.1-next.9 to 0.9.1-next.10
+
 ## [0.9.1-next.9](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.9.1-next.8...dataspace-data-plane-service-v0.9.1-next.9) (2026-07-06)
 
 
