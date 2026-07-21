@@ -25,7 +25,7 @@ Provider Process ID.
 
 ### agreement {#agreement}
 
-> **agreement**: `IDataspaceProtocolAgreement`
+> **agreement**: `IRightsManagementAgreement`
 
 Agreement associated with this Transfer Process.
 Contains permissions, obligations, and prohibitions that DSC uses for runtime policy enforcement.

@@ -142,7 +142,7 @@ Last update timestamp (ISO string format).
 
 ### policies? {#policies}
 
-> `optional` **policies?**: `IDataspaceProtocolPolicy`[]
+> `optional` **policies?**: `IRightsManagementPolicy`[]
 
 Policies from the Agreement (stored as JSON).
 
