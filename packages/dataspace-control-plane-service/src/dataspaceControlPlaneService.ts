@@ -685,13 +685,14 @@ export class DataspaceControlPlaneService
 	 * @param trustPayload Trust payload for authenticating this call.
 	 * @returns The consumerPid of the newly created TransferProcess.
 	 *
-	 * **Engine configuration requirement:** The outbound call to the provider uses
+	 * **Engine configuration requirement (remote transfers only):** when `providerEndpoint` is a
+	 * remote origin the outbound call uses
 	 * `ComponentFactory.create(remoteControlPlaneComponentType, { endpoint, pathPrefix })`.
 	 * For the runtime `providerEndpoint` to be forwarded correctly, the engine **must** register
 	 * the component type (default: `dataspace-control-plane-rest-client`) as a
 	 * **multi-instance** component (`isMultiInstance: true` in engine config). A singleton
 	 * registration ignores the runtime `endpoint` arg and silently POSTs to its
-	 * static endpoint instead.
+	 * static endpoint instead. Local-origin (same-node) transfers run in-process and are unaffected.
 	 */
 	public async prepareTransfer(
 		agreementId: string,
@@ -796,13 +797,12 @@ export class DataspaceControlPlaneService
 			{ subject: { consumerPid, agreementId } }
 		);
 
-		// Create a remote REST client pointed at the provider endpoint and call requestTransfer.
-		const remoteControlPlane = ComponentFactory.create<IDataspaceControlPlaneComponent>(
-			this._remoteControlPlaneComponentType,
-			{ endpoint: providerEndpoint, pathPrefix: "" }
+		// Call the provider's requestTransfer. When providerEndpoint resolves to a local origin this
+		// runs in-process (no loopback HTTP, no multi-instance client required); otherwise it uses a
+		// remote REST client. Mirrors how state-change deliveries route via withControlPlaneComponent.
+		const result = await this.withControlPlaneComponent(providerEndpoint, async component =>
+			component.requestTransfer(transferRequestMessage, outboundToken)
 		);
-
-		const result = await remoteControlPlane.requestTransfer(transferRequestMessage, outboundToken);
 
 		if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
 			const transferError = result as { code?: string };

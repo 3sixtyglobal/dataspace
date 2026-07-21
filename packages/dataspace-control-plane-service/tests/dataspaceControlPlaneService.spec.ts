@@ -6175,6 +6175,63 @@ describe("DataspaceControlPlaneService", () => {
 
 			ComponentFactory.unregister("test-remote-cp-error");
 		});
+
+		test("dispatches requestTransfer in-process when providerEndpoint is a local origin", async () => {
+			// The remote REST client must never be used for a local-origin provider — the request
+			// hop should run against this same instance (regression guard for #287).
+			const mockRemoteControlPlane = {
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi.fn().mockResolvedValue({
+					"@context": ["https://w3id.org/dspace/2024/1/context.json"],
+					"@type": "TransferProcess",
+					consumerPid: "should-not-be-used",
+					providerPid: "provider-pid-from-remote",
+					state: DataspaceProtocolTransferProcessStateType.REQUESTED
+				})
+			};
+			ComponentFactory.register("test-remote-cp-local", () => mockRemoteControlPlane);
+			ComponentFactory.register("test-platform-local", () => ({
+				...createSingleTenantPlatformComponent(),
+				getLocalOriginContext: vi.fn().mockResolvedValue({
+					[ContextIdKeys.Node]: "did:iota:test-node",
+					[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+					[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+					[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
+				})
+			}));
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-remote-cp-local",
+				platformComponentType: "test-platform-local"
+			});
+
+			const result = await service.prepareTransfer(
+				"agreement-123",
+				"https://test-origin.com",
+				"HttpData-PULL",
+				"valid-trust-payload"
+			);
+
+			// Remote client was NOT used — the request ran in-process against this instance.
+			expect(mockRemoteControlPlane.requestTransfer).not.toHaveBeenCalled();
+
+			// The transfer was still created and persisted in REQUESTED state.
+			expect(result.consumerPid).toBeDefined();
+			const stored = await transferProcessStorage.get(result.consumerPid);
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+			expect(stored?.agreementId).toBe("agreement-123");
+			// providerPid was minted by the real in-process requestTransfer (UUIDv7), not the
+			// mock remote's static "provider-pid-from-remote".
+			expect(stored?.providerPid).toMatch(
+				/^urn:uuid:[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
+			);
+
+			try {
+				ComponentFactory.unregister("test-remote-cp-local");
+				ComponentFactory.unregister("test-platform-local");
+			} catch {}
+		});
 	});
 
 	describe("resolveControlPlaneComponent() - locality-aware dispatch", () => {
