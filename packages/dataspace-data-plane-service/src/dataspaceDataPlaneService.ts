@@ -84,7 +84,6 @@ import {
 import {
 	DataspaceProtocolDataTypes,
 	DataspaceProtocolTransferProcessStateType,
-	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolDataset
 } from "@twin.org/standards-dataspace-protocol";
 import {
@@ -2087,7 +2086,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private buildTransferContext(transferProcess: TransferProcess): ITransferContext {
-		// Build the IDataspaceProtocolAgreement from stored data
+		// Build the IRightsManagementAgreement from stored data
 		// The entity stores agreementId and policies separately
 		//
 		// NOTE: Currently policies are cached in the TransferProcessEntity at transfer start time.
@@ -2107,7 +2106,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// Extract policies from the stored Agreement
 		// Extract permission, prohibition, and obligation
 		if (Is.arrayValue(transferProcess.policies)) {
-			const storedAgreement = transferProcess.policies[0] as IRightsManagementAgreement | undefined;
+			const storedAgreement = transferProcess.policies[0];
 			if (storedAgreement) {
 				agreement.permission = storedAgreement.permission;
 				agreement.prohibition = storedAgreement.prohibition;
@@ -2149,7 +2148,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 */
 	private async applyPolicyFilters(
 		result: IDataAssetItemListResult,
-		agreement?: IDataspaceProtocolAgreement
+		agreement?: IRightsManagementAgreement
 	): Promise<IDataAssetItemListResult> {
 		if (!agreement) {
 			return result;
@@ -2160,12 +2159,15 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				agreement,
 				result,
 				undefined,
-				(agreement as IRightsManagementAgreement).trustData
+				agreement.trustData
 			);
 
 		if (Is.arrayValue(agreement.obligation)) {
 			await this.logObligations(agreement.obligation, OdrlPolicyHelper.getUid(agreement) ?? "");
 		}
+
+		// Preserve the original cursor for pagination continuity
+		processed.cursor = result.cursor;
 
 		return processed;
 	}
@@ -2206,7 +2208,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const processed = await this._policyEnforcementPoint.interceptWithPolicy<
 			IActivityStreamsActivity,
 			IActivityStreamsActivity
-		>(agreement, activity, action, (agreement as IRightsManagementAgreement).trustData);
+		>(agreement, activity, action, agreement.trustData);
 
 		// The enforcement processor returns the (possibly manipulated) activity when
 		// the action is permitted, and an empty object when it is denied.
@@ -2263,7 +2265,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private async logObligations(
-		obligations: IDataspaceProtocolAgreement["obligation"],
+		obligations: IRightsManagementAgreement["obligation"],
 		agreementId: string
 	): Promise<void> {
 		if (!Is.arrayValue(obligations)) {

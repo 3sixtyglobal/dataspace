@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IJsonLdNodeObject } from "@twin.org/data-json-ld";
-import type { IDataspaceProtocolAgreement } from "@twin.org/standards-dataspace-protocol";
+import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
 
 /**
  * Payload handed to pushDeliveryRunner via a Background Task.
@@ -39,7 +39,7 @@ export interface IPushDeliveryPayload {
 	/**
 	 * The ODRL agreement governing the data transfer.
 	 */
-	agreement: IDataspaceProtocolAgreement;
+	agreement: IRightsManagementAgreement;
 
 	/**
 	 * The JSON-LD data payload to deliver to the consumer.

@@ -58,7 +58,9 @@ import {
 	PolicyRequesterFactory,
 	type IPolicyAdministrationPointComponent,
 	type IPolicyNegotiationAdminPointComponent,
-	type IPolicyNegotiationPointComponent
+	type IPolicyNegotiationPointComponent,
+	type IRightsManagementAgreement,
+	type IRightsManagementPolicy
 } from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolContexts,
@@ -68,11 +70,9 @@ import {
 	DataspaceProtocolTransferProcessTypes,
 	DataspaceProtocolVersionBindingType,
 	type DataspaceProtocolContractNegotiationStateType,
-	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolContractNegotiation,
 	type IDataspaceProtocolContractNegotiationError,
 	type IDataspaceProtocolDataset,
-	type IDataspaceProtocolPolicy,
 	type IDataspaceProtocolTransferCompletionMessage,
 	type IDataspaceProtocolTransferError,
 	type IDataspaceProtocolTransferProcess,
@@ -553,7 +553,7 @@ export class DataspaceControlPlaneService
 		let datasetId: string;
 		let consumerIdentity: string;
 		let providerIdentity: string;
-		let policies: IDataspaceProtocolPolicy[];
+		let policies: IRightsManagementPolicy[];
 
 		try {
 			const agreement = await this.lookupAgreement(request.agreementId);
@@ -1704,7 +1704,7 @@ export class DataspaceControlPlaneService
 			});
 		}
 
-		const catalogOffers = rawOffers.filter(offer => Is.object<IDataspaceProtocolPolicy>(offer));
+		const catalogOffers = rawOffers.filter(offer => Is.object<IRightsManagementPolicy>(offer));
 
 		if (!Is.arrayValue(catalogOffers)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetHasNoValidOffers", {
@@ -1713,14 +1713,14 @@ export class DataspaceControlPlaneService
 			});
 		}
 
-		const matchingOffer = catalogOffers.find((offer: IDataspaceProtocolPolicy) => {
+		const matchingOffer = catalogOffers.find((offer: IRightsManagementPolicy) => {
 			const offerUid = OdrlPolicyHelper.getUid(offer);
 			return offerUid === offerId;
 		});
 
 		if (!matchingOffer) {
 			const availableOffers = catalogOffers
-				.map((o: IDataspaceProtocolPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
+				.map((o: IRightsManagementPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
 				.join(", ");
 
 			throw new NotFoundError(
@@ -2309,11 +2309,16 @@ export class DataspaceControlPlaneService
 		const removeResult = await this._federatedCatalogueComponent.remove(id, localTrustPayload);
 
 		if (isCatalogError(removeResult)) {
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetRemoveFailed", {
-				datasetId: id,
-				tenantId: existing.tenantId ?? "",
-				catalogErrorCode: removeResult.code
-			});
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"datasetRemoveFailed",
+				{
+					datasetId: id,
+					tenantId: existing.tenantId ?? "",
+					catalogErrorCode: removeResult.code
+				},
+				BaseError.expand(removeResult.reason)
+			);
 		}
 
 		await this._dataspaceAppDatasetStorage.remove(id);
@@ -2739,7 +2744,7 @@ export class DataspaceControlPlaneService
 	 * @returns Agreement.
 	 * @internal
 	 */
-	private async lookupAgreement(agreementId: string): Promise<IDataspaceProtocolAgreement> {
+	private async lookupAgreement(agreementId: string): Promise<IRightsManagementAgreement> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(agreementId), agreementId);
 
 		let agreement;
@@ -2768,7 +2773,7 @@ export class DataspaceControlPlaneService
 	 * @throws GeneralError if the agreement target is missing, has no UID, or has multiple targets.
 	 * @internal
 	 */
-	private extractDatasetId(agreement: IDataspaceProtocolAgreement): string {
+	private extractDatasetId(agreement: IRightsManagementAgreement): string {
 		if (Is.empty(agreement.target)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "agreementMissingTarget", {
 				agreementId: OdrlPolicyHelper.getUid(agreement)
@@ -2808,10 +2813,10 @@ export class DataspaceControlPlaneService
 	 */
 	private async validateCatalogDataset(
 		datasetId: string,
-		agreement: IDataspaceProtocolAgreement
+		agreement: IRightsManagementAgreement
 	): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
-		Guards.object<IDataspaceProtocolAgreement>(
+		Guards.object<IRightsManagementAgreement>(
 			DataspaceControlPlaneService.CLASS_NAME,
 			nameof(agreement),
 			agreement
@@ -2933,7 +2938,7 @@ export class DataspaceControlPlaneService
 	 */
 	private getCatalogDatasetPolicies(
 		catalogDataset: IDcatDataset | IDataspaceProtocolDataset
-	): JsonLdObjectWithNoContext<IDataspaceProtocolPolicy>[] {
+	): JsonLdObjectWithNoContext<IRightsManagementPolicy>[] {
 		// Support both "odrl:hasPolicy" and "hasPolicy" to accommodate different catalog implementations
 		if (Is.object<IDcatDataset>(catalogDataset) && !Is.empty(catalogDataset["odrl:hasPolicy"])) {
 			const items = ArrayHelper.fromObjectOrArray(catalogDataset["odrl:hasPolicy"]) ?? [];
@@ -2961,10 +2966,10 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private async validateAgreementMatchesOffer(
-		agreement: IDataspaceProtocolAgreement,
+		agreement: IRightsManagementAgreement,
 		catalogDataset: IDcatDataset
 	): Promise<void> {
-		Guards.object<IDataspaceProtocolAgreement>(
+		Guards.object<IRightsManagementAgreement>(
 			DataspaceControlPlaneService.CLASS_NAME,
 			nameof(agreement),
 			agreement
@@ -2995,7 +3000,7 @@ export class DataspaceControlPlaneService
 			return;
 		}
 
-		const catalogOffers = rawOffers.filter(offer => Is.object<IDataspaceProtocolPolicy>(offer));
+		const catalogOffers = rawOffers.filter(offer => Is.object<IRightsManagementPolicy>(offer));
 
 		if (!Is.arrayValue(catalogOffers)) {
 			await this._loggingComponent?.log({
@@ -3012,7 +3017,7 @@ export class DataspaceControlPlaneService
 		}
 
 		const matchingOffer = catalogOffers.find(
-			(offer: IDataspaceProtocolPolicy) =>
+			(offer: IRightsManagementPolicy) =>
 				OdrlPolicyHelper.getUid(offer) === OdrlPolicyHelper.getUid(agreement) ||
 				this.isPolicyDerivedFrom(agreement, offer)
 		);
@@ -3022,7 +3027,7 @@ export class DataspaceControlPlaneService
 				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
 				datasetId: getJsonLdId(catalogDataset) ?? "",
 				availableOffers: catalogOffers
-					.map((o: IDataspaceProtocolPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
+					.map((o: IRightsManagementPolicy) => OdrlPolicyHelper.getUid(o) ?? "unknown")
 					.join(", ")
 			});
 		}
@@ -3053,8 +3058,8 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private isPolicyDerivedFrom(
-		agreement: IDataspaceProtocolAgreement,
-		offer: IDataspaceProtocolPolicy
+		agreement: IRightsManagementAgreement,
+		offer: IRightsManagementPolicy
 	): boolean {
 		const agreementTargets = OdrlPolicyHelper.getTargets(agreement);
 		const offerTargets = OdrlPolicyHelper.getTargets(offer);
@@ -3296,23 +3301,24 @@ export class DataspaceControlPlaneService
 		await ContextIdStore.run(tenantContextIds, async () => {
 			const datasetPayload = this.restampDatasetId(appDataset.dataset, appDataset.id);
 
-			const rawDatasets: IDataspaceProtocolDataset[] = [datasetPayload];
+			const dataset = await this.populateDefaults(datasetPayload);
 
-			const datasets = await Promise.all(rawDatasets.map(async d => this.populateDefaults(d)));
-
-			for (const dataset of datasets) {
-				const publishResult = await this._federatedCatalogueComponent.set(
-					dataset as unknown as IDcatDataset,
-					localTrustPayload
-				);
-				if (isCatalogError(publishResult)) {
-					throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "datasetPublishFailed", {
+			const publishResult = await this._federatedCatalogueComponent.set(
+				dataset as unknown as IDcatDataset,
+				localTrustPayload
+			);
+			if (isCatalogError(publishResult)) {
+				throw new GeneralError(
+					DataspaceControlPlaneService.CLASS_NAME,
+					"datasetPublishFailed",
+					{
 						datasetId: appDataset.id,
 						appId: appDataset.appId,
 						tenantId: appDataset.tenantId ?? "",
 						catalogErrorCode: publishResult.code
-					});
-				}
+					},
+					BaseError.expand(publishResult.reason)
+				);
 			}
 		});
 	}
@@ -3394,7 +3400,7 @@ export class DataspaceControlPlaneService
 				data: { agreementId, datasetId, organizationId }
 			});
 		} else {
-			const implicitAgreement: JsonLdObjectWithOptionalAtId<IDataspaceProtocolAgreement> = {
+			const implicitAgreement: JsonLdObjectWithOptionalAtId<IRightsManagementAgreement> = {
 				"@context": OdrlContexts.Context,
 				"@type": OdrlPolicyType.Agreement,
 				assigner: organizationId,

@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { NotFoundError } from "@twin.org/core";
 import { nameof } from "@twin.org/nameof";
-import type { IPolicyAdministrationPointComponent } from "@twin.org/rights-management-models";
 import type {
-	IDataspaceProtocolAgreement,
-	IDataspaceProtocolOffer,
-	IDataspaceProtocolPolicy,
-	IDataspaceProtocolSet
-} from "@twin.org/standards-dataspace-protocol";
+	IPolicyAdministrationPointComponent,
+	IRightsManagementAgreement,
+	IRightsManagementOffer,
+	IRightsManagementPolicy,
+	IRightsManagementSet
+} from "@twin.org/rights-management-models";
 
 /**
  * Mock Policy Administration Point component for testing.
@@ -26,13 +26,13 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * In-memory storage for test agreements.
 	 * @internal
 	 */
-	private readonly _policies: Map<string, IDataspaceProtocolPolicy>;
+	private readonly _policies: Map<string, IRightsManagementPolicy>;
 
 	/**
 	 * Create a new instance of MockPolicyAdministrationPointComponent.
 	 */
 	constructor() {
-		this._policies = new Map<string, IDataspaceProtocolPolicy>();
+		this._policies = new Map<string, IRightsManagementPolicy>();
 		this.initializeTestAgreements();
 	}
 
@@ -78,11 +78,11 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * @returns The UID of the created policy.
 	 */
 	public async create(
-		policy: Omit<IDataspaceProtocolPolicy, "uid"> & { uid?: string }
+		policy: Omit<IRightsManagementPolicy, "uid"> & { uid?: string }
 	): Promise<string> {
 		const uid = policy.uid ?? `generated-uid-${Date.now()}`;
 		// Intentionally cast to Agreement - mock allows invalid types for testing
-		const fullPolicy = { ...policy, uid } as IDataspaceProtocolPolicy;
+		const fullPolicy = { ...policy, uid } as IRightsManagementPolicy;
 		this._policies.set(uid, fullPolicy);
 		return uid;
 	}
@@ -92,7 +92,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * @param policyId The policy ID.
 	 * @returns The policy (throws if not found).
 	 */
-	public async get(policyId: string): Promise<IDataspaceProtocolPolicy> {
+	public async get(policyId: string): Promise<IRightsManagementPolicy> {
 		const policy = this._policies.get(policyId);
 		if (!policy) {
 			throw new NotFoundError(
@@ -110,7 +110,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * @param agreementId The agreement ID.
 	 * @returns The agreement (throws if not found).
 	 */
-	public async getAgreement(agreementId: string): Promise<IDataspaceProtocolAgreement> {
+	public async getAgreement(agreementId: string): Promise<IRightsManagementAgreement> {
 		const agreement = this._policies.get(agreementId);
 		if (!agreement) {
 			throw new NotFoundError(
@@ -120,7 +120,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 				{ policyId: agreementId }
 			);
 		}
-		return agreement as IDataspaceProtocolAgreement;
+		return agreement as IRightsManagementAgreement;
 	}
 
 	/**
@@ -128,7 +128,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * @param offerId The offer ID.
 	 * @returns The offer (throws if not found).
 	 */
-	public async getOffer(offerId: string): Promise<IDataspaceProtocolOffer> {
+	public async getOffer(offerId: string): Promise<IRightsManagementOffer> {
 		const offer = this._policies.get(offerId);
 		if (!offer) {
 			throw new NotFoundError(
@@ -138,7 +138,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 				{ policyId: offerId }
 			);
 		}
-		return offer as IDataspaceProtocolOffer;
+		return offer as IRightsManagementOffer;
 	}
 
 	/**
@@ -146,7 +146,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * @param setId The set ID.
 	 * @returns The set (throws if not found).
 	 */
-	public async getSet(setId: string): Promise<IDataspaceProtocolSet> {
+	public async getSet(setId: string): Promise<IRightsManagementSet> {
 		const set = this._policies.get(setId);
 		if (!set) {
 			throw new NotFoundError(
@@ -156,7 +156,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 				{ policyId: setId }
 			);
 		}
-		return set as IDataspaceProtocolSet;
+		return set as IRightsManagementSet;
 	}
 
 	/**
@@ -166,7 +166,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * @param policy The policy to update.
 	 * @returns Promise that resolves when complete.
 	 */
-	public async update(policy: IDataspaceProtocolPolicy): Promise<void> {
+	public async update(policy: IRightsManagementPolicy): Promise<void> {
 		this._policies.set(policy["@id"], policy);
 	}
 
@@ -185,7 +185,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * which are not used in this mock implementation.
 	 * @returns Object with policies array and optional cursor.
 	 */
-	public async query(): Promise<{ cursor?: string; policies: IDataspaceProtocolPolicy[] }> {
+	public async query(): Promise<{ cursor?: string; policies: IRightsManagementPolicy[] }> {
 		return {
 			policies: [...this._policies.values()]
 		};
@@ -199,7 +199,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * Add a test agreement.
 	 * @param agreement The agreement to add.
 	 */
-	public addAgreement(agreement: IDataspaceProtocolAgreement): void {
+	public addAgreement(agreement: IRightsManagementAgreement): void {
 		this._policies.set(agreement["@id"], agreement);
 	}
 
@@ -336,7 +336,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 			assigner: "did:iota:provider-node-xyz",
 			// Missing assignee - intentional for testing error handling
 			target: "urn:uuid:dataset-error-1"
-		} as unknown as IDataspaceProtocolAgreement);
+		} as unknown as IRightsManagementAgreement);
 
 		// Invalid Agreement - Missing target (still needs assignee for type checking)
 		this._policies.set("agreement-no-target", {
@@ -346,7 +346,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 			assigner: "did:iota:provider-node-xyz",
 			assignee: "did:iota:consumer-node-abc"
 			// Missing target - validation will catch this at runtime
-		} as unknown as IDataspaceProtocolAgreement);
+		} as unknown as IRightsManagementAgreement);
 
 		// Invalid Policy - Offer instead of Agreement
 		this._policies.set("offer-not-agreement", {
@@ -360,7 +360,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 					action: "read"
 				}
 			]
-		} as unknown as IDataspaceProtocolAgreement);
+		} as unknown as IRightsManagementAgreement);
 
 		// Invalid Agreement - Multiple targets (not supported)
 		this._policies.set("agreement-multiple-targets", {
@@ -375,6 +375,6 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 					action: "read"
 				}
 			]
-		} as unknown as IDataspaceProtocolAgreement);
+		} as unknown as IRightsManagementAgreement);
 	}
 }
