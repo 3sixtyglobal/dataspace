@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.10...dataspace-models-v0.9.1-next.11) (2026-07-21)
+
+
+### Bug Fixes
+
+* retain cursor after pep enforcement ([#296](https://github.com/iotaledger/twin-dataspace/issues/296)) ([5198cd2](https://github.com/iotaledger/twin-dataspace/commit/5198cd29505ceffa532fa4fa18c97a5c8e78f663))
+
 ## [0.9.1-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.9...dataspace-models-v0.9.1-next.10) (2026-07-20)
 
 

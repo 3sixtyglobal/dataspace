@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.10...dataspace-control-plane-service-v0.9.1-next.11) (2026-07-21)
+
+
+### Bug Fixes
+
+* retain cursor after pep enforcement ([#296](https://github.com/iotaledger/twin-dataspace/issues/296)) ([5198cd2](https://github.com/iotaledger/twin-dataspace/commit/5198cd29505ceffa532fa4fa18c97a5c8e78f663))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.10 to 0.9.1-next.11
+
 ## [0.9.1-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.9...dataspace-control-plane-service-v0.9.1-next.10) (2026-07-20)
 
 
