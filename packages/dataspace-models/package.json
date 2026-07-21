@@ -36,6 +36,7 @@
 		"@twin.org/data-json-ld": "next",
 		"@twin.org/entity": "next",
 		"@twin.org/nameof": "next",
+		"@twin.org/rights-management-models": "next",
 		"@twin.org/standards-dataspace-protocol": "next",
 		"@twin.org/standards-schema-org": "next",
 		"@twin.org/standards-w3c-activity-streams": "next",
