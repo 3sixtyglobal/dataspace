@@ -15,7 +15,7 @@
 	"license": "Apache-2.0",
 	"private": false,
 	"engines": {
-		"node": ">=20.0.0"
+		"node": ">=24.0.0"
 	},
 	"scripts": {
 		"build": "node ./scripts/workspaces.mjs build",
