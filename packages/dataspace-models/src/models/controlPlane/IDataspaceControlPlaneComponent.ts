@@ -118,8 +118,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	): Promise<{
 		negotiations: {
 			negotiation:
-				| IDataspaceProtocolContractNegotiation
-				| IDataspaceProtocolContractNegotiationError;
+				IDataspaceProtocolContractNegotiation | IDataspaceProtocolContractNegotiationError;
 			createdAt: string;
 			offerId?: string;
 			agreementId?: string;

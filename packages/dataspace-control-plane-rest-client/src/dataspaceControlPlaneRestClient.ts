@@ -166,8 +166,7 @@ export class DataspaceControlPlaneRestClient
 	): Promise<{
 		negotiations: {
 			negotiation:
-				| IDataspaceProtocolContractNegotiation
-				| IDataspaceProtocolContractNegotiationError;
+				IDataspaceProtocolContractNegotiation | IDataspaceProtocolContractNegotiationError;
 			createdAt: string;
 			offerId?: string;
 			agreementId?: string;
