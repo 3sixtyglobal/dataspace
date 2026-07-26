@@ -42,6 +42,14 @@
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {
+		"@twin.org/engine": "next",
+		"@twin.org/engine-types": "next",
+		"@twin.org/entity-storage-connector-memory": "next",
+		"@twin.org/entity-storage-models": "next",
+		"@twin.org/identity-connector-entity-storage": "next",
+		"@twin.org/identity-models": "next",
+		"@twin.org/vault-connector-entity-storage": "next",
+		"@twin.org/vault-models": "next",
 		"@twin.org/nameof-transformer": "next",
 		"@twin.org/nameof-vitest-plugin": "next",
 		"@twin.org/validate-locales": "next",

@@ -6,6 +6,7 @@ import { getJsonLdId, type IPushDeliveryPayload } from "@twin.org/dataspace-mode
 import { EngineCore } from "@twin.org/engine-core";
 import {
 	EngineCoreFactory,
+	EngineLogLevel,
 	type IEngineCore,
 	type IEngineCoreClone
 } from "@twin.org/engine-models";
@@ -47,7 +48,42 @@ export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone)
 		if (!Is.empty(engineCloneData)) {
 			const newEngine = new EngineCore();
 			EngineCoreFactory.register("engine", () => newEngine);
-			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), true);
+			// Limit the clone to the components the push delivery path reads after startup
+			// (PEP enforcement and trust token generation chains) plus their supporting
+			// connectors, instead of booting every component the source engine runs.
+			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), {
+				logLevel: EngineLogLevel.Error,
+				types: [
+					"loggingComponent",
+					"loggingConnector",
+					"entityStorageConnector",
+					"vaultConnector",
+					"identityComponent",
+					"identityConnector",
+					"trustComponent",
+					"trustGeneratorComponent",
+					"rightsManagementPepComponent",
+					"rightsManagementPdpComponent",
+					"rightsManagementPapComponent",
+					"rightsManagementPmpComponent",
+					"rightsManagementPipComponent",
+					"rightsManagementPxpComponent",
+					"rightsManagementPolicyArbiterComponent",
+					"rightsManagementPolicyEnforcementProcessorComponent",
+					"rightsManagementPolicyExecutionActionComponent",
+					"rightsManagementPolicyInformationSourceComponent",
+					"platformComponent",
+					"dltConfig"
+				],
+				entityTypes: [
+					"LogEntry",
+					"LogEntryError",
+					"IdentityDocument",
+					"OdrlPolicy",
+					"VaultKey",
+					"VaultSecret"
+				]
+			});
 			await newEngine.start();
 			engine = newEngine;
 
