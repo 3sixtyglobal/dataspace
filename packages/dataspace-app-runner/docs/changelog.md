@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1-next.12](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.1-next.11...dataspace-app-runner-v0.9.1-next.12) (2026-07-26)
+
+
+### Features
+
+* reduce engine clone overhead in push delivery runner ([#302](https://github.com/iotaledger/twin-dataspace/issues/302)) ([49538b6](https://github.com/iotaledger/twin-dataspace/commit/49538b6692870e9d8f5709407b33577599757a47))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.11 to 0.9.1-next.12
+
 ## [0.9.1-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.1-next.10...dataspace-app-runner-v0.9.1-next.11) (2026-07-21)
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.1-next.12](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.11...dataspace-control-plane-service-v0.9.1-next.12) (2026-07-26)
+
+
+### Bug Fixes
+
+* run prepareTransfer request in-process for local-origin providers ([#291](https://github.com/iotaledger/twin-dataspace/issues/291)) ([eb8cc40](https://github.com/iotaledger/twin-dataspace/commit/eb8cc408df5ce5394fbeb30897595dab2d555840)), refs [#287](https://github.com/iotaledger/twin-dataspace/issues/287)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.11 to 0.9.1-next.12
+
 ## [0.9.1-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.1-next.10...dataspace-control-plane-service-v0.9.1-next.11) (2026-07-21)
 
 

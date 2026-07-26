@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1-next.12](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.11...dataspace-models-v0.9.1-next.12) (2026-07-26)
+
+
+### Bug Fixes
+
+* missing dependencies ([54e9e9c](https://github.com/iotaledger/twin-dataspace/commit/54e9e9c474b61cce3b9a82f9ccec27c7f8133382))
+
 ## [0.9.1-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.10...dataspace-models-v0.9.1-next.11) (2026-07-21)
 
 
