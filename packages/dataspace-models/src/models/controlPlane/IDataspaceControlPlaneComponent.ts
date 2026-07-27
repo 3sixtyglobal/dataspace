@@ -257,7 +257,8 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 
 	// ============================================================================
 	// SHARED STATE MANAGEMENT OPERATIONS
-	// Methods that can be called by either Consumer or Provider
+	// Methods that can be called by either Consumer or Provider, except
+	// completeTransfer which is consumer-initiated only
 	// ============================================================================
 
 	/**
@@ -374,12 +375,16 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param appId The dataspace app this dataset belongs to (matches
 	 * `DataspaceAppFactory` registration name).
 	 * @param dataset The dataset payload (may omit system-stamped fields).
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns The resolved dataset id.
 	 */
 	createAppDataset(
 		id: string | undefined,
 		appId: string,
-		dataset: IDataspaceProtocolDataset
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
 	): Promise<string>;
 
 	/**
@@ -408,9 +413,17 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param id The stored app dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns A promise that resolves when the dataset has been updated in storage and the catalogue.
 	 */
-	updateAppDataset(id: string, appId: string, dataset: IDataspaceProtocolDataset): Promise<void>;
+	updateAppDataset(
+		id: string,
+		appId: string,
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
+	): Promise<void>;
 
 	/**
 	 * Delete an app dataset record owned by the calling tenant.

@@ -63,4 +63,19 @@ export interface IDataspaceControlPlaneServiceConfig {
 	 * Defaults to 1800000 (30 minutes).
 	 */
 	stalledTransferTimeoutMs?: number;
+
+	/**
+	 * Idle window (ms) for Provider-side STARTED PULL transfers: when there has been no data-plane
+	 * activity (last state change or last successful retrieval) within the window, the policy sweep
+	 * terminates the transfer with code "idleTimeout". Overridable per app dataset via its
+	 * transferIdleTimeoutMs (0 disables it for that dataset). Requires a task-scheduler component.
+	 * Unset (the default) disables the policy node-wide.
+	 */
+	providerTransferIdleTimeoutMs?: number;
+
+	/**
+	 * Interval (ms) for the provider transfer policy sweep, rounded to whole minutes (minimum one).
+	 * Defaults to 300000 (5 minutes).
+	 */
+	providerTransferPolicySweepIntervalMs?: number;
 }

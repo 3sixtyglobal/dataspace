@@ -6,6 +6,7 @@ import { Converter, ComponentFactory, I18n } from "@twin.org/core";
 import {
 	DataspaceAppDataset,
 	TransferProcess,
+	TransferRetrieval,
 	type IDataspaceDataPlaneComponent
 } from "@twin.org/dataspace-models";
 import type { IEngineCore } from "@twin.org/engine-models";
@@ -140,6 +141,10 @@ export async function setupTestEnv(): Promise<void> {
 
 	EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
 		EntitySchemaHelper.getSchema(DataspaceAppDataset)
+	);
+
+	EntitySchemaFactory.register(nameof<TransferRetrieval>(), () =>
+		EntitySchemaHelper.getSchema(TransferRetrieval)
 	);
 
 	// Register a default single-tenant platform component. Tests that need

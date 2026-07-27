@@ -884,7 +884,10 @@ async function createAppDatasetHandler(
 	const id = await component.createAppDataset(
 		request.body.id,
 		request.body.appId,
-		request.body.dataset
+		request.body.dataset,
+		{
+			transferIdleTimeoutMs: request.body.transferIdleTimeoutMs
+		}
 	);
 
 	const contextIds = await ContextIdStore.getContextIds();
@@ -968,7 +971,14 @@ async function updateAppDatasetHandler(
 	Guards.object(ROUTES_SOURCE, nameof(request.body.dataset), request.body.dataset);
 
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
-	await component.updateAppDataset(request.pathParams.id, request.body.appId, request.body.dataset);
+	await component.updateAppDataset(
+		request.pathParams.id,
+		request.body.appId,
+		request.body.dataset,
+		{
+			transferIdleTimeoutMs: request.body.transferIdleTimeoutMs
+		}
+	);
 
 	return {
 		statusCode: HttpStatusCode.noContent

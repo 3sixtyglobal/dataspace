@@ -5,10 +5,12 @@ import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Converter } from "@twin.org/core";
 import {
 	DataspaceTransferFormat,
+	TransferTerminationCode,
 	type DataspaceAppDataset,
 	type IDataspaceControlPlaneComponent,
 	type ITransferCallback,
-	type TransferProcess
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
@@ -25,6 +27,7 @@ import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.
 import { MockPolicyAdministrationPointComponent } from "./mocks/mockPolicyAdministrationPoint.js";
 import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiationPoint.js";
 import { setupTestEnv } from "./setupTestEnv.js";
+import type { IDataspaceControlPlaneServiceConfig } from "../src/models/IDataspaceControlPlaneServiceConfig.js";
 
 // Two-node identities. agreement-123 is pre-seeded in MockPolicyAdministrationPointComponent
 // (assigner=PROVIDER_ORG, assignee=CONSUMER_ORG, target=urn:uuid:dataset-123) and reused as the shared
@@ -116,6 +119,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	let consumerService: DataspaceControlPlaneService;
 	let consumerStorage: MemoryEntityStorageConnector<TransferProcess>;
 	let providerStorage: MemoryEntityStorageConnector<TransferProcess>;
+	let transferRetrievalStorage: MemoryEntityStorageConnector<TransferRetrieval>;
 	let consumerCallback: ITransferCallback;
 
 	beforeAll(async () => {
@@ -131,10 +135,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	 * Defaults to false (no auto-start).
 	 * @param providerContextOrg The provider node's tenant-routing organization context. Defaults to
 	 * PROVIDER_ORG (org == agreement assigner). Pass a distinct value to exercise the org != assigner split.
+	 * @param providerExtraConfig Additional provider-node service config merged over the shared defaults.
 	 */
 	function arrangeTwoNodes(
 		autoStart: boolean = false,
-		providerContextOrg: string = PROVIDER_ORG
+		providerContextOrg: string = PROVIDER_ORG,
+		providerExtraConfig: Partial<IDataspaceControlPlaneServiceConfig> = {}
 	): void {
 		ComponentFactory.register("test-pap", () => new MockPolicyAdministrationPointComponent());
 		ComponentFactory.register("test-fedcat", () => new MockFederatedCatalogueComponent());
@@ -157,6 +163,14 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		});
 		EntityStorageConnectorFactory.register(PROVIDER_TP_STORAGE, () => providerStorage);
 		EntityStorageConnectorFactory.register(CONSUMER_TP_STORAGE, () => consumerStorage);
+		transferRetrievalStorage = new MemoryEntityStorageConnector<TransferRetrieval>({
+			entitySchema: nameof<TransferRetrieval>(),
+			config: { storageKey: "transfer-retrieval" }
+		});
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<TransferRetrieval>(),
+			() => transferRetrievalStorage
+		);
 		EntityStorageConnectorFactory.register(
 			SHARED_DATASET_STORAGE,
 			() =>
@@ -181,7 +195,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		providerService = new DataspaceControlPlaneService({
 			...sharedDeps,
 			transferProcessEntityStorageType: PROVIDER_TP_STORAGE,
-			config: { ...sharedDeps.config, autoStartTransfers: autoStart }
+			config: { ...sharedDeps.config, autoStartTransfers: autoStart, ...providerExtraConfig }
 		});
 
 		// Consumer node (consumers never auto-start).
@@ -260,7 +274,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 				// Ignore if not registered.
 			}
 		}
-		for (const type of [PROVIDER_TP_STORAGE, CONSUMER_TP_STORAGE, SHARED_DATASET_STORAGE]) {
+		for (const type of [
+			PROVIDER_TP_STORAGE,
+			CONSUMER_TP_STORAGE,
+			SHARED_DATASET_STORAGE,
+			nameofKebabCase<TransferRetrieval>()
+		]) {
 			try {
 				EntityStorageConnectorFactory.unregister(type);
 			} catch {
@@ -533,6 +552,31 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		expect(consumerCallback.onTerminated).toHaveBeenCalledWith(consumerPid, "policy");
 		const storedConsumer = await consumerStorage.get(consumerPid);
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+	});
+
+	test("idle policy sweep terminates an idle STARTED transfer and notifies the consumer node", async () => {
+		// A negative window treats any STARTED transfer as immediately idle, so the assertion
+		// does not depend on wall-clock timing.
+		arrangeTwoNodes(true, PROVIDER_ORG, { providerTransferIdleTimeoutMs: -1 });
+		const { consumerPid } = await startedTransfer();
+
+		await (
+			providerService as unknown as { applyProviderTransferPolicies(): Promise<void> }
+		).applyProviderTransferPolicies();
+
+		// The sweep terminated the provider-side record and delivered the termination cross-node:
+		// both records reached TERMINATED and the consumer's onTerminated fired with the policy reason.
+		expect(consumerCallback.onTerminated).toHaveBeenCalledWith(
+			consumerPid,
+			TransferTerminationCode.IdleTimeout
+		);
+		const storedConsumer = await consumerStorage.get(consumerPid);
+		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+		const providerEntities = await providerStorage.query();
+		const providerRecord = providerEntities.entities.find(
+			e => (e as TransferProcess).consumerPid === consumerPid
+		) as TransferProcess | undefined;
+		expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
 	});
 
 	/**

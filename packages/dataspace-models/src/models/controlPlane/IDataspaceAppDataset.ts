@@ -22,6 +22,12 @@ export interface IDataspaceAppDataset {
 	dataset: IDataspaceProtocolDataset;
 
 	/**
+	 * Idle window (ms) for this dataset's PULL transfers, overriding the node-level
+	 * providerTransferIdleTimeoutMs; 0 disables the idle policy for this dataset.
+	 */
+	transferIdleTimeoutMs?: number;
+
+	/**
 	 * Creation timestamp (ISO string).
 	 */
 	dateCreated: string;

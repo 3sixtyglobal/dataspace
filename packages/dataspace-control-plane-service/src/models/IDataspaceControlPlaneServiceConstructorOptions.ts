@@ -74,6 +74,13 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	dataspaceAppDatasetEntityStorageType?: string;
 
 	/**
+	 * Entity storage type for Transfer Retrieval entities; when not registered the one-shot
+	 * policy is inactive. Must match the Data Plane's setting.
+	 * @default transfer-retrieval
+	 */
+	transferRetrievalEntityStorageType?: string;
+
+	/**
 	 * Task scheduler component type for periodic cleanup of stalled negotiations.
 	 * @default task-scheduler
 	 */

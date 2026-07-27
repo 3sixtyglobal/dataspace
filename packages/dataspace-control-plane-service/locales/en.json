@@ -23,6 +23,7 @@
 			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
 			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})",
 			"stalledTransfersCleanupComplete": "Stalled transfers cleanup completed (cleanedUp: {cleanedUp})",
+			"providerTransferPolicySweepComplete": "Provider transfer policy sweep completed (terminated: {terminated})",
 			"preparingTransfer": "Preparing consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
 			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
 		},
@@ -43,7 +44,10 @@
 		"dataspaceControlPlaneService": {
 			"catalogDatasetHasNoOffers": "Dataset has no Offers (odrl:hasPolicy) in Federated Catalogue",
 			"stalledNegotiationCleanedUp": "Stalled negotiation cleaned up (negotiationId: {negotiationId})",
-			"stalledTransferCleanedUp": "Stalled transfer cleaned up (consumerPid: {consumerPid})"
+			"stalledTransferCleanedUp": "Stalled transfer cleaned up (consumerPid: {consumerPid})",
+			"providerTransferIdleTimedOut": "Provider-side STARTED transfer had no data-plane activity within the idle window and will be terminated (consumerPid: {consumerPid}, providerPid: {providerPid}, idleTimeoutMs: {idleTimeoutMs})",
+			"providerTransferIdleStorageMissing": "The idle policy is configured but the transfer-retrieval entity storage is not registered, so the policy is skipped",
+			"providerTransferPolicyNoProviderIdentity": "Removed a Provider-side STARTED transfer with no provider identity (DID), it cannot be transitioned (consumerPid: {consumerPid})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"unknownNegotiationFinalized": "Unknown negotiation finalized (negotiationId: {negotiationId})",
@@ -104,7 +108,8 @@
 			"datasetNotFound": "Dataset not found",
 			"datasetWrongOrganization": "The calling organization does not own this dataset.",
 			"transferWrongOrganization": "The calling organization does not own this transfer.",
-			"invalidDatasetId": "Dataset ID \"{id}\" is not a valid URN or URL"
+			"invalidDatasetId": "Dataset ID \"{id}\" is not a valid URN or URL",
+			"providerTransferTerminateFailed": "Failed to terminate a provider transfer for a lifecycle policy (consumerPid: {consumerPid})"
 		},
 		"dataspaceControlPlanePolicyRequester": {},
 		"httpDataPullTransferHandler": {

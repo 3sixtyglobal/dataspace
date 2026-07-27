@@ -25,6 +25,7 @@ import {
 	DataspaceDataTypes,
 	TransferProcess,
 	TransferProcessRole,
+	TransferRetrieval,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IDataRequest,
@@ -199,6 +200,7 @@ describe("DataspaceDataPlaneService", () => {
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
 	let pushSubscriptionStorage: MemoryEntityStorageConnector<PushSubscription>;
 	let dataspaceAppDatasetStorage: MemoryEntityStorageConnector<DataspaceAppDataset>;
+	let transferRetrievalStorage: MemoryEntityStorageConnector<TransferRetrieval>;
 	let backgroundTaskService: BackgroundTaskService;
 	let taskScheduler: TaskSchedulerService;
 	let options: IDataspaceDataPlaneServiceConstructorOptions;
@@ -376,6 +378,18 @@ describe("DataspaceDataPlaneService", () => {
 			() => pushSubscriptionStorage
 		);
 
+		EntitySchemaFactory.register(nameof<TransferRetrieval>(), () =>
+			EntitySchemaHelper.getSchema(TransferRetrieval)
+		);
+		transferRetrievalStorage = new MemoryEntityStorageConnector<TransferRetrieval>({
+			entitySchema: nameof<TransferRetrieval>(),
+			config: { storageKey: "transfer-retrieval" }
+		});
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<TransferRetrieval>(),
+			() => transferRetrievalStorage
+		);
+
 		EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
 			EntitySchemaHelper.getSchema(DataspaceAppDataset)
 		);
@@ -444,6 +458,13 @@ describe("DataspaceDataPlaneService", () => {
 		for (const sub of allPushSubscriptions.entities) {
 			if (sub.consumerPid) {
 				await pushSubscriptionStorage.remove(sub.consumerPid);
+			}
+		}
+
+		const allTransferRetrievals = await transferRetrievalStorage.query();
+		for (const retrieval of allTransferRetrievals.entities) {
+			if (retrieval.consumerPid) {
+				await transferRetrievalStorage.remove(retrieval.consumerPid);
 			}
 		}
 
@@ -1040,6 +1061,76 @@ describe("DataspaceDataPlaneService", () => {
 				shutdownMethod: "pushDeliveryRunnerEnd",
 				idleShutdownTimeout: -1
 			});
+		});
+	});
+
+	describe("Transfer retrieval recording (#240)", () => {
+		test("recordTransferRetrieval preserves dateFirstRetrieved and updates dateLastRetrieved", async () => {
+			const service = new DataspaceDataPlaneService(options);
+			const svc = service as unknown as {
+				recordTransferRetrieval(consumerPid: string): Promise<void>;
+			};
+
+			await svc.recordTransferRetrieval(TEST_CONSUMER_PID);
+			const first = await transferRetrievalStorage.get(TEST_CONSUMER_PID);
+			expect(first?.dateFirstRetrieved).toBeDefined();
+			expect(first?.dateLastRetrieved).toBe(first?.dateFirstRetrieved);
+
+			const seededDate = new Date(0).toISOString();
+			await transferRetrievalStorage.set({
+				consumerPid: TEST_CONSUMER_PID,
+				dateFirstRetrieved: seededDate,
+				dateLastRetrieved: seededDate
+			});
+			await svc.recordTransferRetrieval(TEST_CONSUMER_PID);
+			const updated = await transferRetrievalStorage.get(TEST_CONSUMER_PID);
+			expect(updated?.dateFirstRetrieved).toBe(seededDate);
+			expect(updated?.dateLastRetrieved).not.toBe(seededDate);
+		});
+
+		test("recordTransferRetrieval is a no-op without the storage registered", async () => {
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferRetrieval>());
+			try {
+				const service = new DataspaceDataPlaneService(options);
+				await expect(
+					(
+						service as unknown as { recordTransferRetrieval(c: string): Promise<void> }
+					).recordTransferRetrieval(TEST_CONSUMER_PID)
+				).resolves.toBeUndefined();
+			} finally {
+				EntityStorageConnectorFactory.register(
+					nameofKebabCase<TransferRetrieval>(),
+					() => transferRetrievalStorage
+				);
+			}
+		});
+
+		test("start registers a push-delivery completion callback that records successful deliveries", async () => {
+			await startBackgroundTaskService();
+			const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
+
+			const service = new DataspaceDataPlaneService(options);
+			await service.start();
+
+			const pushDeliveryCall = registerHandlerSpy.mock.calls.find(
+				call => call[0] === DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE
+			);
+			const stateChangeCallback = pushDeliveryCall?.[3] as
+				| ((task: { status: TaskStatus; payload?: Partial<IPushDeliveryPayload> }) => Promise<void>)
+				| undefined;
+			expect(stateChangeCallback).toBeTypeOf("function");
+
+			await stateChangeCallback?.({
+				status: TaskStatus.Failed,
+				payload: { consumerPid: TEST_CONSUMER_PID, tenantId: "test-tenant" }
+			});
+			expect(await transferRetrievalStorage.get(TEST_CONSUMER_PID)).toBeUndefined();
+
+			await stateChangeCallback?.({
+				status: TaskStatus.Success,
+				payload: { consumerPid: TEST_CONSUMER_PID, tenantId: "test-tenant" }
+			});
+			expect(await transferRetrievalStorage.get(TEST_CONSUMER_PID)).toBeDefined();
 		});
 	});
 

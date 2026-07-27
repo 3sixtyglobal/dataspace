@@ -742,7 +742,7 @@ Transfer Context with Agreement, datasetId, and Transfer Process metadata.
 
 ### createAppDataset() {#createappdataset}
 
-> **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>
+> **createAppDataset**(`id`, `appId`, `dataset`, `options?`): `Promise`\<`string`\>
 
 Register a dataset for a dataspace app, owned by the calling organization.
 
@@ -766,6 +766,17 @@ The dataspace app this dataset belongs to.
 `IDataspaceProtocolDataset`
 
 The dataset payload.
+
+##### options?
+
+Optional dataset settings.
+
+###### transferIdleTimeoutMs?
+
+`number`
+
+Optional idle window (ms) overriding the node-level idle
+policy for this dataset's PULL transfers; 0 disables it for this dataset.
 
 #### Returns
 
@@ -839,7 +850,7 @@ The stored datasets and the next-page cursor if more exist.
 
 ### updateAppDataset() {#updateappdataset}
 
-> **updateAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`void`\>
+> **updateAppDataset**(`id`, `appId`, `dataset`, `options?`): `Promise`\<`void`\>
 
 Update a dataset record owned by the calling organization.
 
@@ -862,6 +873,17 @@ The dataspace app this dataset belongs to.
 `IDataspaceProtocolDataset`
 
 The dataset payload.
+
+##### options?
+
+Optional dataset settings.
+
+###### transferIdleTimeoutMs?
+
+`number`
+
+Optional idle window (ms) overriding the node-level idle
+policy for this dataset's PULL transfers; 0 disables it for this dataset.
 
 #### Returns
 

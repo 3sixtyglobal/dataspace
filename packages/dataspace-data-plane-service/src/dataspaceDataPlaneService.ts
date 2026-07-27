@@ -66,7 +66,8 @@ import {
 	type IPushDeliveryPayload,
 	type ITransferContext,
 	type IUndoActivity,
-	type TransferProcess
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
@@ -284,6 +285,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _pushSubscriptionStorageType: string;
 
 	/**
+	 * Storage for transfer retrievals; undefined when the hosting engine does not register it.
+	 * @internal
+	 */
+	private readonly _transferRetrievalStorage?: IEntityStorageConnector<TransferRetrieval>;
+
+	/**
 	 * Entity storage for tenant-supplied Dataspace App Dataset entities.
 	 * @internal
 	 */
@@ -342,6 +349,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// permanently miss it. We only need the factory key — every push call site re-resolves.
 		this._pushSubscriptionStorageType =
 			options?.pushSubscriptionEntityStorageType ?? nameofKebabCase<PushSubscription>();
+
+		this._transferRetrievalStorage = EntityStorageConnectorFactory.getIfExists<
+			IEntityStorageConnector<TransferRetrieval>
+		>(options?.transferRetrievalEntityStorageType ?? nameofKebabCase<TransferRetrieval>());
 
 		this._dataspaceAppDatasetStorage = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<DataspaceAppDataset>
@@ -459,7 +470,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
 			"@twin.org/dataspace-app-runner",
 			"pushDeliveryRunner",
-			undefined,
+			async task => {
+				if (task.status === TaskStatus.Success && !Is.empty(task.payload)) {
+					await this.recordPushDeliveryRetrieval(task.payload);
+				}
+			},
 			{
 				initialiseMethod: "pushDeliveryRunnerStart",
 				shutdownMethod: "pushDeliveryRunnerEnd",
@@ -928,6 +943,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 		}
 
+		await this.recordTransferRetrieval(consumerPid);
+
 		await MetricHelper.metricIncrement(
 			this._telemetryComponent,
 			DataspaceDataPlaneMetricIds.DataAssetsRetrieved
@@ -1029,6 +1046,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				result.itemList[SchemaOrgTypes.ItemListElement] = [];
 			}
 		}
+
+		await this.recordTransferRetrieval(consumerPid);
 
 		await MetricHelper.metricIncrement(
 			this._telemetryComponent,
@@ -1548,6 +1567,52 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				actor: activity.actor
 			}
 		);
+	}
+
+	/**
+	 * Record a successful retrieval (first and most recent), read by the control plane's one-shot
+	 * policy sweep. A no-op without the storage, never throws.
+	 * @param consumerPid The consumer process ID.
+	 * @internal
+	 */
+	private async recordTransferRetrieval(consumerPid: string): Promise<void> {
+		try {
+			if (Is.empty(this._transferRetrievalStorage)) {
+				return;
+			}
+			const now = new Date().toISOString();
+			const existing = await this._transferRetrievalStorage.get(consumerPid);
+			await this._transferRetrievalStorage.set({
+				consumerPid,
+				dateFirstRetrieved: existing?.dateFirstRetrieved ?? now,
+				dateLastRetrieved: now
+			});
+		} catch (error) {
+			await this._logging?.log({
+				level: "warn",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				message: "transferRetrievalRecordFailed",
+				data: { consumerPid, error }
+			});
+		}
+	}
+
+	/**
+	 * Record a successful push delivery as the transfer's first retrieval, inside the owning
+	 * tenant's context.
+	 * @param payload The delivered push payload.
+	 * @internal
+	 */
+	private async recordPushDeliveryRetrieval(payload: IPushDeliveryPayload): Promise<void> {
+		if (Is.stringValue(payload.tenantId)) {
+			const contextIds = await ContextIdStore.getContextIds();
+			await ContextIdStore.run(
+				{ ...contextIds, [ContextIdKeys.Tenant]: payload.tenantId },
+				async () => this.recordTransferRetrieval(payload.consumerPid)
+			);
+		} else {
+			await this.recordTransferRetrieval(payload.consumerPid);
+		}
 	}
 
 	/**

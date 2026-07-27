@@ -97,6 +97,21 @@ push-subscription
 
 ***
 
+### transferRetrievalEntityStorageType? {#transferretrievalentitystoragetype}
+
+> `optional` **transferRetrievalEntityStorageType?**: `string`
+
+The entity storage type for Transfer Retrieval entities; when not registered no retrievals
+are recorded. Must match the Control Plane's setting.
+
+#### Default
+
+```ts
+transfer-retrieval
+```
+
+***
+
 ### dataspaceAppDatasetEntityStorageType? {#dataspaceappdatasetentitystoragetype}
 
 > `optional` **dataspaceAppDatasetEntityStorageType?**: `string`

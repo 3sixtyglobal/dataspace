@@ -49,6 +49,13 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	pushSubscriptionEntityStorageType?: string;
 
 	/**
+	 * The entity storage type for Transfer Retrieval entities; when not registered no retrievals
+	 * are recorded. Must match the Control Plane's setting.
+	 * @default transfer-retrieval
+	 */
+	transferRetrievalEntityStorageType?: string;
+
+	/**
 	 * The entity storage type for Dataspace App Dataset entities.
 	 * @default dataspace-app-dataset
 	 */

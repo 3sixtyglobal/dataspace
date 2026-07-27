@@ -15,11 +15,14 @@ import {
 	DataspaceAppFactory,
 	DataspaceTransferFormat,
 	TransferProcessRole,
+	TransferTerminationCode,
 	type DataspaceAppDataset,
 	type INegotiationCallback,
 	type ITransferCallback,
-	type TransferProcess
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
+import { EngineCoreFactory } from "@twin.org/engine-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
@@ -54,6 +57,7 @@ import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiati
 import {
 	createFailingMockTrustComponent,
 	createMockDataspaceDataPlaneComponent,
+	createMockEngineCore,
 	createMockTrustComponent,
 	createSingleTenantPlatformComponent,
 	DEFAULT_SERVICE_OPTIONS,
@@ -82,6 +86,7 @@ describe("DataspaceControlPlaneService", () => {
 	// Create transfer process storage for tests
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
 	let dataspaceAppDatasetStorage: MemoryEntityStorageConnector<DataspaceAppDataset>;
+	let transferRetrievalStorage: MemoryEntityStorageConnector<TransferRetrieval>;
 	let mockPap: MockPolicyAdministrationPointComponent;
 	let mockFedCat: MockFederatedCatalogueComponent;
 	let mockPnp: MockPolicyNegotiationPointComponent;
@@ -101,6 +106,10 @@ describe("DataspaceControlPlaneService", () => {
 			entitySchema: nameof<DataspaceAppDataset>(),
 			config: { storageKey: "dataspace-app-dataset" }
 		});
+		transferRetrievalStorage = new MemoryEntityStorageConnector<TransferRetrieval>({
+			entitySchema: nameof<TransferRetrieval>(),
+			config: { storageKey: "transfer-retrieval" }
+		});
 
 		// Register the entity storage connectors
 		EntityStorageConnectorFactory.register(
@@ -110,6 +119,10 @@ describe("DataspaceControlPlaneService", () => {
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<DataspaceAppDataset>(),
 			() => dataspaceAppDatasetStorage
+		);
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<TransferRetrieval>(),
+			() => transferRetrievalStorage
 		);
 
 		// Create and register mock PAP, PNP, FedCat and PNAP admin components
@@ -146,6 +159,7 @@ describe("DataspaceControlPlaneService", () => {
 		try {
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferProcess>());
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<DataspaceAppDataset>());
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferRetrieval>());
 		} catch {
 			// Ignore errors if already unregistered
 		}
@@ -165,6 +179,7 @@ describe("DataspaceControlPlaneService", () => {
 
 		await transferProcessStorage.teardown();
 		await dataspaceAppDatasetStorage.teardown();
+		await transferRetrievalStorage.teardown();
 
 		vi.restoreAllMocks();
 	});
@@ -6904,6 +6919,430 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
 			expect(await transferProcessStorage.get(consumerPid)).toBeDefined();
+		});
+	});
+
+	describe("Provider transfer lifecycle policies (#240)", () => {
+		const PROVIDER_IDENTITY = "did:iota:provider";
+
+		/**
+		 * Seed a Provider/Consumer transfer for the policy sweep tests. Defaults to a STARTED
+		 * PULL record whose dateModified is 1970, far older than any threshold.
+		 * @param consumerPid The consumerPid (primary key).
+		 * @param localRole The persisted local role, or undefined for a legacy record.
+		 * @param options Optional overrides.
+		 * @param options.state The transfer state (defaults to STARTED).
+		 * @param options.dateModified The last-modified timestamp (defaults to 1970).
+		 * @param options.organizationIdentity The owning organization (defaults to the ambient test org).
+		 * @param options.omitProviderIdentity Seed the record without a provider identity.
+		 * @param options.format The transfer format (defaults to HttpData-PULL).
+		 */
+		async function seedPolicyTransfer(
+			consumerPid: string,
+			localRole: TransferProcessRole | undefined,
+			options?: {
+				state?: DataspaceProtocolTransferProcessStateType;
+				dateModified?: string;
+				organizationIdentity?: string;
+				omitProviderIdentity?: boolean;
+				format?: string;
+			}
+		): Promise<void> {
+			await transferProcessStorage.set({
+				id: Converter.bytesToHex(RandomHelper.generate(32)),
+				consumerPid,
+				providerPid: `provider-pid-for-${consumerPid}`,
+				state: options?.state ?? DataspaceProtocolTransferProcessStateType.STARTED,
+				agreementId: "agreement-policy",
+				datasetId: "urn:uuid:dataset-policy",
+				consumerIdentity: "did:iota:consumer",
+				...(options?.omitProviderIdentity === true ? {} : { providerIdentity: PROVIDER_IDENTITY }),
+				...(localRole === undefined ? {} : { localRole }),
+				offerId: "agreement-policy",
+				policies: [],
+				format: options?.format ?? "HttpData-PULL",
+				organizationIdentity: options?.organizationIdentity ?? "did:iota:provider-node-xyz",
+				dateCreated: new Date(0).toISOString(),
+				dateModified: options?.dateModified ?? new Date(0).toISOString()
+			});
+		}
+
+		/**
+		 * Seed a retrieval marker for a transfer.
+		 * @param consumerPid The consumerPid.
+		 * @param dateLastRetrieved The last retrieval timestamp.
+		 */
+		async function seedRetrieval(consumerPid: string, dateLastRetrieved: string): Promise<void> {
+			await transferRetrievalStorage.set({
+				consumerPid,
+				dateFirstRetrieved: dateLastRetrieved,
+				dateLastRetrieved
+			});
+		}
+
+		/**
+		 * Seed the policy dataset with an idle override.
+		 * @param transferIdleTimeoutMs The dataset-level idle window.
+		 */
+		async function seedDatasetOverride(transferIdleTimeoutMs: number): Promise<void> {
+			await dataspaceAppDatasetStorage.set({
+				id: "urn:uuid:dataset-policy",
+				organizationIdentity: "did:iota:provider-node-xyz",
+				appId: "policy-app",
+				dataset: {},
+				transferIdleTimeoutMs,
+				dateCreated: new Date(0).toISOString(),
+				dateModified: new Date(0).toISOString()
+			});
+		}
+
+		/**
+		 * Construct a service with the idle policy configured and a trust component resolving
+		 * to the provider identity (required by the terminate auth gate).
+		 * @param providerTransferIdleTimeoutMs The idle policy window.
+		 * @returns The service.
+		 */
+		function createPolicyService(
+			providerTransferIdleTimeoutMs?: number
+		): DataspaceControlPlaneService {
+			try {
+				ComponentFactory.unregister("test-trust");
+			} catch {}
+			ComponentFactory.register("test-trust", () => createMockTrustComponent(PROVIDER_IDENTITY));
+			return new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, providerTransferIdleTimeoutMs }
+			});
+		}
+
+		/**
+		 * Creates a full transfer callback spy object.
+		 * @param withOnTimeout Whether the spy implements the optional onTimeout hook.
+		 * @returns The callback spy.
+		 */
+		function createCallbackSpy(withOnTimeout: boolean = true): ITransferCallback {
+			return {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined),
+				...(withOnTimeout ? { onTimeout: vi.fn().mockResolvedValue(undefined) } : {})
+			};
+		}
+
+		/**
+		 * Run the private policy sweep.
+		 * @param service The service.
+		 */
+		async function runSweep(service: DataspaceControlPlaneService): Promise<void> {
+			await (
+				service as unknown as { applyProviderTransferPolicies(): Promise<void> }
+			).applyProviderTransferPolicies();
+		}
+
+		test("applyProviderTransferPolicies terminates a never-retrieved transfer idle beyond the window", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-idle-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+
+			const callbackSpy = createCallbackSpy();
+			service.registerTransferCallback("policy-idle-listener", callbackSpy);
+
+			await runSweep(service);
+
+			const stored = await transferProcessStorage.get(consumerPid);
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+			expect(callbackSpy.onTimeout).toHaveBeenCalledWith(consumerPid);
+			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
+			// Local onTerminated only fires for Consumer-role transitions; the provider role notifies
+			// the consumer node via its callbackAddress instead (none is set here).
+			expect(callbackSpy.onTerminated).not.toHaveBeenCalled();
+		});
+
+		test("applyProviderTransferPolicies falls back to onFailed(idleTimeout) when onTimeout is not implemented", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-idle-002";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+
+			const callbackSpy = createCallbackSpy(false);
+			service.registerTransferCallback("policy-fallback-listener", callbackSpy);
+
+			await runSweep(service);
+
+			expect(callbackSpy.onFailed).toHaveBeenCalledWith(
+				consumerPid,
+				TransferTerminationCode.IdleTimeout
+			);
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("applyProviderTransferPolicies leaves a transfer with a recent state change alone", async () => {
+			const service = createPolicyService(60 * 60 * 1000);
+			const consumerPid = "urn:uuid:policy-recent-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				dateModified: new Date().toISOString()
+			});
+
+			const callbackSpy = createCallbackSpy();
+			service.registerTransferCallback("policy-recent-listener", callbackSpy);
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
+		});
+
+		test("applyProviderTransferPolicies leaves a transfer with a recent retrieval alone", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-active-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedRetrieval(consumerPid, new Date(Date.now() + 60000).toISOString());
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("applyProviderTransferPolicies terminates a transfer whose retrieval and state are both stale", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-stale-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedRetrieval(consumerPid, new Date(0).toISOString());
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+			// The marker is removed once the transfer reaches a terminal state.
+			expect(await transferRetrievalStorage.get(consumerPid)).toBeUndefined();
+		});
+
+		test("applyProviderTransferPolicies keeps a resumed transfer alive despite an old retrieval", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-resumed-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				dateModified: new Date(Date.now() + 60000).toISOString()
+			});
+			await seedRetrieval(consumerPid, new Date(0).toISOString());
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("a dataset-level idle override enables the policy without node config", async () => {
+			const service = createPolicyService();
+			const consumerPid = "urn:uuid:policy-dataset-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedDatasetOverride(1);
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("a dataset-level idle override of 0 disables the policy despite node config", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-dataset-002";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedDatasetOverride(0);
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("applyProviderTransferPolicies skips PUSH transfers", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-push-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				format: "HttpData-PUSH"
+			});
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("applyProviderTransferPolicies skips the policy when the retrieval storage is not registered", async () => {
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferRetrieval>());
+			try {
+				const service = createPolicyService(1);
+				const consumerPid = "urn:uuid:policy-nostorage-001";
+				await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+
+				await runSweep(service);
+
+				expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+					DataspaceProtocolTransferProcessStateType.STARTED
+				);
+			} finally {
+				EntityStorageConnectorFactory.register(
+					nameofKebabCase<TransferRetrieval>(),
+					() => transferRetrievalStorage
+				);
+			}
+		});
+
+		test("applyProviderTransferPolicies skips Consumer-role and legacy records without a localRole", async () => {
+			const service = createPolicyService(1);
+			await seedPolicyTransfer("urn:uuid:policy-consumer-001", TransferProcessRole.Consumer);
+			await seedPolicyTransfer("urn:uuid:policy-legacy-001", undefined);
+
+			const callbackSpy = createCallbackSpy();
+			service.registerTransferCallback("policy-skip-listener", callbackSpy);
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get("urn:uuid:policy-consumer-001"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			expect((await transferProcessStorage.get("urn:uuid:policy-legacy-001"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
+		});
+
+		test("applyProviderTransferPolicies skips transfers already in a terminal state", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-terminal-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				state: DataspaceProtocolTransferProcessStateType.COMPLETED
+			});
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.COMPLETED
+			);
+		});
+
+		test("a sweep termination racing an already-terminated transfer hits the idempotency guard", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-race-001";
+			// The transfer was TERMINATED between the sweep's query and its transition: the DSP
+			// idempotency guard must absorb the retry.
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				state: DataspaceProtocolTransferProcessStateType.TERMINATED
+			});
+			const staleEntity = await transferProcessStorage.get(consumerPid);
+
+			const result = await (
+				service as unknown as {
+					terminateProviderPolicyTransfer(
+						t: TransferProcess,
+						code: TransferTerminationCode
+					): Promise<boolean>;
+				}
+			).terminateProviderPolicyTransfer(
+				staleEntity as TransferProcess,
+				TransferTerminationCode.IdleTimeout
+			);
+
+			expect(result).toBe(true);
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("applyProviderTransferPolicies establishes the owning organization context for the transition", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-org-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				organizationIdentity: "did:iota:other-org"
+			});
+
+			// Use the real context store: the sweep runs outside any request context (no ambient
+			// Organization), so the transition only succeeds because the sweep establishes the
+			// transfer's owning organization itself.
+			vi.mocked(ContextIdStore.getContextIds).mockRestore();
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("applyProviderTransferPolicies removes a Provider-side STARTED transfer without a provider identity", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-no-identity-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				omitProviderIdentity: true
+			});
+
+			await runSweep(service);
+
+			expect(await transferProcessStorage.get(consumerPid)).toBeUndefined();
+		});
+
+		test("start always registers the policy sweep task with the configured interval", async () => {
+			const addTask = vi.fn().mockResolvedValue(undefined);
+			const removeTask = vi.fn().mockResolvedValue(undefined);
+			ComponentFactory.register("test-task-scheduler", () => ({
+				className: () => "MockTaskScheduler",
+				addTask,
+				removeTask,
+				tasksInfo: vi.fn()
+			}));
+			EngineCoreFactory.register("engine", () => createMockEngineCore());
+
+			try {
+				const defaultService = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					taskSchedulerComponentType: "test-task-scheduler"
+				});
+				await defaultService.start();
+				expect(addTask).toHaveBeenCalledTimes(3);
+				expect(addTask).toHaveBeenCalledWith(
+					"control-plane-transfer-policy",
+					expect.anything(),
+					expect.any(Function)
+				);
+				await defaultService.stop();
+				expect(removeTask).toHaveBeenCalledTimes(3);
+
+				addTask.mockClear();
+
+				const intervalService = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					taskSchedulerComponentType: "test-task-scheduler",
+					config: {
+						...DEFAULT_SERVICE_OPTIONS.config,
+						providerTransferPolicySweepIntervalMs: 90000
+					}
+				});
+				await intervalService.start();
+				// 90000ms rounds to 2 whole minutes (the scheduler has minute granularity).
+				expect(addTask).toHaveBeenCalledWith(
+					"control-plane-transfer-policy",
+					[expect.objectContaining({ intervalMinutes: 2 })],
+					expect.any(Function)
+				);
+				await intervalService.stop();
+			} finally {
+				try {
+					ComponentFactory.unregister("test-task-scheduler");
+					EngineCoreFactory.unregister("engine");
+				} catch {}
+			}
 		});
 	});
 });

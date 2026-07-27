@@ -146,6 +146,21 @@ dataspace-app-dataset
 
 ***
 
+### transferRetrievalEntityStorageType? {#transferretrievalentitystoragetype}
+
+> `optional` **transferRetrievalEntityStorageType?**: `string`
+
+Entity storage type for Transfer Retrieval entities; when not registered the one-shot
+policy is inactive. Must match the Data Plane's setting.
+
+#### Default
+
+```ts
+transfer-retrieval
+```
+
+***
+
 ### taskSchedulerComponentType? {#taskschedulercomponenttype}
 
 > `optional` **taskSchedulerComponentType?**: `string`

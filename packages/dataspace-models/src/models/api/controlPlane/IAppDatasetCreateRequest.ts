@@ -32,5 +32,11 @@ export interface IAppDatasetCreateRequest {
 		 * may be omitted — the Control Plane fills them in at publish time.
 		 */
 		dataset: IDataspaceProtocolDataset;
+
+		/**
+		 * Optional idle window (ms) overriding the node-level idle policy for this
+		 * dataset's PULL transfers; 0 disables it for this dataset.
+		 */
+		transferIdleTimeoutMs?: number;
 	};
 }

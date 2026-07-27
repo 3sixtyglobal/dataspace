@@ -35,3 +35,10 @@ registered name in `DataspaceAppFactory` (typically the app's URI).
 
 The dataset payload. System-stamped fields like `dcterms:publisher`
 may be omitted — the Control Plane fills them in at publish time.
+
+#### transferIdleTimeoutMs?
+
+> `optional` **transferIdleTimeoutMs?**: `number`
+
+Optional idle window (ms) overriding the node-level idle policy for this
+dataset's PULL transfers; 0 disables it for this dataset.

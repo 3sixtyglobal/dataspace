@@ -3,10 +3,10 @@
 import { entity, property, SortDirection } from "@twin.org/entity";
 
 /**
- * Tenant-supplied Dataset shape persisted by the Control Plane.
+ * Tenant-supplied Dataset shape persisted by the Control Plane, version 0.
  */
-@entity({ version: 1 })
-export class DataspaceAppDataset {
+@entity({ version: 0 })
+export class DataspaceAppDatasetV0 {
 	/**
 	 * The unique identifier for the dataset.
 	 */
@@ -40,13 +40,6 @@ export class DataspaceAppDataset {
 	 */
 	@property({ type: "object", format: "json" })
 	public dataset!: { [key: string]: unknown };
-
-	/**
-	 * Idle window (ms) for this dataset's PULL transfers, overriding the node-level
-	 * providerTransferIdleTimeoutMs; 0 disables the idle policy for this dataset.
-	 */
-	@property({ type: "number", optional: true })
-	public transferIdleTimeoutMs?: number;
 
 	/**
 	 * Creation timestamp (ISO string format).

@@ -1,16 +1,16 @@
-# Class: DataspaceAppDataset
+# Class: DataspaceAppDatasetV0
 
-Tenant-supplied Dataset shape persisted by the Control Plane.
+Tenant-supplied Dataset shape persisted by the Control Plane, version 0.
 
 ## Constructors
 
 ### Constructor
 
-> **new DataspaceAppDataset**(): `DataspaceAppDataset`
+> **new DataspaceAppDatasetV0**(): `DataspaceAppDatasetV0`
 
 #### Returns
 
-`DataspaceAppDataset`
+`DataspaceAppDatasetV0`
 
 ## Properties
 
@@ -59,15 +59,6 @@ opaque object and validated/populated at publish time.
 #### Index Signature
 
 \[`key`: `string`\]: `unknown`
-
-***
-
-### transferIdleTimeoutMs? {#transferidletimeoutms}
-
-> `optional` **transferIdleTimeoutMs?**: `number`
-
-Idle window (ms) for this dataset's PULL transfers, overriding the node-level
-providerTransferIdleTimeoutMs; 0 disables the idle policy for this dataset.
 
 ***
 

@@ -7,6 +7,7 @@ import {
 	AlreadyExistsError,
 	ArrayHelper,
 	BaseError,
+	Coerce,
 	ComponentFactory,
 	Converter,
 	GeneralError,
@@ -23,14 +24,15 @@ import {
 } from "@twin.org/core";
 import {
 	JsonLdHelper,
-	type JsonLdObjectWithOptionalAtId,
-	type JsonLdObjectWithNoContext
+	type JsonLdObjectWithNoContext,
+	type JsonLdObjectWithOptionalAtId
 } from "@twin.org/data-json-ld";
 import {
 	DataspaceControlPlaneMetricIds,
 	DataspaceControlPlaneMetrics,
 	DataspaceTransferFormat,
 	TransferProcessRole,
+	TransferTerminationCode,
 	getJsonLdId,
 	getJsonLdType,
 	type DataspaceAppDataset,
@@ -43,7 +45,8 @@ import {
 	type ITransferContext,
 	type ITransferProcess,
 	type ITransferQueryResult,
-	type TransferProcess
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator, type EntityCondition } from "@twin.org/entity";
@@ -134,6 +137,12 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private static readonly _STALLED_TRANSFER_THRESHOLD_MS = 30 * 60 * 1000;
+
+	/**
+	 * Default provider transfer policy sweep interval in milliseconds (5 minutes).
+	 * @internal
+	 */
+	private static readonly _PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 
 	/**
 	 * The logging component.
@@ -281,6 +290,25 @@ export class DataspaceControlPlaneService
 	private readonly _stalledTransferTimeoutMs: number;
 
 	/**
+	 * Idle window (ms) for Provider-side STARTED PULL transfers; undefined disables the policy
+	 * node-wide.
+	 * @internal
+	 */
+	private readonly _providerTransferIdleTimeoutMs?: number;
+
+	/**
+	 * Interval (ms) at which the provider transfer policy sweep runs.
+	 * @internal
+	 */
+	private readonly _providerTransferPolicySweepIntervalMs: number;
+
+	/**
+	 * Storage for transfer retrievals; undefined when the hosting engine does not register it.
+	 * @internal
+	 */
+	private readonly _transferRetrievalStorage?: IEntityStorageConnector<TransferRetrieval>;
+
+	/**
 	 * Create a new instance of DataspaceControlPlaneService.
 	 * @param options The options for the service.
 	 */
@@ -342,6 +370,16 @@ export class DataspaceControlPlaneService
 		this._stalledTransferTimeoutMs =
 			options?.config?.stalledTransferTimeoutMs ??
 			DataspaceControlPlaneService._STALLED_TRANSFER_THRESHOLD_MS;
+
+		this._providerTransferIdleTimeoutMs = options?.config?.providerTransferIdleTimeoutMs;
+
+		this._providerTransferPolicySweepIntervalMs =
+			options?.config?.providerTransferPolicySweepIntervalMs ??
+			DataspaceControlPlaneService._PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS;
+
+		this._transferRetrievalStorage = EntityStorageConnectorFactory.getIfExists<
+			IEntityStorageConnector<TransferRetrieval>
+		>(options?.transferRetrievalEntityStorageType ?? nameofKebabCase<TransferRetrieval>());
 
 		this._taskScheduler = ComponentFactory.getIfExists<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
@@ -485,6 +523,23 @@ export class DataspaceControlPlaneService
 					await this.cleanupStalledTransfers();
 				}
 			);
+
+			await this._taskScheduler.addTask(
+				"control-plane-transfer-policy",
+				[
+					{
+						nextTriggerTime: Date.now(),
+						// The scheduler has minute granularity; floor at one minute.
+						intervalMinutes: Math.max(
+							1,
+							Math.round(this._providerTransferPolicySweepIntervalMs / 60000)
+						)
+					}
+				],
+				async () => {
+					await this.applyProviderTransferPolicies();
+				}
+			);
 		}
 	}
 
@@ -498,6 +553,7 @@ export class DataspaceControlPlaneService
 		if (this._taskScheduler) {
 			await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
 			await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
+			await this._taskScheduler.removeTask("control-plane-transfer-policy");
 		}
 	}
 
@@ -1127,7 +1183,7 @@ export class DataspaceControlPlaneService
 	}
 
 	// ----------------------------------------------------------------------------
-	// SHARED STATE MANAGEMENT OPERATIONS (Either Side)
+	// SHARED STATE MANAGEMENT OPERATIONS (either side, except completeTransfer: consumer-initiated only)
 	// ----------------------------------------------------------------------------
 
 	/**
@@ -1242,6 +1298,8 @@ export class DataspaceControlPlaneService
 				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
 				throw teardownError;
 			}
+
+			await this._transferRetrievalStorage?.remove(entity.consumerPid);
 
 			// Completion is consumer-initiated (the auth above accepts only the consumer): a consumer→provider
 			// notification, so no provider→consumer delivery here — unlike suspend/terminate (either party).
@@ -1526,6 +1584,8 @@ export class DataspaceControlPlaneService
 				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
 				throw teardownError;
 			}
+
+			await this._transferRetrievalStorage?.remove(entity.consumerPid);
 
 			if (role === TransferProcessRole.Consumer) {
 				await this._internalTransferCallback.onStateChanged(
@@ -2192,12 +2252,16 @@ export class DataspaceControlPlaneService
 	 * or generated.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns The resolved dataset id.
 	 */
 	public async createAppDataset(
 		id: string | undefined,
 		appId: string,
-		dataset: IDataspaceProtocolDataset
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
 	): Promise<string> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(appId), appId);
 		Guards.object<IDataspaceProtocolDataset>(
@@ -2240,6 +2304,7 @@ export class DataspaceControlPlaneService
 			tenantId: await this.resolveContextTenantId(),
 			appId,
 			dataset: ObjectHelper.omit(dataset, ["@id"]),
+			transferIdleTimeoutMs: Coerce.integer(options?.transferIdleTimeoutMs),
 			dateCreated: now,
 			dateModified: now
 		};
@@ -2280,6 +2345,7 @@ export class DataspaceControlPlaneService
 			id: entity.id,
 			appId: entity.appId,
 			dataset: this.restampDatasetId(entity.dataset, entity.id),
+			transferIdleTimeoutMs: entity.transferIdleTimeoutMs,
 			dateCreated: entity.dateCreated,
 			dateModified: entity.dateModified
 		};
@@ -2315,6 +2381,7 @@ export class DataspaceControlPlaneService
 			id: entity.id,
 			appId: entity.appId,
 			dataset: this.restampDatasetId(entity.dataset ?? {}, entity.id ?? ""),
+			transferIdleTimeoutMs: entity.transferIdleTimeoutMs,
 			dateCreated: entity.dateCreated,
 			dateModified: entity.dateModified
 		})) as IDataspaceAppDataset[];
@@ -2330,12 +2397,16 @@ export class DataspaceControlPlaneService
 	 * @param id The stored dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns A promise that resolves when the dataset has been updated in storage and the catalogue.
 	 */
 	public async updateAppDataset(
 		id: string,
 		appId: string,
-		dataset: IDataspaceProtocolDataset
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
 	): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(appId), appId);
@@ -2361,6 +2432,7 @@ export class DataspaceControlPlaneService
 			...existing,
 			appId,
 			dataset: ObjectHelper.omit(dataset, ["@id"]),
+			transferIdleTimeoutMs: Coerce.integer(options?.transferIdleTimeoutMs),
 			dateModified: new Date().toISOString()
 		};
 
@@ -2595,6 +2667,252 @@ export class DataspaceControlPlaneService
 				});
 			}
 		});
+	}
+
+	/**
+	 * Apply the idle lifecycle policy to Provider-role STARTED transfers, transitioning through
+	 * the standard terminateTransfer path.
+	 * @returns A promise that resolves when all matching transfers have been processed.
+	 * @internal
+	 */
+	private async applyProviderTransferPolicies(): Promise<void> {
+		const now = Date.now();
+
+		// Runs per tenant so the storage access inherits the correct [Node, Tenant] partition.
+		await this._platformComponent.execute(async () => {
+			if (
+				Is.integer(this._providerTransferIdleTimeoutMs) &&
+				Is.empty(this._transferRetrievalStorage)
+			) {
+				await this._loggingComponent?.log({
+					level: "warn",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "providerTransferIdleStorageMissing"
+				});
+			}
+
+			const providerStarted: TransferProcess[] = [];
+			let cursor: string | undefined;
+
+			do {
+				// The localRole condition also skips legacy records without a persisted localRole.
+				const page = await this._transferProcessStorage.query(
+					{
+						conditions: [
+							{
+								property: "state",
+								value: DataspaceProtocolTransferProcessStateType.STARTED,
+								comparison: ComparisonOperator.Equals
+							},
+							{
+								property: "localRole",
+								value: TransferProcessRole.Provider,
+								comparison: ComparisonOperator.Equals
+							}
+						],
+						logicalOperator: LogicalOperator.And
+					},
+					undefined,
+					undefined,
+					cursor
+				);
+
+				providerStarted.push(...(page.entities as TransferProcess[]));
+
+				cursor = page.cursor;
+			} while (Is.stringValue(cursor));
+
+			const datasetIdleCache = new Map<string, number | undefined>();
+			let terminated = 0;
+			for (const transfer of providerStarted) {
+				if (!Is.stringValue(transfer.providerIdentity)) {
+					// Cannot be transitioned without a provider identity, so remove it directly.
+					await this._transferProcessStorage.remove(transfer.consumerPid);
+					await this._loggingComponent?.log({
+						level: "warn",
+						source: DataspaceControlPlaneService.CLASS_NAME,
+						ts: Date.now(),
+						message: "providerTransferPolicyNoProviderIdentity",
+						data: { consumerPid: transfer.consumerPid }
+					});
+				} else if (await this.terminateIdleProviderTransfer(transfer, now, datasetIdleCache)) {
+					terminated++;
+				}
+			}
+
+			if (terminated > 0) {
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "providerTransferPolicySweepComplete",
+					data: { terminated }
+				});
+			}
+		});
+	}
+
+	/**
+	 * Terminate a Provider-side PULL transfer idle beyond its effective window (dataset override,
+	 * falling back to the node config; 0 disables). Activity is the later of the last state change
+	 * and the last successful retrieval. Notifies the registered callbacks (onTimeout, falling
+	 * back to onFailed).
+	 * @param transfer The transfer process entity.
+	 * @param now The sweep timestamp.
+	 * @param datasetIdleCache Per-sweep cache of dataset overrides.
+	 * @returns True when the transfer was terminated.
+	 * @internal
+	 */
+	private async terminateIdleProviderTransfer(
+		transfer: TransferProcess,
+		now: number,
+		datasetIdleCache: Map<string, number | undefined>
+	): Promise<boolean> {
+		// Retrieval activity is invisible without the storage, so skip rather than cut off
+		// consumers that are actively pulling.
+		if (
+			this.inferTransferFormat(transfer) !== DataspaceTransferFormat.HttpDataPull ||
+			Is.empty(this._transferRetrievalStorage)
+		) {
+			return false;
+		}
+
+		let datasetIdleMs: number | undefined;
+		if (datasetIdleCache.has(transfer.datasetId)) {
+			datasetIdleMs = datasetIdleCache.get(transfer.datasetId);
+		} else {
+			const dataset = await this._dataspaceAppDatasetStorage.get(transfer.datasetId);
+			datasetIdleMs = dataset?.transferIdleTimeoutMs;
+			datasetIdleCache.set(transfer.datasetId, datasetIdleMs);
+		}
+
+		const idleMs = datasetIdleMs ?? this._providerTransferIdleTimeoutMs;
+		if (!Is.integer(idleMs) || idleMs === 0) {
+			return false;
+		}
+
+		const retrieval = await this._transferRetrievalStorage.get(transfer.consumerPid);
+		const lastRetrieved = retrieval?.dateLastRetrieved;
+		const lastActivity = Math.max(
+			new Date(transfer.dateModified).getTime(),
+			Is.stringValue(lastRetrieved) ? new Date(lastRetrieved).getTime() : 0
+		);
+		if (now - lastActivity <= idleMs) {
+			return false;
+		}
+
+		const consumerPid = transfer.consumerPid;
+
+		await this._loggingComponent?.log({
+			level: "warn",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "providerTransferIdleTimedOut",
+			data: {
+				consumerPid,
+				providerPid: transfer.providerPid,
+				idleTimeoutMs: idleMs
+			}
+		});
+
+		for (const [key, cb] of this._transferCallbacks.entries()) {
+			const onTimeout = cb.onTimeout?.bind(cb);
+			const onFailed = cb.onFailed?.bind(cb);
+			try {
+				if (Is.function(onTimeout)) {
+					await onTimeout(consumerPid);
+				} else if (Is.function(onFailed)) {
+					await onFailed(consumerPid, TransferTerminationCode.IdleTimeout);
+				}
+			} catch (error) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "transferCallbackError",
+					data: {
+						key,
+						consumerPid,
+						method: Is.function(onTimeout) ? "onTimeout" : "onFailed",
+						error
+					}
+				});
+			}
+		}
+
+		return this.terminateProviderPolicyTransfer(transfer, TransferTerminationCode.IdleTimeout);
+	}
+
+	/**
+	 * Terminate a Provider-side transfer for a lifecycle policy: a self-issued provider token and
+	 * the owning organization context (the per-tenant execute establishes only the tenant), then
+	 * the standard terminateTransfer path. Failures are logged, never thrown.
+	 * @param transfer The transfer process entity.
+	 * @param code The termination code, also forwarded as the reason.
+	 * @returns True when the transfer was terminated.
+	 * @internal
+	 */
+	private async terminateProviderPolicyTransfer(
+		transfer: TransferProcess,
+		code: TransferTerminationCode
+	): Promise<boolean> {
+		const consumerPid = transfer.consumerPid;
+
+		if (!Is.stringValue(transfer.providerIdentity)) {
+			return false;
+		}
+
+		try {
+			const selfToken = await this._trustComponent.generate(
+				transfer.providerIdentity,
+				this._overrideTrustGeneratorType,
+				{
+					subject: {
+						consumerPid,
+						providerPid: transfer.providerPid,
+						agreementId: transfer.agreementId
+					}
+				}
+			);
+
+			const terminationMessage: IDataspaceProtocolTransferTerminationMessage = {
+				"@context": [DataspaceProtocolContexts.Context],
+				"@type": DataspaceProtocolTransferProcessTypes.TransferTerminationMessage,
+				consumerPid,
+				providerPid: transfer.providerPid,
+				code,
+				reason: [code]
+			};
+
+			const contextIds = await ContextIdStore.getContextIds();
+			const result = await ContextIdStore.run(
+				{ ...contextIds, [ContextIdKeys.Organization]: transfer.organizationIdentity },
+				async () => this.terminateTransfer(terminationMessage, selfToken)
+			);
+
+			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "providerTransferTerminateFailed",
+					data: { consumerPid, code: (result as IDataspaceProtocolTransferError).code }
+				});
+				return false;
+			}
+			return true;
+		} catch (error) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "providerTransferTerminateFailed",
+				error: BaseError.fromError(error),
+				data: { consumerPid }
+			});
+			return false;
+		}
 	}
 
 	/**
@@ -3447,7 +3765,9 @@ export class DataspaceControlPlaneService
 	 * @returns The effective DataspaceTransferFormat for handler lookup.
 	 * @internal
 	 */
-	private inferTransferFormat(entity: ITransferProcess): DataspaceTransferFormat {
+	private inferTransferFormat(
+		entity: Pick<ITransferProcess, "format" | "dataAddress">
+	): DataspaceTransferFormat {
 		const knownFormats = Object.values(DataspaceTransferFormat) as string[];
 		if (Is.stringValue(entity.format) && knownFormats.includes(entity.format)) {
 			return entity.format as DataspaceTransferFormat;

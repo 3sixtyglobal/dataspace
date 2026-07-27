@@ -64,9 +64,9 @@ export interface ITransferCallback {
 	onFailed?(consumerPid: string, reason: string): Promise<void>;
 
 	/**
-	 * Called when the transfer times out, i.e. the provider did not progress it (it sat in REQUESTED)
-	 * within the configured window. Optional: implement it to be notified specifically of a non-response
-	 * (otherwise the control plane falls back to `onFailed(consumerPid, "transferStalled")`).
+	 * Called when the transfer times out: a consumer-side REQUESTED transfer the provider never
+	 * progressed, or a provider-side STARTED transfer idle beyond the configured window. Optional:
+	 * otherwise the control plane falls back to `onFailed` with the timeout reason.
 	 * @param consumerPid The consumer-side process ID.
 	 * @returns Nothing.
 	 */
