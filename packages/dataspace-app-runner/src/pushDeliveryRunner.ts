@@ -82,7 +82,9 @@ export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone)
 					"VaultKey",
 					"VaultSecret"
 				]
-			});
+				// Using cast until all types align in other packages
+				// then we can remove the cast and use the actual type.
+			} as unknown as boolean);
 			await newEngine.start();
 			engine = newEngine;
 
