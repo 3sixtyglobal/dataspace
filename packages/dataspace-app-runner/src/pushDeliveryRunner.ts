@@ -6,7 +6,6 @@ import { getJsonLdId, type IPushDeliveryPayload } from "@twin.org/dataspace-mode
 import { EngineCore } from "@twin.org/engine-core";
 import {
 	EngineCoreFactory,
-	EngineLogLevel,
 	type IEngineCore,
 	type IEngineCoreClone
 } from "@twin.org/engine-models";
@@ -52,7 +51,7 @@ export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone)
 			// (PEP enforcement and trust token generation chains) plus their supporting
 			// connectors, instead of booting every component the source engine runs.
 			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), {
-				logLevel: EngineLogLevel.Error,
+				logLevel: "error",
 				types: [
 					"loggingComponent",
 					"loggingConnector",
