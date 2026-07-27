@@ -42,10 +42,11 @@ import {
 	type ITransferCallback,
 	type ITransferContext,
 	type ITransferProcess,
+	type ITransferQueryResult,
 	type TransferProcess
 } from "@twin.org/dataspace-models";
 import { EngineCoreFactory } from "@twin.org/engine-models";
-import { ComparisonOperator } from "@twin.org/entity";
+import { ComparisonOperator, LogicalOperator, type EntityCondition } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
@@ -958,6 +959,14 @@ export class DataspaceControlPlaneService
 			// CONSUMER-RECEIVE: the provider POSTed a TransferStart to our callback. Use the dataAddress
 			// from the message (rebuilding it is provider work), mark our record STARTED, and notify.
 			if (role === TransferProcessRole.Consumer) {
+				// PUSH keeps the consumer's request-time inbox; format-less legacy records need dataAddress absent for format inference.
+				if (
+					!Is.empty(message.dataAddress) &&
+					(entity.format === DataspaceTransferFormat.HttpDataPull ||
+						entity.format === DataspaceTransferFormat.HttpDataPost)
+				) {
+					entity.dataAddress = message.dataAddress;
+				}
 				entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
 				entity.dateModified = new Date();
 				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
@@ -1606,6 +1615,91 @@ export class DataspaceControlPlaneService
 		} catch (error) {
 			return transformToTransferError(error, { consumerPid: pid, providerPid: pid });
 		}
+	}
+
+	/**
+	 * Query Transfer Processes by agreement id.
+	 * Results are limited to transfers where the authenticated caller is a party
+	 * (consumer or provider identity).
+	 * @param agreementId The agreement id to look up transfer processes for.
+	 * @param state Optional filter to a single transfer process state.
+	 * @param cursor Optional pagination cursor from a previous result page.
+	 * @param trustPayload Trust payload containing authorization information.
+	 * @returns The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+	 */
+	public async queryDataTransfer(
+		agreementId: string,
+		state: DataspaceProtocolTransferProcessStateType | undefined,
+		cursor: string | undefined,
+		trustPayload: unknown
+	): Promise<ITransferQueryResult> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(agreementId), agreementId);
+
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"queryDataTransfer"
+		);
+
+		const conditions: EntityCondition<TransferProcess>[] = [
+			{
+				property: "agreementId",
+				value: agreementId,
+				comparison: ComparisonOperator.Equals
+			},
+			{
+				conditions: [
+					{
+						property: "consumerIdentity",
+						value: trustInfo.identity,
+						comparison: ComparisonOperator.Equals
+					},
+					{
+						property: "providerIdentity",
+						value: trustInfo.identity,
+						comparison: ComparisonOperator.Equals
+					}
+				],
+				logicalOperator: LogicalOperator.Or
+			}
+		];
+
+		if (Is.stringValue(state)) {
+			conditions.push({
+				property: "state",
+				value: state,
+				comparison: ComparisonOperator.Equals
+			});
+		}
+
+		const page = await this._transferProcessStorage.query(
+			{ conditions, logicalOperator: LogicalOperator.And },
+			undefined,
+			undefined,
+			cursor
+		);
+
+		const transfers = page.entities.map(pageEntity =>
+			this.storageEntityToModel(pageEntity as TransferProcess)
+		);
+
+		await this._loggingComponent?.log({
+			level: "info",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "dataTransfersQueried",
+			data: {
+				agreementId,
+				state,
+				count: transfers.length,
+				hasCursor: Boolean(page.cursor)
+			}
+		});
+
+		return {
+			transfers,
+			cursor: page.cursor
+		};
 	}
 
 	// ============================================================================

@@ -134,10 +134,8 @@ Specified by a Distribution for the Dataset associated with the Agreement.
 
 > `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
-Data address for consumer-initiated push transfers (HttpData-PUSH).
-Contains the consumer's /inbox endpoint as supplied in the TransferRequestMessage.
-Absent for PULL (HttpData-PULL) and provider-initiated push (HttpData-POST),
-where the consumer deliberately omits a dataAddress.
+Data address for the transfer: the consumer's inbox for PUSH, or the
+provider-built address persisted at start for PULL/POST; may expire while STARTED.
 
 ***
 

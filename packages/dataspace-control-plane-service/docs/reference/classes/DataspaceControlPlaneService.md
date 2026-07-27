@@ -514,6 +514,52 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ***
 
+### queryDataTransfer() {#querydatatransfer}
+
+> **queryDataTransfer**(`agreementId`, `state`, `cursor`, `trustPayload`): `Promise`\<`ITransferQueryResult`\>
+
+Query Transfer Processes by agreement id.
+Results are limited to transfers where the authenticated caller is a party
+(consumer or provider identity).
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+The agreement id to look up transfer processes for.
+
+##### state
+
+`DataspaceProtocolTransferProcessStateType` \| `undefined`
+
+Optional filter to a single transfer process state.
+
+##### cursor
+
+`string` \| `undefined`
+
+Optional pagination cursor from a previous result page.
+
+##### trustPayload
+
+`unknown`
+
+Trust payload containing authorization information.
+
+#### Returns
+
+`Promise`\<`ITransferQueryResult`\>
+
+The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.queryDataTransfer`
+
+***
+
 ### negotiateAgreement() {#negotiateagreement}
 
 > **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>

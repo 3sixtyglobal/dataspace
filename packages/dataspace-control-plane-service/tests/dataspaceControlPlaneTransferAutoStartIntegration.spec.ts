@@ -329,6 +329,27 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const storedConsumer = await consumerStorage.get(consumerPid);
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
+		// The provider-built PULL dataAddress was persisted on the consumer record and is
+		// re-readable via queryDataTransfer without a new start.
+		expect(storedConsumer?.dataAddress?.endpoint).toContain(PROVIDER_ENDPOINT);
+		const queried = await ContextIdStore.run(
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
+			async () =>
+				consumerService.queryDataTransfer(
+					AGREEMENT_ID,
+					DataspaceProtocolTransferProcessStateType.STARTED,
+					undefined,
+					consumerToken
+				)
+		);
+		expect(queried.transfers).toHaveLength(1);
+		expect(queried.transfers[0].consumerPid).toBe(consumerPid);
+		expect(queried.transfers[0].dataAddress?.endpoint).toContain(PROVIDER_ENDPOINT);
+
 		// Provider-side record also reached STARTED (the auto-start really ran).
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(

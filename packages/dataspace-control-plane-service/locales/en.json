@@ -3,6 +3,7 @@
 		"dataspaceControlPlaneService": {
 			"transferProcessInitiated": "Transfer Process initiated",
 			"transferProcessQueried": "Transfer Process queried (role: {role})",
+			"dataTransfersQueried": "Data transfers queried (agreementId: {agreementId}, count: {count})",
 			"transferProcessStarted": "Transfer Process started",
 			"transferProcessCompleted": "Transfer Process completed",
 			"transferProcessSuspended": "Transfer Process suspended",

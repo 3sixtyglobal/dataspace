@@ -550,6 +550,56 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ***
 
+### queryDataTransfer() {#querydatatransfer}
+
+> **queryDataTransfer**(`agreementId`, `state`, `cursor`, `trustPayload`): `Promise`\<[`ITransferQueryResult`](ITransferQueryResult.md)\>
+
+Query Transfer Processes by agreement id.
+Lets a caller check whether transfers already exist for an agreement
+(e.g. before initiating a new one) without knowing any process ids.
+
+Role Performed: Consumer / Provider
+Called by: Consumer orchestration before requesting a new transfer, or either
+party inspecting the transfers attached to an agreement on their side.
+
+Results are limited to transfers where the authenticated caller is a party
+(consumer or provider identity). A returned dataAddress is a point-in-time copy;
+if its token has expired the data plane rejects it and a new start is required.
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+The agreement id to look up transfer processes for.
+
+##### state
+
+`DataspaceProtocolTransferProcessStateType` \| `undefined`
+
+Optional filter to a single transfer process state.
+
+##### cursor
+
+`string` \| `undefined`
+
+Optional pagination cursor from a previous result page.
+
+##### trustPayload
+
+`unknown`
+
+Trust payload containing authorization information (JWT, VC, etc.).
+
+#### Returns
+
+`Promise`\<[`ITransferQueryResult`](ITransferQueryResult.md)\>
+
+The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+
+***
+
 ### createAppDataset() {#createappdataset}
 
 > **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>

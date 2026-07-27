@@ -33,6 +33,7 @@ import {
 	DataspaceProtocolTransferProcessTypes,
 	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolCatalogError,
+	type IDataspaceProtocolDataAddress,
 	type IDataspaceProtocolOffer,
 	type IDataspaceProtocolTransferCompletionMessage,
 	type IDataspaceProtocolTransferError,
@@ -324,6 +325,171 @@ describe("DataspaceControlPlaneService", () => {
 		});
 	});
 
+	describe("queryDataTransfer()", () => {
+		/**
+		 * Seed a transfer process into storage with sensible defaults for query tests.
+		 * The default party identities match the mock trust component's caller identity.
+		 * @param overrides Field overrides for the seeded transfer process.
+		 */
+		async function seedTransferProcess(overrides: Partial<TransferProcess>): Promise<void> {
+			await transferProcessStorage.set({
+				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				id: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				providerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				agreementId: "agreement-query-001",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-query-001",
+				offerId: "offer-query-001",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				localRole: TransferProcessRole.Consumer,
+				format: DataspaceTransferFormat.HttpDataPull,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				...overrides
+			});
+		}
+
+		test("should return a matching STARTED transfer including its dataAddress", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({
+				consumerPid: "urn:uuid:query-consumer-pid-001",
+				providerPid: "urn:uuid:query-provider-pid-001",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				DataspaceProtocolTransferProcessStateType.STARTED,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(1);
+			expect(result.transfers[0].consumerPid).toBe("urn:uuid:query-consumer-pid-001");
+			expect(result.transfers[0].providerPid).toBe("urn:uuid:query-provider-pid-001");
+			expect(result.transfers[0].state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(result.transfers[0].agreementId).toBe("agreement-query-001");
+			expect(result.transfers[0].datasetId).toBe("dataset-query-001");
+			expect(result.transfers[0].format).toBe(DataspaceTransferFormat.HttpDataPull);
+			expect(result.transfers[0].dataAddress?.endpoint).toBe(
+				"https://consumer.example.com/dataspace/inbox"
+			);
+			expect(result.cursor).toBeUndefined();
+		});
+
+		test("should return an empty result when no transfer exists for the agreement", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ agreementId: "agreement-query-other" });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				undefined,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toEqual([]);
+			expect(result.cursor).toBeUndefined();
+		});
+
+		test("should not return a transfer whose state differs from the filter", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.REQUESTED });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				DataspaceProtocolTransferProcessStateType.STARTED,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toEqual([]);
+		});
+
+		test("should return transfers in every state when no state filter is provided", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.REQUESTED });
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.STARTED });
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.COMPLETED });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				undefined,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(3);
+		});
+
+		test("should return every matching transfer when duplicates exist for the agreement", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ consumerPid: "urn:uuid:query-dup-pid-001" });
+			await seedTransferProcess({ consumerPid: "urn:uuid:query-dup-pid-002" });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				DataspaceProtocolTransferProcessStateType.STARTED,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(2);
+			expect(result.transfers.map(transfer => transfer.consumerPid).sort()).toEqual([
+				"urn:uuid:query-dup-pid-001",
+				"urn:uuid:query-dup-pid-002"
+			]);
+		});
+
+		test("should exclude transfers where the caller is not a party", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ consumerPid: "urn:uuid:query-party-pid-001" });
+			await seedTransferProcess({
+				consumerPid: "urn:uuid:query-party-pid-002",
+				consumerIdentity: "did:iota:another-consumer",
+				providerIdentity: "did:iota:another-provider"
+			});
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				undefined,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(1);
+			expect(result.transfers[0].consumerPid).toBe("urn:uuid:query-party-pid-001");
+		});
+
+		test("should throw UnauthorizedError when trust verification fails", async () => {
+			ComponentFactory.register("test-trust-failing-query", () =>
+				createFailingMockTrustComponent()
+			);
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-failing-query"
+			});
+
+			await expect(
+				service.queryDataTransfer("agreement-query-001", undefined, undefined, "any-token")
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+
+			ComponentFactory.unregister("test-trust-failing-query");
+		});
+	});
+
 	describe("startTransfer()", () => {
 		test("should transition Transfer Process to STARTED state", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
@@ -436,6 +602,140 @@ describe("DataspaceControlPlaneService", () => {
 				ComponentFactory.unregister("test-data-plane-push");
 				ComponentFactory.unregister("test-trust-provider-push");
 			} catch {}
+		});
+
+		test("should persist the provider-built PULL dataAddress on the consumer record at start", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Consumer-role REQUESTED PULL transfer; providerIdentity matches the mock trust identity.
+			await transferProcessStorage.set({
+				id: "start-persist-internal-01",
+				consumerPid: "start-persist-consumer-01",
+				providerPid: "start-persist-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-persist-01",
+				providerIdentity: "did:iota:consumer-node-abc",
+				localRole: TransferProcessRole.Consumer,
+				format: DataspaceTransferFormat.HttpDataPull,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "start-persist-consumer-01",
+				providerPid: "start-persist-provider-01",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsQueryEndpoint,
+					endpoint: "https://provider.example.com/data-plane/data/entities",
+					endpointProperties: [
+						{
+							"@type": DataspaceProtocolTransferProcessTypes.EndpointProperty,
+							name: "authorization",
+							value: "pull-access-token"
+						}
+					]
+				}
+			};
+
+			const result = await service.startTransfer(message, "valid-trust-payload");
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("start-persist-consumer-01");
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(stored?.dataAddress).toEqual(message.dataAddress);
+		});
+
+		test("should keep the consumer's stored PUSH dataAddress when the start message carries one", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// The consumer's own inbox, captured at request time, must not be clobbered by the
+			// provider-built address on the start message.
+			const consumerInbox: IDataspaceProtocolDataAddress = {
+				"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+				endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+				endpoint: "https://consumer.example.com/dataspace/inbox"
+			};
+
+			await transferProcessStorage.set({
+				id: "start-persist-internal-02",
+				consumerPid: "start-persist-consumer-02",
+				providerPid: "start-persist-provider-02",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-persist-02",
+				providerIdentity: "did:iota:consumer-node-abc",
+				localRole: TransferProcessRole.Consumer,
+				format: DataspaceTransferFormat.HttpDataPush,
+				dataAddress: consumerInbox,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "start-persist-consumer-02",
+				providerPid: "start-persist-provider-02",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://provider.example.com/data-plane/data/inbox"
+				}
+			};
+
+			const result = await service.startTransfer(message, "valid-trust-payload");
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("start-persist-consumer-02");
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(stored?.dataAddress).toEqual(consumerInbox);
+		});
+
+		test("should not persist a start-message dataAddress on a format-less legacy record", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Legacy records without a format rely on dataAddress absence for format inference.
+			await transferProcessStorage.set({
+				id: "start-persist-internal-03",
+				consumerPid: "start-persist-consumer-03",
+				providerPid: "start-persist-provider-03",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-persist-03",
+				providerIdentity: "did:iota:consumer-node-abc",
+				localRole: TransferProcessRole.Consumer,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "start-persist-consumer-03",
+				providerPid: "start-persist-provider-03",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsQueryEndpoint,
+					endpoint: "https://provider.example.com/data-plane/data/entities"
+				}
+			};
+
+			const result = await service.startTransfer(message, "valid-trust-payload");
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("start-persist-consumer-03");
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(stored?.dataAddress).toBeUndefined();
 		});
 
 		test("should call resumePushSubscription for SUSPENDED → STARTED PUSH transfer", async () => {

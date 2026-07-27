@@ -32,10 +32,12 @@ import type {
 	ISuspendTransferResponse,
 	ITerminateTransferRequest,
 	ITerminateTransferResponse,
-	ITransferCallback
+	ITransferCallback,
+	ITransferQueryResult
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type {
+	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolContractNegotiation,
 	IDataspaceProtocolContractNegotiationError,
 	IDataspaceProtocolDataset,
@@ -446,6 +448,29 @@ export class DataspaceControlPlaneRestClient
 		);
 
 		return response.body;
+	}
+
+	/**
+	 * Not supported on REST client — transfer queries are in-process only.
+	 * @param agreementId Unused.
+	 * @param state Unused.
+	 * @param cursor Unused.
+	 * @param trustPayload Unused.
+	 * @returns The matching transfer processes with optional pagination cursor.
+	 */
+	public async queryDataTransfer(
+		agreementId: string,
+		state: DataspaceProtocolTransferProcessStateType | undefined,
+		cursor: string | undefined,
+		trustPayload: unknown
+	): Promise<ITransferQueryResult> {
+		throw new NotSupportedError(
+			DataspaceControlPlaneRestClient.CLASS_NAME,
+			"notSupportedOnClient",
+			{
+				methodName: "queryDataTransfer"
+			}
+		);
 	}
 
 	/**

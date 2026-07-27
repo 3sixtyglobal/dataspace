@@ -116,7 +116,8 @@ export class TransferProcess {
 	public policies?: IRightsManagementPolicy[];
 
 	/**
-	 * Data address for push mode transfers (stored as JSON).
+	 * Data address for the transfer (stored as JSON): the consumer's inbox for PUSH, or the
+	 * provider-built address persisted at start for PULL/POST; may expire while STARTED.
 	 */
 	@property({ type: "object", format: "json", optional: true })
 	public dataAddress?: IDataspaceProtocolDataAddress;

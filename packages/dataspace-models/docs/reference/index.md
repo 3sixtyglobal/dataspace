@@ -65,6 +65,7 @@
 - [ITransferCallback](interfaces/ITransferCallback.md)
 - [ITransferContext](interfaces/ITransferContext.md)
 - [ITransferProcess](interfaces/ITransferProcess.md)
+- [ITransferQueryResult](interfaces/ITransferQueryResult.md)
 - [ITransferContextResponse](interfaces/ITransferContextResponse.md)
 - [IDataspaceDataPlaneComponent](interfaces/IDataspaceDataPlaneComponent.md)
 

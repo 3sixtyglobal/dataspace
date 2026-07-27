@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IComponent } from "@twin.org/core";
 import type {
+	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolContractNegotiation,
 	IDataspaceProtocolContractNegotiationError,
 	IDataspaceProtocolDataset,
@@ -17,6 +18,7 @@ import type {
 import type { IDataspaceAppDataset } from "./IDataspaceAppDataset.js";
 import type { INegotiationCallback } from "./INegotiationCallback.js";
 import type { ITransferCallback } from "./ITransferCallback.js";
+import type { ITransferQueryResult } from "./ITransferQueryResult.js";
 
 /**
  * Dataspace Control Plane Component interface.
@@ -333,6 +335,31 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 		pid: string,
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError>;
+
+	/**
+	 * Query Transfer Processes by agreement id.
+	 * Lets a caller check whether transfers already exist for an agreement
+	 * (e.g. before initiating a new one) without knowing any process ids.
+	 *
+	 * Role Performed: Consumer / Provider
+	 * Called by: Consumer orchestration before requesting a new transfer, or either
+	 * party inspecting the transfers attached to an agreement on their side.
+	 *
+	 * Results are limited to transfers where the authenticated caller is a party
+	 * (consumer or provider identity). A returned dataAddress is a point-in-time copy;
+	 * if its token has expired the data plane rejects it and a new start is required.
+	 * @param agreementId The agreement id to look up transfer processes for.
+	 * @param state Optional filter to a single transfer process state.
+	 * @param cursor Optional pagination cursor from a previous result page.
+	 * @param trustPayload Trust payload containing authorization information (JWT, VC, etc.).
+	 * @returns The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+	 */
+	queryDataTransfer(
+		agreementId: string,
+		state: DataspaceProtocolTransferProcessStateType | undefined,
+		cursor: string | undefined,
+		trustPayload: unknown
+	): Promise<ITransferQueryResult>;
 
 	// ============================================================================
 	// DATASET MANAGEMENT

@@ -574,6 +574,50 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ***
 
+### queryDataTransfer() {#querydatatransfer}
+
+> **queryDataTransfer**(`agreementId`, `state`, `cursor`, `trustPayload`): `Promise`\<`ITransferQueryResult`\>
+
+Not supported on REST client — transfer queries are in-process only.
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+Unused.
+
+##### state
+
+`DataspaceProtocolTransferProcessStateType` \| `undefined`
+
+Unused.
+
+##### cursor
+
+`string` \| `undefined`
+
+Unused.
+
+##### trustPayload
+
+`unknown`
+
+Unused.
+
+#### Returns
+
+`Promise`\<`ITransferQueryResult`\>
+
+The matching transfer processes with optional pagination cursor.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.queryDataTransfer`
+
+***
+
 ### createAppDataset() {#createappdataset}
 
 > **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>

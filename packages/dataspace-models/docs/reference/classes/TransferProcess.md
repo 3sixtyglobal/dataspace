@@ -152,4 +152,5 @@ Policies from the Agreement (stored as JSON).
 
 > `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
-Data address for push mode transfers (stored as JSON).
+Data address for the transfer (stored as JSON): the consumer's inbox for PUSH, or the
+provider-built address persisted at start for PULL/POST; may expire while STARTED.
