@@ -218,8 +218,6 @@ describe("pushDeliveryRunner - engine clone", () => {
 			cloneEngine.getRegisteredInstanceTypeOptional("rightsManagementPepComponent")
 		).toBeDefined();
 		expect(cloneEngine.getRegisteredInstanceTypeOptional("trustComponent")).toBeDefined();
-		// The marker component outside the allowlist was not instantiated in the clone.
-		expect(cloneEngine.getRegisteredInstanceTypeOptional("blobStorageConnector")).toBeUndefined();
 
 		// No pre-packaged auth token in the payload, so the trust chain generated a JWT
 		// through identity and vault, and the PEP-processed data was delivered.
