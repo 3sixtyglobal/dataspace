@@ -24,6 +24,7 @@ import {
 	DataspaceDataPlaneMetrics,
 	DataspaceDataTypes,
 	TransferProcess,
+	TransferProcessRole,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
 	type IDataRequest,
@@ -38,6 +39,7 @@ import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
+import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolDataTypes,
@@ -2266,6 +2268,122 @@ describe("DataspaceDataPlaneService", () => {
 			expect(action).toBe("write");
 		});
 
+		test("forwards the agreement's trustData to the PEP so trust-subject constraints can evaluate", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			// The provider-side transfer cache stores the PAP agreement, which carries the
+			// consumer's trust verification data captured at negotiation start.
+			const trustData = { subject: { role: "BorderAgency", location: "GB" } };
+			const agreementWithTrust: IRightsManagementAgreement = {
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": TEST_AGREEMENT_ID,
+				assigner: TEST_ORGANIZATION_IDENTITY,
+				assignee: DATA_CONSUMER_IDENTITY,
+				target: SERVICE_DATASET_ID,
+				permission: [{ action: "read" }],
+				trustData
+			};
+			const transferProcess = createTestTransferProcess();
+			transferProcess.localRole = TransferProcessRole.Provider;
+			transferProcess.policies = [agreementWithTrust];
+			await transferProcessStorage.set(transferProcess);
+
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			const callArgs = interceptSpy.mock.calls[0];
+			expect(callArgs[0]["@id"]).toBe(TEST_AGREEMENT_ID);
+			expect(callArgs[3]).toEqual(trustData);
+		});
+
+		test("does not forward trustData on a consumer-role transfer (it holds the provider's attributes)", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			// On a consumer node the cached agreement's trustData holds the PROVIDER's
+			// verification info, so it must not be evaluated as the trust subject.
+			const agreementWithTrust: IRightsManagementAgreement = {
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": TEST_AGREEMENT_ID,
+				assigner: TEST_ORGANIZATION_IDENTITY,
+				assignee: DATA_CONSUMER_IDENTITY,
+				target: SERVICE_DATASET_ID,
+				permission: [{ action: "read" }],
+				trustData: { subject: { providerPid: TEST_PROVIDER_PID } }
+			};
+			const transferProcess = createTestTransferProcess();
+			transferProcess.localRole = TransferProcessRole.Consumer;
+			transferProcess.policies = [agreementWithTrust];
+			await transferProcessStorage.set(transferProcess);
+
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			expect(interceptSpy.mock.calls[0][3]).toBeUndefined();
+		});
+
+		test("forwards trustData on the pull path (applyPolicyFilters) for a provider-role transfer", async () => {
+			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
+			ComponentFactory.register("policy-enforcement-point-service", () => ({
+				className: () => "MockPolicyEnforcementPoint",
+				interceptWithPolicy: interceptSpy
+			}));
+			const service = new DataspaceDataPlaneService(options);
+
+			const trustData = { subject: { role: "BorderAgency" } };
+			const agreementWithTrust: IRightsManagementAgreement = {
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": TEST_AGREEMENT_ID,
+				assigner: TEST_ORGANIZATION_IDENTITY,
+				assignee: DATA_CONSUMER_IDENTITY,
+				target: SERVICE_DATASET_ID,
+				permission: [{ action: "read" }],
+				trustData
+			};
+			const transferProcess = createTestTransferProcess();
+			transferProcess.localRole = TransferProcessRole.Provider;
+			transferProcess.policies = [agreementWithTrust];
+
+			// Drive the pull-path enforcement directly: buildTransferContext -> applyPolicyFilters.
+			const exposedService = service as unknown as {
+				buildTransferContext: (tp: TransferProcess) => { agreement: IRightsManagementAgreement };
+				applyPolicyFilters: (
+					result: unknown,
+					agreement?: IRightsManagementAgreement
+				) => Promise<unknown>;
+			};
+			const context = exposedService.buildTransferContext(transferProcess);
+			const result = { itemList: { itemListElement: [] } };
+			await exposedService.applyPolicyFilters(result, context.agreement);
+
+			expect(interceptSpy).toHaveBeenCalledTimes(1);
+			const callArgs = interceptSpy.mock.calls[0];
+			expect(callArgs[0]["@id"]).toBe(TEST_AGREEMENT_ID);
+			expect(callArgs[3]).toEqual(trustData);
+		});
+
 		test("derives a read action from a provider-generated delivery", async () => {
 			// generator === providerPid → the provider side → a read delivery; the JWT
 			// identity must therefore match the provider identity. A unique providerPid
@@ -2302,6 +2420,136 @@ describe("DataspaceDataPlaneService", () => {
 		// accept path) and by rights-management's own PEP service tests. The mock-PEP
 		// tests above cover the gate's own logic: how it derives the action and how it
 		// acts on the PEP's grant / deny / manipulate result.
+	});
+
+	// ============================================================================
+	// Pull-read party binding: validateTransfer must bind the verified caller
+	// identity to a party of the transfer, not just check token validity.
+	// ============================================================================
+
+	describe("Pull-read party binding (validateTransfer)", () => {
+		function makeTrustComponent(identity: string): ITrustComponent {
+			return {
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({ verified: true, info: { identity } }),
+				generate: vi.fn()
+			};
+		}
+
+		afterAll(() => {
+			// Restore the suite-wide trust component registered in beforeAll so later
+			// tests keep the consumer identity and transfer token.
+			ComponentFactory.register("trust", () => ({
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({
+					verified: true,
+					info: {
+						token: TEST_TRANSFER_TOKEN,
+						identity: DATA_CONSUMER_IDENTITY
+					}
+				}),
+				generate: vi.fn()
+			}));
+		});
+
+		test("returns the transfer context when the verified identity is the consumer", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const context = await service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN);
+			expect(context.consumerPid).toBe(TEST_CONSUMER_PID);
+			expect(context.datasetId).toBe(SERVICE_DATASET_ID);
+		});
+
+		test("returns the transfer context when the verified identity is the provider", async () => {
+			// A caller relaying the provider-self-issued pull token verifies as the
+			// provider identity, which is a legitimate transfer party.
+			ComponentFactory.register("trust", () => makeTrustComponent(TEST_ORGANIZATION_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const context = await service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN);
+			expect(context.consumerPid).toBe(TEST_CONSUMER_PID);
+			expect(context.providerIdentity).toBe(TEST_ORGANIZATION_IDENTITY);
+		});
+
+		test("rejects when the verified identity is not a party to the transfer", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("rejects a non-party before revealing the transfer state", async () => {
+			// The party check runs before the STARTED-state validation, so a non-party
+			// gets UnauthorizedError rather than the state-specific GeneralError.
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess({ state: "REQUESTED" }));
+
+			await expect(
+				service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("rejects when the transfer carries no party identities", async () => {
+			// Fail-secure: a transfer without stamped party identities cannot bind the
+			// caller, matching the inbox path's behaviour.
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(
+				createTestTransferProcess({ consumerIdentity: undefined, providerIdentity: undefined })
+			);
+
+			await expect(
+				service.validateTransfer(TEST_CONSUMER_PID, TEST_TRANSFER_TOKEN)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("getDataAssetEntities rejects a non-party caller", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.getDataAssetEntities(
+					{
+						entityType: "https://vocabulary.uncefact.org/Consignment"
+					},
+					TEST_CONSUMER_PID,
+					undefined,
+					undefined,
+					TEST_TRANSFER_TOKEN
+				)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("queryDataAsset rejects a non-party caller", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await expect(
+				service.queryDataAsset(
+					TEST_CONSUMER_PID,
+					{ type: "TestQueryType", q: "test-query" },
+					undefined,
+					undefined,
+					TEST_TRANSFER_TOKEN
+				)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
 	});
 
 	// ============================================
@@ -2814,6 +3062,62 @@ describe("DataspaceDataPlaneService", () => {
 		).rejects.toMatchObject({
 			name: "UnprocessableError"
 		});
+	});
+
+	test("It should accept a query that omits the q field", async () => {
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_ORGANIZATION_IDENTITY
+		});
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
+
+		const transferProcess = createTestTransferProcess();
+		await transferProcessStorage.set(transferProcess);
+
+		const result = await dataspaceDataPlaneService.queryDataAsset(
+			TEST_CONSUMER_PID,
+			{ type: "TestQueryType" },
+			undefined,
+			undefined,
+			TEST_TRANSFER_TOKEN
+		);
+
+		expect(result).toBeDefined();
+		expect(result.itemList).toBeDefined();
+	});
+
+	test("It should accept a query where q is an object, not a string", async () => {
+		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
+			[ContextIdKeys.Node]: TEST_ORGANIZATION_IDENTITY
+		});
+
+		const dataspaceDataPlaneService = new DataspaceDataPlaneService(options);
+		ComponentFactory.register("dataspace-data-plane", () => dataspaceDataPlaneService);
+
+		const testApp = new TestDataspaceDataPlaneApp();
+		DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+		await testApp.start();
+		await seedTestAppDataset(dataspaceAppDatasetStorage);
+
+		const transferProcess = createTestTransferProcess();
+		await transferProcessStorage.set(transferProcess);
+
+		const result = await dataspaceDataPlaneService.queryDataAsset(
+			TEST_CONSUMER_PID,
+			{ type: "TestQueryType", q: { field: "loadingLocation", value: "unece:LOCODE#NLRTM" } },
+			undefined,
+			undefined,
+			TEST_TRANSFER_TOKEN
+		);
+
+		expect(result).toBeDefined();
+		expect(result.itemList).toBeDefined();
 	});
 
 	test.skip("Pagination cursor is passed through to app", async () => {
@@ -3902,6 +4206,12 @@ describe("DataspaceDataPlaneService", () => {
 					values.push({ id, value, customData });
 					return "v";
 				},
+				getMetricValue: async (id, valueId) => ({
+					id: valueId,
+					metricId: id,
+					value: 0,
+					ts: Date.now()
+				}),
 				removeMetric: async () => {},
 				query: async () => ({ entities: [] }),
 				queryValues: async () => ({ metric: {} as never, entities: [] })

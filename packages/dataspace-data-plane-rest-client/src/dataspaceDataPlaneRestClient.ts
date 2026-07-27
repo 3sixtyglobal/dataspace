@@ -1,7 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { BaseRestClient } from "@twin.org/api-core";
-import { HttpParameterHelper, type IBaseRestClientConfig } from "@twin.org/api-models";
+import {
+	HttpHeaderHelper,
+	HttpParameterHelper,
+	type IBaseRestClientConfig
+} from "@twin.org/api-models";
 import { Coerce, Guards, Is, NotSupportedError } from "@twin.org/core";
 import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
 import type {
@@ -21,7 +25,7 @@ import type {
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { HeaderHelper, HeaderTypes } from "@twin.org/web";
+import { HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
 
 /**
  * The client to connect to the dataspace data plane service.
@@ -86,7 +90,7 @@ export class DataspaceDataPlaneRestClient
 
 		const response = await this.fetch<IDataAssetGetEntitiesRequest, IDataAssetEntitiesResponse>(
 			"/entities",
-			"GET",
+			HttpMethod.GET,
 			{
 				headers: {
 					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
@@ -105,8 +109,7 @@ export class DataspaceDataPlaneRestClient
 
 		return {
 			itemList: response.body,
-			cursor: HeaderHelper.extractLinkHeaderRelation(response.headers?.[HeaderTypes.Link], "next")
-				?.urlQueryParams?.cursor
+			cursor: HttpHeaderHelper.extractCursor(response.headers)
 		};
 	}
 
@@ -133,7 +136,7 @@ export class DataspaceDataPlaneRestClient
 
 		const response = await this.fetch<IDataAssetQueryRequest, IDataAssetEntitiesResponse>(
 			"/entities/query",
-			"POST",
+			HttpMethod.POST,
 			{
 				headers: {
 					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
@@ -151,8 +154,7 @@ export class DataspaceDataPlaneRestClient
 
 		return {
 			itemList: response.body,
-			cursor: HeaderHelper.extractLinkHeaderRelation(response.headers?.[HeaderTypes.Link], "next")
-				?.urlQueryParams?.cursor
+			cursor: HttpHeaderHelper.extractCursor(response.headers)
 		};
 	}
 
@@ -175,7 +177,7 @@ export class DataspaceDataPlaneRestClient
 
 		const response = await this.fetch<IActivityStreamNotifyRequest, IActivityStreamNotifyResponse>(
 			"/inbox",
-			"POST",
+			HttpMethod.POST,
 			{
 				headers: {
 					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
@@ -183,9 +185,10 @@ export class DataspaceDataPlaneRestClient
 				body: activity
 			}
 		);
-		const parts = response.headers?.[HeaderTypes.Location]?.split("/");
-		const id = Is.arrayValue<string>(parts) ? parts[parts.length - 1] : "";
-		return response.body ?? id;
+		return (
+			response.body ??
+			HttpHeaderHelper.extractId(response.headers, `${this.getPathPrefix()}/activity-logs/:id`)
+		);
 	}
 
 	/**
@@ -284,7 +287,7 @@ export class DataspaceDataPlaneRestClient
 
 		const response = await this.fetch<IActivityLogEntryGetRequest, IActivityLogEntryGetResponse>(
 			"/activity-logs/:id",
-			"GET",
+			HttpMethod.GET,
 			{
 				headers: {
 					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)

@@ -47,7 +47,44 @@ export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone)
 		if (!Is.empty(engineCloneData)) {
 			const newEngine = new EngineCore();
 			EngineCoreFactory.register("engine", () => newEngine);
-			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), true);
+			// Limit the clone to the components the push delivery path reads after startup
+			// (PEP enforcement and trust token generation chains) plus their supporting
+			// connectors, instead of booting every component the source engine runs.
+			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), {
+				logLevel: "error",
+				types: [
+					"loggingComponent",
+					"loggingConnector",
+					"entityStorageConnector",
+					"vaultConnector",
+					"identityComponent",
+					"identityConnector",
+					"trustComponent",
+					"trustGeneratorComponent",
+					"rightsManagementPepComponent",
+					"rightsManagementPdpComponent",
+					"rightsManagementPapComponent",
+					"rightsManagementPmpComponent",
+					"rightsManagementPipComponent",
+					"rightsManagementPxpComponent",
+					"rightsManagementPolicyArbiterComponent",
+					"rightsManagementPolicyEnforcementProcessorComponent",
+					"rightsManagementPolicyExecutionActionComponent",
+					"rightsManagementPolicyInformationSourceComponent",
+					"platformComponent",
+					"dltConfig"
+				],
+				entityTypes: [
+					"LogEntry",
+					"LogEntryError",
+					"IdentityDocument",
+					"OdrlPolicy",
+					"VaultKey",
+					"VaultSecret"
+				]
+				// Using cast until all types align in other packages
+				// then we can remove the cast and use the actual type.
+			} as unknown as boolean);
 			await newEngine.start();
 			engine = newEngine;
 
@@ -127,7 +164,12 @@ async function pushDeliveryRunnerBody(payload: IPushDeliveryPayload): Promise<un
 	// Apply PEP policy filter if available
 	let data = payload.data;
 	if (!Is.empty(pepComponent)) {
-		data = await pepComponent.interceptWithPolicy(payload.agreement, payload.data);
+		data = await pepComponent.interceptWithPolicy(
+			payload.agreement,
+			payload.data,
+			undefined,
+			payload.agreement.trustData
+		);
 	}
 
 	// Build Activity Streams Create wrapper

@@ -591,6 +591,45 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			ComponentFactory.unregister("mock-pep");
 		});
 
+		test("preserves cursor from original result after PEP filtering", async () => {
+			const cursor = "next-page-cursor-token";
+
+			// PEP returns a filtered result without a cursor — it has no knowledge of pagination
+			ComponentFactory.register("mock-pep", () =>
+				createMockPolicyEnforcementPoint<IDataAssetItemListResult>({
+					itemList: {
+						"@context": "https://schema.org",
+						type: "ItemList",
+						itemListElement: [{ id: "1", name: "Item 1" }]
+					}
+				})
+			);
+
+			const pepService = new DataspaceDataPlaneService({
+				trustComponentType: "mock-trust",
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+				pepComponentType: "mock-pep"
+			});
+
+			const resultWithCursor: IDataAssetItemListResult = {
+				itemList: {
+					"@context": "https://schema.org",
+					type: "ItemList",
+					itemListElement: [
+						{ id: "1", name: "Item 1" },
+						{ id: "2", name: "Item 2" }
+					]
+				},
+				cursor
+			};
+
+			const filtered = await callApplyPolicyFilters(pepService, resultWithCursor, testAgreement);
+
+			expect(filtered.cursor).toBe(cursor);
+
+			ComponentFactory.unregister("mock-pep");
+		});
+
 		test.skip("logs obligations even when PEP denies access", async () => {
 			ComponentFactory.register("mock-pep", () =>
 				createMockPolicyEnforcementPoint<IDataAssetItemListResult>({} as IDataAssetItemListResult)

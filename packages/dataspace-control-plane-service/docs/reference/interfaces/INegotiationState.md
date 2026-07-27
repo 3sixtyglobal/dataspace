@@ -22,7 +22,7 @@ Current negotiation state.
 
 ### agreement? {#agreement}
 
-> `optional` **agreement?**: `IDataspaceProtocolAgreement`
+> `optional` **agreement?**: `IRightsManagementAgreement`
 
 Agreement received from provider (stored until finalized).
 

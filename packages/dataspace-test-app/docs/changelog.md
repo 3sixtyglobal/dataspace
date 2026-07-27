@@ -1,5 +1,189 @@
 # Changelog
 
+## [0.9.1-next.12](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.11...dataspace-test-app-v0.9.1-next.12) (2026-07-26)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.11 to 0.9.1-next.12
+
+## [0.9.1-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.10...dataspace-test-app-v0.9.1-next.11) (2026-07-21)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.10 to 0.9.1-next.11
+
+## [0.9.1-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.9...dataspace-test-app-v0.9.1-next.10) (2026-07-20)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.9 to 0.9.1-next.10
+
+## [0.9.1-next.9](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.8...dataspace-test-app-v0.9.1-next.9) (2026-07-06)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.8 to 0.9.1-next.9
+
+## [0.9.1-next.8](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.7...dataspace-test-app-v0.9.1-next.8) (2026-07-02)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.7 to 0.9.1-next.8
+
+## [0.9.1-next.7](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.6...dataspace-test-app-v0.9.1-next.7) (2026-07-02)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.6 to 0.9.1-next.7
+
+## [0.9.1-next.6](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.5...dataspace-test-app-v0.9.1-next.6) (2026-07-02)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.5 to 0.9.1-next.6
+
+## [0.9.1-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.4...dataspace-test-app-v0.9.1-next.5) (2026-06-30)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.4 to 0.9.1-next.5
+
+## [0.9.1-next.4](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.3...dataspace-test-app-v0.9.1-next.4) (2026-06-29)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.3 to 0.9.1-next.4
+
+## [0.9.1-next.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.2...dataspace-test-app-v0.9.1-next.3) (2026-06-26)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.2 to 0.9.1-next.3
+
+## [0.9.1-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.1...dataspace-test-app-v0.9.1-next.2) (2026-06-26)
+
+
+### Miscellaneous Chores
+
+* **dataspace-test-app:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.1 to 0.9.1-next.2
+
+## [0.9.1-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.1-next.0...dataspace-test-app-v0.9.1-next.1) (2026-06-26)
+
+
+### Features
+
+* add inline tasks and concurrent options ([#104](https://github.com/iotaledger/twin-dataspace/issues/104)) ([2227a21](https://github.com/iotaledger/twin-dataspace/commit/2227a212d906f58ba77850c79bb20bf2cb7195a8))
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+* docs update ([8b44c7a](https://github.com/iotaledger/twin-dataspace/commit/8b44c7a75afb8d377a6f606616f8a78d58439ab4))
+* endpoint encryption + getDatasetTargets multi-target fix ([#112](https://github.com/iotaledger/twin-dataspace/issues/112)) ([3288941](https://github.com/iotaledger/twin-dataspace/commit/328894113c19c7402f7d00dfa77b6a97ae40ca91))
+* extend test app with multi-consignment data using UNECE vocabulary ([#92](https://github.com/iotaledger/twin-dataspace/issues/92)) ([2f69566](https://github.com/iotaledger/twin-dataspace/commit/2f695668ec03e50c89ddb1437f2be39c047e3268))
+* improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* organization identifiers ([#188](https://github.com/iotaledger/twin-dataspace/issues/188)) ([af643d3](https://github.com/iotaledger/twin-dataspace/commit/af643d3bb7f212d6cbb672e362a9e1bbe886d1a5))
+* resolve DSP transfer flow bugs for cross-node communication ([#76](https://github.com/iotaledger/twin-dataspace/issues/76)) ([506a45c](https://github.com/iotaledger/twin-dataspace/commit/506a45c94e63d5f958b1fc7131adfe452c3e2974))
+* types update ([77c338e](https://github.com/iotaledger/twin-dataspace/commit/77c338e9244dcc7e3d597fdb06229513b1f13eac))
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+* unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+* update dependencies ([55cb41c](https://github.com/iotaledger/twin-dataspace/commit/55cb41c1d0ce7ebddcce41c60fe944650bcf0499))
+
+
+### Bug Fixes
+
+* avoid compaction of incoming activities ([#77](https://github.com/iotaledger/twin-dataspace/issues/77)) ([ff43d6a](https://github.com/iotaledger/twin-dataspace/commit/ff43d6a3e1563eb9cb185501134b2a53ae88787c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.1-next.0 to 0.9.1-next.1
+
 ## [0.9.0](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.0...dataspace-test-app-v0.9.0) (2026-06-25)
 
 

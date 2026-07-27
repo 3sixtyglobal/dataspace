@@ -47,6 +47,7 @@ import {
 	DataspaceDataTypes,
 	DataspaceTypes,
 	getJsonLdType,
+	TransferProcessRole,
 	type DataspaceAppDataset,
 	type IActivityLogEntry,
 	type IActivityLogStatusNotification,
@@ -77,12 +78,12 @@ import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
-	type IPolicyEnforcementPointComponent
+	type IPolicyEnforcementPointComponent,
+	type IRightsManagementAgreement
 } from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolDataTypes,
 	DataspaceProtocolTransferProcessStateType,
-	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolDataset
 } from "@twin.org/standards-dataspace-protocol";
 import {
@@ -953,7 +954,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		trustPayload?: unknown
 	): Promise<IDataAssetItemListResult> {
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
-		Guards.object(DataspaceDataPlaneService.CLASS_NAME, nameof(query), query);
+		Guards.object<IFilteringQuery>(DataspaceDataPlaneService.CLASS_NAME, nameof(query), query);
 		Guards.string(DataspaceDataPlaneService.CLASS_NAME, nameof(query.type), query.type);
 
 		const trustInfo = await TrustHelper.verifyTrust(
@@ -1045,7 +1046,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @returns The transfer context containing datasetId, agreement, and other transfer details.
 	 * @throws GeneralError if transfer process storage is not configured.
 	 * @throws NotFoundError if transfer process is not found.
-	 * @throws UnauthorizedError if trust verification fails.
+	 * @throws UnauthorizedError if trust verification fails or the verified identity is not a party to the transfer.
 	 * @throws GeneralError if transfer is not in STARTED state.
 	 */
 	public async validateTransfer(
@@ -1056,7 +1057,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		// Verify trust payload (validates JWT signature, expiry, and returns verification info)
 		// The trust verifier handles all token validation including expiry
-		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "validateTransfer");
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"validateTransfer"
+		);
 
 		// Direct lookup from shared entity storage by consumerPid (which is the primary key)
 		const transferProcess = await this._transferProcessStorage.get(consumerPid);
@@ -1067,6 +1072,22 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				"transferProcessNotFound",
 				consumerPid
 			);
+		}
+
+		// Token validity alone must not grant access: the trust payload and consumerPid
+		// are independent inputs, so any credential holder who knows a started consumerPid
+		// could read the data. Either party is accepted because a relayed provider-self-issued
+		// pull token verifies as the provider. Runs before the state check so a non-party
+		// learns nothing about the transfer.
+		const isTransferParty =
+			(Is.stringValue(transferProcess.consumerIdentity) &&
+				trustInfo.identity === transferProcess.consumerIdentity) ||
+			(Is.stringValue(transferProcess.providerIdentity) &&
+				trustInfo.identity === transferProcess.providerIdentity);
+		if (!isTransferParty) {
+			throw new UnauthorizedError(DataspaceDataPlaneService.CLASS_NAME, "dataReadNotAuthorized", {
+				consumerPid
+			});
 		}
 
 		// Validate state: must be STARTED
@@ -2065,14 +2086,14 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private buildTransferContext(transferProcess: TransferProcess): ITransferContext {
-		// Build the IDataspaceProtocolAgreement from stored data
+		// Build the IRightsManagementAgreement from stored data
 		// The entity stores agreementId and policies separately
 		//
 		// NOTE: Currently policies are cached in the TransferProcessEntity at transfer start time.
 		// Eventually, this should fetch fresh policies from Rights Management (PAP) using:
 		//   const freshAgreement = await this._policyAdministrationPoint.get(transferProcess.agreementId);
 		// This would ensure policies are always up-to-date and support dynamic policy updates.
-		const agreement: IDataspaceProtocolAgreement = {
+		const agreement: IRightsManagementAgreement = {
 			"@context": OdrlContexts.Context,
 			"@type": OdrlTypes.Agreement,
 			"@id": transferProcess.agreementId,
@@ -2085,13 +2106,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// Extract policies from the stored Agreement
 		// Extract permission, prohibition, and obligation
 		if (Is.arrayValue(transferProcess.policies)) {
-			const storedAgreement = transferProcess.policies[0] as
-				| IDataspaceProtocolAgreement
-				| undefined;
+			const storedAgreement = transferProcess.policies[0];
 			if (storedAgreement) {
 				agreement.permission = storedAgreement.permission;
 				agreement.prohibition = storedAgreement.prohibition;
 				agreement.obligation = storedAgreement.obligation;
+				// Only the provider's cached agreement carries the CONSUMER's verified attributes
+				// (captured from the negotiation trust token). On a consumer node the cached
+				// trustData holds the provider's verification info instead, so forwarding it
+				// would evaluate trust-subject constraints against the wrong party.
+				if (transferProcess.localRole === TransferProcessRole.Provider) {
+					agreement.trustData = storedAgreement.trustData;
+				}
 			}
 		}
 
@@ -2122,7 +2148,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 */
 	private async applyPolicyFilters(
 		result: IDataAssetItemListResult,
-		agreement?: IDataspaceProtocolAgreement
+		agreement?: IRightsManagementAgreement
 	): Promise<IDataAssetItemListResult> {
 		if (!agreement) {
 			return result;
@@ -2131,12 +2157,17 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const processed =
 			await this._policyEnforcementPoint.interceptWithPolicy<IDataAssetItemListResult>(
 				agreement,
-				result
+				result,
+				undefined,
+				agreement.trustData
 			);
 
 		if (Is.arrayValue(agreement.obligation)) {
 			await this.logObligations(agreement.obligation, OdrlPolicyHelper.getUid(agreement) ?? "");
 		}
+
+		// Preserve the original cursor for pagination continuity
+		processed.cursor = result.cursor;
 
 		return processed;
 	}
@@ -2177,7 +2208,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		const processed = await this._policyEnforcementPoint.interceptWithPolicy<
 			IActivityStreamsActivity,
 			IActivityStreamsActivity
-		>(agreement, activity, action);
+		>(agreement, activity, action, agreement.trustData);
 
 		// The enforcement processor returns the (possibly manipulated) activity when
 		// the action is permitted, and an empty object when it is denied.
@@ -2234,7 +2265,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private async logObligations(
-		obligations: IDataspaceProtocolAgreement["obligation"],
+		obligations: IRightsManagementAgreement["obligation"],
 		agreementId: string
 	): Promise<void> {
 		if (!Is.arrayValue(obligations)) {

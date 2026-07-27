@@ -39,6 +39,7 @@
 - [IAppDatasetUpdateRequest](interfaces/IAppDatasetUpdateRequest.md)
 - [ICompleteTransferRequest](interfaces/ICompleteTransferRequest.md)
 - [ICompleteTransferResponse](interfaces/ICompleteTransferResponse.md)
+- [IGetProtocolVersionsResponse](interfaces/IGetProtocolVersionsResponse.md)
 - [IGetTransferProcessRequest](interfaces/IGetTransferProcessRequest.md)
 - [IGetTransferProcessResponse](interfaces/IGetTransferProcessResponse.md)
 - [IRequestTransferRequest](interfaces/IRequestTransferRequest.md)

@@ -1,19 +1,19 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type {
-	IHttpRequestContext,
-	INoContentResponse,
-	INotFoundResponse,
-	IRestRoute,
-	ITag
+import {
+	HttpContextIdKeys,
+	HttpHeaderHelper,
+	HttpUrlHelper,
+	type IHttpRequestContext,
+	type INoContentRequest,
+	type INoContentResponse,
+	type INotFoundResponse,
+	type IRestRoute,
+	type ITag
 } from "@twin.org/api-models";
+import { ContextIdStore } from "@twin.org/context";
 import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
 import type {
-	ICompleteTransferRequest,
-	ICompleteTransferResponse,
-	IDataspaceControlPlaneComponent,
-	IGetTransferProcessRequest,
-	IGetTransferProcessResponse,
 	IAppDatasetCreateRequest,
 	IAppDatasetCreateResponse,
 	IAppDatasetDeleteRequest,
@@ -22,6 +22,12 @@ import type {
 	IAppDatasetListRequest,
 	IAppDatasetListResponse,
 	IAppDatasetUpdateRequest,
+	ICompleteTransferRequest,
+	ICompleteTransferResponse,
+	IDataspaceControlPlaneComponent,
+	IGetProtocolVersionsResponse,
+	IGetTransferProcessRequest,
+	IGetTransferProcessResponse,
 	IRequestTransferRequest,
 	IRequestTransferResponse,
 	IStartTransferRequest,
@@ -37,7 +43,13 @@ import {
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes
 } from "@twin.org/standards-dataspace-protocol";
-import { HeaderHelper, HeaderTypes, HttpStatusCode, MimeTypes } from "@twin.org/web";
+import {
+	HeaderHelper,
+	HeaderTypes,
+	HttpStatusCode,
+	type IHttpHeaders,
+	MimeTypes
+} from "@twin.org/web";
 import { transformErrorToStatusCode } from "./utils/transferErrorUtils.js";
 
 /**
@@ -58,6 +70,11 @@ export const tagsDataspaceControlPlane: ITag[] = [
 		name: "Datasets",
 		description:
 			"Tenant-scoped CRUD over the datasets the Control Plane reads at start time to populate the federated catalogue."
+	},
+	{
+		name: "Version Discovery",
+		description:
+			"RFC 8615 well-known endpoint for advertising the Dataspace Protocol versions supported by this connector."
 	}
 ];
 
@@ -405,6 +422,54 @@ export function generateRestRoutesDataspaceControlPlane(
 		};
 
 	// ============================================================================
+	// DSP VERSION DISCOVERY
+	// ============================================================================
+
+	// GET /.well-known/dspace-version - DSP version discovery (unauthenticated, RFC 8615)
+	const getProtocolVersionsRoute: IRestRoute<INoContentRequest, IGetProtocolVersionsResponse> = {
+		operationId: "getProtocolVersions",
+		summary: "Get supported Dataspace Protocol versions (DSP 2025-1)",
+		tag: tagsDataspaceControlPlane[2].name,
+		method: "GET",
+		path: "/.well-known/dspace-version",
+		skipAuth: true,
+		skipTenant: true,
+		handler: async (httpRequestContext, request) =>
+			getProtocolVersionsHandler(httpRequestContext, componentName, request),
+		requestType: {
+			type: nameof<INoContentRequest>(),
+			examples: [
+				{
+					id: "getProtocolVersionsRequestExample",
+					request: {}
+				}
+			]
+		},
+		responseType: [
+			{
+				type: nameof<IGetProtocolVersionsResponse>(),
+				examples: [
+					{
+						id: "getProtocolVersionsResponseExample",
+						response: {
+							body: {
+								protocolVersions: [
+									{
+										version: "2025-1",
+										path: "/dataspace-control-plane/2025-1",
+										binding: "HTTPS",
+										serviceId: "twin-connector"
+									}
+								]
+							}
+						}
+					}
+				]
+			}
+		]
+	};
+
+	// ============================================================================
 	// DATASPACE APP DATASET MANAGEMENT
 	// ============================================================================
 
@@ -418,7 +483,7 @@ export function generateRestRoutesDataspaceControlPlane(
 		method: "POST",
 		path: `${baseRouteName}/app-datasets`,
 		handler: async (httpRequestContext, request) =>
-			createAppDatasetHandler(httpRequestContext, componentName, request),
+			createAppDatasetHandler(httpRequestContext, componentName, request, baseRouteName),
 		requestType: {
 			type: nameof<IAppDatasetCreateRequest>(),
 			examples: [
@@ -594,6 +659,7 @@ export function generateRestRoutesDataspaceControlPlane(
 	};
 
 	return [
+		getProtocolVersionsRoute,
 		requestTransferRoute,
 		getTransferProcessRoute,
 		startTransferRoute,
@@ -606,6 +672,28 @@ export function generateRestRoutesDataspaceControlPlane(
 		updateDataspaceAppDatasetRoute,
 		deleteDataspaceAppDatasetRoute
 	];
+}
+
+// ============================================================================
+// DSP VERSION DISCOVERY HANDLER
+// ============================================================================
+
+/**
+ * Get Protocol Versions handler.
+ * @param httpRequestContext The request context for the API.
+ * @param componentName The name of the component to use.
+ * @param request The API request (no parameters required).
+ * @returns The response with the list of supported DSP versions.
+ */
+async function getProtocolVersionsHandler(
+	httpRequestContext: IHttpRequestContext,
+	componentName: string,
+	request: INoContentRequest
+): Promise<IGetProtocolVersionsResponse> {
+	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
+	const result = await component.getProtocolVersions();
+
+	return { body: result };
 }
 
 // ============================================================================
@@ -778,12 +866,14 @@ async function terminateTransferHandler(
  * @param httpRequestContext The request context.
  * @param componentName The name of the component to use.
  * @param request The API request containing the dataset payload.
+ * @param baseRouteName The base route name for constructing the Location header.
  * @returns The response with a Location header pointing at the new resource.
  */
 async function createAppDatasetHandler(
 	httpRequestContext: IHttpRequestContext,
 	componentName: string,
-	request: IAppDatasetCreateRequest
+	request: IAppDatasetCreateRequest,
+	baseRouteName: string
 ): Promise<IAppDatasetCreateResponse> {
 	Guards.object<IAppDatasetCreateRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object(ROUTES_SOURCE, nameof(request.body), request.body);
@@ -791,17 +881,25 @@ async function createAppDatasetHandler(
 	Guards.object(ROUTES_SOURCE, nameof(request.body.dataset), request.body.dataset);
 
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
-	const resolvedId = await component.createAppDataset(
+	const id = await component.createAppDataset(
 		request.body.id,
 		request.body.appId,
 		request.body.dataset
 	);
 
+	const contextIds = await ContextIdStore.getContextIds();
+	const publicOrigin = contextIds?.[HttpContextIdKeys.PublicOrigin];
+
+	const headers: IHttpHeaders = {};
+	HttpHeaderHelper.buildId(
+		headers,
+		id,
+		HttpUrlHelper.combineOriginPath(publicOrigin, `${baseRouteName}/app-datasets/:id`)
+	);
+
 	return {
-		statusCode: 201,
-		headers: {
-			[HeaderTypes.Location]: resolvedId
-		}
+		statusCode: HttpStatusCode.created,
+		headers
 	};
 }
 

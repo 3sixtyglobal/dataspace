@@ -358,7 +358,7 @@ NotFoundError if transfer process is not found.
 
 #### Throws
 
-UnauthorizedError if trust verification fails.
+UnauthorizedError if trust verification fails or the verified identity is not a party to the transfer.
 
 #### Throws
 

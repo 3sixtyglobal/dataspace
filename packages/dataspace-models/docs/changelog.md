@@ -1,5 +1,124 @@
 # Changelog
 
+## [0.9.1-next.12](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.11...dataspace-models-v0.9.1-next.12) (2026-07-26)
+
+
+### Bug Fixes
+
+* missing dependencies ([54e9e9c](https://github.com/iotaledger/twin-dataspace/commit/54e9e9c474b61cce3b9a82f9ccec27c7f8133382))
+
+## [0.9.1-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.10...dataspace-models-v0.9.1-next.11) (2026-07-21)
+
+
+### Bug Fixes
+
+* retain cursor after pep enforcement ([#296](https://github.com/iotaledger/twin-dataspace/issues/296)) ([5198cd2](https://github.com/iotaledger/twin-dataspace/commit/5198cd29505ceffa532fa4fa18c97a5c8e78f663))
+
+## [0.9.1-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.9...dataspace-models-v0.9.1-next.10) (2026-07-20)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.9](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.8...dataspace-models-v0.9.1-next.9) (2026-07-06)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.8](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.7...dataspace-models-v0.9.1-next.8) (2026-07-02)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.7](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.6...dataspace-models-v0.9.1-next.7) (2026-07-02)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.6](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.5...dataspace-models-v0.9.1-next.6) (2026-07-02)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.4...dataspace-models-v0.9.1-next.5) (2026-06-30)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.4](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.3...dataspace-models-v0.9.1-next.4) (2026-06-29)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.2...dataspace-models-v0.9.1-next.3) (2026-06-26)
+
+
+### Miscellaneous Chores
+
+* **dataspace-models:** Synchronize repo versions
+
+## [0.9.1-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.1...dataspace-models-v0.9.1-next.2) (2026-06-26)
+
+
+### Features
+
+* add well known versions endpoint ([#251](https://github.com/iotaledger/twin-dataspace/issues/251)) ([4b4cbe9](https://github.com/iotaledger/twin-dataspace/commit/4b4cbe91a40980481dad6e0650c1ee73c53ae360))
+
+## [0.9.1-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.1-next.0...dataspace-models-v0.9.1-next.1) (2026-06-26)
+
+
+### Features
+
+* add consumer transfer callbacks and startDataTransfer convenience method ([#151](https://github.com/iotaledger/twin-dataspace/issues/151)) ([0ab66c3](https://github.com/iotaledger/twin-dataspace/commit/0ab66c3636fd1f98f89baca1e99764d77c6f91d9))
+* add dataspace transfer format ([#111](https://github.com/iotaledger/twin-dataspace/issues/111)) ([f59ff5e](https://github.com/iotaledger/twin-dataspace/commit/f59ff5ef10d261d1cebbf5c6bb0689e74a10738a))
+* add inline tasks and concurrent options ([#104](https://github.com/iotaledger/twin-dataspace/issues/104)) ([2227a21](https://github.com/iotaledger/twin-dataspace/commit/2227a212d906f58ba77850c79bb20bf2cb7195a8))
+* add telemetry metrics to dataspace control and data plane services ([#212](https://github.com/iotaledger/twin-dataspace/issues/212)) ([b5b0248](https://github.com/iotaledger/twin-dataspace/commit/b5b024899ed12c0f639c5d51aefa3e509753eac6))
+* add transferStarted provider method to start a data transfer ([#206](https://github.com/iotaledger/twin-dataspace/issues/206)) ([3ec2dc8](https://github.com/iotaledger/twin-dataspace/commit/3ec2dc8943c8531cd8d8e4ab07cb970ef7b11090))
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+* cross-node transfer callbacks and DataTransferManager auto-start ([#199](https://github.com/iotaledger/twin-dataspace/issues/199)) ([1089aa3](https://github.com/iotaledger/twin-dataspace/commit/1089aa344e3598e382f37a82ca03230c5cf6cacd))
+* docs update ([8b44c7a](https://github.com/iotaledger/twin-dataspace/commit/8b44c7a75afb8d377a6f606616f8a78d58439ab4))
+* endpoint encryption + getDatasetTargets multi-target fix ([#112](https://github.com/iotaledger/twin-dataspace/issues/112)) ([3288941](https://github.com/iotaledger/twin-dataspace/commit/328894113c19c7402f7d00dfa77b6a97ae40ca91))
+* get activity log add trust payload ([#201](https://github.com/iotaledger/twin-dataspace/issues/201)) ([cdb5486](https://github.com/iotaledger/twin-dataspace/commit/cdb5486942c1b94ddf6435236b9b9d190bea0407))
+* implement DSP push transfer mode ([#109](https://github.com/iotaledger/twin-dataspace/issues/109)) ([71f5fee](https://github.com/iotaledger/twin-dataspace/commit/71f5feec1d92dfec8ed6899c951809818e1bf2a3))
+* improve error handling and component usage ([544e20e](https://github.com/iotaledger/twin-dataspace/commit/544e20e640d6f09266942bfc698aead6227a7769))
+* improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* improve validation ([#82](https://github.com/iotaledger/twin-dataspace/issues/82)) ([8bfaf7b](https://github.com/iotaledger/twin-dataspace/commit/8bfaf7b830f89b63575f8a51ee96bd8ac4da02f4))
+* organization identifiers ([#188](https://github.com/iotaledger/twin-dataspace/issues/188)) ([af643d3](https://github.com/iotaledger/twin-dataspace/commit/af643d3bb7f212d6cbb672e362a9e1bbe886d1a5))
+* provider-side transfer auto-start and negotiation/transfer timeout callbacks ([#227](https://github.com/iotaledger/twin-dataspace/issues/227)) ([619d858](https://github.com/iotaledger/twin-dataspace/commit/619d858e8d44e59744dc8a0f73e06be976932b53))
+* remove datasetsHandled method from apps ([9fdc950](https://github.com/iotaledger/twin-dataspace/commit/9fdc95018d38ab49c4a1094642be2ee83ee0e4cd))
+* remove hosting component ([#209](https://github.com/iotaledger/twin-dataspace/issues/209)) ([5e19328](https://github.com/iotaledger/twin-dataspace/commit/5e1932823aa8a0f88f559f096610b9df1f3b8615))
+* rename completed callback ([#147](https://github.com/iotaledger/twin-dataspace/issues/147)) ([f62baad](https://github.com/iotaledger/twin-dataspace/commit/f62baad0ff444e2913439b12dcd06d20c9a4f6a4))
+* resolve DSP transfer flow bugs for cross-node communication ([#76](https://github.com/iotaledger/twin-dataspace/issues/76)) ([506a45c](https://github.com/iotaledger/twin-dataspace/commit/506a45c94e63d5f958b1fc7131adfe452c3e2974))
+* shortcut implicit trust ([#215](https://github.com/iotaledger/twin-dataspace/issues/215)) ([f9bcfea](https://github.com/iotaledger/twin-dataspace/commit/f9bcfeab8f069b62017502833c108b4ee3791414))
+* types update ([77c338e](https://github.com/iotaledger/twin-dataspace/commit/77c338e9244dcc7e3d597fdb06229513b1f13eac))
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+* unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+* update DataspaceTransferFormat names ([2c9d424](https://github.com/iotaledger/twin-dataspace/commit/2c9d424a07b97346faa2124048c4675514d58109))
+
+
+### Bug Fixes
+
+* always verify trust in notifyActivity, no internal by ([#192](https://github.com/iotaledger/twin-dataspace/issues/192)) ([2cfc160](https://github.com/iotaledger/twin-dataspace/commit/2cfc16082a7c9d417f0b05f90f123e40f47d1e05))
+* avoid compaction of incoming activities ([#77](https://github.com/iotaledger/twin-dataspace/issues/77)) ([ff43d6a](https://github.com/iotaledger/twin-dataspace/commit/ff43d6a3e1563eb9cb185501134b2a53ae88787c))
+* docs ([652f4f2](https://github.com/iotaledger/twin-dataspace/commit/652f4f2fec8601bb3772e054b2c823f599ef68dc))
+* filtering query optional q ([#248](https://github.com/iotaledger/twin-dataspace/issues/248)) ([e9e8ff1](https://github.com/iotaledger/twin-dataspace/commit/e9e8ff1e1bb3b93f0960260c21a46d6f58dbfaa2))
+* implement missing trust check on negotiateAgreement ([#136](https://github.com/iotaledger/twin-dataspace/issues/136)) ([a3589c2](https://github.com/iotaledger/twin-dataspace/commit/a3589c279476d5450b68ea7c2790be7e3125bfe2))
+* return 422/500 when inline activity processing fails ([#135](https://github.com/iotaledger/twin-dataspace/issues/135)) ([8635187](https://github.com/iotaledger/twin-dataspace/commit/863518724cb90af15edc5f456d9a93c6cad7d661))
+* throw not supported error for in-process only control plane methods ([#185](https://github.com/iotaledger/twin-dataspace/issues/185)) ([130f00a](https://github.com/iotaledger/twin-dataspace/commit/130f00a87412b34defde891855bee7aa3ac34130))
+
 ## [0.9.0](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.0...dataspace-models-v0.9.0) (2026-06-25)
 
 

@@ -23,6 +23,7 @@
 			"pushSubscriptionNotFound": "Push subscription not found for consumerPid \"{notFoundId}\"",
 			"activityLogEntryNotAuthorized": "Unauthorised access to activity log entry — the verified identity is not the entry generator",
 			"pushActivityNotAuthorized": "Unauthorized push activity — no matching STARTED transfer found for the activity generator",
+			"dataReadNotAuthorized": "Unauthorized data read: the verified identity is not a party to the transfer (consumerPid: {consumerPid})",
 			"pushActivityNotPermittedByPolicy": "Push activity rejected — the transfer's agreement (\"{agreementId}\") does not permit the activity for consumerPid \"{consumerPid}\"",
 			"processOutboxActivityMultipleTo": "processOutboxActivity does not support multiple recipients — activity.to contains {count} values, expected exactly one consumerPid",
 			"pushSubscriptionCompensationFailed": "Compensating unsubscribeToData failed after push-subscription storage write failed (consumerPid: {consumerPid}, providerPid: {providerPid}) — app may be left with a dangling Follow until orphan cleanup runs",

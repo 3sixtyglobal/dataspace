@@ -298,13 +298,14 @@ Trust payload for authenticating this call.
 
 The consumerPid of the newly created TransferProcess.
 
-**Engine configuration requirement:** The outbound call to the provider uses
+**Engine configuration requirement (remote transfers only):** when `providerEndpoint` is a
+remote origin the outbound call uses
 `ComponentFactory.create(remoteControlPlaneComponentType, { endpoint, pathPrefix })`.
 For the runtime `providerEndpoint` to be forwarded correctly, the engine **must** register
 the component type (default: `dataspace-control-plane-rest-client`) as a
 **multi-instance** component (`isMultiInstance: true` in engine config). A singleton
 registration ignores the runtime `endpoint` arg and silently POSTs to its
-static endpoint instead.
+static endpoint instead. Local-origin (same-node) transfers run in-process and are unaffected.
 
 #### Implementation of
 
@@ -851,3 +852,21 @@ A promise that resolves when the dataset has been removed from storage and the c
 #### Implementation of
 
 `IDataspaceControlPlaneComponent.deleteAppDataset`
+
+***
+
+### getProtocolVersions() {#getprotocolversions}
+
+> **getProtocolVersions**(): `Promise`\<`IDataspaceProtocolVersionResponse`\>
+
+Return the Dataspace Protocol versions supported by this connector.
+
+#### Returns
+
+`Promise`\<`IDataspaceProtocolVersionResponse`\>
+
+The protocol version response listing all supported DSP versions.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.getProtocolVersions`

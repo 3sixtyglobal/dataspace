@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import {
 	HttpContextIdKeys,
+	HttpHeaderHelper,
 	HttpParameterHelper,
 	HttpUrlHelper,
 	type IHttpRequestContext,
@@ -29,12 +30,17 @@ import {
 	type IDataAssetGetEntitiesRequest,
 	type IDataAssetItemList,
 	type IDataAssetQueryRequest,
-	type IDataspaceDataPlaneComponent,
-	type IFilteringQuery
+	type IDataspaceDataPlaneComponent
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { HeaderHelper, HeaderTypes, HttpStatusCode, MimeTypes } from "@twin.org/web";
+import {
+	HeaderHelper,
+	HeaderTypes,
+	HttpStatusCode,
+	type IHttpHeaders,
+	MimeTypes
+} from "@twin.org/web";
 
 /**
  * The source used when communicating about these routes.
@@ -283,7 +289,11 @@ export async function activityStreamNotify(
 	request: IActivityStreamNotifyRequest
 ): Promise<IActivityStreamNotifyResponse> {
 	Guards.object<IActivityStreamNotifyRequest>(ROUTES_SOURCE, nameof(request), request);
-	Guards.object<IActivityStreamsActivity>(ROUTES_SOURCE, nameof(request.body), request.body);
+	Guards.object<IActivityStreamNotifyRequest["body"]>(
+		ROUTES_SOURCE,
+		nameof(request.body),
+		request.body
+	);
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
 
@@ -291,10 +301,18 @@ export async function activityStreamNotify(
 	const result = await component.notifyActivity(request.body, trustPayload);
 
 	if (Is.string(result)) {
+		const contextIds = await ContextIdStore.getContextIds();
+		const publicOrigin = contextIds?.[HttpContextIdKeys.PublicOrigin];
+
+		const headers: IHttpHeaders = {};
+		HttpHeaderHelper.buildId(
+			headers,
+			result,
+			HttpUrlHelper.combineOriginPath(publicOrigin, `${baseRouteName}/activity-logs/:id`)
+		);
+
 		return {
-			headers: {
-				[HeaderTypes.Location]: `${baseRouteName}/activity-logs/${result}`
-			},
+			headers,
 			statusCode: HttpStatusCode.accepted
 		};
 	}
@@ -311,10 +329,18 @@ export async function activityStreamNotify(
 			: HttpStatusCode.internalServerError;
 	}
 
+	const contextIds = await ContextIdStore.getContextIds();
+	const publicOrigin = contextIds?.[HttpContextIdKeys.PublicOrigin];
+
+	const headers: IHttpHeaders = {};
+	HttpHeaderHelper.buildId(
+		headers,
+		result.id,
+		HttpUrlHelper.combineOriginPath(publicOrigin, `${baseRouteName}/activity-logs/:id`)
+	);
+
 	return {
-		headers: {
-			[HeaderTypes.Location]: `${baseRouteName}/activity-logs/${result.id}`
-		},
+		headers,
 		statusCode,
 		body: result
 	};
@@ -338,7 +364,6 @@ export async function activityLogEntryGet(
 		nameof(request.pathParams),
 		request.pathParams
 	);
-	Guards.stringValue(ROUTES_SOURCE, nameof(request.pathParams.id), request.pathParams.id);
 
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
 
@@ -367,8 +392,6 @@ export async function getDataAssetEntities(
 		nameof(request.query),
 		request.query
 	);
-	Guards.stringValue(ROUTES_SOURCE, nameof(request.query.type), request.query.type);
-	Guards.stringValue(ROUTES_SOURCE, nameof(request.query.consumerPid), request.query.consumerPid);
 
 	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
 
@@ -387,17 +410,13 @@ export async function getDataAssetEntities(
 
 	const headers: IDataAssetEntitiesResponse["headers"] = {};
 
-	if (Is.stringValue(result.cursor)) {
-		const contextIds = await ContextIdStore.getContextIds();
-		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
-			HttpUrlHelper.replaceOrigin(
-				httpRequestContext.serverRequest.url,
-				contextIds?.[HttpContextIdKeys.PublicOrigin]
-			),
-			{ cursor: result.cursor },
-			"next"
-		);
-	}
+	const contextIds = await ContextIdStore.getContextIds();
+	HttpHeaderHelper.buildCursor(
+		headers,
+		httpRequestContext.serverRequest.url,
+		contextIds?.[HttpContextIdKeys.PublicOrigin],
+		result.cursor
+	);
 
 	return {
 		headers,
@@ -419,14 +438,8 @@ export async function queryDataAsset(
 ): Promise<IDataAssetEntitiesResponse> {
 	Guards.object<IDataAssetQueryRequest>(ROUTES_SOURCE, nameof(request), request);
 	Guards.object<IDataAssetQueryRequest["body"]>(ROUTES_SOURCE, nameof(request.body), request.body);
-	Guards.stringValue(ROUTES_SOURCE, nameof(request.body.consumerPid), request.body.consumerPid);
-
-	Guards.object<IFilteringQuery>(ROUTES_SOURCE, nameof(request.body.query), request.body.query);
-	Guards.string(ROUTES_SOURCE, nameof(request.body.query.type), request.body.query.type);
-	Guards.string(ROUTES_SOURCE, nameof(request.body.query.q), request.body.query.q);
 
 	const trustPayload = HeaderHelper.extractBearer(request.headers?.[HeaderTypes.Authorization]);
-
 	const component = ComponentFactory.get<IDataspaceDataPlaneComponent>(factoryServiceName);
 
 	const result = await component.queryDataAsset(
@@ -439,17 +452,13 @@ export async function queryDataAsset(
 
 	const headers: IDataAssetEntitiesResponse["headers"] = {};
 
-	if (Is.stringValue(result.cursor)) {
-		const contextIds = await ContextIdStore.getContextIds();
-		headers[HeaderTypes.Link] = HeaderHelper.createLinkHeader(
-			HttpUrlHelper.replaceOrigin(
-				httpRequestContext.serverRequest.url,
-				contextIds?.[HttpContextIdKeys.PublicOrigin]
-			),
-			{ cursor: result.cursor },
-			"next"
-		);
-	}
+	const contextIds = await ContextIdStore.getContextIds();
+	HttpHeaderHelper.buildCursor(
+		headers,
+		httpRequestContext.serverRequest.url,
+		contextIds?.[HttpContextIdKeys.PublicOrigin],
+		result.cursor
+	);
 
 	return {
 		headers,

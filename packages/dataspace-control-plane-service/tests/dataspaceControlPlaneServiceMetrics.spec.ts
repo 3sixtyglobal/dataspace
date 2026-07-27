@@ -57,6 +57,12 @@ function makeMockTelemetry(): {
 			values.push({ id, value, customData });
 			return "v";
 		},
+		getMetricValue: async (id, valueId) => ({
+			id: valueId,
+			metricId: id,
+			value: 0,
+			ts: Date.now()
+		}),
 		removeMetric: async () => {},
 		query: async () => ({ entities: [] }),
 		queryValues: async () => ({ metric: {} as never, entities: [] })

@@ -50,7 +50,7 @@ Optional Bearer token for authenticating the push request.
 
 ### agreement {#agreement}
 
-> **agreement**: `IDataspaceProtocolAgreement`
+> **agreement**: `IRightsManagementAgreement`
 
 The ODRL agreement governing the data transfer.
 

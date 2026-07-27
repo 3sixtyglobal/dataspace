@@ -1,0 +1,60 @@
+---
+category: dataspace
+order: 1
+---
+
+import { ComponentLandscapeDiagram } from './dataspace-diagrams.jsx';
+
+# Dataspace Overview
+
+A dataspace is a federation of independent organisations that exchange data under agreed rules, without surrendering that data to a central custodian. Each participant keeps operating its own infrastructure and remains in full control of what it shares, with whom, and under which conditions. The dataspace packages provide the building blocks for running such a federation: connectors that negotiate and execute data transfers, a federated catalogue for asset discovery, a rights management suite for policy expression and enforcement, and a trust layer built on decentralised identity.
+
+## Key Principles
+
+Three principles shape the architecture:
+
+- **Data sovereignty.** Data never moves without an agreement. A provider publishes only metadata describing its assets; the data itself stays at the source until a consumer has negotiated an ODRL agreement, and even then every access is policy checked. Usage conditions travel with the agreement, not with the data.
+- **Interoperability.** All exchange surfaces follow open standards, so any conformant implementation can participate. Contract negotiation and transfers follow the [Dataspace Protocol](https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/) (2025-1 series), policies use the [W3C ODRL 2.2 vocabulary](https://www.w3.org/TR/odrl-model/), asset descriptions use the [W3C DCAT 3 vocabulary](https://www.w3.org/TR/vocab-dcat-3/), and all messages are JSON-LD.
+- **Trust.** Participants are identified by decentralised identifiers (DIDs) anchored on the IOTA Rebased ledger, and every protocol call carries a verifiable credential as its trust payload. The credential is re-verified on every call, and the identity attributes verified at negotiation time travel with the agreement into the policy decisions made where the data is served, so trust decisions are grounded in cryptographic evidence rather than network location.
+
+## Participant Roles
+
+Dataspace literature commonly describes five roles. The table below summarises each role and how this platform realises it.
+
+| Role              | Purpose                                                           | Realisation                                                                                                                                                                                             |
+| ----------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Provider          | Offers datasets and serves the data once an agreement exists      | A node running the connector (control plane plus data plane) with a registered dataspace app that owns the data                                                                                         |
+| Consumer          | Discovers datasets, negotiates agreements, receives or pulls data | A node running the same connector components in the consumer role                                                                                                                                       |
+| Identity provider | Establishes who a participant is                                  | No central identity provider exists; each participant controls a DID on the IOTA Rebased ledger and proves it with verifiable credentials, see [Trust and Identity](./dataspace-trust-and-identity.mdx) |
+| Catalogue broker  | Enables discovery of offered assets                               | The federated catalogue, a DCAT based dataset registry queried through Dataspace Protocol catalogue messages, see [Federated Catalogue](./dataspace-federated-catalogue.mdx)                            |
+| Clearing house    | Records evidence of exchanges                                     | No separate clearing house component exists; negotiation history, activity logs, and policy obligation logging provide the audit trail, see [Rights Management](./dataspace-rights-management.mdx)      |
+
+Provider and consumer are roles per exchange, not fixed identities: the same node acts as provider for the datasets it publishes and as consumer for the datasets it requests.
+
+## Component Landscape
+
+The platform splits dataspace functionality across cooperating component groups, each independently deployable and wired together through component factories.
+
+{ComponentLandscapeDiagram()}
+
+- **Connector control plane** (`dataspace-control-plane-service`) orchestrates the lifecycle: it initiates contract negotiation, manages transfer processes, publishes datasets to the catalogue, and exposes the Dataspace Protocol transfer endpoints.
+- **Connector data plane** (`dataspace-data-plane-service`) moves the data: it serves policy filtered query results, receives pushed activities on its inbox, manages push subscriptions, and records activity logs.
+- **Federated catalogue** (`federated-catalogue-service`) stores DCAT dataset descriptions with their ODRL offers and answers catalogue queries.
+- **Rights management** (the `rights-management-*` packages) provides the policy machinery: administration, negotiation, decision, enforcement, information, management, and execution points following the ODRL evaluation pattern.
+- **Trust and identity** (the `trust-*` and `identity-*` packages) issue and verify the credential based trust payloads that authenticate every call between participants.
+
+The shared contracts live in `dataspace-models`, and REST plus WebSocket clients (`dataspace-control-plane-rest-client`, `dataspace-data-plane-rest-client`, `dataspace-data-plane-socket-client`) let external services integrate with a running connector. The components are assembled into a single node runtime through engine extension types; there is no standalone server app in this repository.
+
+## How the Pieces Work Together
+
+A complete exchange runs through six stages: a provider registers its identity and publishes dataset metadata to the federated catalogue; a consumer discovers the dataset and its usage offer; the two connectors negotiate an ODRL agreement over the Dataspace Protocol; the consumer requests a transfer under that agreement; the data plane serves or pushes the data with every payload passing policy enforcement; and both sides retain logs of what happened. The [End-to-End Data Exchange](./dataspace-end-to-end.mdx) walkthrough follows this flow step by step with the actual component methods.
+
+## Related
+
+- [Dataspace Connector](./dataspace-connector.mdx)
+- [Trust and Identity](./dataspace-trust-and-identity.mdx)
+- [Federated Catalogue](./dataspace-federated-catalogue.mdx)
+- [ODRL Policies](./dataspace-odrl-policies.mdx)
+- [Rights Management](./dataspace-rights-management.mdx)
+- [End-to-End Data Exchange](./dataspace-end-to-end.mdx)
+- [Glossary](./dataspace-glossary.mdx)

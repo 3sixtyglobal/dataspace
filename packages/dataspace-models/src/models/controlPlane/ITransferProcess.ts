@@ -1,9 +1,9 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import type { IRightsManagementPolicy } from "@twin.org/rights-management-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
-	IDataspaceProtocolDataAddress,
-	IDataspaceProtocolPolicy
+	IDataspaceProtocolDataAddress
 } from "@twin.org/standards-dataspace-protocol";
 import type { TransferProcessRole } from "./transferProcessRole.js";
 
@@ -61,7 +61,7 @@ export interface ITransferProcess {
 	 * Policies from the Agreement.
 	 * Used by DSC for runtime policy enforcement.
 	 */
-	policies?: IDataspaceProtocolPolicy[];
+	policies?: IRightsManagementPolicy[];
 
 	/**
 	 * Consumer identity (DID or URI).

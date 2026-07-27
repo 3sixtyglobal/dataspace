@@ -12,9 +12,9 @@ export interface IFilteringQuery {
 	type: string;
 
 	/**
-	 * The representation of the query.
+	 * The representation of the query, optional depending on the query type.
 	 */
-	q: unknown;
+	q?: unknown;
 
 	/**
 	 * The JSON-LD context to be applied over the query terms.

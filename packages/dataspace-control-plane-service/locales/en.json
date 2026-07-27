@@ -4,7 +4,6 @@
 			"transferProcessInitiated": "Transfer Process initiated",
 			"transferProcessQueried": "Transfer Process queried (role: {role})",
 			"transferProcessStarted": "Transfer Process started",
-			"dataAccessTokenGenerated": "Data access token generated for PULL transfer",
 			"transferProcessCompleted": "Transfer Process completed",
 			"transferProcessSuspended": "Transfer Process suspended",
 			"transferProcessTerminated": "Transfer Process terminated",
@@ -12,8 +11,6 @@
 			"resolvedProviderPid": "Resolved providerPid to Transfer Context",
 			"catalogDatasetFound": "Dataset validated in Federated Catalogue",
 			"agreementMatchedOffer": "Agreement matched Catalog Offer",
-			"populatingFederatedCatalogue": "Populating Federated Catalogue with stored app datasets",
-			"federatedCataloguePopulated": "Federated Catalogue population completed (registered: {registeredCount}, errors: {errorCount}, datasets: {totalDatasets})",
 			"startingContractNegotiation": "Starting contract negotiation with provider",
 			"offerFoundInCatalog": "Offer found in Federated Catalogue and validated",
 			"negotiationInitiated": "Contract negotiation initiated successfully",
@@ -25,7 +22,6 @@
 			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
 			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})",
 			"stalledTransfersCleanupComplete": "Stalled transfers cleanup completed (cleanedUp: {cleanedUp})",
-			"pushTransferStarted": "PUSH transfer started (consumerPid: {consumerPid}, providerPid: {providerPid}, endpoint: {endpoint})",
 			"preparingTransfer": "Preparing consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
 			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
 		},
@@ -39,8 +35,7 @@
 	},
 	"debug": {
 		"dataspaceControlPlaneService": {
-			"engineCloneStart": "Skipping Federated Catalogue population (engine clone or no engine)",
-			"datasetRegistered": "Dataset {datasetId} registered for app {appId} (tenant: {tenantId})"
+			"engineCloneStart": "Skipping control plane startup tasks (engine clone or no engine)"
 		}
 	},
 	"warn": {
@@ -62,7 +57,6 @@
 			"autoStartFailed": "Provider auto-start of a requested transfer failed (consumerPid: {consumerPid})",
 			"autoStartPublicOriginMissing": "Cannot auto-start the transfer: this node's public origin could not be resolved; holding the transfer in REQUESTED (consumerPid: {consumerPid})",
 			"transferProcessNotFound": "Transfer Process not found",
-			"pullTransfersNotSupported": "PULL transfers are not supported. Configure dataPlanePath in service configuration to enable PULL transfers.",
 			"transferProcessTerminated": "Transfer Process \"{consumerPid}\" is terminated and cannot be used",
 			"transferProcessTerminatedProvider": "Transfer Process \"{providerPid}\" is terminated and cannot be used",
 			"invalidTransferRequest": "Transfer Request does not conform to Dataspace Protocol specification",
@@ -103,9 +97,6 @@
 			"callerNotAuthorizedAsProvider": "The caller's verified identity does not match the provider for this transfer process",
 			"callerNotAuthorizedForTransfer": "The caller's verified identity does not match the consumer or provider for this transfer process",
 			"multipleAssignersNotSupported": "Multiple assigners found in agreement, which is not supported. Only single assigner agreements are supported.",
-			"invalidPushDataAddress": "PUSH transfer cannot start: consumer dataAddress is missing endpoint or endpointType (consumerPid: {consumerPid})",
-			"pushTransferDataPathNotConfigured": "PUSH transfer cannot start: dataPlanePath is not configured (consumerPid: {consumerPid})",
-			"dataPlaneNotRegistered": "Push-mode transfer requires the data plane component to be registered (factory key: \"dataspace-data-plane\"). This deployment was configured without a data plane — register one to enable push, or use pull-mode transfers only.",
 			"datasetPublishFailed": "Failed to publish dataset \"{datasetId}\" for app \"{appId}\" (tenant: \"{tenantId}\")",
 			"datasetRemoveFailed": "Failed to remove dataset \"{datasetId}\" from the Federated Catalogue (tenant: \"{tenantId}\")",
 			"datasetAlreadyExists": "A dataset with id \"{existingId}\" already exists.",
@@ -114,6 +105,18 @@
 			"transferWrongOrganization": "The calling organization does not own this transfer.",
 			"invalidDatasetId": "Dataset ID \"{id}\" is not a valid URN or URL"
 		},
-		"dataspaceControlPlanePolicyRequester": {}
+		"dataspaceControlPlanePolicyRequester": {},
+		"httpDataPullTransferHandler": {
+			"pullTransfersNotSupported": "PULL transfers are not supported: dataPlanePath is not configured (consumerPid: {consumerPid}, providerPid: {providerPid})",
+			"providerIdentityMissing": "Provider identity (DID) is required to sign data access tokens but was not set on the Transfer Process"
+		},
+		"httpDataPushTransferHandler": {
+			"pushTransferDataPathNotConfigured": "PUSH transfer cannot start: dataPlanePath is not configured (consumerPid: {consumerPid})",
+			"invalidPushDataAddress": "PUSH transfer cannot start: consumer dataAddress is missing endpoint or endpointType (consumerPid: {consumerPid})"
+		},
+		"httpDataPostTransferHandler": {
+			"pushTransferDataPathNotConfigured": "POST transfer cannot start: dataPlanePath is not configured (consumerPid: {consumerPid})",
+			"providerIdentityMissing": "Provider identity (DID) is required to sign data access tokens but was not set on the Transfer Process"
+		}
 	}
 }

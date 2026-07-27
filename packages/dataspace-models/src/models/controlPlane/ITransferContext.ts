@@ -1,8 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
-	IDataspaceProtocolAgreement,
 	IDataspaceProtocolDataAddress
 } from "@twin.org/standards-dataspace-protocol";
 
@@ -27,7 +27,7 @@ export interface ITransferContext {
 	 * Agreement associated with this Transfer Process.
 	 * Contains permissions, obligations, and prohibitions that DSC uses for runtime policy enforcement.
 	 */
-	agreement: IDataspaceProtocolAgreement;
+	agreement: IRightsManagementAgreement;
 
 	/**
 	 * Dataset ID - what the DSC needs to execute the query.

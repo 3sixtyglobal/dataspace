@@ -1,0 +1,63 @@
+---
+category: dataspace
+order: 6
+---
+
+import { EvaluationPipelineDiagram } from './dataspace-rights-management-diagrams.jsx';
+
+# Rights Management
+
+The rights management packages implement the policy machinery of the dataspace: storing ODRL policies, negotiating agreements, deciding whether an action on an asset is permitted, and enforcing that decision on real payloads. The design follows the policy point pattern familiar from XACML and the ODRL information model, with each point an independent component wired through factories.
+
+## The Policy Points
+
+- **Policy administration point (PAP)** stores and manages policies: create, update, retrieve, and query policies, agreements, sets, and offers. Agreements produced by negotiation are persisted here.
+- **Policy negotiation point (PNP)** runs the Dataspace Protocol contract negotiation state machine: it exchanges the request, offer, agreement, verification, and event messages with the counterparty connector, verifying the trust payload on every message. A companion admin point (PNAP) provides negotiation history.
+- **Policy decision point (PDP)** produces decisions: given an agreement, an action, the payload, and the trust data, it gathers context and evaluates the policy rules.
+- **Policy information point (PIP)** supplies context facts: it fans out to registered information sources (for example resolved identity documents and profiles of the agreement parties, or static configuration) and merges their results.
+- **Policy enforcement point (PEP)** applies decisions to data flows: callers hand it a payload and an agreement (directly, by agreement id, or by a locator) and receive the payload back with the decisions applied.
+- **Policy execution point (PXP)** runs side effects before and after evaluation, such as decision logging or firing automation triggers.
+- **Policy management point (PMP)** locates candidate policies for a locator (assigner, assignee, target, action), used when enforcement starts from a locator rather than an agreement id.
+
+## The Evaluation Pipeline
+
+{EvaluationPipelineDiagram()}
+
+When the data plane intercepts a payload, the PEP asks the PDP to evaluate the agreement. The PDP first runs the before-stage execution actions, then retrieves information from the PIP and merges the agreement's `trustData` over it, so verified negotiation-time attributes take precedence over locally gathered facts. Every registered arbiter then decides, and the after-stage execution actions run.
+
+The default arbiter implements ODRL 2.2 semantics: it checks the declared profile is supported, resolves policy inheritance, expands compact rules, groups rules per target, evaluates constraints (including logical constraints and JSONPath refinements), applies the conflict strategy when permissions and prohibitions collide, and gates the outcome on policy obligations being fulfilled. Evaluation is closed world: no applicable permission means deny. The constraint semantics are described in [ODRL Policies](./dataspace-odrl-policies.mdx).
+
+Decisions are per target, not per request. Each decision names a JSONPath target within the payload and an outcome from the decision model: `Granted`, `Denied`, or `Replace` (with a replacement value). The shipped arbiter emits `Granted` and `Denied`; producing `Replace` decisions (for example to substitute a masked value) requires a custom arbiter. The PEP's enforcement processors then apply the decisions constructively on a clone: the released payload is built from the granted targets, with replacements substituted where a decision carries one, so anything denied or undecided is simply absent. This is what makes usage control field-level: a single agreement can grant a dataset while withholding a sensitive column.
+
+## Credential-Driven Access
+
+Two mechanisms tie decisions to verified identity:
+
+- **Trust data.** The verification data captured at negotiation (the counterparty's verified credential and subject) is stored on the agreement and forwarded into policy evaluation where the data is served, so constraints on information keys evaluate against cryptographically verified attributes, see [Trust and Identity](./dataspace-trust-and-identity.mdx).
+- **Party matching.** Rules bind to the agreement parties, and on the transfer request and inbox delivery paths the connector separately checks that the caller's verified identity matches a transfer party before enforcement is reached. Pull reads validate the token and the transfer state without a party comparison.
+
+## Where the Dataspace Enforces
+
+The connector invokes rights management at three points:
+
+- **Negotiation.** The control plane's `negotiateAgreement` delegates to the PNP, which drives the negotiation to a finalised agreement persisted in the PAP with its trust data.
+- **Outbound reads.** The data plane passes query results through the PEP with the transfer's agreement before returning them to the consumer, withholding what the agreement does not grant; results pass unfiltered when the transfer context carries no agreement.
+- **Inbound writes and deliveries.** Activities arriving on the inbox are enforced with the ODRL action derived from the transfer direction and the Activity Streams verb (deliveries evaluate as reads, contributions as writes, modifications, or deletes); a denied activity is rejected as unauthorised, and an agreement without rules skips inbox enforcement. Push deliveries additionally run the same enforcement on the provider side, when an enforcement point is wired to the delivery runner, before the payload leaves the node.
+
+## Audit Trail
+
+Auditing is built from structured logging around the decision pipeline rather than a dedicated ledger:
+
+- a logging execution action can record every evaluation before and after decisions, keyed by policy id, action, and stage, with optional inclusion of the payload, policy, and decisions,
+- the PEP and PDP log interception, processing, and failures with the policy and processor identifiers,
+- the data plane logs the obligations that applied to each served read and inbox arrival (provider-side push deliveries are not obligation-logged), and records every activity in its activity log entries,
+- and negotiation history is queryable through the negotiation admin point.
+
+Together these give an operator a reconstructable record of who accessed what under which agreement and which obligations applied. There is currently no integration with immutable or notarised storage for these records; deployments needing non-repudiable audit evidence would need to route these logs into such a store.
+
+## Related
+
+- [ODRL Policies](./dataspace-odrl-policies.mdx)
+- [Trust and Identity](./dataspace-trust-and-identity.mdx)
+- [Dataspace Connector](./dataspace-connector.mdx)
+- [End-to-End Data Exchange](./dataspace-end-to-end.mdx)

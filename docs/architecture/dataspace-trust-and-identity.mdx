@@ -1,0 +1,66 @@
+---
+category: dataspace
+order: 3
+---
+
+import { TrustDataFlowDiagram } from './dataspace-trust-and-identity-diagrams.jsx';
+
+# Trust and Identity
+
+Every interaction between dataspace participants is authenticated with decentralised identity primitives: participants are identified by DIDs, calls are authorised by verifiable credentials, and the identity attributes verified during negotiation follow the agreement into every later policy decision. There is no central identity provider; trust is established pairwise from cryptographic evidence.
+
+## Decentralised Identifiers
+
+Participant organisations and nodes hold [W3C Decentralised Identifiers](https://www.w3.org/TR/did-core/). The primary method is `did:iota`, with DID documents created and resolved on the IOTA Rebased ledger through the identity connector: creating an identity submits an on-chain identity transaction (including a revocation bitmap service for credential revocation), and resolution reads the document back from the ledger. Two alternative connectors exist for other environments: an entity storage method (`did:entity-storage`) for development and testing, and a universal resolver connector that proxies resolution to an external resolver endpoint. Which method is active depends on how the node engine is wired; the dataspace components are method agnostic.
+
+The identity component also issues and verifies [W3C Verifiable Credentials](https://www.w3.org/TR/vc-data-model/): `verifiableCredentialCreate` signs a credential subject with one of the identity's verification methods, `verifiableCredentialVerify` resolves the issuer DID and checks the signature and revocation status, and revocation is managed through the on-chain revocation bitmap.
+
+## The Trust Layer
+
+The trust packages turn those primitives into a single reusable gate used by every dataspace surface. The `ITrustComponent` contract has two operations:
+
+- `generate(identity, generatorType, info)` produces a trust payload for an identity. The default generator issues a verifiable credential as a JWT, optionally embedding domain claims as the credential subject (for example the consumer process id and agreement id when one connector calls another).
+- `verify(payload)` runs the payload through a chain of registered verifiers and returns the verification outcome together with an `ITrustVerificationInfo` containing the verified `identity` (a DID) and a `data` map of extracted attributes.
+
+Two verifiers ship with the platform:
+
+- `JwtVerifiableCredentialVerifier` decodes the JWT, checks expiry when the credential carries one (tokens only expire when the generator is configured with a token time to live, which deployments should set), and verifies the credential through the identity component, which resolves the issuer DID on the ledger and checks the signature and revocation status. On success it records the issuer DID as the verified identity and captures the credential and its subject into the verification data.
+- `IdentityAllowDenyVerifier` optionally gates the verified identity against configured allow and deny lists, giving a dataspace operator a direct participant admission control.
+
+On the wire, the trust payload travels as the `Authorization: Bearer` header of each protocol call, and each service verifies it internally through `TrustHelper.verifyTrust`, which throws an unauthorised error unless verification succeeds and yields an identity. The connector control plane's protocol routes, the data plane, and the federated catalogue all authenticate this way, which is why those routes bypass the platform session authentication; the control plane's dataset management routes use the platform session authentication instead.
+
+## Membership
+
+Membership of the dataspace is currently an emergent property of this trust flow rather than a dedicated credential type:
+
+- a participant can only interact if it presents a verifiable credential that verifies against a DID resolvable by the other side,
+- when requesting a transfer or delivering to an inbox, the verified identity must match a party on the relevant ODRL agreement (for example the transfer requester must be the agreement assignee),
+- and operators can restrict admission with the allow and deny identity lists.
+
+The attestation packages provide the building blocks for authority-issued membership credentials (verifiable credentials anchored as NFTs on the ledger), but they are not wired into the dataspace components today. A governance framework requiring explicit membership attestation would layer an additional verifier over the same trust chain.
+
+## Trust Data: Negotiation-Time Attributes at Access Time
+
+The most important property of the trust layer is that verified attributes are captured once, at negotiation time, and then travel with the agreement.
+
+{TrustDataFlowDiagram()}
+
+When a contract negotiation runs, the policy negotiation point verifies the counterparty's trust payload on each message and keeps the resulting verification info. When the agreement is finalised, the verification data (the verified credential and its subject) is persisted onto the agreement as its `trustData`. At data access time the enforcement point passes `trustData` back into the policy decision point, where it is merged with the policy information sources and made available to ODRL constraints. A policy can therefore constrain on attributes that were cryptographically verified when the relationship was established, see [Rights Management](./dataspace-rights-management.mdx).
+
+One subtlety is role awareness: a transfer executes on both the provider and consumer node, and each side's stored agreement carries the counterparty attributes it verified. The data plane forwards `trustData` into enforcement only where the attributes describe the accessing party, so policies are always evaluated against the correct party's evidence.
+
+## Locality and Implicit Trust
+
+Not every exchange crosses organisation boundaries. Before dialling a remote endpoint, the control plane asks the platform component whether the URL resolves to a context on the local node. Two behaviours follow:
+
+- **Implicit trust agreements.** If the negotiation target belongs to the same organisation on the same node, the connector skips the external protocol and creates a local full-access agreement directly.
+- **In-process delivery.** Provider to consumer callbacks that resolve locally run in-process under the target context instead of making HTTP calls to the node's own endpoints.
+
+Both shortcuts apply strictly to verified local origins; anything else follows the full credential-verified protocol path.
+
+## Related
+
+- [Dataspace Overview](./dataspace.mdx)
+- [Dataspace Connector](./dataspace-connector.mdx)
+- [Rights Management](./dataspace-rights-management.mdx)
+- [Glossary](./dataspace-glossary.mdx)
