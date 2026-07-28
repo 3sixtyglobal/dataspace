@@ -9,7 +9,6 @@ import {
 	TransferRetrieval,
 	type IDataspaceDataPlaneComponent
 } from "@twin.org/dataspace-models";
-import type { IEngineCore } from "@twin.org/engine-models";
 import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { DataspaceProtocolDataTypes } from "@twin.org/standards-dataspace-protocol";
@@ -169,13 +168,16 @@ export async function setupTestEnv(): Promise<void> {
 /**
  * Creates a mock Engine Core for testing.
  * @param isClone Whether this engine is a clone.
- * @returns A mock IEngineCore.
+ * @returns A mock engine core object.
  */
-export function createMockEngineCore(isClone: boolean = false): IEngineCore {
+export function createMockEngineCore(isClone: boolean = false): {
+	className: () => string;
+	isClone: () => boolean;
+} {
 	return {
 		className: () => "MockEngineCore",
 		isClone: () => isClone
-	} as unknown as IEngineCore;
+	};
 }
 
 /**

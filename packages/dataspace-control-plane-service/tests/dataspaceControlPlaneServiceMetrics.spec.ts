@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory } from "@twin.org/core";
+import { ComponentFactory, Factory } from "@twin.org/core";
 import {
 	DataspaceAppFactory,
 	DataspaceControlPlaneMetricIds,
@@ -23,7 +23,7 @@ import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.
 import { MockPolicyAdministrationPointComponent } from "./mocks/mockPolicyAdministrationPoint.js";
 import { MockPolicyNegotiationAdminPointComponent } from "./mocks/mockPolicyNegotiationAdminPoint.js";
 import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiationPoint.js";
-import { createMockTrustComponent, setupTestEnv } from "./setupTestEnv.js";
+import { createMockEngineCore, createMockTrustComponent, setupTestEnv } from "./setupTestEnv.js";
 
 const TEST_APP_ID = "https://twin.example.org/app1";
 
@@ -182,18 +182,22 @@ describe("DataspaceControlPlaneService — metrics", () => {
 	test("start() registers every control plane metric with the telemetry component", async () => {
 		const { component, created } = makeMockTelemetry();
 		ComponentFactory.register("test-telemetry", () => component);
+		Factory.createFactory("engine-core").register("engine", () => createMockEngineCore(false));
 
-		const service = new DataspaceControlPlaneService(serviceOptions);
-		await service.start();
+		try {
+			const service = new DataspaceControlPlaneService(serviceOptions);
+			await service.start();
 
-		const createdIds = created.map(m => m.id);
-		for (const metric of DataspaceControlPlaneMetrics) {
-			expect(createdIds).toContain(metric.id);
+			const createdIds = created.map(m => m.id);
+			for (const metric of DataspaceControlPlaneMetrics) {
+				expect(createdIds).toContain(metric.id);
+			}
+			expect(created.every(m => m.type === MetricType.Counter)).toBe(true);
+			expect(created).toHaveLength(DataspaceControlPlaneMetrics.length);
+		} finally {
+			Factory.createFactory("engine-core").unregister("engine");
+			ComponentFactory.unregister("test-telemetry");
 		}
-		expect(created.every(m => m.type === MetricType.Counter)).toBe(true);
-		expect(created).toHaveLength(DataspaceControlPlaneMetrics.length);
-
-		ComponentFactory.unregister("test-telemetry");
 	});
 
 	test("createAppDataset increments the AppDatasetsCreated counter", async () => {

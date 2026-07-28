@@ -14,6 +14,7 @@ import {
 	ComponentFactory,
 	ConflictError,
 	Converter,
+	Factory,
 	GeneralError,
 	GuardError,
 	Guards,
@@ -69,7 +70,6 @@ import {
 	type TransferProcess,
 	type TransferRetrieval
 } from "@twin.org/dataspace-models";
-import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
@@ -482,8 +482,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 		);
 
-		const engine = EngineCoreFactory.getIfExists("engine");
-		if (Is.empty(engine) || engine.isClone()) {
+		const isCloneOrNoEngine =
+			Factory.getFactory<{ isClone: () => boolean }>("engine-core")
+				?.getIfExists("engine")
+				?.isClone() ?? true;
+
+		if (isCloneOrNoEngine) {
 			await this._logging?.log({
 				level: "debug",
 				source: DataspaceDataPlaneService.CLASS_NAME,

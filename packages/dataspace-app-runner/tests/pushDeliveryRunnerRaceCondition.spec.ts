@@ -17,8 +17,7 @@
 import { ContextIdStore } from "@twin.org/context";
 import { ComponentFactory } from "@twin.org/core";
 import type { IPushDeliveryPayload } from "@twin.org/dataspace-models";
-import { EngineCore } from "@twin.org/engine-core";
-import { EngineCoreFactory } from "@twin.org/engine-models";
+import { ModuleHelper } from "@twin.org/modules";
 import { FetchHelper } from "@twin.org/web";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
@@ -52,13 +51,21 @@ const MOCK_CLONE = {
 } as never;
 
 describe("pushDeliveryRunner - concurrent startup and task dispatch", () => {
+	let mockEngineStart: () => Promise<void>;
+
 	beforeEach(() => {
+		mockEngineStart = vi.fn().mockResolvedValue(undefined);
+
 		ComponentFactory.clear();
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({});
-		vi.spyOn(EngineCoreFactory, "register").mockReturnValue(undefined);
-		vi.spyOn(EngineCore.prototype, "populateClone").mockReturnValue(undefined);
-		vi.spyOn(EngineCore.prototype, "stop").mockResolvedValue(undefined);
 		vi.spyOn(FetchHelper, "fetchJson").mockResolvedValue(undefined);
+
+		vi.spyOn(ModuleHelper, "execModuleMethod").mockImplementation(async () => ({
+			className: () => "MockPushRunnerEngine",
+			start: async () => mockEngineStart(),
+			stop: vi.fn().mockResolvedValue(undefined),
+			getRegisteredInstanceTypeOptional: () => undefined
+		}));
 	});
 
 	afterEach(async () => {
@@ -76,10 +83,10 @@ describe("pushDeliveryRunner - concurrent startup and task dispatch", () => {
 		// Startup blocks on the barrier, then registers the trust component.
 		// Without the fix, pushDeliveryRunner reaches ComponentFactory.get("trust") before
 		// startup completes and throws factory.noGet.
-		vi.spyOn(EngineCore.prototype, "start").mockImplementation(async () => {
+		mockEngineStart = async () => {
 			await startupBarrier;
 			ComponentFactory.register("trust", () => MOCK_TRUST as never);
-		});
+		};
 
 		// Both calls are fire-and-forget, mirroring BackgroundTaskService dispatch.
 		// pushDeliveryRunner suspends at `await startupPromise` while startup is blocked.
@@ -96,7 +103,9 @@ describe("pushDeliveryRunner - concurrent startup and task dispatch", () => {
 
 	it("pushDeliveryRunner rejects with the same error when startup fails", async () => {
 		const startupError = new Error("engine start failed");
-		vi.spyOn(EngineCore.prototype, "start").mockRejectedValue(startupError);
+		mockEngineStart = async () => {
+			throw startupError;
+		};
 
 		const startupPromise = pushDeliveryRunnerStart(MOCK_CLONE);
 		const runnerPromise = pushDeliveryRunner(MOCK_CLONE, MOCK_PAYLOAD);
@@ -106,13 +115,17 @@ describe("pushDeliveryRunner - concurrent startup and task dispatch", () => {
 	});
 
 	it("pushDeliveryRunner passes through instantly when startupPromise is already resolved", async () => {
-		vi.spyOn(EngineCore.prototype, "start").mockImplementation(async () => {
+		mockEngineStart = async () => {
 			ComponentFactory.register("trust", () => MOCK_TRUST as never);
-		});
+		};
 
 		await pushDeliveryRunnerStart(MOCK_CLONE);
 
-		await expect(pushDeliveryRunner(MOCK_CLONE, MOCK_PAYLOAD)).resolves.toEqual({ success: true });
-		await expect(pushDeliveryRunner(MOCK_CLONE, MOCK_PAYLOAD)).resolves.toEqual({ success: true });
+		await expect(pushDeliveryRunner(MOCK_CLONE, MOCK_PAYLOAD)).resolves.toEqual({
+			success: true
+		});
+		await expect(pushDeliveryRunner(MOCK_CLONE, MOCK_PAYLOAD)).resolves.toEqual({
+			success: true
+		});
 	});
 });

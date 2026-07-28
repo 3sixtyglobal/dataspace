@@ -5,6 +5,7 @@ import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	ComponentFactory,
 	Converter,
+	Factory,
 	GeneralError,
 	Is,
 	NotFoundError,
@@ -22,7 +23,6 @@ import {
 	type TransferProcess,
 	type TransferRetrieval
 } from "@twin.org/dataspace-models";
-import { EngineCoreFactory } from "@twin.org/engine-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
@@ -7302,7 +7302,7 @@ describe("DataspaceControlPlaneService", () => {
 				removeTask,
 				tasksInfo: vi.fn()
 			}));
-			EngineCoreFactory.register("engine", () => createMockEngineCore());
+			Factory.createFactory("engine-core").register("engine", () => createMockEngineCore());
 
 			try {
 				const defaultService = new DataspaceControlPlaneService({
@@ -7340,7 +7340,7 @@ describe("DataspaceControlPlaneService", () => {
 			} finally {
 				try {
 					ComponentFactory.unregister("test-task-scheduler");
-					EngineCoreFactory.unregister("engine");
+					Factory.createFactory("engine-core").unregister("engine");
 				} catch {}
 			}
 		});

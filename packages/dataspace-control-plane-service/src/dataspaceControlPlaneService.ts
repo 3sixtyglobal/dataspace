@@ -10,6 +10,7 @@ import {
 	Coerce,
 	ComponentFactory,
 	Converter,
+	Factory,
 	GeneralError,
 	Guards,
 	Is,
@@ -48,7 +49,6 @@ import {
 	type TransferProcess,
 	type TransferRetrieval
 } from "@twin.org/dataspace-models";
-import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator, type EntityCondition } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
@@ -483,11 +483,12 @@ export class DataspaceControlPlaneService
 	 * @returns A promise that resolves when the federated catalogue is populated and the cleanup task is scheduled.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
-		await MetricHelper.createMetrics(this._telemetryComponent, DataspaceControlPlaneMetrics);
+		const isCloneOrNoEngine =
+			Factory.getFactory<{ isClone: () => boolean }>("engine-core")
+				?.getIfExists("engine")
+				?.isClone() ?? true;
 
-		const engine = EngineCoreFactory.getIfExists("engine");
-		// Skip if no engine exists OR if this is a clone instance
-		if (Is.empty(engine) || engine.isClone()) {
+		if (isCloneOrNoEngine) {
 			await this._loggingComponent?.log({
 				level: "debug",
 				ts: Date.now(),
@@ -496,6 +497,8 @@ export class DataspaceControlPlaneService
 			});
 			return;
 		}
+
+		await MetricHelper.createMetrics(this._telemetryComponent, DataspaceControlPlaneMetrics);
 
 		if (this._taskScheduler) {
 			await this._taskScheduler.addTask(

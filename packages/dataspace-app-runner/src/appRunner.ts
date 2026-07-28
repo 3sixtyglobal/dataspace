@@ -7,17 +7,17 @@ import {
 	type IDataspaceApp,
 	type IExecutionPayload
 } from "@twin.org/dataspace-models";
-import { EngineCore } from "@twin.org/engine-core";
-import {
-	EngineCoreFactory,
-	type IEngineCore,
-	type IEngineCoreClone
-} from "@twin.org/engine-models";
+import { ModuleHelper } from "@twin.org/modules";
 import { nameof } from "@twin.org/nameof";
 
 const APP_RUNNER_SOURCE = "appRunner";
 
-let engine: IEngineCore | undefined;
+let engine:
+	| {
+			start: () => Promise<void>;
+			stop: () => Promise<void>;
+	  }
+	| undefined;
 
 // Serialises concurrent startup+task dispatch: Node.js EventEmitter doesn't await async
 // listeners, so appRunnerStart and appRunner can run concurrently in the worker thread.
@@ -28,20 +28,19 @@ let startupPromise: Promise<void> | undefined;
  * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
  * @returns A promise that resolves when the engine has started and is ready to process tasks.
  */
-export async function appRunnerStart(engineCloneData: IEngineCoreClone): Promise<void> {
+export async function appRunnerStart(engineCloneData: unknown): Promise<void> {
 	startupPromise = (async () => {
 		if (!Is.empty(engineCloneData)) {
-			// If the clone data is not empty we use it to create a new engine as it's a new thread
-			// otherwise we assume the factories are already populated.
-			// We also must return a fixed instance of the engine from the factory in case another
-			// background task is started in the same process, otherwise if the app runner ends
-			// and removes the engine the factory would have a reference undefined.
-			const newEngine = new EngineCore();
-			EngineCoreFactory.register("engine", () => newEngine);
-
-			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), true);
-			await newEngine.start();
-			engine = newEngine;
+			engine = await ModuleHelper.execModuleMethod<{
+				start: () => Promise<void>;
+				stop: () => Promise<void>;
+			}>("@twin.org/engine-core", "EngineCoreBuilder.fromClone", [
+				"engine",
+				engineCloneData,
+				await ContextIdStore.getContextIds(),
+				{ logLevel: "error" }
+			]);
+			await engine.start();
 		}
 	})();
 	await startupPromise;
@@ -66,7 +65,7 @@ export async function appRunnerEnd(): Promise<void> {
  * @returns The result produced by the app's handleActivity method.
  */
 export async function appRunner(
-	engineCloneData: IEngineCoreClone,
+	engineCloneData: unknown,
 	payload: IExecutionPayload
 ): Promise<unknown> {
 	// startupPromise is assigned as the first synchronous statement of appRunnerStart (before

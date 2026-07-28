@@ -3,12 +3,7 @@
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { ComponentFactory, Guards, Is } from "@twin.org/core";
 import { getJsonLdId, type IPushDeliveryPayload } from "@twin.org/dataspace-models";
-import { EngineCore } from "@twin.org/engine-core";
-import {
-	EngineCoreFactory,
-	type IEngineCore,
-	type IEngineCoreClone
-} from "@twin.org/engine-models";
+import { ModuleHelper } from "@twin.org/modules";
 import { nameof } from "@twin.org/nameof";
 import type { IPolicyEnforcementPointComponent } from "@twin.org/rights-management-models";
 import {
@@ -22,13 +17,19 @@ import {
 	HeaderHelper,
 	HeaderTypes,
 	HttpMethod,
-	type IHttpHeaders,
-	MimeTypes
+	MimeTypes,
+	type IHttpHeaders
 } from "@twin.org/web";
 
 const PUSH_DELIVERY_RUNNER_SOURCE = "pushDeliveryRunner";
 
-let engine: IEngineCore | undefined;
+let engine:
+	| {
+			start: () => Promise<void>;
+			stop: () => Promise<void>;
+			getRegisteredInstanceTypeOptional: (componentConnectorType: string) => string | undefined;
+	  }
+	| undefined;
 
 // Serialises concurrent startup+task dispatch: Node.js EventEmitter doesn't await async
 // listeners, so pushDeliveryRunnerStart and pushDeliveryRunner can run concurrently in the worker thread.
@@ -42,51 +43,44 @@ let nodeIdentity: string | undefined;
  * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
  * @returns A promise that resolves when the engine has started and all push-delivery components are ready.
  */
-export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone): Promise<void> {
+export async function pushDeliveryRunnerStart(engineCloneData: unknown): Promise<void> {
 	startupPromise = (async () => {
 		if (!Is.empty(engineCloneData)) {
-			const newEngine = new EngineCore();
-			EngineCoreFactory.register("engine", () => newEngine);
-			// Limit the clone to the components the push delivery path reads after startup
-			// (PEP enforcement and trust token generation chains) plus their supporting
-			// connectors, instead of booting every component the source engine runs.
-			newEngine.populateClone(engineCloneData, await ContextIdStore.getContextIds(), {
-				logLevel: "error",
-				types: [
-					"loggingComponent",
-					"loggingConnector",
-					"entityStorageConnector",
-					"vaultConnector",
-					"identityComponent",
-					"identityConnector",
-					"trustComponent",
-					"trustGeneratorComponent",
-					"rightsManagementPepComponent",
-					"rightsManagementPdpComponent",
-					"rightsManagementPapComponent",
-					"rightsManagementPmpComponent",
-					"rightsManagementPipComponent",
-					"rightsManagementPxpComponent",
-					"rightsManagementPolicyArbiterComponent",
-					"rightsManagementPolicyEnforcementProcessorComponent",
-					"rightsManagementPolicyExecutionActionComponent",
-					"rightsManagementPolicyInformationSourceComponent",
-					"platformComponent",
-					"dltConfig"
-				],
-				entityTypes: [
-					"LogEntry",
-					"LogEntryError",
-					"IdentityDocument",
-					"OdrlPolicy",
-					"VaultKey",
-					"VaultSecret"
-				]
-				// Using cast until all types align in other packages
-				// then we can remove the cast and use the actual type.
-			} as unknown as boolean);
-			await newEngine.start();
-			engine = newEngine;
+			engine = await ModuleHelper.execModuleMethod<{
+				start: () => Promise<void>;
+				stop: () => Promise<void>;
+				getRegisteredInstanceTypeOptional: (componentConnectorType: string) => string | undefined;
+			}>("@twin.org/engine-core", "EngineCoreBuilder.fromClone", [
+				"engine",
+				engineCloneData,
+				await ContextIdStore.getContextIds(),
+				{
+					logLevel: "error",
+					types: [
+						"loggingComponent",
+						"loggingConnector",
+						"entityStorageConnector",
+						"vaultConnector",
+						"identityComponent",
+						"identityConnector",
+						"trustComponent",
+						"trustGeneratorComponent",
+						"rightsManagementPepComponent",
+						"rightsManagementPdpComponent",
+						"rightsManagementPapComponent",
+						"rightsManagementPmpComponent",
+						"rightsManagementPipComponent",
+						"rightsManagementPxpComponent",
+						"rightsManagementPolicyArbiterComponent",
+						"rightsManagementPolicyEnforcementProcessorComponent",
+						"rightsManagementPolicyExecutionActionComponent",
+						"rightsManagementPolicyInformationSourceComponent",
+						"platformComponent",
+						"dltConfig"
+					]
+				}
+			]);
+			await engine.start();
 
 			const defaultPepType = engine.getRegisteredInstanceTypeOptional(
 				"rightsManagementPepComponent"
@@ -109,7 +103,7 @@ export async function pushDeliveryRunnerStart(engineCloneData: IEngineCoreClone)
  */
 export async function pushDeliveryRunnerEnd(): Promise<void> {
 	if (!Is.empty(engine)) {
-		await engine.stop();
+		await engine.stop?.();
 		engine = undefined;
 	}
 	startupPromise = undefined;
@@ -122,7 +116,7 @@ export async function pushDeliveryRunnerEnd(): Promise<void> {
  * @returns The delivery result containing a success flag on successful POST.
  */
 export async function pushDeliveryRunner(
-	engineCloneData: IEngineCoreClone,
+	engineCloneData: undefined,
 	payload: IPushDeliveryPayload
 ): Promise<unknown> {
 	// startupPromise is assigned as the first synchronous statement of pushDeliveryRunnerStart

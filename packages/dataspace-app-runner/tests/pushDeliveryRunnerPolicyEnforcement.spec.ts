@@ -11,8 +11,7 @@
 import { ContextIdStore } from "@twin.org/context";
 import { ComponentFactory } from "@twin.org/core";
 import type { IPushDeliveryPayload } from "@twin.org/dataspace-models";
-import { EngineCore } from "@twin.org/engine-core";
-import { EngineCoreFactory } from "@twin.org/engine-models";
+import { ModuleHelper } from "@twin.org/modules";
 import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
 import { FetchHelper } from "@twin.org/web";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -35,13 +34,26 @@ const MOCK_CLONE = {
 } as never;
 
 describe("pushDeliveryRunner - policy enforcement", () => {
+	let mockEngineStart: () => Promise<void>;
+
 	beforeEach(() => {
+		mockEngineStart = vi.fn().mockResolvedValue(undefined);
+
 		ComponentFactory.clear();
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({});
-		vi.spyOn(EngineCoreFactory, "register").mockReturnValue(undefined);
-		vi.spyOn(EngineCore.prototype, "populateClone").mockReturnValue(undefined);
-		vi.spyOn(EngineCore.prototype, "stop").mockResolvedValue(undefined);
 		vi.spyOn(FetchHelper, "fetchJson").mockResolvedValue(undefined);
+
+		vi.spyOn(ModuleHelper, "execModuleMethod").mockImplementation(async () => ({
+			className: () => "MockPolicyEnforcementEngine",
+			start: async () => mockEngineStart(),
+			stop: vi.fn().mockResolvedValue(undefined),
+			getRegisteredInstanceTypeOptional: (type: string) => {
+				if (type === "rightsManagementPepComponent") {
+					return "policy-enforcement-point";
+				}
+				return undefined;
+			}
+		}));
 	});
 
 	afterEach(async () => {
@@ -52,19 +64,14 @@ describe("pushDeliveryRunner - policy enforcement", () => {
 
 	it("forwards the agreement's trustData to the PEP", async () => {
 		const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
-		vi.spyOn(EngineCore.prototype, "start").mockImplementation(async () => {
+
+		mockEngineStart = async () => {
 			ComponentFactory.register("trust", () => MOCK_TRUST as never);
 			ComponentFactory.register("policy-enforcement-point", () => ({
 				className: () => "MockPolicyEnforcementPoint",
 				interceptWithPolicy: interceptSpy
 			}));
-		});
-		const registeredInstanceTypes: { [component: string]: string } = {
-			rightsManagementPepComponent: "policy-enforcement-point"
 		};
-		vi.spyOn(EngineCore.prototype, "getRegisteredInstanceTypeOptional").mockImplementation(
-			component => registeredInstanceTypes[component]
-		);
 
 		const trustData = { subject: { role: "BorderAgency", location: "GB" } };
 		const agreement: IRightsManagementAgreement = {
