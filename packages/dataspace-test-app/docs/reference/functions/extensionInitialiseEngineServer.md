@@ -8,15 +8,19 @@ Initialise the engine server for the extension.
 
 ### engineCore
 
-`IEngineCore`
+`unknown`
 
-The engine core instance.
+The engine core instance (unused by this extension).
 
 ### engineServer
 
-`IEngineServer`
-
 The engine server instance.
+
+#### addRestRouteGenerator
+
+(`type`, `module`, `name`) => `void`
+
+Registers a named REST route generator module and export with the engine server.
 
 ## Returns
 

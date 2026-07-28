@@ -8,7 +8,7 @@ Dataspace Task Startup Method.
 
 ### engineCloneData
 
-`IEngineCoreClone`
+`unknown`
 
 Engine clone data used to initialise a worker-thread engine instance.
 

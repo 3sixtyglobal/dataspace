@@ -8,7 +8,7 @@ Push Delivery Task — POSTs an Activity Streams object to a consumer's /inbox.
 
 ### engineCloneData
 
-`IEngineCoreClone`
+`undefined`
 
 Engine clone data used to initialise a worker-thread engine instance.
 

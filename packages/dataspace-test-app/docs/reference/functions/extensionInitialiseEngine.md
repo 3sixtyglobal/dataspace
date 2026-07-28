@@ -8,9 +8,13 @@ Initialise the engine for the extension.
 
 ### engineCore
 
-`IEngineCore`
-
 The engine core instance.
+
+#### addTypeInitialiser
+
+(`type`, `module`, `name`) => `void`
+
+Registers a named type initialiser module and export with the engine.
 
 ## Returns
 
