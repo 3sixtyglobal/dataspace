@@ -345,7 +345,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			consumerPid,
 			DataspaceProtocolTransferProcessStateType.STARTED
 		);
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 		// The provider-built PULL dataAddress was persisted on the consumer record and is
@@ -415,7 +415,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		await onStartedFired;
 
 		expect(consumerCallback.onStarted).toHaveBeenCalledWith(consumerPid, expect.anything());
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 		// Confirm the provider record genuinely carried a tenant org distinct from the assigner identity, so
@@ -458,7 +458,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		expect(consumerCallback.onStateChanged).not.toHaveBeenCalled();
 
 		// Both records remain REQUESTED (the transfer was prepared/requested but never started).
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(
@@ -524,7 +524,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// The provider's suspension was POSTed cross-node to the consumer callback (either-party auth),
 		// so the consumer's onSuspended fired (with the forwarded reason) and its record reached SUSPENDED.
 		expect(consumerCallback.onSuspended).toHaveBeenCalledWith(consumerPid, "maintenance");
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
 	});
 
@@ -550,7 +550,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		// The consumer's onTerminated fired with the forwarded reason and its record reached TERMINATED.
 		expect(consumerCallback.onTerminated).toHaveBeenCalledWith(consumerPid, "policy");
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
 	});
 
@@ -570,7 +570,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			consumerPid,
 			TransferTerminationCode.IdleTimeout
 		);
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(
@@ -627,7 +627,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const { consumerPid, providerPid } = await requestedTransfer();
 
 		// Nothing has started yet: autoStart was false.
-		const beforeConsumer = await consumerStorage.get(consumerPid);
+		const beforeConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(beforeConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 
 		// Provider explicitly starts, authenticated as the provider (agreement assigner) identity.
@@ -656,7 +656,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			consumerPid,
 			DataspaceProtocolTransferProcessStateType.STARTED
 		);
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(
@@ -705,7 +705,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			expect(result.code).toMatch(/transferStartNotProvider/);
 		}
 		// The consumer record is untouched.
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 	});
 
@@ -751,7 +751,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 					providerToken
 				)
 		);
-		const suspended = await consumerStorage.get(consumerPid);
+		const suspended = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(suspended?.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
 
 		// Provider resumes via the explicit start; the consumer's onStarted fires again and both reach STARTED.
@@ -778,7 +778,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferStartMessage);
 		await resumedFired;
-		const resumedConsumer = await consumerStorage.get(consumerPid);
+		const resumedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(resumedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(

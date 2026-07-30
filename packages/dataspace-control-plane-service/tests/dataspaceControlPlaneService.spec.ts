@@ -280,7 +280,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await service.requestTransfer(request, "valid-trust-payload");
 
-			const stored = await transferProcessStorage.get(consumerGeneratedPid);
+			const stored = await transferProcessStorage.get(consumerGeneratedPid, "consumerPid");
 			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
 		});
 
@@ -661,7 +661,7 @@ describe("DataspaceControlPlaneService", () => {
 			const result = await service.startTransfer(message, "valid-trust-payload");
 			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
-			const stored = await transferProcessStorage.get("start-persist-consumer-01");
+			const stored = await transferProcessStorage.get("start-persist-consumer-01", "consumerPid");
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 			expect(stored?.dataAddress).toEqual(message.dataAddress);
 		});
@@ -709,7 +709,7 @@ describe("DataspaceControlPlaneService", () => {
 			const result = await service.startTransfer(message, "valid-trust-payload");
 			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
-			const stored = await transferProcessStorage.get("start-persist-consumer-02");
+			const stored = await transferProcessStorage.get("start-persist-consumer-02", "consumerPid");
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 			expect(stored?.dataAddress).toEqual(consumerInbox);
 		});
@@ -748,7 +748,7 @@ describe("DataspaceControlPlaneService", () => {
 			const result = await service.startTransfer(message, "valid-trust-payload");
 			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
-			const stored = await transferProcessStorage.get("start-persist-consumer-03");
+			const stored = await transferProcessStorage.get("start-persist-consumer-03", "consumerPid");
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 			expect(stored?.dataAddress).toBeUndefined();
 		});
@@ -863,7 +863,7 @@ describe("DataspaceControlPlaneService", () => {
 				expect(response.code).toMatch(/invalidPushDataAddress/);
 			}
 
-			const storedBad = await transferProcessStorage.get("push-consumer-pid-bad");
+			const storedBad = await transferProcessStorage.get("push-consumer-pid-bad", "consumerPid");
 			expect((storedBad as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -914,7 +914,10 @@ describe("DataspaceControlPlaneService", () => {
 				expect(response.code).toMatch(/pullTransfersNotSupported/);
 			}
 
-			const storedPullNoconfig = await transferProcessStorage.get("pull-consumer-pid-noconfig");
+			const storedPullNoconfig = await transferProcessStorage.get(
+				"pull-consumer-pid-noconfig",
+				"consumerPid"
+			);
 			expect((storedPullNoconfig as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -966,7 +969,10 @@ describe("DataspaceControlPlaneService", () => {
 				expect(response.code).toMatch(/pushTransferDataPathNotConfigured/);
 			}
 
-			const storedPushNoconfig = await transferProcessStorage.get("push-consumer-pid-noconfig");
+			const storedPushNoconfig = await transferProcessStorage.get(
+				"push-consumer-pid-noconfig",
+				"consumerPid"
+			);
 			expect((storedPushNoconfig as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -985,7 +991,7 @@ describe("DataspaceControlPlaneService", () => {
 			const mockDataPlane = {
 				className: () => "MockDataPlane",
 				setupPushSubscription: async (consumerPid: string) => {
-					const stored = await transferProcessStorage.get(consumerPid);
+					const stored = await transferProcessStorage.get(consumerPid, "consumerPid");
 					observedStateAtCallTime = stored?.state;
 				}
 			};
@@ -1089,7 +1095,10 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
-			const stored = await transferProcessStorage.get("push-consumer-pid-atomicity-req");
+			const stored = await transferProcessStorage.get(
+				"push-consumer-pid-atomicity-req",
+				"consumerPid"
+			);
 			expect((stored as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -1151,7 +1160,10 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
-			const stored = await transferProcessStorage.get("push-consumer-pid-atomicity-susp");
+			const stored = await transferProcessStorage.get(
+				"push-consumer-pid-atomicity-susp",
+				"consumerPid"
+			);
 			expect((stored as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.SUSPENDED
 			);
@@ -1678,7 +1690,10 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-			const persisted = await transferProcessStorage.get("push-complete-rollback-pid");
+			const persisted = await transferProcessStorage.get(
+				"push-complete-rollback-pid",
+				"consumerPid"
+			);
 			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 			try {
@@ -1918,7 +1933,10 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-			const persisted = await transferProcessStorage.get("push-suspend-rollback-pid");
+			const persisted = await transferProcessStorage.get(
+				"push-suspend-rollback-pid",
+				"consumerPid"
+			);
 			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 			try {
@@ -2157,7 +2175,10 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-			const persisted = await transferProcessStorage.get("push-terminate-rollback-pid");
+			const persisted = await transferProcessStorage.get(
+				"push-terminate-rollback-pid",
+				"consumerPid"
+			);
 			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 			try {
@@ -2382,7 +2403,7 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-001");
+			const storedEntity = await transferProcessStorage.get("consumer-pid-001", "consumerPid");
 			expect(storedEntity).toBeDefined();
 
 			// Pass a valid trust payload (mock trust component accepts any payload)
@@ -2759,7 +2780,7 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-push");
+			const storedEntity = await transferProcessStorage.get("consumer-pid-push", "consumerPid");
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -2895,7 +2916,7 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-push-001");
+			const storedEntity = await transferProcessStorage.get("consumer-pid-push-001", "consumerPid");
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -3059,7 +3080,10 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-push-terminate");
+			const storedEntity = await transferProcessStorage.get(
+				"consumer-pid-push-terminate",
+				"consumerPid"
+			);
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -3367,7 +3391,10 @@ describe("DataspaceControlPlaneService", () => {
 
 			// Resolve consumerPid (DSC internal API)
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("workflow-test-consumer-pid");
+			const storedEntity = await transferProcessStorage.get(
+				"workflow-test-consumer-pid",
+				"consumerPid"
+			);
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -6263,7 +6290,7 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"agreement-123",
 					"http://provider.example.com",
-					"not-a-valid-format" as DataspaceTransferFormat,
+					"not-a-valid-format",
 					"valid-trust-payload"
 				)
 			).rejects.toThrow("unsupportedTransferFormat");
@@ -6347,7 +6374,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			// Verify the TransferProcess was actually persisted with the correct initial state
-			const stored = await transferProcessStorage.get(result.consumerPid);
+			const stored = await transferProcessStorage.get(result.consumerPid, "consumerPid");
 			expect(stored).toBeDefined();
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 			expect(stored?.providerPid).toBe("provider-pid-from-remote");
@@ -6398,7 +6425,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			// Verify the consumer-side storage entity also has dataAddress
-			const stored = await transferProcessStorage.get(result.consumerPid);
+			const stored = await transferProcessStorage.get(result.consumerPid, "consumerPid");
 			expect(stored?.dataAddress).toBeDefined();
 			expect(stored?.dataAddress?.endpoint).toContain("/data-plane/data/inbox");
 
@@ -6531,16 +6558,28 @@ describe("DataspaceControlPlaneService", () => {
 			// Remote client was NOT used — the request ran in-process against this instance.
 			expect(mockRemoteControlPlane.requestTransfer).not.toHaveBeenCalled();
 
-			// The transfer was still created and persisted in REQUESTED state.
+			// Both role records were created and persisted in REQUESTED state (#318): the
+			// provider record from the in-process requestTransfer and the consumer record
+			// from prepareTransfer, sharing both pids but keyed on distinct internal ids.
 			expect(result.consumerPid).toBeDefined();
-			const stored = await transferProcessStorage.get(result.consumerPid);
-			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
-			expect(stored?.agreementId).toBe("agreement-123");
-			// providerPid was minted by the real in-process requestTransfer (UUIDv7), not the
-			// mock remote's static "provider-pid-from-remote".
-			expect(stored?.providerPid).toMatch(
-				/^urn:uuid:[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
+			const records = (await transferProcessStorage.getStore()).filter(
+				record => record.consumerPid === result.consumerPid
 			);
+			expect(records).toHaveLength(2);
+			expect(records.map(record => record.localRole).sort()).toEqual([
+				TransferProcessRole.Consumer,
+				TransferProcessRole.Provider
+			]);
+			expect(records[0].id).not.toBe(records[1].id);
+			for (const stored of records) {
+				expect(stored.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+				expect(stored.agreementId).toBe("agreement-123");
+				// providerPid was minted by the real in-process requestTransfer (UUIDv7), not the
+				// mock remote's static "provider-pid-from-remote".
+				expect(stored.providerPid).toMatch(
+					/^urn:uuid:[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
+				);
+			}
 
 			try {
 				ComponentFactory.unregister("test-remote-cp-local");
@@ -6889,8 +6928,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(callbackSpy.onTimeout).toHaveBeenCalledWith(consumerPid);
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
-			// consumerPid is the primary key of TransferProcess.
-			expect(await transferProcessStorage.get(consumerPid)).toBeUndefined();
+			expect(await transferProcessStorage.get(consumerPid, "consumerPid")).toBeUndefined();
 		});
 
 		test("cleanupStalledTransfers leaves a provider-side REQUESTED transfer alone", async () => {
@@ -6918,7 +6956,7 @@ describe("DataspaceControlPlaneService", () => {
 			).cleanupStalledTransfers();
 
 			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
-			expect(await transferProcessStorage.get(consumerPid)).toBeDefined();
+			expect(await transferProcessStorage.get(consumerPid, "consumerPid")).toBeDefined();
 		});
 	});
 
@@ -6928,7 +6966,7 @@ describe("DataspaceControlPlaneService", () => {
 		/**
 		 * Seed a Provider/Consumer transfer for the policy sweep tests. Defaults to a STARTED
 		 * PULL record whose dateModified is 1970, far older than any threshold.
-		 * @param consumerPid The consumerPid (primary key).
+		 * @param consumerPid The consumerPid (indexed).
 		 * @param localRole The persisted local role, or undefined for a legacy record.
 		 * @param options Optional overrides.
 		 * @param options.state The transfer state (defaults to STARTED).
@@ -7052,7 +7090,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			const stored = await transferProcessStorage.get(consumerPid);
+			const stored = await transferProcessStorage.get(consumerPid, "consumerPid");
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
 			expect(callbackSpy.onTimeout).toHaveBeenCalledWith(consumerPid);
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
@@ -7075,7 +7113,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid,
 				TransferTerminationCode.IdleTimeout
 			);
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.TERMINATED
 			);
 		});
@@ -7092,7 +7130,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.STARTED
 			);
 			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
@@ -7106,7 +7144,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.STARTED
 			);
 		});
@@ -7119,7 +7157,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.TERMINATED
 			);
 			// The marker is removed once the transfer reaches a terminal state.
@@ -7136,7 +7174,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.STARTED
 			);
 		});
@@ -7149,7 +7187,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.TERMINATED
 			);
 		});
@@ -7162,7 +7200,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.STARTED
 			);
 		});
@@ -7176,7 +7214,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.STARTED
 			);
 		});
@@ -7190,7 +7228,7 @@ describe("DataspaceControlPlaneService", () => {
 
 				await runSweep(service);
 
-				expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+				expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 					DataspaceProtocolTransferProcessStateType.STARTED
 				);
 			} finally {
@@ -7211,12 +7249,12 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get("urn:uuid:policy-consumer-001"))?.state).toBe(
-				DataspaceProtocolTransferProcessStateType.STARTED
-			);
-			expect((await transferProcessStorage.get("urn:uuid:policy-legacy-001"))?.state).toBe(
-				DataspaceProtocolTransferProcessStateType.STARTED
-			);
+			expect(
+				(await transferProcessStorage.get("urn:uuid:policy-consumer-001", "consumerPid"))?.state
+			).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(
+				(await transferProcessStorage.get("urn:uuid:policy-legacy-001", "consumerPid"))?.state
+			).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
 		});
 
@@ -7229,7 +7267,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.COMPLETED
 			);
 		});
@@ -7242,7 +7280,7 @@ describe("DataspaceControlPlaneService", () => {
 			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
 				state: DataspaceProtocolTransferProcessStateType.TERMINATED
 			});
-			const staleEntity = await transferProcessStorage.get(consumerPid);
+			const staleEntity = await transferProcessStorage.get(consumerPid, "consumerPid");
 
 			const result = await (
 				service as unknown as {
@@ -7257,7 +7295,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(result).toBe(true);
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.TERMINATED
 			);
 		});
@@ -7276,7 +7314,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect((await transferProcessStorage.get(consumerPid))?.state).toBe(
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
 				DataspaceProtocolTransferProcessStateType.TERMINATED
 			);
 		});
@@ -7290,7 +7328,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			await runSweep(service);
 
-			expect(await transferProcessStorage.get(consumerPid)).toBeUndefined();
+			expect(await transferProcessStorage.get(consumerPid, "consumerPid")).toBeUndefined();
 		});
 
 		test("start always registers the policy sweep task with the configured interval", async () => {
@@ -7343,6 +7381,335 @@ describe("DataspaceControlPlaneService", () => {
 					Factory.createFactory("engine-core").unregister("engine");
 				} catch {}
 			}
+		});
+	});
+
+	describe("Self transfer (#318)", () => {
+		// Same actor on both sides: one node, one org partition, assigner === assignee.
+		const SELF_IDENTITY = "did:iota:self-node-org";
+		const SELF_AGREEMENT_ID = "agreement-self-318";
+		const SELF_DATASET_ID = "urn:uuid:dataset-self-318";
+
+		beforeEach(async () => {
+			await mockPap.create({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": SELF_AGREEMENT_ID,
+				uid: SELF_AGREEMENT_ID,
+				assigner: SELF_IDENTITY,
+				assignee: SELF_IDENTITY,
+				target: SELF_DATASET_ID,
+				permission: [{ action: "read" }]
+			} as never);
+
+			// Catalogue dataset whose offer is assigned by the SAME identity the agreement uses,
+			// so the agreement-to-offer derivation check passes for the self actor.
+			mockFedCat.addDataset(SELF_DATASET_ID, {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "dcat:Dataset",
+				"@id": SELF_DATASET_ID,
+				"dcterms:title": "Self Transfer Dataset 318",
+				"odrl:hasPolicy": [
+					{
+						"@type": "odrl:Offer",
+						"@id": "offer-self-318",
+						assigner: SELF_IDENTITY,
+						permission: [
+							{
+								action: "read"
+							}
+						]
+					}
+				]
+			} as never);
+
+			ComponentFactory.register("test-trust-self", () => createMockTrustComponent(SELF_IDENTITY));
+			ComponentFactory.register("test-remote-cp-self", () => ({
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi.fn(),
+				startTransfer: vi.fn(),
+				completeTransfer: vi.fn(),
+				suspendTransfer: vi.fn(),
+				terminateTransfer: vi.fn()
+			}));
+			ComponentFactory.register("test-platform-self", () => ({
+				...createSingleTenantPlatformComponent(),
+				// Every URL resolves as local, so the request hop and all callback deliveries
+				// run in-process against the same service instance and storage partition.
+				getLocalOriginContext: vi.fn().mockResolvedValue({
+					[ContextIdKeys.Node]: "did:iota:test-node",
+					[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+					[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+					[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
+				})
+			}));
+		});
+
+		afterEach(() => {
+			try {
+				ComponentFactory.unregister("test-trust-self");
+				ComponentFactory.unregister("test-remote-cp-self");
+				ComponentFactory.unregister("test-platform-self");
+			} catch {}
+		});
+
+		function createSelfService(extraConfig?: {
+			autoStartTransfers?: boolean;
+			stalledTransferTimeoutMs?: number;
+		}): DataspaceControlPlaneService {
+			return new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-self",
+				remoteControlPlaneComponentType: "test-remote-cp-self",
+				platformComponentType: "test-platform-self",
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, ...extraConfig }
+			});
+		}
+
+		/**
+		 * Seed both role records of a self transfer, sharing both pids within one partition.
+		 * @param state The state to seed both records with.
+		 * @returns The shared pids.
+		 */
+		async function seedSelfTransferPair(
+			state: DataspaceProtocolTransferProcessStateType
+		): Promise<{ consumerPid: string; providerPid: string }> {
+			const consumerPid = "urn:uuid:self-consumer-pid-318";
+			const providerPid = "urn:uuid:self-provider-pid-318";
+			const base = {
+				consumerPid,
+				providerPid,
+				state,
+				agreementId: SELF_AGREEMENT_ID,
+				datasetId: SELF_DATASET_ID,
+				offerId: SELF_AGREEMENT_ID,
+				consumerIdentity: SELF_IDENTITY,
+				providerIdentity: SELF_IDENTITY,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				format: DataspaceTransferFormat.HttpDataPull,
+				callbackAddress: "https://test-origin.com",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await transferProcessStorage.set({
+				...base,
+				id: "self-provider-record",
+				localRole: TransferProcessRole.Provider
+			});
+			await transferProcessStorage.set({
+				...base,
+				id: "self-consumer-record",
+				localRole: TransferProcessRole.Consumer
+			});
+			return { consumerPid, providerPid };
+		}
+
+		async function getSelfRecords(consumerPid: string): Promise<TransferProcess[]> {
+			return (await transferProcessStorage.getStore()).filter(
+				record => record.consumerPid === consumerPid
+			);
+		}
+
+		test("prepareTransfer persists one record per role instead of overwriting", async () => {
+			const service = createSelfService();
+
+			const result = await service.prepareTransfer(
+				SELF_AGREEMENT_ID,
+				"https://test-origin.com",
+				"HttpData-PULL",
+				"valid-trust-payload"
+			);
+
+			const records = await getSelfRecords(result.consumerPid);
+			expect(records).toHaveLength(2);
+			expect(records.map(record => record.localRole).sort()).toEqual([
+				TransferProcessRole.Consumer,
+				TransferProcessRole.Provider
+			]);
+			expect(records[0].id).not.toBe(records[1].id);
+			expect(records[0].providerPid).toBe(records[1].providerPid);
+			for (const record of records) {
+				expect(record.consumerIdentity).toBe(SELF_IDENTITY);
+				expect(record.providerIdentity).toBe(SELF_IDENTITY);
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+			}
+		});
+
+		test("auto-start deterministically starts the provider record and cascades to the consumer record", async () => {
+			const service = createSelfService({ autoStartTransfers: true });
+
+			const startedPids: string[] = [];
+			service.registerTransferCallback("self-autostart-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onStarted: async (consumerPid: string) => {
+					startedPids.push(consumerPid);
+				}
+			});
+
+			const result = await service.prepareTransfer(
+				SELF_AGREEMENT_ID,
+				"https://test-origin.com",
+				"HttpData-PULL",
+				"valid-trust-payload"
+			);
+
+			// runProviderStart is scheduled via setTimeout(0); wait until BOTH records reach
+			// STARTED (provider via the auto-start, consumer via the in-process callback delivery).
+			await vi.waitFor(async () => {
+				const records = await getSelfRecords(result.consumerPid);
+				expect(records).toHaveLength(2);
+				for (const record of records) {
+					expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+				}
+			});
+
+			expect(startedPids).toEqual([result.consumerPid]);
+		});
+
+		test("suspendTransfer transitions both role records through the in-process callback delivery", async () => {
+			const { consumerPid, providerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			const service = createSelfService();
+
+			const suspendedEvents: { pid: string; reason?: string }[] = [];
+			service.registerTransferCallback("self-suspend-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onSuspended: async (pid: string, reason?: string) => {
+					suspendedEvents.push({ pid, reason });
+				}
+			});
+
+			const message: IDataspaceProtocolTransferSuspensionMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferSuspensionMessage",
+				consumerPid,
+				providerPid,
+				reason: ["Self suspension"]
+			};
+			const response = await service.suspendTransfer(message, "valid-trust-payload");
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(2);
+			for (const record of records) {
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
+			}
+			// The consumer-record leg fired the internal callback.
+			expect(suspendedEvents).toEqual([{ pid: consumerPid, reason: "Self suspension" }]);
+		});
+
+		test("terminateTransfer transitions both role records through the in-process callback delivery", async () => {
+			const { consumerPid, providerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			const service = createSelfService();
+
+			const terminatedPids: string[] = [];
+			service.registerTransferCallback("self-terminate-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: async (pid: string) => {
+					terminatedPids.push(pid);
+				}
+			});
+
+			const message: IDataspaceProtocolTransferTerminationMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferTerminationMessage",
+				consumerPid,
+				providerPid,
+				reason: ["Self termination"]
+			};
+			const response = await service.terminateTransfer(message, "valid-trust-payload");
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(2);
+			for (const record of records) {
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+			}
+			expect(terminatedPids).toEqual([consumerPid]);
+		});
+
+		test("completeTransfer completes the consumer record first, then the provider record on a second call", async () => {
+			const { consumerPid, providerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			const service = createSelfService();
+
+			const completedPids: string[] = [];
+			service.registerTransferCallback("self-complete-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onCompleted: async (pid: string) => {
+					completedPids.push(pid);
+				}
+			});
+
+			const message: IDataspaceProtocolTransferCompletionMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferCompletionMessage",
+				consumerPid,
+				providerPid
+			};
+
+			// First call: the consumer record completes (and internal callbacks fire); completion
+			// has no onward delivery, so the provider record intentionally stays STARTED.
+			const firstResponse = await service.completeTransfer(message, "valid-trust-payload");
+			expect(firstResponse["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			let records = await getSelfRecords(consumerPid);
+			const consumerRecord = records.find(
+				record => record.localRole === TransferProcessRole.Consumer
+			);
+			const providerRecord = records.find(
+				record => record.localRole === TransferProcessRole.Provider
+			);
+			expect(consumerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.COMPLETED);
+			expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(completedPids).toEqual([consumerPid]);
+
+			// Second call (the consumer→provider DSP hop): the provider record completes.
+			const secondResponse = await service.completeTransfer(message, "valid-trust-payload");
+			expect(secondResponse["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(2);
+			for (const record of records) {
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.COMPLETED);
+			}
+			// The internal callback fired only for the consumer-record leg.
+			expect(completedPids).toEqual([consumerPid]);
+		});
+
+		test("stalled cleanup removes only the consumer record of a self transfer", async () => {
+			const { consumerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+			// Age both records far past any timeout window.
+			for (const record of await getSelfRecords(consumerPid)) {
+				await transferProcessStorage.set({ ...record, dateModified: new Date(0).toISOString() });
+			}
+			const service = createSelfService({ stalledTransferTimeoutMs: 0 });
+
+			await (
+				service as unknown as { cleanupStalledTransfers(): Promise<void> }
+			).cleanupStalledTransfers();
+
+			const records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(1);
+			expect(records[0].localRole).toBe(TransferProcessRole.Provider);
 		});
 	});
 });

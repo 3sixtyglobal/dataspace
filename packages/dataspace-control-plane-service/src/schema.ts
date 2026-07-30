@@ -4,6 +4,7 @@ import {
 	DataspaceAppDataset,
 	DataspaceAppDatasetV0,
 	TransferProcess,
+	TransferProcessV0,
 	TransferRetrieval
 } from "@twin.org/dataspace-models";
 import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
@@ -15,6 +16,9 @@ import { nameof } from "@twin.org/nameof";
 export function initSchema(): void {
 	EntitySchemaFactory.register(nameof<TransferProcess>(), () =>
 		EntitySchemaHelper.getSchema(TransferProcess)
+	);
+	EntitySchemaFactory.register(nameof<TransferProcessV0>(), () =>
+		EntitySchemaHelper.getSchema(TransferProcessV0)
 	);
 	EntitySchemaFactory.register(nameof<DataspaceAppDataset>(), () =>
 		EntitySchemaHelper.getSchema(DataspaceAppDataset)

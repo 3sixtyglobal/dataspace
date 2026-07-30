@@ -9,24 +9,23 @@ import type {
 import type { TransferProcessRole } from "../models/controlPlane/transferProcessRole.js";
 
 /**
- * Transfer Process for shared storage between Control Plane and Data Plane.
- * This entity is the persistent representation of ITransferProcess.
+ * Transfer Process for shared storage between Control Plane and Data Plane, version 0.
+ * Keyed on consumerPid; superseded by the version keyed on the internal id.
  */
-@entity({ version: 1 })
-export class TransferProcess {
+@entity({ version: 0 })
+export class TransferProcessV0 {
 	/**
-	 * Internal id, the primary key. Both role records of a self transfer share consumerPid and
-	 * providerPid, so only the internal id is collision-free within one partition.
+	 * The consumer PID is the primary key.
+	 * Used for direct lookup by consumerPid.
 	 */
 	@property({ type: "string", isPrimary: true })
-	public id!: string;
+	public consumerPid!: string;
 
 	/**
-	 * Consumer Process ID from the DSP protocol.
-	 * Indexed for lookup by consumerPid.
+	 * Internal UUID for storage (secondary key for providerPid lookup).
 	 */
-	@property({ type: "string", isSecondary: true })
-	public consumerPid!: string;
+	@property({ type: "string" })
+	public id!: string;
 
 	/**
 	 * Provider Process ID from the DSP protocol.
@@ -74,8 +73,8 @@ export class TransferProcess {
 
 	/**
 	 * This node's role in the transfer, captured at write time so state transitions and async delivery
-	 * can tell which party we are without inferring it from the matched PID (a self transfer stores two
-	 * records sharing both pids). Optional for back-compat with records written before this field existed.
+	 * can tell which party we are without inferring it from the matched PID (consumerPid is the primary
+	 * key on both nodes). Optional for back-compat with records written before this field existed.
 	 */
 	@property({ type: "string", optional: true })
 	public localRole?: TransferProcessRole;

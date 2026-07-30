@@ -5,6 +5,7 @@
 export * from "./entities/dataspaceAppDataset.js";
 export * from "./entities/dataspaceAppDatasetV0.js";
 export * from "./entities/transferProcess.js";
+export * from "./entities/transferProcessV0.js";
 export * from "./entities/transferRetrieval.js";
 
 // Control Plane exports

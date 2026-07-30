@@ -567,16 +567,16 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			"notifyActivity"
 		);
 		const generatorPid = this.calculateActivityGeneratorIdentity(activity);
-		// Primary lookup: by consumerPid (the entity's primary key). If this hits, the
-		// generator's PID equals consumerPid — the generator is the consumer side.
-		let transferProcess = await this._transferProcessStorage.get(generatorPid);
+		// First lookup: on the consumerPid index. If this hits, the generator's PID equals
+		// consumerPid — the generator is the consumer side.
+		let transferProcess = await this.getTransferProcessByConsumerPid(generatorPid);
 		const generatorIsConsumer = Boolean(transferProcess);
 
 		if (!transferProcess) {
-			// Fallback: generatorPid === providerPid. providerPid is a UUIDv7 so it's
-			// unique per transfer, but defensively reject any case where the secondary
-			// index returns more than one match — silent first-match would risk
-			// authorising the wrong transfer if the invariant ever breaks.
+			// Fallback: generatorPid === providerPid. A self transfer stores two role records
+			// sharing both pids (one logical transfer), so multiple matches are only rejected
+			// when they span DIFFERENT transfers — silent first-match would risk authorising
+			// the wrong transfer if the pid-uniqueness invariant ever breaks.
 			const result = await this._transferProcessStorage.query({
 				conditions: [
 					{
@@ -586,13 +586,22 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 					}
 				]
 			});
-			if (result.entities.length > 1) {
-				throw new UnauthorizedError(
-					DataspaceDataPlaneService.CLASS_NAME,
-					"pushActivityNotAuthorized"
+			const matches = result.entities as TransferProcess[];
+			if (matches.length > 1) {
+				const sameTransfer = matches.every(
+					match =>
+						match.consumerPid === matches[0].consumerPid &&
+						match.providerPid === matches[0].providerPid
 				);
+				if (!sameTransfer) {
+					throw new UnauthorizedError(
+						DataspaceDataPlaneService.CLASS_NAME,
+						"pushActivityNotAuthorized"
+					);
+				}
 			}
-			transferProcess = result.entities[0] as TransferProcess | undefined;
+			transferProcess =
+				matches.find(match => match.localRole === TransferProcessRole.Provider) ?? matches[0];
 			// generatorIsConsumer stays false → generator is the provider side.
 		}
 
@@ -1086,8 +1095,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			"validateTransfer"
 		);
 
-		// Direct lookup from shared entity storage by consumerPid (which is the primary key)
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		// Provider record preferred: this is a provider-serving path.
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 
 		if (!transferProcess) {
 			throw new NotFoundError(
@@ -1137,7 +1146,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	public async setupPushSubscription(consumerPid: string): Promise<void> {
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
 
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		// Prefer the provider record: subscription setup runs on the provider right after its
+		// record transitions to STARTED, when a self node's consumer record is still REQUESTED.
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 		if (!transferProcess) {
 			throw new NotFoundError(
 				DataspaceDataPlaneService.CLASS_NAME,
@@ -1346,7 +1357,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			return;
 		}
 
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 
 		const undoActivity: IUndoActivity = {
 			"@context": ActivityStreamsContexts.Context,
@@ -1441,8 +1452,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			return;
 		}
 
-		// Load TransferProcess and validate it is STARTED
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		// Load TransferProcess (provider record preferred) and validate it is STARTED
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 		if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
 			await this._logging?.log({
 				level: "warn",
@@ -1911,7 +1922,14 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 						value: pids,
 						comparison: ComparisonOperator.In
 					});
-					const tpMap = new Map(tpResult.entities.map(tp => [tp.consumerPid, tp.state]));
+					// Push subscriptions are provider-side, so when a self transfer yields two
+					// records per consumerPid the provider record's state decides the cleanup.
+					const tpMap = new Map<string, DataspaceProtocolTransferProcessStateType>();
+					for (const tp of tpResult.entities as TransferProcess[]) {
+						if (!tpMap.has(tp.consumerPid) || tp.localRole === TransferProcessRole.Provider) {
+							tpMap.set(tp.consumerPid, tp.state);
+						}
+					}
 
 					for (const sub of result.entities as PushSubscription[]) {
 						const state = tpMap.get(sub.consumerPid);
@@ -2146,6 +2164,23 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		}
 
 		return successfulApps;
+	}
+
+	/**
+	 * Resolve a transfer process on the consumerPid index, preferring the provider record when a
+	 * self transfer stores both role records under the same consumerPid.
+	 * @param consumerPid The consumer process ID.
+	 * @returns The transfer process, or undefined when none matches.
+	 * @internal
+	 */
+	private async getTransferProcessByConsumerPid(
+		consumerPid: string
+	): Promise<TransferProcess | undefined> {
+		let transferProcess = await this._transferProcessStorage.get(consumerPid, "consumerPid", [
+			{ property: "localRole", value: TransferProcessRole.Provider }
+		]);
+		transferProcess ??= await this._transferProcessStorage.get(consumerPid, "consumerPid");
+		return transferProcess;
 	}
 
 	/**

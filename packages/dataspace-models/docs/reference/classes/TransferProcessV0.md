@@ -1,35 +1,34 @@
-# Class: TransferProcess
+# Class: TransferProcessV0
 
-Transfer Process for shared storage between Control Plane and Data Plane.
-This entity is the persistent representation of ITransferProcess.
+Transfer Process for shared storage between Control Plane and Data Plane, version 0.
+Keyed on consumerPid; superseded by the version keyed on the internal id.
 
 ## Constructors
 
 ### Constructor
 
-> **new TransferProcess**(): `TransferProcess`
+> **new TransferProcessV0**(): `TransferProcessV0`
 
 #### Returns
 
-`TransferProcess`
+`TransferProcessV0`
 
 ## Properties
-
-### id {#id}
-
-> **id**: `string`
-
-Internal id, the primary key. Both role records of a self transfer share consumerPid and
-providerPid, so only the internal id is collision-free within one partition.
-
-***
 
 ### consumerPid {#consumerpid}
 
 > **consumerPid**: `string`
 
-Consumer Process ID from the DSP protocol.
-Indexed for lookup by consumerPid.
+The consumer PID is the primary key.
+Used for direct lookup by consumerPid.
+
+***
+
+### id {#id}
+
+> **id**: `string`
+
+Internal UUID for storage (secondary key for providerPid lookup).
 
 ***
 
@@ -96,8 +95,8 @@ Provider identity (DID or URI).
 > `optional` **localRole?**: [`TransferProcessRole`](../type-aliases/TransferProcessRole.md)
 
 This node's role in the transfer, captured at write time so state transitions and async delivery
-can tell which party we are without inferring it from the matched PID (a self transfer stores two
-records sharing both pids). Optional for back-compat with records written before this field existed.
+can tell which party we are without inferring it from the matched PID (consumerPid is the primary
+key on both nodes). Optional for back-compat with records written before this field existed.
 
 ***
 

@@ -129,7 +129,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		expect(transferProcess.providerPid).toBeDefined();
 
 		// Verify internal entity has Agreement data
-		const storedEntity = await transferProcessStorage.get("consumer-pid-001");
+		const storedEntity = await transferProcessStorage.get("consumer-pid-001", "consumerPid");
 		expect(storedEntity).toBeDefined();
 		if (!storedEntity) {
 			throw new Error("Entity not found");
@@ -175,7 +175,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		);
 
 		// Assert - datasetId is now the full URN (not parsed)
-		const storedEntity = await transferProcessStorage.get("consumer-pid-urn");
+		const storedEntity = await transferProcessStorage.get("consumer-pid-urn", "consumerPid");
 		expect(storedEntity).toBeDefined();
 		if (!storedEntity) {
 			throw new Error("Entity not found");

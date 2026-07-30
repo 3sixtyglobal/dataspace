@@ -6,6 +6,7 @@
 - [DataspaceAppDataset](classes/DataspaceAppDataset.md)
 - [DataspaceAppDatasetV0](classes/DataspaceAppDatasetV0.md)
 - [TransferProcess](classes/TransferProcess.md)
+- [TransferProcessV0](classes/TransferProcessV0.md)
 - [TransferRetrieval](classes/TransferRetrieval.md)
 
 ## Interfaces

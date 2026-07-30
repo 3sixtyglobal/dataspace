@@ -991,7 +991,10 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Provider-first; the callback delivery leg then resolves the consumer record.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				targetState: DataspaceProtocolTransferProcessStateType.STARTED
+			});
 
 			if (trustInfo.identity !== entity.providerIdentity) {
 				throw new UnauthorizedError(
@@ -1160,7 +1163,9 @@ export class DataspaceControlPlaneService
 		try {
 			Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(pid), pid);
 
-			const { entity, role } = await this.lookupTransferByPid(pid);
+			const { entity, role } = await this.lookupTransferByPid(pid, {
+				preferredRole: TransferProcessRole.Provider
+			});
 			consumerPid = entity.consumerPid;
 			providerPid = entity.providerPid;
 
@@ -1237,7 +1242,13 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Consumer-first: completion has no onward delivery, so on a self node the first call
+			// completes the consumer record (and fires the internal callbacks); a follow-up call
+			// reaches the provider record because the consumer one is already COMPLETED.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				preferredRole: TransferProcessRole.Consumer,
+				targetState: DataspaceProtocolTransferProcessStateType.COMPLETED
+			});
 
 			if (trustInfo.identity !== entity.consumerIdentity) {
 				throw new UnauthorizedError(
@@ -1379,7 +1390,10 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Provider-first; the callback delivery leg then resolves the consumer record.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				targetState: DataspaceProtocolTransferProcessStateType.SUSPENDED
+			});
 
 			if (
 				trustInfo.identity !== entity.consumerIdentity &&
@@ -1531,7 +1545,10 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Provider-first; the callback delivery leg then resolves the consumer record.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				targetState: DataspaceProtocolTransferProcessStateType.TERMINATED
+			});
 
 			if (
 				trustInfo.identity !== entity.consumerIdentity &&
@@ -2093,7 +2110,11 @@ export class DataspaceControlPlaneService
 
 		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "resolveConsumerPid");
 
-		const storageEntity = await this._transferProcessStorage.get(consumerPid);
+		// Provider-side resolution API: prefer the provider record, fall back for legacy rows.
+		let storageEntity = await this._transferProcessStorage.get(consumerPid, "consumerPid", [
+			{ property: "localRole", value: TransferProcessRole.Provider }
+		]);
+		storageEntity ??= await this._transferProcessStorage.get(consumerPid, "consumerPid");
 
 		if (!storageEntity) {
 			throw new NotFoundError(
@@ -2174,7 +2195,9 @@ export class DataspaceControlPlaneService
 
 		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "resolveProviderPid");
 
-		const { entity } = await this.lookupTransferByPid(providerPid);
+		const { entity } = await this.lookupTransferByPid(providerPid, {
+			preferredRole: TransferProcessRole.Provider
+		});
 
 		if (entity.state === DataspaceProtocolTransferProcessStateType.TERMINATED) {
 			throw new GeneralError(
@@ -2603,8 +2626,8 @@ export class DataspaceControlPlaneService
 
 		// Runs per tenant so the storage access inherits the correct [Node, Tenant] + org partition.
 		await this._platformComponent.execute(async () => {
-			// consumerPid is the primary key of TransferProcess, so it is used for both removal and callbacks.
-			const stalled: string[] = [];
+			// Removal is by the internal id (the primary key); callbacks stay keyed on consumerPid.
+			const stalled: { id: string; consumerPid: string }[] = [];
 			let cursor: string | undefined;
 
 			do {
@@ -2627,15 +2650,15 @@ export class DataspaceControlPlaneService
 						transfer.localRole === TransferProcessRole.Consumer &&
 						now - new Date(transfer.dateModified).getTime() > this._stalledTransferTimeoutMs
 					) {
-						stalled.push(transfer.consumerPid);
+						stalled.push({ id: transfer.id, consumerPid: transfer.consumerPid });
 					}
 				}
 
 				cursor = page.cursor;
 			} while (Is.stringValue(cursor));
 
-			for (const consumerPid of stalled) {
-				await this._transferProcessStorage.remove(consumerPid);
+			for (const { id, consumerPid } of stalled) {
+				await this._transferProcessStorage.remove(id);
 
 				await this._loggingComponent?.log({
 					level: "warn",
@@ -2739,7 +2762,7 @@ export class DataspaceControlPlaneService
 			for (const transfer of providerStarted) {
 				if (!Is.stringValue(transfer.providerIdentity)) {
 					// Cannot be transitioned without a provider identity, so remove it directly.
-					await this._transferProcessStorage.remove(transfer.consumerPid);
+					await this._transferProcessStorage.remove(transfer.id);
 					await this._loggingComponent?.log({
 						level: "warn",
 						source: DataspaceControlPlaneService.CLASS_NAME,
@@ -2937,7 +2960,10 @@ export class DataspaceControlPlaneService
 	 */
 	private async runProviderStart(consumerPid: string, publicOrigin?: string): Promise<void> {
 		try {
-			const { entity } = await this.lookupTransferByPid(consumerPid);
+			// Auto-start must act on the provider record deterministically.
+			const { entity } = await this.lookupTransferByPid(consumerPid, {
+				preferredRole: TransferProcessRole.Provider
+			});
 			if (entity.state !== DataspaceProtocolTransferProcessStateType.REQUESTED) {
 				// Already advanced (e.g. an explicit start raced the auto-start). Nothing to do.
 				return;
@@ -3291,45 +3317,65 @@ export class DataspaceControlPlaneService
 	 * @param message DSP protocol message with consumerPid and/or providerPid fields.
 	 * @param message.consumerPid The consumer-side PID from the DSP message.
 	 * @param message.providerPid The provider-side PID from the DSP message.
+	 * @param options Candidate selection options, see lookupTransferByPid.
+	 * @param options.preferredRole The localRole to prefer among matching records.
+	 * @param options.targetState State the caller transitions to.
 	 * @returns Transfer Process entity and our role in this transfer.
 	 * @internal
 	 */
-	private async lookupTransferByMessage(message: {
-		consumerPid?: string;
-		providerPid?: string;
-	}): Promise<{
+	private async lookupTransferByMessage(
+		message: {
+			consumerPid?: string;
+			providerPid?: string;
+		},
+		options?: {
+			preferredRole?: TransferProcessRole;
+			targetState?: DataspaceProtocolTransferProcessStateType;
+		}
+	): Promise<{
 		entity: ITransferProcess;
 		role: TransferProcessRole;
 	}> {
 		const pid = message.consumerPid ?? message.providerPid;
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "pid", pid);
 
-		return this.lookupTransferByPid(pid);
+		return this.lookupTransferByPid(pid, options);
 	}
 
 	/**
 	 * Lookup Transfer Process by PID and determine our role.
+	 * A self transfer (same organization both roles) stores two records sharing both pids, so a pid
+	 * can match more than one record within a partition and the options pick the intended one.
 	 * @param pid Either consumerPid or providerPid.
+	 * @param options Candidate selection options.
+	 * @param options.preferredRole The localRole to prefer among matching records (default Provider).
+	 * @param options.targetState State the caller transitions to; records already in it are only
+	 * selected when no other candidate remains, so an in-process self-transfer callback delivery
+	 * resolves the not-yet-transitioned record and duplicates still hit the idempotency branches.
 	 * @returns Transfer Process entity and our role in this transfer.
 	 * @internal
 	 */
-	private async lookupTransferByPid(pid: string): Promise<{
+	private async lookupTransferByPid(
+		pid: string,
+		options?: {
+			preferredRole?: TransferProcessRole;
+			targetState?: DataspaceProtocolTransferProcessStateType;
+		}
+	): Promise<{
 		entity: ITransferProcess;
 		role: TransferProcessRole;
 	}> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(pid), pid);
 
-		// consumerPid is the primary key on BOTH nodes, so the matched key alone is not a reliable role
-		// signal; locate the record by primary, then the providerPid secondary index.
-		let storageEntity = await this._transferProcessStorage.get(pid);
 		let matchedByConsumerPid = true;
+		let candidates = await this.queryTransfersByIndex("consumerPid", pid);
 
-		if (!storageEntity) {
-			storageEntity = await this._transferProcessStorage.get(pid, "providerPid");
+		if (candidates.length === 0) {
+			candidates = await this.queryTransfersByIndex("providerPid", pid);
 			matchedByConsumerPid = false;
 		}
 
-		if (!storageEntity) {
+		if (candidates.length === 0) {
 			throw new NotFoundError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"transferProcessNotFound",
@@ -3339,6 +3385,19 @@ export class DataspaceControlPlaneService
 				}
 			);
 		}
+
+		let selectable = candidates;
+		const targetState = options?.targetState;
+		if (Is.stringValue(targetState)) {
+			const pending = candidates.filter(candidate => candidate.state !== targetState);
+			if (pending.length > 0) {
+				selectable = pending;
+			}
+		}
+
+		const preferredRole = options?.preferredRole ?? TransferProcessRole.Provider;
+		const storageEntity =
+			selectable.find(candidate => candidate.localRole === preferredRole) ?? selectable[0];
 
 		// Prefer the role persisted at write time (set in prepareTransfer / requestTransfer). Fall back
 		// to the matched-key heuristic only for legacy records written before localRole existed.
@@ -3350,6 +3409,25 @@ export class DataspaceControlPlaneService
 			entity: this.storageEntityToModel(storageEntity),
 			role
 		};
+	}
+
+	/**
+	 * Query all transfer process records matching a pid on the given index.
+	 * @param property The indexed pid property to match.
+	 * @param pid The pid value.
+	 * @returns The matching records.
+	 * @internal
+	 */
+	private async queryTransfersByIndex(
+		property: "consumerPid" | "providerPid",
+		pid: string
+	): Promise<TransferProcess[]> {
+		const page = await this._transferProcessStorage.query({
+			property,
+			value: pid,
+			comparison: ComparisonOperator.Equals
+		});
+		return page.entities as TransferProcess[];
 	}
 
 	/**

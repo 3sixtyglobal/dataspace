@@ -315,7 +315,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 
 			// Verify Data Plane can read it via validateTransfer
 			// We need to access the private method indirectly through getDataAssetEntities
-			const stored = await transferProcessStorage.get(TEST_CONSUMER_PID);
+			const stored = await transferProcessStorage.get(TEST_CONSUMER_PID, "consumerPid");
 			expect(stored).toBeDefined();
 			expect(stored?.consumerPid).toBe(TEST_CONSUMER_PID);
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
@@ -328,7 +328,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			await transferProcessStorage.set(transferProcess);
 
 			// Verify initial state
-			let stored = await transferProcessStorage.get(TEST_CONSUMER_PID);
+			let stored = await transferProcessStorage.get(TEST_CONSUMER_PID, "consumerPid");
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 
 			// Simulate Control Plane updating state to STARTED
@@ -337,7 +337,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			await transferProcessStorage.set(transferProcess);
 
 			// Verify updated state is visible
-			stored = await transferProcessStorage.get(TEST_CONSUMER_PID);
+			stored = await transferProcessStorage.get(TEST_CONSUMER_PID, "consumerPid");
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 		});
 
@@ -362,9 +362,9 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			await transferProcessStorage.set(tp3);
 
 			// Verify all are accessible
-			const stored1 = await transferProcessStorage.get(TEST_CONSUMER_PID);
-			const stored2 = await transferProcessStorage.get("urn:uuid:consumer-pid-002");
-			const stored3 = await transferProcessStorage.get("urn:uuid:consumer-pid-003");
+			const stored1 = await transferProcessStorage.get(TEST_CONSUMER_PID, "consumerPid");
+			const stored2 = await transferProcessStorage.get("urn:uuid:consumer-pid-002", "consumerPid");
+			const stored3 = await transferProcessStorage.get("urn:uuid:consumer-pid-003", "consumerPid");
 
 			expect(stored1?.datasetId).toBe(TEST_DATASET_ID);
 			expect(stored2?.datasetId).toBe("urn:dataset:test-dataset-002");
