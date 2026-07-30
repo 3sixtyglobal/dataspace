@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.9.2-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.9.2-next.1...dataspace-data-plane-service-v0.9.2-next.2) (2026-07-30)
+
+
+### Miscellaneous Chores
+
+* **dataspace-data-plane-service:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.9.2-next.1 to 0.9.2-next.2
+    * @twin.org/dataspace-models bumped from 0.9.2-next.1 to 0.9.2-next.2
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.9.2-next.1 to 0.9.2-next.2
+
 ## [0.9.2-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.9.2-next.0...dataspace-data-plane-service-v0.9.2-next.1) (2026-07-28)
 
 
