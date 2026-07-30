@@ -299,7 +299,7 @@ describe("dataspaceControlPlaneRoutes", () => {
 					consumerPid: "new-consumer-pid-test",
 					agreementId: "agreement-new-test",
 					callbackAddress: "https://callback.example.com",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				headers: {
 					authorization: "Bearer mock-trust-token"

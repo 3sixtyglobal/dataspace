@@ -116,7 +116,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-valid-urn",
 				consumerPid: "consumer-pid-001",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -169,7 +169,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-urn",
 				consumerPid: "consumer-pid-urn",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -196,7 +196,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-active",
 				consumerPid: "consumer-pid-active",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -220,7 +220,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "non-existent-agreement",
 				consumerPid: "consumer-pid-notfound",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -262,7 +262,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-no-assignee",
 				consumerPid: "consumer-pid-error-1",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -290,7 +290,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-no-target",
 				consumerPid: "consumer-pid-error-2",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -315,7 +315,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "offer-not-agreement",
 				consumerPid: "consumer-pid-error-3",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -385,7 +385,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-catalogue-no-target",
 				consumerPid: "consumer-pid-no-target",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -406,7 +406,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-multiple-targets",
 				consumerPid: "consumer-pid-error-4",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);

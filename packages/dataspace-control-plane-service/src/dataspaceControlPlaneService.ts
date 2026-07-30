@@ -585,6 +585,14 @@ export class DataspaceControlPlaneService
 			"requestTransfer"
 		);
 
+		const transferHandlerTypes = TransferHandlerFactory.names();
+		if (!transferHandlerTypes.includes(request.format)) {
+			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "unsupportedTransferFormat", {
+				format: request.format,
+				supported: transferHandlerTypes
+			});
+		}
+
 		const validationFailures = await DataspaceProtocolHelper.validate(
 			JsonLdHelper.toNodeObject(request)
 		);
@@ -766,16 +774,16 @@ export class DataspaceControlPlaneService
 			nameof(providerEndpoint),
 			providerEndpoint
 		);
-		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(format), format);
 
 		const contextIds = await ContextIdStore.getContextIds();
 		ContextIdHelper.guard(contextIds, HttpContextIdKeys.PublicOrigin);
 		const publicOrigin = contextIds[HttpContextIdKeys.PublicOrigin];
 
-		if (!(Object.values(DataspaceTransferFormat) as string[]).includes(format)) {
+		const transferHandlerTypes = TransferHandlerFactory.names();
+		if (!transferHandlerTypes.includes(format)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "unsupportedTransferFormat", {
 				format,
-				supported: Object.values(DataspaceTransferFormat)
+				supported: transferHandlerTypes
 			});
 		}
 
@@ -3768,12 +3776,10 @@ export class DataspaceControlPlaneService
 	 * @returns The effective DataspaceTransferFormat for handler lookup.
 	 * @internal
 	 */
-	private inferTransferFormat(
-		entity: Pick<ITransferProcess, "format" | "dataAddress">
-	): DataspaceTransferFormat {
+	private inferTransferFormat(entity: Pick<ITransferProcess, "format" | "dataAddress">): string {
 		const knownFormats = Object.values(DataspaceTransferFormat) as string[];
 		if (Is.stringValue(entity.format) && knownFormats.includes(entity.format)) {
-			return entity.format as DataspaceTransferFormat;
+			return entity.format;
 		}
 		// Backward-compat: entities without a recognized format string (e.g. stored before
 		// the factory was introduced, or using a non-standard format value) fall back to

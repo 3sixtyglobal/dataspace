@@ -273,7 +273,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						agreementId: agreementUrn,
 						consumerPid: "consumer-pid-integration-001",
 						callbackAddress: "https://consumer.example.com/callback",
-						format: "application/json"
+						format: "HttpData-PULL"
 					},
 					consumerToken // Real JWT token with consumer identity
 				);
@@ -368,7 +368,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						consumerPid: "consumer-pid-catalog-test",
 						agreementId: policyUrn,
 						callbackAddress: "https://callback.example.com",
-						format: "application/json"
+						format: "HttpData-PULL"
 					},
 					consumerToken // Real JWT token with consumer identity
 				);
@@ -417,7 +417,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						consumerPid: "consumer-pid-missing-dataset",
 						agreementId: agreementUrn,
 						callbackAddress: "https://callback.example.com",
-						format: "application/json"
+						format: "HttpData-PULL"
 					},
 					consumerToken // Real JWT token with consumer identity
 				);
@@ -511,7 +511,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 						consumerPid: "consumer-pid-mismatch",
 						agreementId: agreementUrn,
 						callbackAddress: "https://callback.example.com",
-						format: "application/json"
+						format: "HttpData-PULL"
 					},
 					consumerToken // Real JWT token with consumer identity
 				);

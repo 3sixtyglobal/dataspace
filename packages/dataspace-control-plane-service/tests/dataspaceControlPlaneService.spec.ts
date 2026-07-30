@@ -243,7 +243,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: consumerGeneratedPid,
 				agreementId: "agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			// 3. Provider receives request and returns Transfer Process with both PIDs
@@ -275,7 +275,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: consumerGeneratedPid,
 				agreementId: "agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PUSH"
 			};
 
 			await service.requestTransfer(request, "valid-trust-payload");
@@ -296,7 +296,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: consumerGeneratedPid,
 				agreementId: "agreement-456",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			await service.requestTransfer(request, "valid-trust-payload");
@@ -2344,7 +2344,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2444,7 +2444,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2512,7 +2512,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-trust-fail",
 					agreementId: "agreement-trust-fail",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2580,7 +2580,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2626,7 +2626,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2674,7 +2674,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -3317,7 +3317,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "workflow-test-consumer-pid",
 				agreementId: "workflow-agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const initiateResponse = await service.requestTransfer(
@@ -3501,7 +3501,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "consumer-pid-catalog-test",
 				agreementId: "agreement-test-catalog",
 				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const response = await service.requestTransfer(request, "valid-trust-payload");
@@ -3579,7 +3579,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "consumer-pid-missing-dataset",
 				agreementId: "agreement-missing-dataset",
 				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			// Should return TransferError (DSP-compliant) instead of throwing
@@ -3686,7 +3686,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "consumer-pid-mismatch",
 				agreementId: "agreement-mismatch-123",
 				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			// Should return TransferError with specific error key
@@ -4756,7 +4756,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
 				agreementId: "agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const result = await service.requestTransfer(request, "valid-trust-payload");
@@ -4935,7 +4935,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
 				agreementId: "agreement-multi-assignee",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const result = await service.requestTransfer(request, "valid-trust-payload");
@@ -6263,7 +6263,7 @@ describe("DataspaceControlPlaneService", () => {
 				service.prepareTransfer(
 					"agreement-123",
 					"http://provider.example.com",
-					"not-a-valid-format",
+					"not-a-valid-format" as DataspaceTransferFormat,
 					"valid-trust-payload"
 				)
 			).rejects.toThrow("unsupportedTransferFormat");
