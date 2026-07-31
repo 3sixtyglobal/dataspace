@@ -99,6 +99,7 @@ import type { IDataspaceControlPlaneServiceConstructorOptions } from "./models/I
 import {
 	isCatalogError,
 	isCatalogErrorName,
+	isTransferError,
 	transformToTransferError
 } from "./utils/transferErrorUtils.js";
 
@@ -872,16 +873,16 @@ export class DataspaceControlPlaneService
 			component.requestTransfer(transferRequestMessage, outboundToken)
 		);
 
-		if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
-			const transferError = result as { code?: string };
+		if (isTransferError(result)) {
 			throw new GeneralError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"transferRequestRejectedByProvider",
 				{
 					agreementId,
 					providerEndpoint,
-					code: transferError.code
-				}
+					code: result.code
+				},
+				BaseError.expand(result.reason)
 			);
 		}
 
@@ -1860,8 +1861,10 @@ export class DataspaceControlPlaneService
 					{
 						datasetId,
 						offerId,
-						providerEndpoint
-					}
+						providerEndpoint,
+						code: catalogResult.code
+					},
+					BaseError.expand(catalogResult.reason)
 				);
 			}
 
@@ -1872,8 +1875,9 @@ export class DataspaceControlPlaneService
 					datasetId,
 					offerId,
 					providerEndpoint,
-					errorCode: catalogResult.code
-				}
+					code: catalogResult.code
+				},
+				BaseError.expand(catalogResult.reason)
 			);
 		}
 
@@ -2514,7 +2518,7 @@ export class DataspaceControlPlaneService
 				{
 					datasetId: id,
 					tenantId: existing.tenantId ?? "",
-					catalogErrorCode: removeResult.code
+					code: removeResult.code
 				},
 				BaseError.expand(removeResult.reason)
 			);
@@ -2925,13 +2929,14 @@ export class DataspaceControlPlaneService
 				async () => this.terminateTransfer(terminationMessage, selfToken)
 			);
 
-			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+			if (isTransferError(result)) {
 				await this._loggingComponent?.log({
 					level: "error",
 					source: DataspaceControlPlaneService.CLASS_NAME,
 					ts: Date.now(),
 					message: "providerTransferTerminateFailed",
-					data: { consumerPid, code: (result as IDataspaceProtocolTransferError).code }
+					data: { consumerPid, code: result.code },
+					error: BaseError.expand(result.reason)
 				});
 				return false;
 			}
@@ -3003,13 +3008,14 @@ export class DataspaceControlPlaneService
 			);
 
 			const result = await this.transferStarted(consumerPid, selfToken);
-			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+			if (isTransferError(result)) {
 				await this._loggingComponent?.log({
 					level: "error",
 					source: DataspaceControlPlaneService.CLASS_NAME,
 					ts: Date.now(),
 					message: "autoStartFailed",
-					data: { consumerPid }
+					data: { consumerPid, code: result.code },
+					error: BaseError.expand(result.reason)
 				});
 			}
 		} catch (error) {
@@ -3099,7 +3105,7 @@ export class DataspaceControlPlaneService
 				send(component, outboundToken)
 			);
 
-			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+			if (isTransferError(result)) {
 				await this._loggingComponent?.log({
 					level: "error",
 					source: DataspaceControlPlaneService.CLASS_NAME,
@@ -3109,8 +3115,10 @@ export class DataspaceControlPlaneService
 						messageKind,
 						consumerPid: entity.consumerPid,
 						providerPid: entity.providerPid,
-						callbackAddress: entity.callbackAddress
-					}
+						callbackAddress: entity.callbackAddress,
+						code: result.code
+					},
+					error: BaseError.expand(result.reason)
 				});
 			}
 		} catch (error) {
@@ -3286,15 +3294,22 @@ export class DataspaceControlPlaneService
 					datasetId,
 					{
 						datasetId,
-						agreementId: OdrlPolicyHelper.getUid(agreement)
-					}
+						agreementId: OdrlPolicyHelper.getUid(agreement),
+						code: catalogResult.code
+					},
+					BaseError.expand(catalogResult.reason)
 				);
 			}
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "catalogLookupFailed", {
-				datasetId,
-				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
-				errorCode: catalogResult.code
-			});
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"catalogLookupFailed",
+				{
+					datasetId,
+					agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
+					code: catalogResult.code
+				},
+				BaseError.expand(catalogResult.reason)
+			);
 		}
 
 		await this._loggingComponent?.log({
@@ -3815,7 +3830,7 @@ export class DataspaceControlPlaneService
 						datasetId: appDataset.id,
 						appId: appDataset.appId,
 						tenantId: appDataset.tenantId ?? "",
-						catalogErrorCode: publishResult.code
+						code: publishResult.code
 					},
 					BaseError.expand(publishResult.reason)
 				);

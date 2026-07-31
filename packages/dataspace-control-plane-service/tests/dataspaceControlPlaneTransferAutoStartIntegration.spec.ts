@@ -14,6 +14,7 @@ import {
 } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
+import type { ILogEntry, ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolContexts,
@@ -121,6 +122,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	let providerStorage: MemoryEntityStorageConnector<TransferProcess>;
 	let transferRetrievalStorage: MemoryEntityStorageConnector<TransferRetrieval>;
 	let consumerCallback: ITransferCallback;
+	let loggingComponent: ILoggingComponent;
 
 	beforeAll(async () => {
 		await setupTestEnv();
@@ -149,6 +151,13 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// so it correctly resolves provider-issued tokens to PROVIDER_ORG and
 		// consumer-issued tokens to CONSUMER_ORG on either node.
 		ComponentFactory.register("test-trust", () => createDecodingTrustComponent());
+		// Recording logging component shared by both nodes, so tests can assert log entries.
+		loggingComponent = {
+			className: () => "test-logging",
+			log: vi.fn().mockResolvedValue(undefined),
+			query: vi.fn().mockResolvedValue({ entities: [] })
+		};
+		ComponentFactory.register("test-logging", () => loggingComponent);
 
 		// Each node has its own transfer-process storage. A distinct `storageKey` is REQUIRED to give two
 		// connectors with the same entitySchema separate backing storage (per the connector's config), so
@@ -185,6 +194,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			policyNegotiationPointComponentType: "test-pnp",
 			federatedCatalogueComponentType: "test-fedcat",
 			trustComponentType: "test-trust",
+			loggingComponentType: "test-logging",
 			dataspaceAppDatasetEntityStorageType: SHARED_DATASET_STORAGE,
 			remoteControlPlaneComponentType: REMOTE_CP_TYPE,
 			config: { dataPlanePath: "data-plane/data" }
@@ -267,7 +277,14 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	}
 
 	afterEach(async () => {
-		for (const type of ["test-pap", "test-fedcat", "test-pnp", "test-trust", REMOTE_CP_TYPE]) {
+		for (const type of [
+			"test-pap",
+			"test-fedcat",
+			"test-pnp",
+			"test-trust",
+			"test-logging",
+			REMOTE_CP_TYPE
+		]) {
 			try {
 				ComponentFactory.unregister(type);
 			} catch {
@@ -426,6 +443,72 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		) as TransferProcess | undefined;
 		expect(providerRecord?.organizationIdentity).toBe(PROVIDER_TENANT_ORG);
 		expect(providerRecord?.providerIdentity).toBe(PROVIDER_ORG);
+	});
+
+	test("logs the TransferError diagnostics when the auto-start fails with an error result", async () => {
+		arrangeTwoNodes(true);
+
+		// Fail verification of provider-issued tokens only, so the deferred auto-start's self-token is
+		// rejected and transferStarted returns a TransferError result (the throwing paths are covered by
+		// the catch branch). Consumer-issued tokens still verify, so the request leg succeeds.
+		const trustComponent = ComponentFactory.get<ITrustComponent>("test-trust");
+		const originalVerify = trustComponent.verify;
+		vi.spyOn(trustComponent, "verify").mockImplementation(async payload => {
+			if (decodeIssuer(payload) === PROVIDER_ORG) {
+				return { verified: false };
+			}
+			return originalVerify(payload);
+		});
+
+		// Resolve when the provider's autoStartFailed log lands; fail loudly if it never does.
+		let resolveFailed: (entry: ILogEntry) => void = () => {};
+		const autoStartFailedLogged = new Promise<ILogEntry>((resolve, reject) => {
+			resolveFailed = resolve;
+			setTimeout(() => reject(new Error("Timed out waiting for the autoStartFailed log")), 3000);
+		});
+		vi.mocked(loggingComponent.log).mockImplementation(async entry => {
+			if (entry.message === "autoStartFailed") {
+				resolveFailed(entry);
+			}
+		});
+
+		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
+		const { consumerPid } = await ContextIdStore.run(
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
+			async () =>
+				consumerService.prepareTransfer(
+					AGREEMENT_ID,
+					PROVIDER_ENDPOINT,
+					DataspaceTransferFormat.HttpDataPull,
+					consumerToken
+				)
+		);
+
+		// The log entry carries the TransferError diagnostics, not just the consumerPid.
+		const entry = await autoStartFailedLogged;
+		expect(entry.data).toEqual(
+			expect.objectContaining({
+				consumerPid,
+				code: expect.stringContaining("UnauthorizedError")
+			})
+		);
+		expect(entry.error).toEqual(
+			expect.objectContaining({
+				name: "UnauthorizedError"
+			})
+		);
+
+		// The start never happened: no consumer notification, provider record still REQUESTED.
+		expect(consumerCallback.onStarted).not.toHaveBeenCalled();
+		const providerEntities = await providerStorage.query();
+		const providerRecord = providerEntities.entities.find(
+			e => (e as TransferProcess).consumerPid === consumerPid
+		) as TransferProcess | undefined;
+		expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 	});
 
 	test("does NOT auto-start when autoStart is not requested", async () => {
