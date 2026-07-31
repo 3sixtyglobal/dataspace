@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.2-next.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.2-next.2...dataspace-control-plane-service-v0.9.2-next.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* include the TransferError diagnostics in the autoStartFailed log ([#325](https://github.com/iotaledger/twin-dataspace/issues/325)) ([8c9a98f](https://github.com/iotaledger/twin-dataspace/commit/8c9a98f59f4410aa6978b0f70bc9f92b74a56a00))
+* keep one TransferProcess record per role in self transfers ([#321](https://github.com/iotaledger/twin-dataspace/issues/321)) ([91ccc87](https://github.com/iotaledger/twin-dataspace/commit/91ccc87e47d94c6a015e3f974f0dd4cf680c4603))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.2-next.2 to 0.9.2-next.3
+
 ## [0.9.2-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.2-next.1...dataspace-control-plane-service-v0.9.2-next.2) (2026-07-30)
 
 
