@@ -347,6 +347,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-no-target-offer",
 			"dcterms:title": "Dataset with DSP-compliant offer",
+			"dcat:distribution": [{ "dcterms:format": "HttpData-PULL" }],
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",

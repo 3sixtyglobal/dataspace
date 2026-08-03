@@ -3458,6 +3458,7 @@ describe("DataspaceControlPlaneService", () => {
 							"@id": "urn:uuid:valid-dataset-123",
 							"@type": "dcat:Dataset",
 							"dcterms:title": "Test Dataset",
+							"dcat:distribution": [{ "dcterms:format": "HttpData-PULL" }],
 							"odrl:hasPolicy": [
 								{
 									"@type": "odrl:Offer",
@@ -3732,6 +3733,189 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("mock-pap-mismatch-test");
 			ComponentFactory.unregister("mock-fedcat-mismatch-test");
 			ComponentFactory.unregister("mock-trust-mismatch-test");
+		});
+
+		test("should reject transfer when requested format is not in dataset distributions", async () => {
+			const mockCatalogWithDistributions = {
+				get: async (datasetId: string) => {
+					if (datasetId === "urn:uuid:dataset-format-check") {
+						return {
+							"@context": [DataspaceProtocolContexts.JsonLdContext],
+							"@type": "Dataset",
+							"@id": "urn:uuid:dataset-format-check",
+							"dcterms:title": "Dataset with distributions",
+							distribution: [
+								{
+									"@type": "Distribution",
+									format: "HttpData-PULL",
+									accessService: "https://provider.example.com/api"
+								}
+							],
+							hasPolicy: [
+								{
+									"@type": "odrl:Offer",
+									"@id": "offer-format-check",
+									assigner: "urn:uuid:provider-123",
+									permission: [{ action: "use" }]
+								}
+							]
+						};
+					}
+					return {
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": DataspaceProtocolCatalogTypes.CatalogError,
+						code: "NotFoundError:datasetNotFound"
+					} as IDataspaceProtocolCatalogError;
+				},
+				className: () => "MockFederatedCatalogue"
+			};
+
+			const mockPapFormatCheck = {
+				getAgreement: async (agreementId: string) => {
+					if (agreementId === "agreement-format-check") {
+						return {
+							"@type": "Agreement",
+							"@id": "agreement-format-check",
+							status: "active",
+							assignee: "urn:uuid:consumer-123",
+							assigner: "urn:uuid:provider-123",
+							target: "urn:uuid:dataset-format-check",
+							permission: [{ action: "use" }]
+						};
+					}
+					throw new NotFoundError("MockPAP", "agreementNotFound", agreementId);
+				},
+				className: () => "MockPolicyAdministrationPoint"
+			};
+
+			ComponentFactory.register("mock-pap-format-check", () => mockPapFormatCheck);
+			ComponentFactory.register("mock-fedcat-format-check", () => mockCatalogWithDistributions);
+			ComponentFactory.register("mock-trust-format-check", () =>
+				createMockTrustComponent("urn:uuid:consumer-123")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				policyAdministrationPointComponentType: "mock-pap-format-check",
+				policyNegotiationPointComponentType: "test-pnp",
+				federatedCatalogueComponentType: "mock-fedcat-format-check",
+				trustComponentType: "mock-trust-format-check",
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			});
+
+			const result = await service.requestTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferRequestMessage",
+					consumerPid: "consumer-pid-invalid-format",
+					agreementId: "agreement-format-check",
+					callbackAddress: "https://callback.example.com",
+					format: "HttpData-PUSH"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const transferError = result as IDataspaceProtocolTransferError;
+			expect(transferError.code).toMatch(/^GeneralError:/);
+			expect(transferError.consumerPid).toBe("consumer-pid-invalid-format");
+			if (transferError.reason && transferError.reason.length > 0) {
+				const firstError = transferError.reason[0] as { message?: string };
+				expect(firstError.message).toContain("transferFormatNotInDistributions");
+			}
+
+			ComponentFactory.unregister("mock-pap-format-check");
+			ComponentFactory.unregister("mock-fedcat-format-check");
+			ComponentFactory.unregister("mock-trust-format-check");
+		});
+
+		test("should accept transfer when requested format matches a dataset distribution", async () => {
+			const mockCatalogWithMatchingDist = {
+				get: async (datasetId: string) => {
+					if (datasetId === "urn:uuid:dataset-format-match") {
+						return {
+							"@context": [DataspaceProtocolContexts.JsonLdContext],
+							"@type": "Dataset",
+							"@id": "urn:uuid:dataset-format-match",
+							"dcterms:title": "Dataset with matching distribution",
+							distribution: [
+								{
+									"@type": "Distribution",
+									format: "HttpData-PULL",
+									accessService: "https://provider.example.com/api"
+								}
+							],
+							hasPolicy: [
+								{
+									"@type": "odrl:Offer",
+									"@id": "offer-format-match",
+									assigner: "urn:uuid:provider-123",
+									permission: [{ action: "use" }]
+								}
+							]
+						};
+					}
+					return {
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": DataspaceProtocolCatalogTypes.CatalogError,
+						code: "NotFoundError:datasetNotFound"
+					} as IDataspaceProtocolCatalogError;
+				},
+				className: () => "MockFederatedCatalogue"
+			};
+
+			const mockPapFormatMatch = {
+				getAgreement: async (agreementId: string) => {
+					if (agreementId === "agreement-format-match") {
+						return {
+							"@type": "Agreement",
+							"@id": "agreement-format-match",
+							status: "active",
+							assignee: "urn:uuid:consumer-123",
+							assigner: "urn:uuid:provider-123",
+							target: "urn:uuid:dataset-format-match",
+							permission: [{ action: "use" }]
+						};
+					}
+					throw new NotFoundError("MockPAP", "agreementNotFound", agreementId);
+				},
+				className: () => "MockPolicyAdministrationPoint"
+			};
+
+			ComponentFactory.register("mock-pap-format-match", () => mockPapFormatMatch);
+			ComponentFactory.register("mock-fedcat-format-match", () => mockCatalogWithMatchingDist);
+			ComponentFactory.register("mock-trust-format-match", () =>
+				createMockTrustComponent("urn:uuid:consumer-123")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				policyAdministrationPointComponentType: "mock-pap-format-match",
+				policyNegotiationPointComponentType: "test-pnp",
+				federatedCatalogueComponentType: "mock-fedcat-format-match",
+				trustComponentType: "mock-trust-format-match",
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			});
+
+			const result = await service.requestTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferRequestMessage",
+					consumerPid: "consumer-pid-valid-format",
+					agreementId: "agreement-format-match",
+					callbackAddress: "https://callback.example.com",
+					format: "HttpData-PULL"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(result.consumerPid).toBe("consumer-pid-valid-format");
+			expect((result as IDataspaceProtocolTransferProcess).state).toBe(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+
+			ComponentFactory.unregister("mock-pap-format-match");
+			ComponentFactory.unregister("mock-fedcat-format-match");
+			ComponentFactory.unregister("mock-trust-format-match");
 		});
 	});
 
@@ -7409,6 +7593,7 @@ describe("DataspaceControlPlaneService", () => {
 				"@type": "dcat:Dataset",
 				"@id": SELF_DATASET_ID,
 				"dcterms:title": "Self Transfer Dataset 318",
+				"dcat:distribution": [{ "dcterms:format": "HttpData-PULL" }],
 				"odrl:hasPolicy": [
 					{
 						"@type": "odrl:Offer",

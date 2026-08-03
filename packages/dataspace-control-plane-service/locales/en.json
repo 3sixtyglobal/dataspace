@@ -95,6 +95,7 @@
 			"transferRequestRejectedByProvider": "Provider rejected transfer request for agreement {agreementId} at {providerEndpoint} (code: {code})",
 			"providerPidMissingInResponse": "Provider accepted transfer request for {consumerPid} but returned no providerPid",
 			"unsupportedTransferFormat": "Transfer format \"{format}\" is not supported. Supported formats: {supported}",
+			"transferFormatNotInDistributions": "Transfer format \"{format}\" is not available in any distribution of dataset \"{datasetId}\" (Agreement: {agreementId}). Available formats: {availableFormats}",
 			"catalogDatasetMissingId": "Catalog dataset is missing a required @id identifier",
 			"providerIdentityMissing": "Provider identity (DID) is required to sign data access tokens but was not set on the Transfer Process",
 			"callerNotAuthorizedForAgreement": "The caller's verified identity does not match the agreement assignee (consumer)",

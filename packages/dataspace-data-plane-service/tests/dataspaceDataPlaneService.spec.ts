@@ -145,7 +145,7 @@ function createTestTransferProcess(overrides?: Partial<TransferProcess>): Transf
 	entity.consumerIdentity = DATA_CONSUMER_IDENTITY;
 	entity.providerIdentity = TEST_ORGANIZATION_IDENTITY;
 	entity.organizationIdentity = TEST_ORGANIZATION_IDENTITY;
-	entity.format = "application/json";
+	entity.format = "HttpData-PULL";
 	entity.dateCreated = now;
 	entity.dateModified = now;
 	entity.policies = [

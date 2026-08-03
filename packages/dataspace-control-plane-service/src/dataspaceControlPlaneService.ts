@@ -16,6 +16,7 @@ import {
 	Is,
 	NotFoundError,
 	ObjectHelper,
+	type ObjectOrArray,
 	RandomHelper,
 	StringHelper,
 	UnauthorizedError,
@@ -73,6 +74,7 @@ import {
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes,
 	DataspaceProtocolVersionBindingType,
+	type IDataspaceProtocolDistributionBase,
 	type DataspaceProtocolContractNegotiationStateType,
 	type IDataspaceProtocolContractNegotiation,
 	type IDataspaceProtocolContractNegotiationError,
@@ -86,7 +88,7 @@ import {
 	type IDataspaceProtocolTransferTerminationMessage,
 	type IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
-import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
+import type { IDcatDataset, IDcatDistributionBase } from "@twin.org/standards-w3c-dcat";
 import { OdrlActionType, OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
 import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
@@ -669,7 +671,7 @@ export class DataspaceControlPlaneService
 
 			datasetId = this.extractDatasetId(agreement);
 
-			await this.validateCatalogDataset(datasetId, agreement);
+			await this.validateCatalogDataset(datasetId, agreement, request.format);
 
 			policies = [agreement];
 		} catch (error) {
@@ -3264,12 +3266,14 @@ export class DataspaceControlPlaneService
 	 * Validate that the dataset exists in the Federated Catalogue.
 	 * @param datasetId Dataset identifier extracted from Agreement.
 	 * @param agreement The Agreement being validated.
+	 * @param format The DSP transfer format requested by the consumer.
 	 * @returns A promise that resolves when the dataset has been confirmed in the catalogue and the offer has been validated.
 	 * @internal
 	 */
 	private async validateCatalogDataset(
 		datasetId: string,
-		agreement: IRightsManagementAgreement
+		agreement: IRightsManagementAgreement,
+		format: string
 	): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
 		Guards.object<IRightsManagementAgreement>(
@@ -3325,6 +3329,53 @@ export class DataspaceControlPlaneService
 		});
 
 		await this.validateAgreementMatchesOffer(agreement, catalogResult);
+		this.validateDistributionFormat(catalogResult, format, agreement);
+	}
+
+	/**
+	 * Validate that the requested transfer format matches one of the dataset's DSP distribution formats.
+	 * Only enforced when the dataset carries explicit DSP distribution format information.
+	 * @param catalogDataset The catalog dataset retrieved from the Federated Catalogue.
+	 * @param requestedFormat The DSP transfer format requested by the consumer.
+	 * @param agreement The Agreement being validated (used for error context).
+	 * @throws GeneralError if the dataset has DSP distribution format info and none match requestedFormat.
+	 * @internal
+	 */
+	private validateDistributionFormat(
+		catalogDataset: IDcatDataset | IDataspaceProtocolDataset,
+		requestedFormat: string,
+		agreement: IRightsManagementAgreement
+	): void {
+		const distribution = ObjectHelper.extractProperty<
+			ObjectOrArray<IDcatDistributionBase | IDataspaceProtocolDistributionBase>
+		>(catalogDataset, ["distribution", "dcat:distribution"], false);
+
+		const distributionFormats: string[] = [];
+		if (Is.arrayValue(distribution)) {
+			for (const dist of distribution) {
+				const format = ObjectHelper.extractProperty<string>(
+					dist,
+					["format", "dcterms:format"],
+					false
+				);
+				if (Is.stringValue(format)) {
+					distributionFormats.push(format);
+				}
+			}
+		}
+
+		if (!distributionFormats.includes(requestedFormat)) {
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"transferFormatNotInDistributions",
+				{
+					format: requestedFormat,
+					datasetId: getJsonLdId(catalogDataset) ?? "",
+					agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
+					availableFormats: distributionFormats
+				}
+			);
+		}
 	}
 
 	/**

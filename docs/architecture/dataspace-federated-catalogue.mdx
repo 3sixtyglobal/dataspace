@@ -35,7 +35,7 @@ This example mirrors the shape the catalogue accepts and stores:
   "dcat:distribution": {
     "@type": "dcat:Distribution",
     "@id": "https://example.com/distributions/consignment-events-json",
-    "dcterms:format": "application/json",
+    "dcterms:format": "HttpData-PULL",
     "dcat:accessService": "https://provider.example.com/dataspace-data-plane"
   },
   "odrl:hasPolicy": {
@@ -93,7 +93,7 @@ Results are shaped into a Dataspace Protocol `Catalog` grouped by publisher: dat
         {
           "@id": "urn:uuid:distribution-789",
           "@type": "Distribution",
-          "format": "application/json",
+          "format": "HttpData-PULL",
           "accessService": {
             "@id": "urn:uuid:access-service-321",
             "@type": "DataService",

@@ -54,7 +54,7 @@ describe("TransferProcess partition key compatibility (Phase 0 Smoke Test)", () 
 		entity.consumerIdentity = TEST_TENANT_ID;
 		entity.providerIdentity = TEST_NODE_ID;
 		entity.organizationIdentity = TEST_NODE_ID;
-		entity.format = "application/json";
+		entity.format = "HttpData-PULL";
 		entity.dateCreated = now;
 		entity.dateModified = now;
 		entity.policies = [];

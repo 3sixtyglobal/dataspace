@@ -163,7 +163,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"dcterms:publisher": "did:iota:provider-node-xyz", // REQUIRED by real service
 			"dcat:distribution": {
 				"@type": "dcat:Distribution",
-				"dcterms:format": "application/json",
+				"dcterms:format": "HttpData-PULL",
 				"dcat:accessService": "https://provider.example.com/api"
 			}, // REQUIRED by real service (note: object, not array!)
 			"odrl:hasPolicy": {
@@ -233,7 +233,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"dcterms:publisher": "did:iota:provider-node-xyz",
 			"dcat:distribution": {
 				"@type": "dcat:Distribution",
-				"dcterms:format": "application/json",
+				"dcterms:format": "HttpData-PULL",
 				"dcat:accessService": "https://provider.example.com/api"
 			},
 			"odrl:hasPolicy": {
@@ -327,7 +327,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"dcterms:publisher": "did:iota:provider-node-xyz",
 			"dcat:distribution": {
 				"@type": "dcat:Distribution",
-				"dcterms:format": "application/json",
+				"dcterms:format": "HttpData-PULL",
 				"dcat:accessService": "https://provider.example.com/api"
 			},
 			"odrl:hasPolicy": {
@@ -470,7 +470,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 			"dcterms:publisher": "did:iota:provider-node-xyz",
 			"dcat:distribution": {
 				"@type": "dcat:Distribution",
-				"dcterms:format": "application/json",
+				"dcterms:format": "HttpData-PULL",
 				"dcat:accessService": "https://provider.example.com/api"
 			},
 			"odrl:hasPolicy": {
