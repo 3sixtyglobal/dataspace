@@ -53,7 +53,7 @@ Dataset ID identifying which dataset is being delivered.
 > `optional` **tenantId?**: `string`
 
 The tenant that owns this subscription, captured from the request context at
-write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`) register
+write time. Optional - single-tenant nodes (no `TWIN_TENANT_ENABLED`) register
 subscriptions without a tenant context. The encrypted tenant token is also baked
 into `consumerEndpoint` so cross-node push deliveries route to the right tenant.
 

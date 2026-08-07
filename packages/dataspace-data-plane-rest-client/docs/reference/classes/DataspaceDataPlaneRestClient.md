@@ -232,7 +232,7 @@ The subscription Id.
 
 > **unSubscribeToActivityLog**(`subscriptionId`): `Promise`\<`void`\>
 
-Unsubscribes from the activity log — implemented in Socket Client.
+Unsubscribes from the activity log - implemented in Socket Client.
 
 #### Parameters
 
@@ -262,7 +262,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 > **setupPushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on REST client — push subscriptions are server-side only.
+Not supported on REST client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -286,7 +286,7 @@ Unused.
 
 > **suspendPushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on REST client — push subscriptions are server-side only.
+Not supported on REST client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -310,7 +310,7 @@ Unused.
 
 > **resumePushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on REST client — push subscriptions are server-side only.
+Not supported on REST client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -334,7 +334,7 @@ Unused.
 
 > **teardownPushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on REST client — push subscriptions are server-side only.
+Not supported on REST client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -358,7 +358,7 @@ Unused.
 
 > **processOutboxActivity**(`activity`): `Promise`\<`void`\>
 
-Not supported on REST client — processOutboxActivity is server-side only.
+Not supported on REST client - processOutboxActivity is server-side only.
 
 #### Parameters
 

@@ -22,7 +22,7 @@ Combined with the public origin to form the `dataAddress.endpoint` sent to PULL 
 and the inbox URL sent to PUSH providers.
 
 This must be the mount-point prefix of the data plane routes, NOT a specific route path.
-Do NOT append sub-paths such as `/entities` or `/inbox` — those are appended automatically
+Do NOT append sub-paths such as `/entities` or `/inbox` - those are appended automatically
 by each transfer handler and by the data plane REST client.
 
 REQUIRED if PULL or PUSH transfers are supported.

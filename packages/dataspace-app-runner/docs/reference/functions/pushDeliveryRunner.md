@@ -2,7 +2,7 @@
 
 > **pushDeliveryRunner**(`engineCloneData`, `payload`): `Promise`\<`unknown`\>
 
-Push Delivery Task — POSTs an Activity Streams object to a consumer's /inbox.
+Push Delivery Task - POSTs an Activity Streams object to a consumer's /inbox.
 
 ## Parameters
 

@@ -35,7 +35,7 @@ The identity of the organization that owns this entity.
 > `optional` **tenantId?**: `string`
 
 The tenant that owns this dataset, captured from the request context at
-write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`)
+write time. Optional - single-tenant nodes (no `TWIN_TENANT_ENABLED`)
 register datasets without a tenant context.
 
 ***

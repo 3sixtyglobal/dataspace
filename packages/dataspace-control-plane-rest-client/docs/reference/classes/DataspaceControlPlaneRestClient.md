@@ -67,7 +67,7 @@ The class name of the component.
 
 > **registerNegotiationCallback**(`key`, `callback`): `void`
 
-Not supported on REST client — negotiation callbacks are in-process only.
+Not supported on REST client - negotiation callbacks are in-process only.
 
 #### Parameters
 
@@ -101,7 +101,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 > **unregisterNegotiationCallback**(`key`): `void`
 
-Not supported on REST client — negotiation callbacks are in-process only.
+Not supported on REST client - negotiation callbacks are in-process only.
 
 #### Parameters
 
@@ -129,7 +129,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 > **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
 
-Not supported on REST client — contract negotiation is in-process only.
+Not supported on REST client - contract negotiation is in-process only.
 
 #### Parameters
 
@@ -173,7 +173,7 @@ The negotiation ID for tracking.
 
 > **getNegotiation**(`negotiationId`, `trustPayload`): `Promise`\<`IDataspaceProtocolContractNegotiation` \| `IDataspaceProtocolContractNegotiationError`\>
 
-Not supported on REST client — contract negotiation is in-process only.
+Not supported on REST client - contract negotiation is in-process only.
 
 #### Parameters
 
@@ -205,7 +205,7 @@ DSP ContractNegotiation with current state, or error.
 
 > **getNegotiationHistory**(`state`, `cursor`, `trustPayload`): `Promise`\<\{ `negotiations`: `object`[]; `cursor?`: `string`; `count`: `number`; \}\>
 
-Not supported on REST client — contract negotiation is in-process only.
+Not supported on REST client - contract negotiation is in-process only.
 
 #### Parameters
 
@@ -243,7 +243,7 @@ List of negotiation history entries with pagination cursor.
 
 > **registerTransferCallback**(`key`, `callback`): `void`
 
-Not supported on REST client — transfer callbacks are in-process only.
+Not supported on REST client - transfer callbacks are in-process only.
 
 #### Parameters
 
@@ -277,7 +277,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 > **unregisterTransferCallback**(`key`): `void`
 
-Not supported on REST client — transfer callbacks are in-process only.
+Not supported on REST client - transfer callbacks are in-process only.
 
 #### Parameters
 
@@ -305,7 +305,7 @@ NotSupportedError as this method is not supported on the REST client.
 
 > **prepareTransfer**(`agreementId`, `providerEndpoint`, `format`, `trustPayload`): `Promise`\<\{ `consumerPid`: `string`; \}\>
 
-Not supported on REST client — consumer-initiated transfers are in-process only.
+Not supported on REST client - consumer-initiated transfers are in-process only.
 
 #### Parameters
 
@@ -578,7 +578,7 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 > **queryDataTransfer**(`agreementId`, `state`, `cursor`, `trustPayload`): `Promise`\<`ITransferQueryResult`\>
 
-Not supported on REST client — transfer queries are in-process only.
+Not supported on REST client - transfer queries are in-process only.
 
 #### Parameters
 

@@ -3,7 +3,7 @@
 API request to register an app dataset.
 
 The owning `tenantId` is captured automatically from the request's tenant
-context — callers do not supply it.
+context - callers do not supply it.
 
 ## Properties
 
@@ -34,7 +34,7 @@ registered name in `DataspaceAppFactory` (typically the app's URI).
 > **dataset**: `IDataspaceProtocolDataset`
 
 The dataset payload. System-stamped fields like `dcterms:publisher`
-may be omitted — the Control Plane fills them in at publish time.
+may be omitted - the Control Plane fills them in at publish time.
 
 #### transferIdleTimeoutMs?
 

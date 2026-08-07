@@ -5,7 +5,7 @@
 The REST routes for dataspace control plane (DSP Protocol only).
 These routes implement the Eclipse Dataspace Protocol Transfer Process Protocol.
 
-Contract Negotiation is handled internally via PNP callbacks — no REST endpoints needed.
+Contract Negotiation is handled internally via PNP callbacks - no REST endpoints needed.
 PNP registers its own inbound callback routes for negotiation messages from providers.
 
 ## Parameters

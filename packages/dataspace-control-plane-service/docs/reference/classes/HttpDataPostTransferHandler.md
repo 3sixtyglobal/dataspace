@@ -50,7 +50,7 @@ The class name of the component.
 
 > **buildConsumerDataAddress**(`ctx`): `IDataspaceProtocolDataAddress` \| `undefined`
 
-POST consumers do not supply a dataAddress — provider returns its own /inbox on start.
+POST consumers do not supply a dataAddress - provider returns its own /inbox on start.
 
 #### Parameters
 

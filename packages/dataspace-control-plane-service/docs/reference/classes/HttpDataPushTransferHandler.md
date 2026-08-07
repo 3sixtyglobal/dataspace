@@ -82,7 +82,7 @@ GeneralError When dataPlanePath is not configured.
 > **buildProviderStartDataAddress**(`ctx`): `Promise`\<`IDataspaceProtocolDataAddress` \| `undefined`\>
 
 Validate the consumer's dataAddress and build the provider's /inbox endpoint
-for the TransferStartMessage. No bearer token is included — the consumer authenticates
+for the TransferStartMessage. No bearer token is included - the consumer authenticates
 via the DSP protocol trust payload on the push POST.
 
 #### Parameters

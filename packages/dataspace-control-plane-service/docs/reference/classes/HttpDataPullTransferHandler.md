@@ -50,7 +50,7 @@ The class name of the component.
 
 > **buildConsumerDataAddress**(`ctx`): `IDataspaceProtocolDataAddress` \| `undefined`
 
-PULL consumers do not supply a dataAddress — the provider generates one on start.
+PULL consumers do not supply a dataAddress - the provider generates one on start.
 
 #### Parameters
 
