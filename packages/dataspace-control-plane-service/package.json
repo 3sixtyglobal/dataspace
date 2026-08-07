@@ -30,8 +30,10 @@
 	"dependencies": {
 		"@twin.org/api-models": "next",
 		"@twin.org/api-tenant-processor": "next",
+		"@twin.org/background-task-models": "next",
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
+		"@twin.org/data-json-ld": "next",
 		"@twin.org/dataspace-models": "0.9.2-next.4",
 		"@twin.org/entity": "next",
 		"@twin.org/entity-storage-models": "next",
@@ -40,10 +42,12 @@
 		"@twin.org/nameof": "next",
 		"@twin.org/rights-management-models": "next",
 		"@twin.org/standards-dataspace-protocol": "next",
+		"@twin.org/standards-w3c-dcat": "next",
 		"@twin.org/standards-w3c-odrl": "next",
 		"@twin.org/telemetry-models": "next",
 		"@twin.org/trust-models": "next",
-		"@twin.org/vault-models": "next"
+		"@twin.org/vault-models": "next",
+		"@twin.org/web": "next"
 	},
 	"devDependencies": {
 		"@twin.org/api-processors": "next",

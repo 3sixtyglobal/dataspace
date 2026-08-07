@@ -64,7 +64,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * notified via the registered INegotiationCallback when the negotiation completes.
 	 * The negotiation follows DSP state machine: REQUESTED → OFFERED → AGREED → VERIFIED → FINALIZED.
 	 *
-	 * The REST client does not support this method and throws a not supported error —
+	 * The REST client does not support this method and throws a not supported error -
 	 * use ComponentFactory.get() for the in-process service.
 	 *
 	 * DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1/#negotiation-protocol
@@ -145,7 +145,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * consumer-initiated transfer changes state (STARTED, COMPLETED, SUSPENDED,
 	 * TERMINATED).
 	 *
-	 * The REST client does not support this method and throws a not supported error —
+	 * The REST client does not support this method and throws a not supported error -
 	 * use ComponentFactory.get() for the in-process service.
 	 * @param key A unique key identifying this callback registration.
 	 * @param callback The callback interface to register.
@@ -172,7 +172,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * via the registered ITransferCallback. The transfer moves to STARTED when the
 	 * provider POSTs a TransferStartMessage back to this node's callback address.
 	 *
-	 * The REST client does not support this method and throws a not supported error —
+	 * The REST client does not support this method and throws a not supported error -
 	 * use ComponentFactory.get() for the in-process service.
 	 *
 	 * @param agreementId The finalized agreement ID (from contract negotiation).

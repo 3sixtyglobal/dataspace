@@ -82,7 +82,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — negotiation callbacks are in-process only.
+	 * Not supported on REST client - negotiation callbacks are in-process only.
 	 * @param key Unused.
 	 * @param callback Unused.
 	 * @throws NotSupportedError as this method is not supported on the REST client.
@@ -98,7 +98,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — negotiation callbacks are in-process only.
+	 * Not supported on REST client - negotiation callbacks are in-process only.
 	 * @param key Unused.
 	 * @throws NotSupportedError as this method is not supported on the REST client.
 	 */
@@ -113,7 +113,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — contract negotiation is in-process only.
+	 * Not supported on REST client - contract negotiation is in-process only.
 	 * @param datasetId Unused.
 	 * @param offerId Unused.
 	 * @param providerEndpoint Unused.
@@ -136,7 +136,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — contract negotiation is in-process only.
+	 * Not supported on REST client - contract negotiation is in-process only.
 	 * @param negotiationId Unused.
 	 * @param trustPayload Unused.
 	 * @returns DSP ContractNegotiation with current state, or error.
@@ -155,7 +155,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — contract negotiation is in-process only.
+	 * Not supported on REST client - contract negotiation is in-process only.
 	 * @param state Unused.
 	 * @param cursor Unused.
 	 * @param trustPayload Unused.
@@ -186,7 +186,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — transfer callbacks are in-process only.
+	 * Not supported on REST client - transfer callbacks are in-process only.
 	 * @param key Unused.
 	 * @param callback Unused.
 	 * @throws NotSupportedError as this method is not supported on the REST client.
@@ -202,7 +202,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — transfer callbacks are in-process only.
+	 * Not supported on REST client - transfer callbacks are in-process only.
 	 * @param key Unused.
 	 * @throws NotSupportedError as this method is not supported on the REST client.
 	 */
@@ -217,7 +217,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — consumer-initiated transfers are in-process only.
+	 * Not supported on REST client - consumer-initiated transfers are in-process only.
 	 * @param agreementId Unused.
 	 * @param providerEndpoint Unused.
 	 * @param format Unused.
@@ -451,7 +451,7 @@ export class DataspaceControlPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — transfer queries are in-process only.
+	 * Not supported on REST client - transfer queries are in-process only.
 	 * @param agreementId Unused.
 	 * @param state Unused.
 	 * @param cursor Unused.

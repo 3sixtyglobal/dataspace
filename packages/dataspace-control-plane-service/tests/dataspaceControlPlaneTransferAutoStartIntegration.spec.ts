@@ -397,7 +397,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	test("delivers the start under the assigner identity when the provider's org context differs (org != assigner)", async () => {
 		// The provider node runs in a tenant org distinct from the agreement assigner. The cross-node start
 		// token must be minted under the assigner DID the consumer's gate checks (providerIdentity), NOT the
-		// tenant org — otherwise the consumer silently rejects every delivery and never reaches STARTED.
+		// tenant org - otherwise the consumer silently rejects every delivery and never reaches STARTED.
 		arrangeTwoNodes(true, PROVIDER_TENANT_ORG);
 
 		let resolveStarted: (message: IDataspaceProtocolTransferStartMessage) => void = () => {};

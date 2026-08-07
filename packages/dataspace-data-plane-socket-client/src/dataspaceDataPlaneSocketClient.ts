@@ -110,7 +110,7 @@ export class DataspaceDataPlaneSocketClient
 	}
 
 	/**
-	 * Not supported on socket client — push subscriptions are server-side only.
+	 * Not supported on socket client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async setupPushSubscription(consumerPid: string): Promise<void> {
@@ -120,7 +120,7 @@ export class DataspaceDataPlaneSocketClient
 	}
 
 	/**
-	 * Not supported on socket client — push subscriptions are server-side only.
+	 * Not supported on socket client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async suspendPushSubscription(consumerPid: string): Promise<void> {
@@ -130,7 +130,7 @@ export class DataspaceDataPlaneSocketClient
 	}
 
 	/**
-	 * Not supported on socket client — push subscriptions are server-side only.
+	 * Not supported on socket client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async resumePushSubscription(consumerPid: string): Promise<void> {
@@ -140,7 +140,7 @@ export class DataspaceDataPlaneSocketClient
 	}
 
 	/**
-	 * Not supported on socket client — push subscriptions are server-side only.
+	 * Not supported on socket client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async teardownPushSubscription(consumerPid: string): Promise<void> {
@@ -150,7 +150,7 @@ export class DataspaceDataPlaneSocketClient
 	}
 
 	/**
-	 * Not supported on socket client — processOutboxActivity is server-side only.
+	 * Not supported on socket client - processOutboxActivity is server-side only.
 	 * @param activity Unused.
 	 */
 	public async processOutboxActivity(activity: IActivityStreamsActivity): Promise<void> {

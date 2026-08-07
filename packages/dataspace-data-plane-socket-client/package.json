@@ -31,10 +31,11 @@
 		"@twin.org/api-core": "next",
 		"@twin.org/api-models": "next",
 		"@twin.org/core": "next",
+		"@twin.org/data-json-ld": "next",
 		"@twin.org/dataspace-models": "0.9.2-next.4",
 		"@twin.org/logging-models": "next",
 		"@twin.org/nameof": "next",
-		"@twin.org/data-json-ld": "next"
+		"@twin.org/standards-w3c-activity-streams": "next"
 	},
 	"devDependencies": {
 		"@twin.org/nameof-transformer": "next",

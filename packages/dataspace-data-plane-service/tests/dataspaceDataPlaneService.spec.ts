@@ -81,7 +81,7 @@ const TEST_PROVIDER_PID = "urn:uuid:test-provider-pid";
 const TEST_AGREEMENT_ID = "urn:agreement:test-agreement";
 const TEST_OFFER_ID = "urn:offer:test-offer";
 const TEST_TRANSFER_TOKEN = "test-transfer-token-abc123";
-// Consumer inbox URL with organization-id baked in — required by setupPushSubscription.
+// Consumer inbox URL with organization-id baked in - required by setupPushSubscription.
 const CONSUMER_INBOX_WITH_ORG_ID = `https://consumer.example.com/inbox?organization=${encodeURIComponent(DATA_CONSUMER_IDENTITY)}`;
 
 /**
@@ -604,7 +604,7 @@ describe("DataspaceDataPlaneService", () => {
 			});
 			await transferProcessStorage.set(transferProcess);
 
-			// Override the beforeEach mock for this test — emulate a tenant-aware request context.
+			// Override the beforeEach mock for this test - emulate a tenant-aware request context.
 			const tenantA = "did:iota:tenant-a";
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: TEST_ORGANIZATION_IDENTITY,
@@ -645,7 +645,7 @@ describe("DataspaceDataPlaneService", () => {
 			});
 			await transferProcessStorage.set(transferProcess);
 
-			// Explicitly Node-only mock (single-tenant node case) — defensive against leakage from prior test.
+			// Explicitly Node-only mock (single-tenant node case) - defensive against leakage from prior test.
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 				[ContextIdKeys.Node]: TEST_ORGANIZATION_IDENTITY
 			});
@@ -1043,7 +1043,7 @@ describe("DataspaceDataPlaneService", () => {
 		});
 	});
 
-	describe("start() — handler registration", () => {
+	describe("start() - handler registration", () => {
 		test.skip("registers push-delivery handler before engine clone check", async () => {
 			await startBackgroundTaskService();
 			const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
@@ -1447,7 +1447,7 @@ describe("DataspaceDataPlaneService", () => {
 		});
 	});
 
-	describe("cleanupOrphanedPushSubscriptions() — P6.10", () => {
+	describe("cleanupOrphanedPushSubscriptions() - P6.10", () => {
 		function seedActiveSubscription(): PushSubscription {
 			return {
 				consumerPid: TEST_CONSUMER_PID,
@@ -1498,7 +1498,7 @@ describe("DataspaceDataPlaneService", () => {
 		test.skip("deletes orphaned PushSubscription when TransferProcess is absent", async () => {
 			const service = new DataspaceDataPlaneService(options);
 			await pushSubscriptionStorage.set(seedActiveSubscription());
-			// No TransferProcess seeded — simulates orphan
+			// No TransferProcess seeded - simulates orphan
 
 			await (
 				service as unknown as { cleanupOrphanedPushSubscriptions: () => Promise<void> }
@@ -1539,7 +1539,7 @@ describe("DataspaceDataPlaneService", () => {
 			await transferProcessStorage.set(
 				createTestTransferProcess({ consumerPid: "urn:uuid:sub-1" })
 			);
-			// sub-2 and sub-3 have no matching TransferProcess — orphans
+			// sub-2 and sub-3 have no matching TransferProcess - orphans
 
 			const querySpy = vi.spyOn(transferProcessStorage, "query");
 
@@ -1563,7 +1563,7 @@ describe("DataspaceDataPlaneService", () => {
 		});
 
 		test.skip("completes all pagination before deleting any subscription (cursor-drift safety)", async () => {
-			// Simulate two pages: sub-a on page 1, sub-b on page 2 — both orphans
+			// Simulate two pages: sub-a on page 1, sub-b on page 2 - both orphans
 			const makeSubscription = (consumerPid: string): PushSubscription => ({
 				consumerPid,
 				providerPid: TEST_PROVIDER_PID,
@@ -1602,7 +1602,7 @@ describe("DataspaceDataPlaneService", () => {
 				return undefined;
 			});
 
-			// Mock TP query: no matching TPs — all orphans
+			// Mock TP query: no matching TPs - all orphans
 			vi.spyOn(transferProcessStorage, "query").mockResolvedValue({ entities: [] });
 
 			// Spy on remove to track when deletes happen
@@ -1627,10 +1627,10 @@ describe("DataspaceDataPlaneService", () => {
 		test.skip("does not query transferProcessStorage when subscription page is empty", async () => {
 			// The cursor-drift test above mocks pushSubscriptionStorage.query without
 			// restoring it. Restore all spies first so the real memory connector is used
-			// here — which returns empty because nothing is seeded.
+			// here - which returns empty because nothing is seeded.
 			vi.restoreAllMocks();
 
-			// No push subscriptions seeded — the subscription page is empty.
+			// No push subscriptions seeded - the subscription page is empty.
 			// Without the guard the service would emit `consumerPid IN ()`.
 			const querySpy = vi.spyOn(transferProcessStorage, "query");
 
@@ -1738,7 +1738,7 @@ describe("DataspaceDataPlaneService", () => {
 					return 0;
 				});
 
-			// The whole cleanup pass should resolve cleanly — the bad tenant's failure is
+			// The whole cleanup pass should resolve cleanly - the bad tenant's failure is
 			// logged and swallowed; the good tenant still runs.
 			await expect(
 				(
@@ -2105,7 +2105,7 @@ describe("DataspaceDataPlaneService", () => {
 	// Push Auth Tests (Phase 5)
 	// ============================================
 
-	describe("notifyActivity() — push auth", () => {
+	describe("notifyActivity() - push auth", () => {
 		function makePushAuthActivity(generatorPid: string): IActivityStreamsActivity {
 			return {
 				"@context": "https://www.w3.org/ns/activitystreams",
@@ -2161,7 +2161,7 @@ describe("DataspaceDataPlaneService", () => {
 
 			await transferProcessStorage.set(createTestTransferProcess());
 
-			// Auth passes — activity is accepted and a log entry ID is returned.
+			// Auth passes - activity is accepted and a log entry ID is returned.
 			// Background task service not started so no async processing fires.
 			const result = await service.notifyActivity(
 				makePushAuthActivity(TEST_CONSUMER_PID),
@@ -2189,7 +2189,7 @@ describe("DataspaceDataPlaneService", () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			const service = new DataspaceDataPlaneService(options);
 
-			// No TransferProcess seeded — any generatorPid will fail the lookup
+			// No TransferProcess seeded - any generatorPid will fail the lookup
 			await expect(
 				service.notifyActivity(
 					makePushAuthActivity("urn:uuid:unknown-generator"),
@@ -2281,7 +2281,7 @@ describe("DataspaceDataPlaneService", () => {
 		test("dispatches the PEP-manipulated activity, not the original", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			// The PEP permits the activity but rewrites the payload. The gate must
-			// dispatch (and log) what the PEP returns — the marker proves the dispatched
+			// dispatch (and log) what the PEP returns - the marker proves the dispatched
 			// activity is the PEP's output, not the original.
 			const manipulated = makePushAuthActivity(TEST_CONSUMER_PID);
 			manipulated.generator = "urn:uuid:pep-manipulated-marker";
@@ -2307,7 +2307,7 @@ describe("DataspaceDataPlaneService", () => {
 
 		test("skips the gate when the transfer's agreement has no rules at all (legacy lenience)", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
-			// PEP that would deny if called — but it shouldn't be called for an empty agreement.
+			// PEP that would deny if called - but it shouldn't be called for an empty agreement.
 			const interceptSpy = vi.fn().mockResolvedValue({});
 			ComponentFactory.register("policy-enforcement-point-service", () => ({
 				className: () => "MockPolicyEnforcementPoint",

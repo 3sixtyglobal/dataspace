@@ -1315,7 +1315,7 @@ describe("DataspaceControlPlaneService", () => {
 					verifiableCredentialCreate.mock.calls[verifiableCredentialCreate.mock.calls.length - 1];
 				const subjectArg = lastCall[2] as { [key: string]: unknown };
 
-				// credentialSubject stays domain-only — tenant/org are NOT merged in.
+				// credentialSubject stays domain-only - tenant/org are NOT merged in.
 				expect(subjectArg.tenantId).toBeUndefined();
 				expect(subjectArg.organizationId).toBeUndefined();
 				// Original transfer claims still flow through unchanged.
@@ -1746,7 +1746,7 @@ describe("DataspaceControlPlaneService", () => {
 			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferProcess) {
 				expect(response.state).toBe(DataspaceProtocolTransferProcessStateType.COMPLETED);
 			}
-			// No second data-plane teardown — the first attempt already ran it.
+			// No second data-plane teardown - the first attempt already ran it.
 			expect(teardownCallCount).toBe(0);
 
 			try {
@@ -2376,7 +2376,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid = transferProcess.providerPid;
 
 				// Start the transfer as the provider (startTransfer requires provider identity).
-				// dataPlanePath is required for pull-mode transfers — without it, startTransfer
+				// dataPlanePath is required for pull-mode transfers - without it, startTransfer
 				// returns a `pullTransfersNotSupported` TransferError and (post-fix) leaves the
 				// state at REQUESTED, so we must configure it to get to STARTED.
 				const providerService = new DataspaceControlPlaneService({
@@ -2707,7 +2707,7 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("should include dataAddress when present in transfer process", async () => {
-			// Same single-tenant context override as the parent test — collapses
+			// Same single-tenant context override as the parent test - collapses
 			// the caller composite to the bare node DID so it lines up with the
 			// fixture assigner below.
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
@@ -2891,7 +2891,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid = transferProcess.providerPid;
 
 				// Start the transfer as the provider (startTransfer requires provider identity).
-				// dataPlanePath is required to reach STARTED — see sibling test above.
+				// dataPlanePath is required to reach STARTED - see sibling test above.
 				const providerService = new DataspaceControlPlaneService({
 					policyAdministrationPointComponentType: "test-pap-resolve-provider",
 					policyNegotiationPointComponentType: "test-pnp",
@@ -3361,7 +3361,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 			expect(getResponse1.consumerPid).toBe("workflow-test-consumer-pid");
 
-			// Start Transfer (Provider side — requires provider identity)
+			// Start Transfer (Provider side - requires provider identity)
 			const providerService = new DataspaceControlPlaneService({
 				policyAdministrationPointComponentType: "test-pap-workflow",
 				policyNegotiationPointComponentType: "test-pnp",
@@ -5407,7 +5407,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(stored?.appId).toBe(TEST_APP_ID);
 			expect(stored?.tenantId).toBe(TEST_TENANT_A);
 			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
-			// `@id` is stripped from the stored blob — entity.id is the source of truth.
+			// `@id` is stripped from the stored blob - entity.id is the source of truth.
 			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
 			expect(stored?.dataset?.["@type"]).toBe("Dataset");
 		});
@@ -5647,7 +5647,7 @@ describe("DataspaceControlPlaneService", () => {
 				buildDataset("https://twin.example.org/ds-idempotent-v3") as never
 			);
 
-			// Three publishes over the lifetime of one dataset — restampDatasetId always
+			// Three publishes over the lifetime of one dataset - restampDatasetId always
 			// stamps the entity's own id as @id, so every publish targets the same fedcat
 			// row (an upsert), never a new one.
 			expect(setSpy).toHaveBeenCalledTimes(3);
@@ -5745,7 +5745,7 @@ describe("DataspaceControlPlaneService", () => {
 				message: expect.stringContaining("datasetWrongOrganization")
 			});
 
-			// The record must still be present — denied delete shouldn't side-effect.
+			// The record must still be present - denied delete shouldn't side-effect.
 			const stored = await dataspaceAppDatasetStorage.get("urn:test:ds-del-cross");
 			expect(stored).toBeDefined();
 		});
@@ -5759,7 +5759,7 @@ describe("DataspaceControlPlaneService", () => {
 			});
 		});
 
-		describe("platform component — single-tenant vs multi-tenant mode", () => {
+		describe("platform component - single-tenant vs multi-tenant mode", () => {
 			const TENANT_A = "did:iota:tenant-a";
 			const TENANT_B = "did:iota:tenant-b";
 			const ORG_A = "did:iota:org-a";
@@ -5797,7 +5797,7 @@ describe("DataspaceControlPlaneService", () => {
 					dateModified: now
 				});
 
-				// One dataset belonging to ORG_B — must not appear in ORG_A's list.
+				// One dataset belonging to ORG_B - must not appear in ORG_A's list.
 				await dataspaceAppDatasetStorage.set({
 					id: "urn:test:mt-list-b1",
 					organizationIdentity: ORG_B,
@@ -5911,7 +5911,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect((result.dataset as { "@id"?: string })["@id"]).toBe(id);
 		});
 
-		test("updateAppDataset strips @id from new payload — path id stays authoritative", async () => {
+		test("updateAppDataset strips @id from new payload - path id stays authoritative", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			const pathId = "urn:test:ds-immutable-id";
@@ -6703,7 +6703,7 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("dispatches requestTransfer in-process when providerEndpoint is a local origin", async () => {
-			// The remote REST client must never be used for a local-origin provider — the request
+			// The remote REST client must never be used for a local-origin provider - the request
 			// hop should run against this same instance (regression guard for #287).
 			const mockRemoteControlPlane = {
 				className: () => "MockRemoteControlPlane",
@@ -6739,7 +6739,7 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			// Remote client was NOT used — the request ran in-process against this instance.
+			// Remote client was NOT used - the request ran in-process against this instance.
 			expect(mockRemoteControlPlane.requestTransfer).not.toHaveBeenCalled();
 
 			// Both role records were created and persisted in REQUESTED state (#318): the
@@ -6882,7 +6882,7 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			// Remote component must NOT be invoked — the service called itself in-process.
+			// Remote component must NOT be invoked - the service called itself in-process.
 			expect(mockRemoteCP.terminateTransfer).not.toHaveBeenCalled();
 
 			try {
@@ -6893,7 +6893,7 @@ describe("DataspaceControlPlaneService", () => {
 
 		test("runs the in-process call under the target tenant context, not the caller context", async () => {
 			// TARGET_CONTEXT deliberately uses a different Organization than the caller's ambient
-			// "did:iota:provider-node-xyz" — this verifies the ContextIdStore.run receives the
+			// "did:iota:provider-node-xyz" - this verifies the ContextIdStore.run receives the
 			// context returned by getLocalOriginContext, not whatever the calling tenant happens to have.
 			const TARGET_CONTEXT = {
 				[ContextIdKeys.Node]: "did:iota:test-node",
@@ -6932,7 +6932,7 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			// Remote was not used — routing was in-process.
+			// Remote was not used - routing was in-process.
 			expect(mockRemoteCP.terminateTransfer).not.toHaveBeenCalled();
 
 			// ContextIdStore.run must have been called with exactly TARGET_CONTEXT so the inner

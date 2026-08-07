@@ -98,7 +98,7 @@ function buildDataset(datasetId: string): unknown {
 	};
 }
 
-describe("DataspaceControlPlaneService — metrics", () => {
+describe("DataspaceControlPlaneService - metrics", () => {
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
 	let dataspaceAppDatasetStorage: MemoryEntityStorageConnector<DataspaceAppDataset>;
 

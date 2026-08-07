@@ -346,7 +346,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		// Push-subscription storage is optional and resolved lazily. The data plane is typically
 		// constructed before its dependent storages register, so caching the connector here would
-		// permanently miss it. We only need the factory key — every push call site re-resolves.
+		// permanently miss it. We only need the factory key - every push call site re-resolves.
 		this._pushSubscriptionStorageType =
 			options?.pushSubscriptionEntityStorageType ?? nameofKebabCase<PushSubscription>();
 
@@ -557,7 +557,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			activity
 		);
 
-		// Every caller must present a trust payload — internal calls have no bypass,
+		// Every caller must present a trust payload - internal calls have no bypass,
 		// a missing payload fails verification. Verify it, confirm the referenced
 		// transfer is still in STARTED state, and assert the verified identity is
 		// one of the two parties on that transfer.
@@ -568,14 +568,14 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		);
 		const generatorPid = this.calculateActivityGeneratorIdentity(activity);
 		// First lookup: on the consumerPid index. If this hits, the generator's PID equals
-		// consumerPid — the generator is the consumer side.
+		// consumerPid - the generator is the consumer side.
 		let transferProcess = await this.getTransferProcessByConsumerPid(generatorPid);
 		const generatorIsConsumer = Boolean(transferProcess);
 
 		if (!transferProcess) {
 			// Fallback: generatorPid === providerPid. A self transfer stores two role records
 			// sharing both pids (one logical transfer), so multiple matches are only rejected
-			// when they span DIFFERENT transfers — silent first-match would risk authorising
+			// when they span DIFFERENT transfers - silent first-match would risk authorising
 			// the wrong transfer if the pid-uniqueness invariant ever breaks.
 			const result = await this._transferProcessStorage.query({
 				conditions: [
@@ -1229,7 +1229,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		} catch (storageError) {
 			// Compensating Undo: the app's subscribeToData succeeded but the row didn't
 			// persist. Without compensation, a retry generates a new followActivityId and
-			// registers a second Follow on the app — with no persisted id to drive an Undo.
+			// registers a second Follow on the app - with no persisted id to drive an Undo.
 			if (appForCompensation) {
 				const compensatingUndo: IUndoActivity = {
 					"@context": ActivityStreamsContexts.Context,
@@ -1467,7 +1467,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		// Build agreement from stored transfer context
 		const { agreement } = this.buildTransferContext(transferProcess);
 
-		// Extract data object from activity; a string value is an IRI reference — wrap it so the IRI is preserved.
+		// Extract data object from activity; a string value is an IRI reference - wrap it so the IRI is preserved.
 		let data: IJsonLdNodeObject;
 		if (Is.object(activity.object)) {
 			data = activity.object;
@@ -1528,7 +1528,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Fetches an activity log entry from storage without any trust verification.
-	 * Internal use only — public callers must use getActivityLogEntry.
+	 * Internal use only - public callers must use getActivityLogEntry.
 	 * @param logEntryId The Id of the Activity Log Entry (a URI).
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
@@ -1869,7 +1869,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private async cleanupOrphanedPushSubscriptions(): Promise<void> {
-		// Pull-only deployments may run the data plane without push-subscription storage —
+		// Pull-only deployments may run the data plane without push-subscription storage -
 		// the scheduled cleanup task fires regardless, so silent no-op is the right behaviour.
 		const storage = EntityStorageConnectorFactory.getIfExists<
 			IEntityStorageConnector<PushSubscription>
@@ -2279,7 +2279,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	/**
 	 * Enforce the transfer's ODRL agreement on an inbound inbox activity via the PEP.
 	 * The PEP evaluates the agreement against the activity and either denies it or
-	 * permits it — potentially manipulating (filtering/redacting) the payload — and
+	 * permits it - potentially manipulating (filtering/redacting) the payload - and
 	 * the returned activity is what gets dispatched. The action is derived from the
 	 * transfer direction: provider-generated activities are read deliveries, while
 	 * consumer-generated activities are write contributions whose Activity Streams

@@ -1327,7 +1327,7 @@ export class DataspaceControlPlaneService
 			await this._transferRetrievalStorage?.remove(entity.consumerPid);
 
 			// Completion is consumer-initiated (the auth above accepts only the consumer): a consumer→provider
-			// notification, so no provider→consumer delivery here — unlike suspend/terminate (either party).
+			// notification, so no provider→consumer delivery here - unlike suspend/terminate (either party).
 			if (role === TransferProcessRole.Consumer) {
 				await this._internalTransferCallback.onStateChanged(
 					entity.consumerPid,
@@ -1476,7 +1476,7 @@ export class DataspaceControlPlaneService
 					entity.consumerPid,
 					DataspaceProtocolTransferProcessStateType.SUSPENDED
 				);
-				// DSP reason is typed any[] — forward only the first entry since the callback
+				// DSP reason is typed any[] - forward only the first entry since the callback
 				// contract is reason?: string. Additional entries are intentionally dropped.
 				const suspendReason = Array.isArray(message.reason)
 					? (message.reason[0] as string | undefined)
@@ -1623,7 +1623,7 @@ export class DataspaceControlPlaneService
 					entity.consumerPid,
 					DataspaceProtocolTransferProcessStateType.TERMINATED
 				);
-				// DSP reason is typed any[] — forward only the first entry since the callback
+				// DSP reason is typed any[] - forward only the first entry since the callback
 				// contract is reason?: string. Additional entries are intentionally dropped.
 				const terminateReason = Array.isArray(message.reason)
 					? (message.reason[0] as string | undefined)
@@ -3088,7 +3088,7 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			// Issue the token as the provider party (the agreement assigner) — the identity the consumer's
+			// Issue the token as the provider party (the agreement assigner) - the identity the consumer's
 			// receive gate checks (`!== providerIdentity`), not the tenant-routing org. Keeps the two
 			// identity spaces separate and works whether or not a node's org == its assigner DID.
 			const outboundToken = await this._trustComponent.generate(
@@ -3614,7 +3614,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Check if an Agreement is derived from an Offer.
 	 * Per the DS Protocol spec, Offers within a Dataset's hasPolicy array must NOT
-	 * include an explicit "target" property — the target is implicitly the Dataset itself.
+	 * include an explicit "target" property - the target is implicitly the Dataset itself.
 	 * When the offer has no explicit targets, we use the datasetId as the implicit target
 	 * so that the comparison with the agreement's target can succeed.
 	 * @param agreement Agreement to check.
@@ -3630,7 +3630,7 @@ export class DataspaceControlPlaneService
 		const agreementTargets = OdrlPolicyHelper.getTargets(agreement);
 		const offerTargets = OdrlPolicyHelper.getTargets(offer);
 
-		// Per DSP spec, offers in a Dataset's hasPolicy MUST NOT include explicit targets —
+		// Per DSP spec, offers in a Dataset's hasPolicy MUST NOT include explicit targets -
 		// the target is implicitly the Dataset. When the catalogue offer has no targets,
 		// skip the target comparison entirely (the agreement's target is the dataset itself).
 		// Only reject if both have explicit targets that don't overlap.
@@ -3641,7 +3641,7 @@ export class DataspaceControlPlaneService
 				return false;
 			}
 		} else if (Is.arrayValue(offerTargets) && !Is.arrayValue(agreementTargets)) {
-			// Offer has targets but agreement doesn't — mismatch
+			// Offer has targets but agreement doesn't - mismatch
 			return false;
 		}
 		// If offer has no targets (catalogue offer), accept any agreement targets
@@ -3914,7 +3914,7 @@ export class DataspaceControlPlaneService
 	 * Resolve the transfer format for handler dispatch. When the entity already carries a
 	 * format string (all transfers created by requestTransfer), that value is used directly.
 	 * For entities seeded without a format (e.g. older storage records), the format is inferred
-	 * from the presence of a consumer-supplied dataAddress — matching the pre-factory dispatch
+	 * from the presence of a consumer-supplied dataAddress - matching the pre-factory dispatch
 	 * logic so existing records continue to work correctly.
 	 * @param entity The transfer process entity.
 	 * @returns The effective DataspaceTransferFormat for handler lookup.

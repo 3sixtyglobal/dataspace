@@ -337,7 +337,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 
 	test("Should succeed when catalogue offer has no explicit target (DSP spec compliant)", async () => {
 		// Per DSP spec (2025-1-err1), offers in a Dataset's hasPolicy MUST NOT include
-		// explicit targets — the target is implicitly the Dataset itself.
+		// explicit targets - the target is implicitly the Dataset itself.
 		// The agreement DOES have an explicit target (the dataset).
 		// isPolicyDerivedFrom must accept this asymmetry.
 
@@ -353,7 +353,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 					"@type": "odrl:Offer",
 					"@id": "offer-no-target",
 					assigner: "did:iota:provider-node-xyz",
-					// No target — DSP spec compliant
+					// No target - DSP spec compliant
 					permission: [
 						{
 							action: "read"

@@ -21,7 +21,7 @@ export class DataspaceAppDatasetV0 {
 
 	/**
 	 * The tenant that owns this dataset, captured from the request context at
-	 * write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`)
+	 * write time. Optional - single-tenant nodes (no `TWIN_TENANT_ENABLED`)
 	 * register datasets without a tenant context.
 	 */
 	@property({ type: "string", optional: true })

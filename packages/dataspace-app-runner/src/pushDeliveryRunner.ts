@@ -110,7 +110,7 @@ export async function pushDeliveryRunnerEnd(): Promise<void> {
 }
 
 /**
- * Push Delivery Task — POSTs an Activity Streams object to a consumer's /inbox.
+ * Push Delivery Task - POSTs an Activity Streams object to a consumer's /inbox.
  * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
  * @param payload The push delivery payload describing the consumer endpoint, auth, and data.
  * @returns The delivery result containing a success flag on successful POST.
@@ -136,7 +136,7 @@ export async function pushDeliveryRunner(
 
 	// Re-establish the owning tenant's context for downstream tenant-scoped operations
 	// (PEP, trust signing, vault lookups). The background-task framework snapshots the
-	// engine's start-time context but doesn't propagate per-delivery tenant context — we
+	// engine's start-time context but doesn't propagate per-delivery tenant context - we
 	// restore it explicitly from the payload here. No-op if the payload has no tenantId
 	// (single-tenant deployment).
 	if (Is.stringValue(payload.tenantId)) {

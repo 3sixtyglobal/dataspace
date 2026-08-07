@@ -594,7 +594,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		test("preserves cursor from original result after PEP filtering", async () => {
 			const cursor = "next-page-cursor-token";
 
-			// PEP returns a filtered result without a cursor — it has no knowledge of pagination
+			// PEP returns a filtered result without a cursor - it has no knowledge of pagination
 			ComponentFactory.register("mock-pep", () =>
 				createMockPolicyEnforcementPoint<IDataAssetItemListResult>({
 					itemList: {

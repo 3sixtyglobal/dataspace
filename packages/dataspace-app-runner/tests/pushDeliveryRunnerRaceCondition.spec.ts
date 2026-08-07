@@ -26,7 +26,7 @@ import {
 	pushDeliveryRunnerStart
 } from "../src/pushDeliveryRunner.js";
 
-// No consumerAuthToken — forces the body to call ComponentFactory.get("trust"), which is
+// No consumerAuthToken - forces the body to call ComponentFactory.get("trust"), which is
 // only registered inside the start mock, giving the test a genuine dependency on startup.
 const MOCK_PAYLOAD: IPushDeliveryPayload = {
 	consumerPid: "urn:uuid:consumer-push-test",

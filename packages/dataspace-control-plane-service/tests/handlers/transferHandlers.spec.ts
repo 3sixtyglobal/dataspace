@@ -19,7 +19,7 @@ import {
 
 /**
  * Minimal ITransferProcess stub for handler tests.
- * @param overrides Field overrides — use `"field" in overrides` pattern for explicit undefined.
+ * @param overrides Field overrides - use `"field" in overrides` pattern for explicit undefined.
  * @returns A partial ITransferProcess suitable for handler unit tests.
  */
 function makeEntity(
@@ -95,7 +95,7 @@ describe("HttpDataPullTransferHandler", () => {
 	});
 
 	describe("buildConsumerDataAddress", () => {
-		it("returns undefined — PULL consumers do not supply a dataAddress", () => {
+		it("returns undefined - PULL consumers do not supply a dataAddress", () => {
 			const result = handler.buildConsumerDataAddress({
 				consumerPid: "cpid",
 				origin: "https://consumer.example.com",
@@ -320,7 +320,7 @@ describe("HttpDataPostTransferHandler", () => {
 	});
 
 	describe("buildConsumerDataAddress", () => {
-		it("returns undefined — POST consumers do not supply a dataAddress", () => {
+		it("returns undefined - POST consumers do not supply a dataAddress", () => {
 			const result = handler.buildConsumerDataAddress({
 				consumerPid: "cpid",
 				origin: "https://consumer.example.com",
@@ -371,7 +371,7 @@ describe("HttpDataPostTransferHandler", () => {
 	});
 
 	describe("onProviderStart", () => {
-		it("is a no-op — POST does not set up a provider-side push subscription", async () => {
+		it("is a no-op - POST does not set up a provider-side push subscription", async () => {
 			const dataPlane = createMockDataspaceDataPlaneComponent();
 			await handler.onProviderStart(
 				dataPlane,

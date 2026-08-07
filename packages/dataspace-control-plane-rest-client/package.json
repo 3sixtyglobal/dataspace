@@ -30,7 +30,6 @@
 	"dependencies": {
 		"@twin.org/api-core": "next",
 		"@twin.org/api-models": "next",
-		"@twin.org/dataspace-models": "0.9.2-next.4",
 		"@twin.org/core": "next",
 		"@twin.org/data-json-ld": "next",
 		"@twin.org/entity": "next",
@@ -38,9 +37,10 @@
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {
+		"@twin.org/dataspace-models": "0.9.2-next.4",
 		"@twin.org/nameof-transformer": "next",
-		"@twin.org/standards-dataspace-protocol": "next",
 		"@twin.org/nameof-vitest-plugin": "next",
+		"@twin.org/standards-dataspace-protocol": "next",
 		"@twin.org/validate-locales": "next",
 		"@vitest/coverage-v8": "4.1.10",
 		"copyfiles": "2.4.1",

@@ -71,7 +71,7 @@ export class HttpDataPushTransferHandler implements ITransferHandler {
 
 	/**
 	 * Validate the consumer's dataAddress and build the provider's /inbox endpoint
-	 * for the TransferStartMessage. No bearer token is included — the consumer authenticates
+	 * for the TransferStartMessage. No bearer token is included - the consumer authenticates
 	 * via the DSP protocol trust payload on the push POST.
 	 * @param ctx Start context containing entity and path configuration.
 	 * @returns The provider's ActivityStream inbox dataAddress.
