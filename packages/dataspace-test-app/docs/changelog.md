@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.2-next.4...dataspace-test-app-v0.9.2-next.5) (2026-08-07)
+
+
+### Features
+
+* linting and dependency update ([adf8ee0](https://github.com/iotaledger/twin-dataspace/commit/adf8ee04f657f22fb051978591749a4cf19d67a1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.2-next.4 to 0.9.2-next.5
+
 ## [0.9.2-next.4](https://github.com/iotaledger/twin-dataspace/compare/dataspace-test-app-v0.9.2-next.3...dataspace-test-app-v0.9.2-next.4) (2026-08-03)
 
 

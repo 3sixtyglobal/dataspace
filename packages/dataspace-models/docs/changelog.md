@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.4...dataspace-models-v0.9.2-next.5) (2026-08-07)
+
+
+### Features
+
+* linting and dependency update ([adf8ee0](https://github.com/iotaledger/twin-dataspace/commit/adf8ee04f657f22fb051978591749a4cf19d67a1))
+
 ## [0.9.2-next.4](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.3...dataspace-models-v0.9.2-next.4) (2026-08-03)
 
 
