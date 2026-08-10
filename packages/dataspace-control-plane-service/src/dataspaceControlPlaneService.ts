@@ -50,7 +50,14 @@ import {
 	type TransferProcess,
 	type TransferRetrieval
 } from "@twin.org/dataspace-models";
-import { ComparisonOperator, LogicalOperator, type EntityCondition } from "@twin.org/entity";
+import {
+	ComparisonOperator,
+	EntitySchemaPropertyType,
+	EntitySorter,
+	LogicalOperator,
+	SortDirection,
+	type EntityCondition
+} from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
@@ -1944,6 +1951,48 @@ export class DataspaceControlPlaneService
 			trustInfo.identity === organizationId
 		) {
 			return this.negotiateImplicitTrustAgreement(organizationId, datasetId);
+		}
+
+		// For cross-org negotiations, reuse a compatible existing agreement when one exists.
+		// This avoids accumulating duplicate agreements on every fetch for the same offer.
+		const offerAssignerIds = OdrlPolicyHelper.getPartyIds(matchingOffer.assigner);
+		if (Is.arrayValue(offerAssignerIds)) {
+			const existingAgreementId = await this.findExistingAgreement(
+				offerAssignerIds[0],
+				organizationId,
+				datasetId
+			);
+
+			if (existingAgreementId) {
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "agreementReused",
+					data: { agreementId: existingAgreementId, offerId, datasetId }
+				});
+
+				for (const [key, cb] of this._negotiationCallbacks.entries()) {
+					try {
+						await cb.onFinalized(undefined, existingAgreementId);
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "negotiationCallbackError",
+							data: {
+								key,
+								negotiationId: existingAgreementId,
+								method: "onFinalized",
+								error
+							}
+						});
+					}
+				}
+
+				return { agreementId: existingAgreementId };
+			}
 		}
 
 		const negotiationId = await this._policyNegotiationPointComponent.sendRequestToProvider(
@@ -3934,6 +3983,42 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
+	 * Queries the PAP for an existing agreement for the given assigner/assignee/target and
+	 * returns the ID of the newest one by dateCreated, or undefined if none exist.
+	 * @param assigner The expected assigner DID.
+	 * @param assignee The expected assignee DID.
+	 * @param datasetId The target dataset ID.
+	 * @returns The agreement ID of the newest matching agreement, or undefined.
+	 * @internal
+	 */
+	private async findExistingAgreement(
+		assigner: string,
+		assignee: string,
+		datasetId: string
+	): Promise<string | undefined> {
+		const { policies } = await this._policyAdministrationPointComponent.query({
+			type: OdrlPolicyType.Agreement,
+			assigner,
+			assignee,
+			target: datasetId
+		});
+
+		if (policies.length === 0) {
+			return undefined;
+		}
+
+		const sorted = EntitySorter.sort(policies, [
+			{
+				property: "dateCreated",
+				type: EntitySchemaPropertyType.String,
+				sortDirection: SortDirection.Descending
+			}
+		]);
+
+		return OdrlPolicyHelper.getUid(sorted[0]);
+	}
+
+	/**
 	 * Return an existing full-access agreement for the same-organization (implicit trust) case,
 	 * or create and store one if none exists. Fires onFinalized on all registered callbacks in
 	 * both cases.
@@ -3946,17 +4031,12 @@ export class DataspaceControlPlaneService
 		organizationId: string,
 		datasetId: string
 	): Promise<{ agreementId: string }> {
-		const { policies } = await this._policyAdministrationPointComponent.query({
-			type: OdrlPolicyType.Agreement,
-			assigner: organizationId,
-			assignee: organizationId,
-			target: datasetId
-		});
+		const existingId = await this.findExistingAgreement(organizationId, organizationId, datasetId);
 
 		let agreementId: string;
 
-		if (policies.length > 0) {
-			agreementId = OdrlPolicyHelper.getUid(policies[0]) as string;
+		if (Is.stringValue(existingId)) {
+			agreementId = existingId;
 
 			await this._loggingComponent?.log({
 				level: "info",

@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { NotFoundError } from "@twin.org/core";
 import { nameof } from "@twin.org/nameof";
-import type {
-	IPolicyAdministrationPointComponent,
-	IRightsManagementAgreement,
-	IRightsManagementOffer,
-	IRightsManagementPolicy,
-	IRightsManagementSet
+import {
+	OdrlPolicyHelper,
+	type IPolicyAdministrationPointComponent,
+	type IPolicyLocator,
+	type IRightsManagementAgreement,
+	type IRightsManagementOffer,
+	type IRightsManagementPolicy,
+	type IRightsManagementSet
 } from "@twin.org/rights-management-models";
 
 /**
@@ -180,15 +182,40 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	}
 
 	/**
-	 * Query policies (mock: returns all agreements).
-	 * Note: Interface defines optional parameters (conditions, cursor, limit)
-	 * which are not used in this mock implementation.
+	 * Query policies filtered by the optional locator.
+	 * @param locator Optional criteria to filter policies by type, assigner, assignee, and target.
 	 * @returns Object with policies array and optional cursor.
 	 */
-	public async query(): Promise<{ cursor?: string; policies: IRightsManagementPolicy[] }> {
-		return {
-			policies: [...this._policies.values()]
-		};
+	public async query(
+		locator?: IPolicyLocator
+	): Promise<{ cursor?: string; policies: IRightsManagementPolicy[] }> {
+		let policies = [...this._policies.values()];
+
+		if (locator) {
+			if (locator.type) {
+				policies = policies.filter(p => p["@type"] === locator.type);
+			}
+			if (locator.assigner) {
+				const wantedAssigner = locator.assigner;
+				policies = policies.filter(p =>
+					OdrlPolicyHelper.getPartyIds(p.assigner).includes(wantedAssigner)
+				);
+			}
+			if (locator.assignee) {
+				const wantedAssignee = locator.assignee;
+				policies = policies.filter(p =>
+					OdrlPolicyHelper.getPartyIds(p.assignee).includes(wantedAssignee)
+				);
+			}
+			if (locator.target) {
+				const wantedTarget = locator.target;
+				policies = policies.filter(p =>
+					OdrlPolicyHelper.getDatasetTargets(p).includes(wantedTarget)
+				);
+			}
+		}
+
+		return { policies };
 	}
 
 	// ============================================================================

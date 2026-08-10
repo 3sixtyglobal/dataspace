@@ -4753,6 +4753,109 @@ describe("DataspaceControlPlaneService", () => {
 		});
 	});
 
+	describe("Contract Negotiation - Cross-Org Agreement Reuse", () => {
+		// These tests exercise the cross-org path (provider endpoint is not local).
+		// The default platform component returns undefined from getLocalOriginContext, so the
+		// implicit-trust shortcut is never taken and findExistingAgreement runs instead.
+
+		test("should reuse an existing agreement for the same offer and organizations instead of starting a new negotiation", async () => {
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-existing-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }]
+			} as unknown as IDataspaceProtocolAgreement);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			const sendSpy = vi.spyOn(mockPnp, "sendRequestToProvider");
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("cross-org-existing-agreement");
+			expect(result.negotiationId).toBeUndefined();
+			expect(sendSpy).not.toHaveBeenCalled();
+		});
+
+		test("should fire onFinalized callbacks with the existing agreementId when reusing", async () => {
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-callback-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }]
+			} as unknown as IDataspaceProtocolAgreement);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const callbackSpy: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("cross-org-reuse-test", callbackSpy);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("cross-org-callback-agreement");
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				"cross-org-callback-agreement"
+			);
+			expect(callbackSpy.onStateChanged).not.toHaveBeenCalled();
+			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
+		});
+
+		test("should select the newest agreement by dateCreated when multiple compatible agreements exist", async () => {
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-older-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }],
+				dateCreated: "2025-01-01T00:00:00.000Z"
+			} as unknown as IDataspaceProtocolAgreement);
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-newer-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }],
+				dateCreated: "2026-06-01T00:00:00.000Z"
+			} as unknown as IDataspaceProtocolAgreement);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("cross-org-newer-agreement");
+			expect(result.negotiationId).toBeUndefined();
+		});
+	});
+
 	describe("Negotiation History", () => {
 		test("should retrieve negotiation history from PNAP", async () => {
 			const mockPnapAdmin = new MockPolicyNegotiationAdminPointComponent();
