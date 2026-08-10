@@ -265,6 +265,8 @@ describe("dataspaceControlPlaneRoutes", () => {
 			expect(entry?.binding).toBe("HTTPS");
 			expect(typeof entry?.path).toBe("string");
 			expect(entry?.path).toMatch(/^\//);
+			expect(entry?.identifierType).toBe("did:iota");
+			expect(entry?.serviceId).toBe("iota/twin.org/dspace-connector");
 		});
 	});
 

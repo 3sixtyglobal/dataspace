@@ -458,7 +458,8 @@ export function generateRestRoutesDataspaceControlPlane(
 										version: "2025-1",
 										path: "/dataspace-control-plane/2025-1",
 										binding: "HTTPS",
-										serviceId: "twin-connector"
+										identifierType: "did:iota",
+										serviceId: "iota/twin.org/dspace-connector"
 									}
 								]
 							}

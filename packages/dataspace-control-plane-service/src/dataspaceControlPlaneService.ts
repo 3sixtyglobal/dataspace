@@ -2597,7 +2597,8 @@ export class DataspaceControlPlaneService
 					version: "2025-1",
 					path: `/${this._callbackPath}`,
 					binding: DataspaceProtocolVersionBindingType.HTTPS,
-					serviceId: "twin-connector"
+					identifierType: "did:iota",
+					serviceId: "iota/twin.org/dspace-connector"
 				}
 			]
 		};
