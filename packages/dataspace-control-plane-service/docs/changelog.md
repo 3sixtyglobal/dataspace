@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.6](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.2-next.5...dataspace-control-plane-service-v0.9.2-next.6) (2026-08-10)
+
+
+### Features
+
+* re-use existing agreement ([#333](https://github.com/iotaledger/twin-dataspace/issues/333)) ([46c9079](https://github.com/iotaledger/twin-dataspace/commit/46c90798f590166f061bf75eb08ea27b76548299))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.2-next.5 to 0.9.2-next.6
+
 ## [0.9.2-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.2-next.4...dataspace-control-plane-service-v0.9.2-next.5) (2026-08-07)
 
 

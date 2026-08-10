@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.6](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.2-next.5...dataspace-app-runner-v0.9.2-next.6) (2026-08-10)
+
+
+### Miscellaneous Chores
+
+* **dataspace-app-runner:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.2-next.5 to 0.9.2-next.6
+
 ## [0.9.2-next.5](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.2-next.4...dataspace-app-runner-v0.9.2-next.5) (2026-08-07)
 
 
