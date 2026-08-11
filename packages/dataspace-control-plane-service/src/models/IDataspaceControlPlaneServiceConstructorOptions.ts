@@ -41,18 +41,6 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	loggingComponentType?: string;
 
 	/**
-	 * Identity component type (for token signing/verification).
-	 * @default identity
-	 */
-	identityComponentType?: string;
-
-	/**
-	 * Identity Authentication component type (for token validation).
-	 * @default identity-authentication
-	 */
-	identityAuthenticationComponentType?: string;
-
-	/**
 	 * Trust component type for trust verification.
 	 * Used to verify JWT/VC tokens and extract identity information.
 	 * @default trust

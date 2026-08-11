@@ -58,6 +58,7 @@ import {
 	createFailingMockTrustComponent,
 	createMockDataspaceDataPlaneComponent,
 	createMockEngineCore,
+	createMockTaskScheduler,
 	createMockTrustComponent,
 	createSingleTenantPlatformComponent,
 	DEFAULT_SERVICE_OPTIONS,
@@ -139,6 +140,7 @@ describe("DataspaceControlPlaneService", () => {
 
 		// Register mock trust component
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
+		ComponentFactory.register("task-scheduler", () => createMockTaskScheduler());
 
 		// Default platform: no URL is treated as local (getLocalOriginContext -> undefined).
 		// Re-registered each test so any per-block override (e.g. the implicit-trust block) cannot leak.
@@ -171,6 +173,7 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-fedcat");
 			ComponentFactory.unregister("test-pnap-admin");
 			ComponentFactory.unregister("test-trust");
+			ComponentFactory.unregister("task-scheduler");
 			ComponentFactory.unregister("test-url-transformer");
 			ComponentFactory.unregister("url-transformer");
 		} catch {
@@ -5292,7 +5295,7 @@ describe("DataspaceControlPlaneService", () => {
 						...DEFAULT_SERVICE_OPTIONS,
 						dataPlaneComponentType: "not-a-registered-component"
 					})
-			).toThrow(GeneralError);
+			).toThrowError("factory.noGet");
 		});
 
 		test("setupPushSubscription is called with consumerPid on REQUESTED → STARTED (HttpData-PUSH)", async () => {
@@ -7179,7 +7182,6 @@ describe("DataspaceControlPlaneService", () => {
 				providerIdentity: "did:iota:provider",
 				localRole,
 				offerId: "agreement-stalled",
-				policies: [],
 				format: "HttpData-PULL",
 				organizationIdentity: "did:iota:provider-node-xyz",
 				// 1970: far older than any threshold, so it is unambiguously past the timeout window.
@@ -7284,7 +7286,6 @@ describe("DataspaceControlPlaneService", () => {
 				...(options?.omitProviderIdentity === true ? {} : { providerIdentity: PROVIDER_IDENTITY }),
 				...(localRole === undefined ? {} : { localRole }),
 				offerId: "agreement-policy",
-				policies: [],
 				format: options?.format ?? "HttpData-PULL",
 				organizationIdentity: options?.organizationIdentity ?? "did:iota:provider-node-xyz",
 				dateCreated: new Date(0).toISOString(),

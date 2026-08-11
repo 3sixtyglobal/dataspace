@@ -20,6 +20,7 @@ import {
 	Guards,
 	Is,
 	JsonHelper,
+	LruCache,
 	NotFoundError,
 	RandomHelper,
 	UnauthorizedError,
@@ -79,6 +80,7 @@ import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
+	type IPolicyAdministrationPointComponent,
 	type IPolicyEnforcementPointComponent,
 	type IRightsManagementAgreement
 } from "@twin.org/rights-management-models";
@@ -97,7 +99,7 @@ import {
 	ActivityStreamsTypes,
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
-import { OdrlActionType, OdrlContexts, OdrlTypes } from "@twin.org/standards-w3c-odrl";
+import { OdrlActionType } from "@twin.org/standards-w3c-odrl";
 import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
@@ -147,6 +149,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private static readonly _DEFAULT_PUSH_SUBSCRIPTION_CLEANUP_INTERVAL_MS: number = 60 * 60 * 1000;
+
+	/**
+	 * The maximum number of agreements held in-memory for PAP lookups.
+	 * @internal
+	 */
+	private static readonly _DEFAULT_AGREEMENT_CACHE_CAPACITY: number = 50;
 
 	/**
 	 * Logging service type.
@@ -303,6 +311,24 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _telemetryComponent?: ITelemetryComponent;
 
 	/**
+	 * PAP component for fetching fresh agreements at access time.
+	 * @internal
+	 */
+	private readonly _policyAdministrationPoint: IPolicyAdministrationPointComponent;
+
+	/**
+	 * TTL in ms for the in-memory PAP agreement cache.
+	 * @internal
+	 */
+	private readonly _agreementCacheTtlMs: number;
+
+	/**
+	 * In-memory cache of PAP-fetched agreements, keyed by agreement ID.
+	 * @internal
+	 */
+	private readonly _agreementCache?: LruCache<IRightsManagementAgreement>;
+
+	/**
 	 * Create a new instance of DataspaceDataPlane.
 	 * @param options The options for the data plane.
 	 */
@@ -361,6 +387,20 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		this._telemetryComponent = ComponentFactory.getIfExists<ITelemetryComponent>(
 			options?.telemetryComponentType
 		);
+
+		this._policyAdministrationPoint = ComponentFactory.get<IPolicyAdministrationPointComponent>(
+			options?.papComponentType ?? "policy-administration-point"
+		);
+		this._agreementCacheTtlMs = Is.integer(options?.config?.agreementCacheTtlMs)
+			? options.config.agreementCacheTtlMs
+			: 30_000;
+		if (this._agreementCacheTtlMs > 0) {
+			this._agreementCache = new LruCache<IRightsManagementAgreement>({
+				capacity: DataspaceDataPlaneService._DEFAULT_AGREEMENT_CACHE_CAPACITY,
+				ttiMs: this._agreementCacheTtlMs,
+				mutexTimeoutMs: options?.config?.agreementCacheMutexTimeoutMs
+			});
+		}
 
 		JsonLdDataTypes.registerTypes();
 		DataspaceDataTypes.registerTypes();
@@ -539,6 +579,16 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				await this.cleanupOrphanedPushSubscriptions();
 			}
 		);
+	}
+
+	/**
+	 * Stop the service.
+	 * Destroys in-memory resources owned by this component.
+	 * @param nodeLoggingComponentType The node logging component type.
+	 * @returns A promise that resolves when the service has stopped.
+	 */
+	public async stop(nodeLoggingComponentType?: string): Promise<void> {
+		this._agreementCache?.destroy();
 	}
 
 	/**
@@ -1465,7 +1515,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		}
 
 		// Build agreement from stored transfer context
-		const { agreement } = this.buildTransferContext(transferProcess);
+		const { agreement } = await this.buildTransferContext(transferProcess);
 
 		// Extract data object from activity; a string value is an IRI reference - wrap it so the IRI is preserved.
 		let data: IJsonLdNodeObject;
@@ -2185,48 +2235,19 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Build transfer context from a TransferProcessEntity.
+	 * The agreement is fetched fresh from PAP on every access (subject to a short-TTL
+	 * in-memory cache) so that revoked or updated agreements take effect within one cache
+	 * TTL.
 	 * @param transferProcess The transfer process entity.
 	 * @returns The transfer context for use by data access methods.
 	 * @internal
 	 */
-	private buildTransferContext(transferProcess: TransferProcess): ITransferContext {
-		// Build the IRightsManagementAgreement from stored data
-		// The entity stores agreementId and policies separately
-		//
-		// NOTE: Currently policies are cached in the TransferProcessEntity at transfer start time.
-		// Eventually, this should fetch fresh policies from Rights Management (PAP) using:
-		//   const freshAgreement = await this._policyAdministrationPoint.get(transferProcess.agreementId);
-		// This would ensure policies are always up-to-date and support dynamic policy updates.
-		const agreement: IRightsManagementAgreement = {
-			"@context": OdrlContexts.Context,
-			"@type": OdrlTypes.Agreement,
-			"@id": transferProcess.agreementId,
-			target: transferProcess.datasetId,
-			// Provider is the assigner, consumer is the assignee
-			assigner: transferProcess.providerIdentity ?? "",
-			assignee: transferProcess.consumerIdentity ?? ""
-		};
-
-		// Extract policies from the stored Agreement
-		// Extract permission, prohibition, and obligation
-		if (Is.arrayValue(transferProcess.policies)) {
-			const storedAgreement = transferProcess.policies[0];
-			if (storedAgreement) {
-				agreement.permission = storedAgreement.permission;
-				agreement.prohibition = storedAgreement.prohibition;
-				agreement.obligation = storedAgreement.obligation;
-				// Only the provider's cached agreement carries the CONSUMER's verified attributes
-				// (captured from the negotiation trust token). On a consumer node the cached
-				// trustData holds the provider's verification info instead, so forwarding it
-				// would evaluate trust-subject constraints against the wrong party.
-				if (transferProcess.localRole === TransferProcessRole.Provider) {
-					agreement.trustData = storedAgreement.trustData;
-				}
-			}
-		}
-
-		const state = transferProcess.state;
-		const dataAddress = transferProcess.dataAddress;
+	private async buildTransferContext(transferProcess: TransferProcess): Promise<ITransferContext> {
+		const agreement = this._agreementCache
+			? await this._agreementCache.getOrSet(transferProcess.agreementId, async () =>
+					this._policyAdministrationPoint.getAgreement(transferProcess.agreementId)
+				)
+			: await this._policyAdministrationPoint.getAgreement(transferProcess.agreementId);
 
 		return {
 			consumerPid: transferProcess.consumerPid,
@@ -2234,10 +2255,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			agreement,
 			datasetId: transferProcess.datasetId,
 			offerId: transferProcess.offerId,
-			state,
+			state: transferProcess.state,
 			consumerIdentity: transferProcess.consumerIdentity,
 			providerIdentity: transferProcess.providerIdentity,
-			dataAddress
+			dataAddress: transferProcess.dataAddress
 		};
 	}
 
@@ -2298,7 +2319,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		activity: IActivityStreamsActivity,
 		generatorIsConsumer: boolean
 	): Promise<IActivityStreamsActivity> {
-		const { agreement, consumerPid } = this.buildTransferContext(transferProcess);
+		const { agreement, consumerPid } = await this.buildTransferContext(transferProcess);
 		const hasRules =
 			Is.arrayValue(agreement.permission) ||
 			Is.arrayValue(agreement.prohibition) ||

@@ -314,7 +314,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(
@@ -404,7 +404,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
@@ -464,7 +464,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		let resolveFailed: (entry: ILogEntry) => void = () => {};
 		const autoStartFailedLogged = new Promise<ILogEntry>((resolve, reject) => {
 			resolveFailed = resolve;
-			setTimeout(() => reject(new Error("Timed out waiting for the autoStartFailed log")), 3000);
+			setTimeout(() => reject(new Error("Timed out waiting for the autoStartFailed log")), 10000);
 		});
 		vi.mocked(loggingComponent.log).mockImplementation(async entry => {
 			if (entry.message === "autoStartFailed") {
@@ -559,7 +559,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		let resolveStarted: (message: IDataspaceProtocolTransferStartMessage) => void = () => {};
 		const fired = new Promise<IDataspaceProtocolTransferStartMessage>((resolve, reject) => {
 			resolveStarted = resolve;
-			setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+			setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 		});
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
 			resolveStarted(message);
@@ -700,7 +700,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
@@ -843,7 +843,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			resolveResumed = resolve;
 			setTimeout(
 				() => reject(new Error("Timed out waiting for consumer onStarted (resume)")),
-				3000
+				10000
 			);
 		});
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async () => {

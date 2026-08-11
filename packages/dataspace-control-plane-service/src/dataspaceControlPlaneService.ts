@@ -242,7 +242,7 @@ export class DataspaceControlPlaneService
 	 * Task scheduler for periodic stalled negotiation cleanup.
 	 * @internal
 	 */
-	private readonly _taskScheduler?: ITaskSchedulerComponent;
+	private readonly _taskScheduler: ITaskSchedulerComponent;
 
 	/**
 	 * Platform component.
@@ -391,7 +391,7 @@ export class DataspaceControlPlaneService
 			IEntityStorageConnector<TransferRetrieval>
 		>(options?.transferRetrievalEntityStorageType ?? nameofKebabCase<TransferRetrieval>());
 
-		this._taskScheduler = ComponentFactory.getIfExists<ITaskSchedulerComponent>(
+		this._taskScheduler = ComponentFactory.get<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
 		);
 
@@ -510,50 +510,48 @@ export class DataspaceControlPlaneService
 
 		await MetricHelper.createMetrics(this._telemetryComponent, DataspaceControlPlaneMetrics);
 
-		if (this._taskScheduler) {
-			await this._taskScheduler.addTask(
-				"control-plane-negotiation-cleanup",
-				[
-					{
-						nextTriggerTime: Date.now(),
-						intervalMinutes: 5
-					}
-				],
-				async () => {
-					await this.cleanupStalledNegotiations();
+		await this._taskScheduler.addTask(
+			"control-plane-negotiation-cleanup",
+			[
+				{
+					nextTriggerTime: Date.now(),
+					intervalMinutes: 5
 				}
-			);
+			],
+			async () => {
+				await this.cleanupStalledNegotiations();
+			}
+		);
 
-			await this._taskScheduler.addTask(
-				"control-plane-transfer-cleanup",
-				[
-					{
-						nextTriggerTime: Date.now(),
-						intervalMinutes: 5
-					}
-				],
-				async () => {
-					await this.cleanupStalledTransfers();
+		await this._taskScheduler.addTask(
+			"control-plane-transfer-cleanup",
+			[
+				{
+					nextTriggerTime: Date.now(),
+					intervalMinutes: 5
 				}
-			);
+			],
+			async () => {
+				await this.cleanupStalledTransfers();
+			}
+		);
 
-			await this._taskScheduler.addTask(
-				"control-plane-transfer-policy",
-				[
-					{
-						nextTriggerTime: Date.now(),
-						// The scheduler has minute granularity; floor at one minute.
-						intervalMinutes: Math.max(
-							1,
-							Math.round(this._providerTransferPolicySweepIntervalMs / 60000)
-						)
-					}
-				],
-				async () => {
-					await this.applyProviderTransferPolicies();
+		await this._taskScheduler.addTask(
+			"control-plane-transfer-policy",
+			[
+				{
+					nextTriggerTime: Date.now(),
+					// The scheduler has minute granularity; floor at one minute.
+					intervalMinutes: Math.max(
+						1,
+						Math.round(this._providerTransferPolicySweepIntervalMs / 60000)
+					)
 				}
-			);
-		}
+			],
+			async () => {
+				await this.applyProviderTransferPolicies();
+			}
+		);
 	}
 
 	/**
@@ -563,11 +561,9 @@ export class DataspaceControlPlaneService
 	 * @returns A promise that resolves when the cleanup task has been removed.
 	 */
 	public async stop(nodeLoggingComponentType?: string): Promise<void> {
-		if (this._taskScheduler) {
-			await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
-			await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
-			await this._taskScheduler.removeTask("control-plane-transfer-policy");
-		}
+		await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
+		await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
+		await this._taskScheduler.removeTask("control-plane-transfer-policy");
 	}
 
 	// ----------------------------------------------------------------------------
@@ -631,7 +627,6 @@ export class DataspaceControlPlaneService
 		let datasetId: string;
 		let consumerIdentity: string;
 		let providerIdentity: string;
-		let policies: IRightsManagementPolicy[];
 
 		try {
 			const agreement = await this.lookupAgreement(request.agreementId);
@@ -679,8 +674,6 @@ export class DataspaceControlPlaneService
 			datasetId = this.extractDatasetId(agreement);
 
 			await this.validateCatalogDataset(datasetId, agreement, request.format);
-
-			policies = [agreement];
 		} catch (error) {
 			return transformToTransferError(error, { consumerPid: request.consumerPid, providerPid });
 		}
@@ -701,7 +694,6 @@ export class DataspaceControlPlaneService
 			// offerId should reference Catalog Offer (via Agreement)
 			// For now, use agreementId as reference (proper flow: Catalog → Negotiation → Agreement)
 			offerId: request.agreementId,
-			policies,
 			callbackAddress: request.callbackAddress,
 			format: request.format,
 			organizationIdentity,
@@ -918,7 +910,6 @@ export class DataspaceControlPlaneService
 			providerIdentity,
 			localRole: TransferProcessRole.Consumer,
 			offerId: agreementId,
-			policies: [agreement],
 			callbackAddress,
 			format,
 			dataAddress: transferRequestMessage.dataAddress,
@@ -3213,7 +3204,6 @@ export class DataspaceControlPlaneService
 			organizationIdentity: storageEntity.organizationIdentity,
 			dateCreated: new Date(storageEntity.dateCreated),
 			dateModified: new Date(storageEntity.dateModified),
-			policies: storageEntity.policies,
 			dataAddress: storageEntity.dataAddress
 		};
 	}
@@ -3241,7 +3231,6 @@ export class DataspaceControlPlaneService
 			organizationIdentity: entity.organizationIdentity,
 			dateCreated: entity.dateCreated.toISOString(),
 			dateModified: entity.dateModified.toISOString(),
-			policies: entity.policies,
 			dataAddress: entity.dataAddress
 		};
 	}

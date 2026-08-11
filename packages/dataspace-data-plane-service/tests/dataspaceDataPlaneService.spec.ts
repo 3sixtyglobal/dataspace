@@ -13,7 +13,7 @@ import {
 	type BackgroundTask
 } from "@twin.org/background-task-service";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ArrayHelper, ComponentFactory, Is, ObjectHelper } from "@twin.org/core";
+import { ArrayHelper, ComponentFactory, Is, NotFoundError, ObjectHelper } from "@twin.org/core";
 import { JsonLdDataTypes, type JsonLdObjectWithContext } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
@@ -148,23 +148,32 @@ function createTestTransferProcess(overrides?: Partial<TransferProcess>): Transf
 	entity.format = "HttpData-PULL";
 	entity.dateCreated = now;
 	entity.dateModified = now;
-	entity.policies = [
-		{
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
-			"@type": "Agreement",
-			"@id": TEST_AGREEMENT_ID,
-			assigner: TEST_ORGANIZATION_IDENTITY,
-			assignee: DATA_CONSUMER_IDENTITY,
-			target: SERVICE_DATASET_ID,
-			permission: [{ action: "read" }]
-		}
-	];
 
 	if (overrides) {
 		Object.assign(entity, overrides);
 	}
 
 	return entity;
+}
+
+/**
+ * Creates a test PAP agreement.
+ * @param overrides Optional partial agreement to override default values.
+ * @returns A rights-management agreement.
+ */
+function createTestAgreement(
+	overrides?: Partial<IRightsManagementAgreement>
+): IRightsManagementAgreement {
+	return {
+		"@context": "http://www.w3.org/ns/odrl.jsonld",
+		"@type": "Agreement",
+		"@id": TEST_AGREEMENT_ID,
+		assigner: TEST_ORGANIZATION_IDENTITY,
+		assignee: DATA_CONSUMER_IDENTITY,
+		target: SERVICE_DATASET_ID,
+		permission: [{ action: "read" }],
+		...overrides
+	};
 }
 
 /**
@@ -205,6 +214,7 @@ describe("DataspaceDataPlaneService", () => {
 	let taskScheduler: TaskSchedulerService;
 	let options: IDataspaceDataPlaneServiceConstructorOptions;
 	let backgroundTaskModeEnabled = false;
+	let papAgreements: Map<string, IRightsManagementAgreement>;
 
 	/**
 	 * Wait for an activity to reach a terminal state.
@@ -497,6 +507,23 @@ describe("DataspaceDataPlaneService", () => {
 			createMockPolicyEnforcementPoint()
 		);
 
+		papAgreements = new Map<string, IRightsManagementAgreement>([
+			[TEST_AGREEMENT_ID, createTestAgreement()]
+		]);
+
+		// The PAP is required by constructor resolution and fetches agreements at
+		// access time. Seed agreements per-test via papAgreements.
+		ComponentFactory.register("policy-administration-point", () => ({
+			className: () => "MockPolicyAdministrationPoint",
+			getAgreement: async (agreementId: string) => {
+				const agreement = papAgreements.get(agreementId);
+				if (!agreement) {
+					throw new NotFoundError("MockPolicyAdministrationPoint", "policyNotFound", agreementId);
+				}
+				return agreement;
+			}
+		}));
+
 		ComponentFactory.register("platform", () => ({
 			className: () => "MockPlatformComponent",
 			isMultiTenant: () => false,
@@ -512,6 +539,7 @@ describe("DataspaceDataPlaneService", () => {
 			taskSchedulerComponentType: "task-scheduler",
 			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
 			pushSubscriptionEntityStorageType: nameofKebabCase<PushSubscription>(),
+			papComponentType: "policy-administration-point",
 			platformComponentType: "platform"
 		};
 		backgroundTaskModeEnabled = false;
@@ -2322,7 +2350,14 @@ describe("DataspaceDataPlaneService", () => {
 			// Transfer with no permission/prohibition/obligation rules at all
 			// (e.g. an agreement negotiated before the gate existed).
 			const transferProcess = createTestTransferProcess();
-			transferProcess.policies = undefined;
+			papAgreements.set(
+				TEST_AGREEMENT_ID,
+				createTestAgreement({
+					permission: undefined,
+					prohibition: undefined,
+					obligation: undefined
+				})
+			);
 			await transferProcessStorage.set(transferProcess);
 
 			const result = await service.notifyActivity(
@@ -2372,8 +2407,8 @@ describe("DataspaceDataPlaneService", () => {
 			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 			await testApp.start();
 
-			// The provider-side transfer cache stores the PAP agreement, which carries the
-			// consumer's trust verification data captured at negotiation start.
+			// Provider records carry the consumer's trust verification data captured at
+			// negotiation start, persisted on the transfer process.
 			const trustData = { subject: { role: "BorderAgency", location: "GB" } };
 			const agreementWithTrust: IRightsManagementAgreement = {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
@@ -2387,7 +2422,7 @@ describe("DataspaceDataPlaneService", () => {
 			};
 			const transferProcess = createTestTransferProcess();
 			transferProcess.localRole = TransferProcessRole.Provider;
-			transferProcess.policies = [agreementWithTrust];
+			papAgreements.set(TEST_AGREEMENT_ID, agreementWithTrust);
 			await transferProcessStorage.set(transferProcess);
 
 			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
@@ -2398,7 +2433,7 @@ describe("DataspaceDataPlaneService", () => {
 			expect(callArgs[3]).toEqual(trustData);
 		});
 
-		test("does not forward trustData on a consumer-role transfer (it holds the provider's attributes)", async () => {
+		test("forwards trustData from PAP on a consumer-role transfer", async () => {
 			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
 			const interceptSpy = vi.fn().mockImplementation(async (...args) => args[1]);
 			ComponentFactory.register("policy-enforcement-point-service", () => ({
@@ -2411,8 +2446,8 @@ describe("DataspaceDataPlaneService", () => {
 			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
 			await testApp.start();
 
-			// On a consumer node the cached agreement's trustData holds the PROVIDER's
-			// verification info, so it must not be evaluated as the trust subject.
+			// PAP is the source of truth for agreement trustData, so the same payload is
+			// forwarded to the PEP regardless of local transfer role.
 			const agreementWithTrust: IRightsManagementAgreement = {
 				"@context": "http://www.w3.org/ns/odrl.jsonld",
 				"@type": "Agreement",
@@ -2425,13 +2460,15 @@ describe("DataspaceDataPlaneService", () => {
 			};
 			const transferProcess = createTestTransferProcess();
 			transferProcess.localRole = TransferProcessRole.Consumer;
-			transferProcess.policies = [agreementWithTrust];
+			papAgreements.set(TEST_AGREEMENT_ID, agreementWithTrust);
 			await transferProcessStorage.set(transferProcess);
 
 			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
 
 			expect(interceptSpy).toHaveBeenCalledTimes(1);
-			expect(interceptSpy.mock.calls[0][3]).toBeUndefined();
+			expect(interceptSpy.mock.calls[0][3]).toEqual({
+				subject: { providerPid: TEST_PROVIDER_PID }
+			});
 		});
 
 		test("forwards trustData on the pull path (applyPolicyFilters) for a provider-role transfer", async () => {
@@ -2455,17 +2492,20 @@ describe("DataspaceDataPlaneService", () => {
 			};
 			const transferProcess = createTestTransferProcess();
 			transferProcess.localRole = TransferProcessRole.Provider;
-			transferProcess.policies = [agreementWithTrust];
+			papAgreements.set(TEST_AGREEMENT_ID, agreementWithTrust);
+			await transferProcessStorage.set(transferProcess);
 
 			// Drive the pull-path enforcement directly: buildTransferContext -> applyPolicyFilters.
 			const exposedService = service as unknown as {
-				buildTransferContext: (tp: TransferProcess) => { agreement: IRightsManagementAgreement };
+				buildTransferContext: (
+					tp: TransferProcess
+				) => Promise<{ agreement: IRightsManagementAgreement }>;
 				applyPolicyFilters: (
 					result: unknown,
 					agreement?: IRightsManagementAgreement
 				) => Promise<unknown>;
 			};
-			const context = exposedService.buildTransferContext(transferProcess);
+			const context = await exposedService.buildTransferContext(transferProcess);
 			const result = { itemList: { itemListElement: [] } };
 			await exposedService.applyPolicyFilters(result, context.agreement);
 

@@ -1,6 +1,5 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IRightsManagementPolicy } from "@twin.org/rights-management-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolDataAddress
@@ -42,7 +41,6 @@ export interface ITransferProcess {
 
 	/**
 	 * Agreement ID linking to the rights-management Agreement.
-	 * Used to resolve policies and permissions.
 	 */
 	agreementId: string;
 
@@ -56,12 +54,6 @@ export interface ITransferProcess {
 	 * Offer ID from the original Catalog offer.
 	 */
 	offerId: string;
-
-	/**
-	 * Policies from the Agreement.
-	 * Used by DSC for runtime policy enforcement.
-	 */
-	policies?: IRightsManagementPolicy[];
 
 	/**
 	 * Consumer identity (DID or URI).

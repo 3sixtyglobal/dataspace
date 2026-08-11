@@ -57,7 +57,6 @@ describe("TransferProcess partition key compatibility (Phase 0 Smoke Test)", () 
 		entity.format = "HttpData-PULL";
 		entity.dateCreated = now;
 		entity.dateModified = now;
-		entity.policies = [];
 		return entity;
 	}
 

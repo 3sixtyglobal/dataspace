@@ -80,6 +80,14 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	platformComponentType?: string;
 
 	/**
+	 * Policy administration point component type.
+	 * The data plane fetches fresh agreements from PAP at access time (with a short-TTL
+	 * in-memory cache) so that revoked or updated agreements take effect promptly.
+	 * @default policy-administration-point
+	 */
+	papComponentType?: string;
+
+	/**
 	 * The component type for the optional telemetry component used for metrics, defaults to no telemetry.
 	 */
 	telemetryComponentType?: string;

@@ -1,7 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { entity, property, SortDirection } from "@twin.org/entity";
-import type { IRightsManagementPolicy } from "@twin.org/rights-management-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolDataAddress
@@ -109,12 +108,6 @@ export class TransferProcess {
 	 */
 	@property({ type: "string", format: "date-time" })
 	public dateModified!: string;
-
-	/**
-	 * Policies from the Agreement (stored as JSON).
-	 */
-	@property({ type: "array", format: "json", optional: true })
-	public policies?: IRightsManagementPolicy[];
 
 	/**
 	 * Data address for the transfer (stored as JSON): the consumer's inbox for PUSH, or the

@@ -24,15 +24,18 @@ import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
+import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
 import {
 	DataspaceProtocolDataTypes,
-	DataspaceProtocolTransferProcessStateType,
-	type IDataspaceProtocolAgreement,
-	type IDataspaceProtocolPolicy
+	DataspaceProtocolTransferProcessStateType
 } from "@twin.org/standards-dataspace-protocol";
 import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
 import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
-import { createMockPolicyEnforcementPoint, createMockTrustComponent } from "./setupTestEnv.js";
+import {
+	createMockPolicyAdministrationPoint,
+	createMockPolicyEnforcementPoint,
+	createMockTrustComponent
+} from "./setupTestEnv.js";
 import locales from "../locales/en.json" with { type: "json" };
 import { DataspaceDataPlaneService } from "../src/dataspaceDataPlaneService.js";
 import type { ActivityLogDetails } from "../src/entities/activityLogDetails.js";
@@ -71,17 +74,6 @@ function createTestTransferProcess(overrides?: Partial<TransferProcess>): Transf
 	entity.format = "HttpData-PULL";
 	entity.dateCreated = now;
 	entity.dateModified = now;
-	entity.policies = [
-		{
-			"@context": "http://www.w3.org/ns/odrl.jsonld",
-			"@type": "Agreement",
-			"@id": TEST_AGREEMENT_ID,
-			assigner: TEST_ORGANIZATION_IDENTITY,
-			assignee: DATA_CONSUMER_IDENTITY,
-			target: TEST_DATASET_ID,
-			permission: [{ action: "read" }]
-		}
-	];
 
 	// Apply overrides
 	if (overrides) {
@@ -230,6 +222,21 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			createMockPolicyEnforcementPoint()
 		);
 
+		// The PAP is also required (resolved via ComponentFactory.get). Seed a
+		// default agreement used by this spec so constructor and policy lookups
+		// both resolve without per-test boilerplate.
+		const mockPap = createMockPolicyAdministrationPoint();
+		mockPap.addAgreement({
+			"@context": "http://www.w3.org/ns/odrl.jsonld",
+			"@type": "Agreement",
+			"@id": TEST_AGREEMENT_ID,
+			assigner: TEST_ORGANIZATION_IDENTITY,
+			assignee: DATA_CONSUMER_IDENTITY,
+			target: TEST_DATASET_ID,
+			permission: [{ action: "read" }]
+		});
+		ComponentFactory.register("policy-administration-point", () => mockPap);
+
 		ComponentFactory.register("platform", () => ({
 			className: () => "MockPlatformComponent",
 			isMultiTenant: () => false,
@@ -243,6 +250,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		service = new DataspaceDataPlaneService({
 			trustComponentType: "mock-trust",
 			transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
+			papComponentType: "policy-administration-point",
 			pushSubscriptionEntityStorageType: nameofKebabCase<PushSubscription>()
 		});
 	});
@@ -296,6 +304,11 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		}
 		try {
 			ComponentFactory.unregister("task-scheduler");
+		} catch {
+			// Ignore
+		}
+		try {
+			ComponentFactory.unregister("policy-administration-point");
 		} catch {
 			// Ignore
 		}
@@ -417,35 +430,8 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		});
 
 		test.skip("buildTransferContext correctly extracts permission, prohibition, and obligation from stored Agreement", async () => {
-			// Create transfer process with full ODRL Agreement containing all policy types
-			const fullAgreement = {
-				"@context": "http://www.w3.org/ns/odrl.jsonld",
-				"@type": "Agreement",
-				"@id": TEST_AGREEMENT_ID,
-				assigner: TEST_ORGANIZATION_IDENTITY,
-				assignee: DATA_CONSUMER_IDENTITY,
-				target: TEST_DATASET_ID,
-				permission: [
-					{
-						action: "read",
-						constraint: [{ leftOperand: "count", operator: "lteq", rightOperand: 100 }]
-					}
-				],
-				prohibition: [
-					{ action: "read", target: "field:sensitiveData" },
-					{ action: "derive", target: "field:personalInfo" }
-				],
-				obligation: [
-					{ action: "attribute", attributedParty: TEST_ORGANIZATION_IDENTITY },
-					{
-						action: "delete",
-						constraint: [{ leftOperand: "event", operator: "eq", rightOperand: "policyExpiry" }]
-					}
-				]
-			} as unknown as IDataspaceProtocolPolicy;
-
 			const transferProcess = createTestTransferProcess({
-				policies: [fullAgreement]
+				datasetId: TEST_DATASET_ID
 			});
 			await transferProcessStorage.set(transferProcess);
 
@@ -485,7 +471,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 			}
 		};
 
-		const testAgreement: IDataspaceProtocolAgreement = {
+		const testAgreement: IRightsManagementAgreement = {
 			"@context": OdrlContexts.Context,
 			"@type": "Agreement",
 			"@id": TEST_AGREEMENT_ID,
@@ -497,13 +483,13 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 		async function callApplyPolicyFilters(
 			svc: DataspaceDataPlaneService,
 			result: IDataAssetItemListResult,
-			agreement?: IDataspaceProtocolAgreement
+			agreement?: IRightsManagementAgreement
 		): Promise<IDataAssetItemListResult> {
 			return (
 				svc as unknown as {
 					applyPolicyFilters: (
 						result: IDataAssetItemListResult,
-						agreement?: IDataspaceProtocolAgreement
+						agreement?: IRightsManagementAgreement
 					) => Promise<IDataAssetItemListResult>;
 				}
 			).applyPolicyFilters(result, agreement);
@@ -563,7 +549,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 				log: logSpy
 			};
 
-			const agreementWithObligations: IDataspaceProtocolAgreement = {
+			const agreementWithObligations: IRightsManagementAgreement = {
 				...testAgreement,
 				obligation: [
 					{ action: "attribute", assignee: DATA_CONSUMER_IDENTITY },
@@ -646,7 +632,7 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 				log: logSpy
 			};
 
-			const agreementWithObligations: IDataspaceProtocolAgreement = {
+			const agreementWithObligations: IRightsManagementAgreement = {
 				...testAgreement,
 				obligation: [{ action: "attribute", assignee: DATA_CONSUMER_IDENTITY }]
 			};
@@ -669,23 +655,9 @@ describe("DataspaceDataPlaneService Policy Tests", () => {
 	describe("Policy Filters at Call Site (getDataAssetEntities / queryDataAsset)", () => {
 		const APP_DATASET_ID = "https://twin.example.org/data-service-1";
 
-		function createTransferWithAgreement(
-			agreement?: Partial<IDataspaceProtocolAgreement>
-		): TransferProcess {
-			const fullAgreement = {
-				"@context": "http://www.w3.org/ns/odrl.jsonld",
-				"@type": "Agreement",
-				"@id": TEST_AGREEMENT_ID,
-				assigner: TEST_ORGANIZATION_IDENTITY,
-				assignee: DATA_CONSUMER_IDENTITY,
-				target: APP_DATASET_ID,
-				permission: [{ action: "read" }],
-				...agreement
-			} as unknown as IDataspaceProtocolPolicy;
-
+		function createTransferWithAgreement(): TransferProcess {
 			return createTestTransferProcess({
-				datasetId: APP_DATASET_ID,
-				policies: [fullAgreement]
+				datasetId: APP_DATASET_ID
 			});
 		}
 

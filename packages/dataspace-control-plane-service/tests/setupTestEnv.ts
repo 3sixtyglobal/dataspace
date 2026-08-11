@@ -1,6 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IPlatformComponent } from "@twin.org/api-models";
+import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { Converter, ComponentFactory, I18n } from "@twin.org/core";
 import {
@@ -120,6 +121,18 @@ export function createMockDataspaceDataPlaneComponent(): IDataspaceDataPlaneComp
 }
 
 /**
+ * Creates a minimal mock task scheduler for testing.
+ * @returns A mock ITaskSchedulerComponent.
+ */
+export function createMockTaskScheduler(): ITaskSchedulerComponent {
+	return {
+		className: () => "MockTaskScheduler",
+		addTask: vi.fn().mockResolvedValue(undefined),
+		removeTask: vi.fn().mockResolvedValue(undefined)
+	} as unknown as ITaskSchedulerComponent;
+}
+
+/**
  * Setup the test environment for Dataspace Control Plane Service tests.
  * Registers schemas, contexts, and locales required for all tests.
  * Call this in beforeAll() of test suites.
@@ -163,6 +176,10 @@ export async function setupTestEnv(): Promise<void> {
 		"policy-negotiation-admin-point",
 		() => new MockPolicyNegotiationAdminPointComponent()
 	);
+
+	// Register a default mock task scheduler. The task scheduler is now required
+	// (get vs getIfExists), so a default must always be present.
+	ComponentFactory.register("task-scheduler", () => createMockTaskScheduler());
 }
 
 /**
