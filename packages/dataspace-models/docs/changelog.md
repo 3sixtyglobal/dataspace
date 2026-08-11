@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2-next.8](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.7...dataspace-models-v0.9.2-next.8) (2026-08-11)
+
+
+### Features
+
+* transfer process remove inline agreement ([#340](https://github.com/iotaledger/twin-dataspace/issues/340)) ([332eaf6](https://github.com/iotaledger/twin-dataspace/commit/332eaf67e5cf0b13545d013d107658b232ae32ff))
+
 ## [0.9.2-next.7](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.6...dataspace-models-v0.9.2-next.7) (2026-08-10)
 
 
