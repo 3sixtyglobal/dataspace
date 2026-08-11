@@ -73,34 +73,6 @@ Logging component type.
 
 ***
 
-### identityComponentType? {#identitycomponenttype}
-
-> `optional` **identityComponentType?**: `string`
-
-Identity component type (for token signing/verification).
-
-#### Default
-
-```ts
-identity
-```
-
-***
-
-### identityAuthenticationComponentType? {#identityauthenticationcomponenttype}
-
-> `optional` **identityAuthenticationComponentType?**: `string`
-
-Identity Authentication component type (for token validation).
-
-#### Default
-
-```ts
-identity-authentication
-```
-
-***
-
 ### trustComponentType? {#trustcomponenttype}
 
 > `optional` **trustComponentType?**: `string`

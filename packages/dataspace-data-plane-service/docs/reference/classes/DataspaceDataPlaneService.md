@@ -88,6 +88,33 @@ A promise that resolves when the push-delivery handler and cleanup task are regi
 
 ***
 
+### stop() {#stop}
+
+> **stop**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
+
+Stop the service.
+Destroys in-memory resources owned by this component.
+
+#### Parameters
+
+##### nodeLoggingComponentType?
+
+`string`
+
+The node logging component type.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that resolves when the service has stopped.
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.stop`
+
+***
+
 ### notifyActivity() {#notifyactivity}
 
 > **notifyActivity**(`activity`, `trustPayload?`): `Promise`\<`string` \| `IActivityLogEntry`\>

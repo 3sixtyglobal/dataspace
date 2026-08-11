@@ -46,7 +46,6 @@ One of: REQUESTED, STARTED, COMPLETED, SUSPENDED, TERMINATED.
 > **agreementId**: `string`
 
 Agreement ID linking to the rights-management Agreement.
-Used to resolve policies and permissions.
 
 ***
 
@@ -64,15 +63,6 @@ Identifies the dataset being transferred.
 > **offerId**: `string`
 
 Offer ID from the original Catalog offer.
-
-***
-
-### policies? {#policies}
-
-> `optional` **policies?**: `IRightsManagementPolicy`[]
-
-Policies from the Agreement.
-Used by DSC for runtime policy enforcement.
 
 ***
 

@@ -168,6 +168,22 @@ platform
 
 ***
 
+### papComponentType? {#papcomponenttype}
+
+> `optional` **papComponentType?**: `string`
+
+Policy administration point component type.
+The data plane fetches fresh agreements from PAP at access time (with a short-TTL
+in-memory cache) so that revoked or updated agreements take effect promptly.
+
+#### Default
+
+```ts
+policy-administration-point
+```
+
+***
+
 ### telemetryComponentType? {#telemetrycomponenttype}
 
 > `optional` **telemetryComponentType?**: `string`

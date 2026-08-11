@@ -100,3 +100,32 @@ Interval (ms) between orphaned PushSubscription cleanup scans.
 ```ts
 3600000 (1 hour)
 ```
+
+***
+
+### agreementCacheTtlMs? {#agreementcachettlms}
+
+> `optional` **agreementCacheTtlMs?**: `number`
+
+TTL in ms for the in-memory PAP agreement cache.
+Applies only when a PAP component is registered.
+
+#### Default
+
+```ts
+30000 (30 seconds)
+```
+
+***
+
+### agreementCacheMutexTimeoutMs? {#agreementcachemutextimeoutms}
+
+> `optional` **agreementCacheMutexTimeoutMs?**: `number`
+
+Maximum time in ms to wait for the agreement cache mutex during a getOrSet call.
+
+#### Default
+
+```ts
+undefined (LruCache default)
+```

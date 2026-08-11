@@ -141,14 +141,6 @@ Last update timestamp (ISO string format).
 
 ***
 
-### policies? {#policies}
-
-> `optional` **policies?**: `IRightsManagementPolicy`[]
-
-Policies from the Agreement (stored as JSON).
-
-***
-
 ### dataAddress? {#dataaddress}
 
 > `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
