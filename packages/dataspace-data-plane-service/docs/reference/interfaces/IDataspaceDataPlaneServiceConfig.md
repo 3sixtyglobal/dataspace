@@ -36,7 +36,7 @@ The interval in ms between activity log clean ups. -1 indicates no clean up shal
 
 > `optional` **retryCount?**: `number`
 
-The number of times to retry failed tasks, defaults to forever.
+The number of times to retry failed tasks, defaults to no retries.
 
 #### Default
 

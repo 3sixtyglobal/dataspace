@@ -18,7 +18,7 @@ export interface IDataspaceDataPlaneServiceConfig {
 	activityLogsCleanUpIntervalMs?: number;
 
 	/**
-	 * The number of times to retry failed tasks, defaults to forever.
+	 * The number of times to retry failed tasks, defaults to no retries.
 	 * @default undefined.
 	 */
 	retryCount?: number;
