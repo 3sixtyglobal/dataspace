@@ -34,7 +34,9 @@ const activity: IActivityStreamsActivity = {
   object: 'urn:ucr:24PLP051219453I002610799053311'
 };
 
-const logEntryId = await service.notifyActivity(activity);
+const trustPayload = 'eyJhbGciOi...';
+
+const logEntryId = await service.notifyActivity(activity, trustPayload);
 console.log(logEntryId); // urn:activity-log:1001
 
 const subscriptionId = await service.subscribeToActivityLog(async notification => {
@@ -42,7 +44,7 @@ const subscriptionId = await service.subscribeToActivityLog(async notification =
   console.log(notification.status); // completed
 });
 
-const logEntry = await service.getActivityLogEntry(logEntryId);
+const logEntry = await service.getActivityLogEntry(logEntryId, trustPayload);
 console.log(logEntry.id); // urn:activity-log:1001
 console.log(logEntry.status); // completed
 
