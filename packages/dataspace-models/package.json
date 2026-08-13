@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-models",
-	"version": "0.9.2-next.8",
+	"version": "0.9.2-next.9",
 	"description": "Defines shared entities, interfaces, and data types used by control plane and data plane components.",
 	"repository": {
 		"type": "git",
