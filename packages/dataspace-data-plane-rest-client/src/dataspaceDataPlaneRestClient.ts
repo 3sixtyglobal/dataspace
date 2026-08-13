@@ -276,7 +276,7 @@ export class DataspaceDataPlaneRestClient
 	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
-	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not authorized for the entry.
 	 */
 	public async getActivityLogEntry(
 		logEntryId: string,

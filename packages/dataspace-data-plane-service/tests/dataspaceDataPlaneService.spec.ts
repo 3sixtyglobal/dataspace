@@ -2681,6 +2681,89 @@ describe("DataspaceDataPlaneService", () => {
 				)
 			).rejects.toMatchObject({ name: "UnauthorizedError" });
 		});
+
+		test("getActivityLogEntry returns an entry when caller is transfer consumer and generator is consumerPid", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const now = new Date().toISOString();
+			const logEntryId = "urn:activity-log:read-consumer-party";
+			await activityLogStorage.set({
+				id: logEntryId,
+				activityId: "urn:activity:read-consumer-party",
+				generator: TEST_CONSUMER_PID,
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const entry = await service.getActivityLogEntry(logEntryId, TEST_TRANSFER_TOKEN);
+			expect(entry.id).toBe(logEntryId);
+			expect(entry.generator).toBe(TEST_CONSUMER_PID);
+		});
+
+		test("getActivityLogEntry returns an entry when caller is transfer provider and generator is providerPid", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(TEST_ORGANIZATION_IDENTITY));
+			const service = new DataspaceDataPlaneService(options);
+
+			const providerPid = "urn:uuid:provider-read-access-test";
+			await transferProcessStorage.set(createTestTransferProcess({ providerPid }));
+
+			const now = new Date().toISOString();
+			const logEntryId = "urn:activity-log:read-provider-party";
+			await activityLogStorage.set({
+				id: logEntryId,
+				activityId: "urn:activity:read-provider-party",
+				generator: providerPid,
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const entry = await service.getActivityLogEntry(logEntryId, TEST_TRANSFER_TOKEN);
+			expect(entry.id).toBe(logEntryId);
+			expect(entry.generator).toBe(providerPid);
+		});
+
+		test("getActivityLogEntry rejects a non-party caller when generator is transfer pid", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent("did:iota:testnet:attacker"));
+			const service = new DataspaceDataPlaneService(options);
+
+			await transferProcessStorage.set(createTestTransferProcess());
+			const now = new Date().toISOString();
+			const logEntryId = "urn:activity-log:read-non-party";
+			await activityLogStorage.set({
+				id: logEntryId,
+				activityId: "urn:activity:read-non-party",
+				generator: TEST_CONSUMER_PID,
+				dateCreated: now,
+				dateModified: now
+			});
+
+			await expect(
+				service.getActivityLogEntry(logEntryId, TEST_TRANSFER_TOKEN)
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+		});
+
+		test("getActivityLogEntry returns an entry when caller identity matches generator directly (legacy path)", async () => {
+			const legacyIdentity = DATA_CONSUMER_IDENTITY;
+			ComponentFactory.register("trust", () => makeTrustComponent(legacyIdentity));
+			const service = new DataspaceDataPlaneService(options);
+
+			const now = new Date().toISOString();
+			const logEntryId = "urn:activity-log:read-legacy-identity";
+			await activityLogStorage.set({
+				id: logEntryId,
+				activityId: "urn:activity:read-legacy-identity",
+				generator: legacyIdentity,
+				dateCreated: now,
+				dateModified: now
+			});
+
+			const entry = await service.getActivityLogEntry(logEntryId, TEST_TRANSFER_TOKEN);
+			expect(entry.id).toBe(logEntryId);
+			expect(entry.generator).toBe(legacyIdentity);
+		});
 	});
 
 	// ============================================

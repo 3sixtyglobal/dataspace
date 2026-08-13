@@ -617,43 +617,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			"notifyActivity"
 		);
 		const generatorPid = this.calculateActivityGeneratorIdentity(activity);
-		// First lookup: on the consumerPid index. If this hits, the generator's PID equals
-		// consumerPid - the generator is the consumer side.
-		let transferProcess = await this.getTransferProcessByConsumerPid(generatorPid);
-		const generatorIsConsumer = Boolean(transferProcess);
-
-		if (!transferProcess) {
-			// Fallback: generatorPid === providerPid. A self transfer stores two role records
-			// sharing both pids (one logical transfer), so multiple matches are only rejected
-			// when they span DIFFERENT transfers - silent first-match would risk authorising
-			// the wrong transfer if the pid-uniqueness invariant ever breaks.
-			const result = await this._transferProcessStorage.query({
-				conditions: [
-					{
-						property: "providerPid",
-						value: generatorPid,
-						comparison: ComparisonOperator.Equals
-					}
-				]
-			});
-			const matches = result.entities as TransferProcess[];
-			if (matches.length > 1) {
-				const sameTransfer = matches.every(
-					match =>
-						match.consumerPid === matches[0].consumerPid &&
-						match.providerPid === matches[0].providerPid
-				);
-				if (!sameTransfer) {
-					throw new UnauthorizedError(
-						DataspaceDataPlaneService.CLASS_NAME,
-						"pushActivityNotAuthorized"
-					);
-				}
-			}
-			transferProcess =
-				matches.find(match => match.localRole === TransferProcessRole.Provider) ?? matches[0];
-			// generatorIsConsumer stays false → generator is the provider side.
-		}
+		const transferProcess = await this.getTransferProcessByGeneratorPid(generatorPid);
+		const generatorIsConsumer = generatorPid === transferProcess?.consumerPid;
 
 		if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
 			throw new UnauthorizedError(
@@ -857,12 +822,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Returns Activity Log Entry which contains the Activity processing details.
-	 * Verifies the trust payload and asserts the caller is the entry's generator.
+	 * Verifies the trust payload and asserts the caller is authorized for the entry.
 	 * @param logEntryId The Id of the Activity Log Entry (a URI).
 	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
-	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not authorised for the entry.
 	 */
 	public async getActivityLogEntry(
 		logEntryId: string,
@@ -878,7 +843,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		const entry = await this.retrieveActivityLogEntry(logEntryId);
 
-		if (trustInfo.identity !== entry.generator) {
+		if (trustInfo.identity === entry.generator) {
+			return entry;
+		}
+
+		const transferProcess = await this.getTransferProcessByGeneratorPid(entry.generator);
+		const isTransferParty =
+			(Is.stringValue(transferProcess?.consumerIdentity) &&
+				trustInfo.identity === transferProcess.consumerIdentity) ||
+			(Is.stringValue(transferProcess?.providerIdentity) &&
+				trustInfo.identity === transferProcess.providerIdentity);
+
+		if (!isTransferParty) {
 			throw new UnauthorizedError(
 				DataspaceDataPlaneService.CLASS_NAME,
 				"activityLogEntryNotAuthorized"
@@ -2230,6 +2206,59 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			{ property: "localRole", value: TransferProcessRole.Provider }
 		]);
 		transferProcess ??= await this._transferProcessStorage.get(consumerPid, "consumerPid");
+		return transferProcess;
+	}
+
+	/**
+	 * Resolve a transfer process on the providerPid index.
+	 * @param providerPid The provider process ID.
+	 * @returns The matching transfer processes, empty when none match.
+	 * @internal
+	 */
+	private async getTransferProcessByProviderPid(providerPid: string): Promise<TransferProcess[]> {
+		const result = await this._transferProcessStorage.query({
+			conditions: [
+				{
+					property: "providerPid",
+					value: providerPid,
+					comparison: ComparisonOperator.Equals
+				}
+			]
+		});
+		return result.entities as TransferProcess[];
+	}
+
+	/**
+	 * Resolve a transfer process for an activity generator value, which can be either a consumerPid
+	 * or a providerPid depending on the activity path.
+	 * @param generatorPid The generator PID from the activity log entry.
+	 * @returns The transfer process, or undefined when none matches.
+	 * @internal
+	 */
+	private async getTransferProcessByGeneratorPid(
+		generatorPid: string
+	): Promise<TransferProcess | undefined> {
+		let transferProcess = await this.getTransferProcessByConsumerPid(generatorPid);
+		if (transferProcess) {
+			return transferProcess;
+		}
+
+		const matches = await this.getTransferProcessByProviderPid(generatorPid);
+
+		if (matches.length > 1) {
+			const sameTransfer = matches.every(
+				match =>
+					match.consumerPid === matches[0].consumerPid &&
+					match.providerPid === matches[0].providerPid
+			);
+			if (!sameTransfer) {
+				return undefined;
+			}
+		}
+
+		transferProcess =
+			matches.find(match => match.localRole === TransferProcessRole.Provider) ?? matches[0];
+
 		return transferProcess;
 	}
 

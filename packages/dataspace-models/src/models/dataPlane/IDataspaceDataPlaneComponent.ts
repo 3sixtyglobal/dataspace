@@ -49,7 +49,7 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
-	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not authorised for the entry.
 	 */
 	getActivityLogEntry(logEntryId: string, trustPayload?: unknown): Promise<IActivityLogEntry>;
 
