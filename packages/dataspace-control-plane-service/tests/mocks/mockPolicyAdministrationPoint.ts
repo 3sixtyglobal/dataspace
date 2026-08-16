@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { NotFoundError } from "@twin.org/core";
+import { Is, NotFoundError } from "@twin.org/core";
 import { nameof } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
@@ -182,12 +182,22 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	}
 
 	/**
-	 * Query policies filtered by the optional locator.
+	 * Query policies filtered by the optional locator, with cursor pagination (default page size
+	 * 40, matching the memory entity storage connector).
 	 * @param locator Optional criteria to filter policies by type, assigner, assignee, and target.
+	 * @param conditions Unused in the mock; matches the component signature.
+	 * @param cursor The pagination cursor (the offset into the filtered results).
+	 * @param limit The page size; defaults to 40 like the memory entity storage connector.
+	 * @param properties Optional reduced property list, mirroring the real PAP: both the model and
+	 * storage key forms are accepted and the policy "@id" is always included.
 	 * @returns Object with policies array and optional cursor.
 	 */
 	public async query(
-		locator?: IPolicyLocator
+		locator?: IPolicyLocator,
+		conditions?: unknown,
+		cursor?: string,
+		limit?: number,
+		properties?: (keyof IRightsManagementPolicy)[]
 	): Promise<{ cursor?: string; policies: IRightsManagementPolicy[] }> {
 		let policies = [...this._policies.values()];
 
@@ -215,7 +225,29 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 			}
 		}
 
-		return { policies };
+		const pageSize = limit ?? 40;
+		const start = cursor ? Number.parseInt(cursor, 10) : 0;
+		let page = policies.slice(start, start + pageSize);
+		const nextCursor = start + pageSize < policies.length ? String(start + pageSize) : undefined;
+
+		if (Is.arrayValue(properties)) {
+			const storageToModelKeys: { [key: string]: string } = {
+				id: "@id",
+				type: "@type",
+				context: "@context"
+			};
+			page = page.map(policy => {
+				const source = policy as unknown as { [key: string]: unknown };
+				const reduced: { [key: string]: unknown } = { "@id": source["@id"] };
+				for (const property of properties) {
+					const key = storageToModelKeys[property] ?? property;
+					reduced[key] = source[key];
+				}
+				return reduced as unknown as IRightsManagementPolicy;
+			});
+		}
+
+		return { cursor: nextCursor, policies: page };
 	}
 
 	// ============================================================================

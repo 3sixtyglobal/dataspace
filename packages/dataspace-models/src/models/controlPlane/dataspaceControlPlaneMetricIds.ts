@@ -54,7 +54,12 @@ export const DataspaceControlPlaneMetricIds = {
 	/**
 	 * Number of app datasets deleted.
 	 */
-	AppDatasetsDeleted: "dcp_app_datasets_deleted"
+	AppDatasetsDeleted: "dcp_app_datasets_deleted",
+
+	/**
+	 * Number of agreements removed by the agreement sweep.
+	 */
+	AgreementsSwept: "dcp_agreements_swept"
 } as const;
 
 /**

@@ -104,6 +104,7 @@ import { TransferHandlerFactory } from "./factories/transferHandlerFactory.js";
 import { HttpDataPostTransferHandler } from "./handlers/httpDataPostTransferHandler.js";
 import { HttpDataPullTransferHandler } from "./handlers/httpDataPullTransferHandler.js";
 import { HttpDataPushTransferHandler } from "./handlers/httpDataPushTransferHandler.js";
+import { AgreementSweepReason } from "./models/agreementSweepReason.js";
 import type { IDataspaceControlPlaneServiceConstructorOptions } from "./models/IDataspaceControlPlaneServiceConstructorOptions.js";
 import {
 	isCatalogError,
@@ -153,6 +154,12 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private static readonly _PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+
+	/**
+	 * Default agreement sweep interval in milliseconds (1 hour).
+	 * @internal
+	 */
+	private static readonly _AGREEMENT_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
 	/**
 	 * The logging component.
@@ -313,6 +320,18 @@ export class DataspaceControlPlaneService
 	private readonly _providerTransferPolicySweepIntervalMs: number;
 
 	/**
+	 * Unused window (ms) for the agreement sweep; undefined disables the sweep node-wide.
+	 * @internal
+	 */
+	private readonly _agreementUnusedThresholdMs?: number;
+
+	/**
+	 * Interval (ms) at which the agreement sweep runs.
+	 * @internal
+	 */
+	private readonly _agreementSweepIntervalMs: number;
+
+	/**
 	 * Storage for transfer retrievals; undefined when the hosting engine does not register it.
 	 * @internal
 	 */
@@ -386,6 +405,19 @@ export class DataspaceControlPlaneService
 		this._providerTransferPolicySweepIntervalMs =
 			options?.config?.providerTransferPolicySweepIntervalMs ??
 			DataspaceControlPlaneService._PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS;
+
+		// A non-positive window would classify every idle agreement as unused; treat it as unset.
+		const agreementUnusedThresholdMs = options?.config?.agreementUnusedThresholdMs;
+		this._agreementUnusedThresholdMs =
+			Is.integer(agreementUnusedThresholdMs) && agreementUnusedThresholdMs > 0
+				? agreementUnusedThresholdMs
+				: undefined;
+
+		const agreementSweepIntervalMs = options?.config?.agreementSweepIntervalMs;
+		this._agreementSweepIntervalMs =
+			Is.integer(agreementSweepIntervalMs) && agreementSweepIntervalMs > 0
+				? agreementSweepIntervalMs
+				: DataspaceControlPlaneService._AGREEMENT_SWEEP_INTERVAL_MS;
 
 		this._transferRetrievalStorage = EntityStorageConnectorFactory.getIfExists<
 			IEntityStorageConnector<TransferRetrieval>
@@ -552,6 +584,22 @@ export class DataspaceControlPlaneService
 				await this.applyProviderTransferPolicies();
 			}
 		);
+
+		if (Is.integer(this._agreementUnusedThresholdMs)) {
+			await this._taskScheduler.addTask(
+				"control-plane-agreement-sweep",
+				[
+					{
+						nextTriggerTime: Date.now(),
+						// The scheduler has minute granularity; floor at one minute.
+						intervalMinutes: Math.max(1, Math.round(this._agreementSweepIntervalMs / 60000))
+					}
+				],
+				async () => {
+					await this.sweepUnusedAgreements();
+				}
+			);
+		}
 	}
 
 	/**
@@ -564,6 +612,9 @@ export class DataspaceControlPlaneService
 		await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
 		await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
 		await this._taskScheduler.removeTask("control-plane-transfer-policy");
+		if (Is.integer(this._agreementUnusedThresholdMs)) {
+			await this._taskScheduler.removeTask("control-plane-agreement-sweep");
+		}
 	}
 
 	// ----------------------------------------------------------------------------
@@ -2995,6 +3046,236 @@ export class DataspaceControlPlaneService
 			});
 			return false;
 		}
+	}
+
+	/**
+	 * Sweep agreements with no live usage signal within the unused window, removing them from the
+	 * PAP. Removal failures are logged, never thrown, and reruns are idempotent.
+	 * @returns A promise that resolves when the sweep has completed.
+	 * @internal
+	 */
+	private async sweepUnusedAgreements(): Promise<void> {
+		const now = Date.now();
+
+		// Runs per tenant so the PAP and storage access inherit the correct [Node, Tenant] partition.
+		await this._platformComponent.execute(async () => {
+			const unusedThresholdMs = this._agreementUnusedThresholdMs;
+			if (!Is.integer(unusedThresholdMs)) {
+				return;
+			}
+
+			const usage = await this.buildAgreementUsageMap();
+
+			let scanned = 0;
+			let skipped = 0;
+			const candidates: { agreementId: string; reason: string }[] = [];
+			let cursor: string | undefined;
+
+			do {
+				const page = await this._policyAdministrationPointComponent.query(
+					{ type: OdrlPolicyType.Agreement },
+					undefined,
+					cursor,
+					undefined,
+					// The PAP always includes the policy id in reduced results.
+					["dateCreated", "dateModified"]
+				);
+
+				for (const policy of page.policies) {
+					scanned++;
+					const evaluation = this.classifySweepAgreement(policy, usage, now, unusedThresholdMs);
+					if (
+						Is.stringValue(evaluation.candidateReason) &&
+						Is.stringValue(evaluation.agreementId)
+					) {
+						candidates.push({
+							agreementId: evaluation.agreementId,
+							reason: evaluation.candidateReason
+						});
+					} else {
+						skipped++;
+						await this._loggingComponent?.log({
+							level: "debug",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "agreementSweepSkipped",
+							data: { agreementId: evaluation.agreementId, reason: evaluation.skipReason }
+						});
+					}
+				}
+
+				cursor = page.cursor;
+			} while (Is.stringValue(cursor));
+
+			let swept = 0;
+			for (const candidate of candidates) {
+				if (await this.removeSweptAgreement(candidate)) {
+					swept++;
+				}
+			}
+
+			if (Is.arrayValue(candidates)) {
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "agreementSweepComplete",
+					data: { scanned, skipped, candidates: candidates.length, swept }
+				});
+			}
+		});
+	}
+
+	/**
+	 * Classify an agreement for the sweep: skip reasons take precedence, otherwise the agreement
+	 * is a candidate. Activity is the latest of the referencing transfers' activity and the
+	 * agreement's own lifecycle timestamps.
+	 * @param policy The agreement returned by the PAP query.
+	 * @param usage The per-agreement usage map built from the transfer records.
+	 * @param now The sweep timestamp.
+	 * @param unusedThresholdMs The unused window.
+	 * @returns The agreement id plus either a skip reason or a candidate reason.
+	 * @internal
+	 */
+	private classifySweepAgreement(
+		policy: IRightsManagementPolicy,
+		usage: Map<string, { hasLive: boolean; lastActivityMs: number }>,
+		now: number,
+		unusedThresholdMs: number
+	): {
+		agreementId?: string;
+		skipReason?: string;
+		candidateReason?: string;
+	} {
+		// PAP-stored policies always carry an @id (the primary key), so this guard only narrows.
+		const agreementId = OdrlPolicyHelper.getUid(policy);
+		if (!Is.stringValue(agreementId)) {
+			return { skipReason: AgreementSweepReason.NoId };
+		}
+
+		const timestampMs = Coerce.dateTime(policy.dateModified ?? policy.dateCreated)?.getTime();
+		const refs = usage.get(agreementId);
+
+		if (refs?.hasLive) {
+			return { agreementId, skipReason: AgreementSweepReason.ActiveTransfer };
+		}
+
+		if (!Is.empty(refs)) {
+			const lastActivityMs = Math.max(refs.lastActivityMs, timestampMs ?? 0);
+			return now - lastActivityMs <= unusedThresholdMs
+				? { agreementId, skipReason: AgreementSweepReason.RecentActivity }
+				: { agreementId, candidateReason: AgreementSweepReason.Unused };
+		}
+
+		if (!Is.integer(timestampMs)) {
+			return { agreementId, skipReason: AgreementSweepReason.NoTimestamp };
+		}
+
+		return now - timestampMs <= unusedThresholdMs
+			? { agreementId, skipReason: AgreementSweepReason.RecentAgreement }
+			: { agreementId, candidateReason: AgreementSweepReason.NeverReferenced };
+	}
+
+	/**
+	 * Remove a sweep candidate from the PAP; removal of a missing id is a storage-level no-op, so
+	 * reruns stay idempotent. A removal failure is logged and reported as not swept.
+	 * @param candidate The sweep candidate.
+	 * @param candidate.agreementId The agreement ID to remove.
+	 * @param candidate.reason The selection reason, forwarded to the log.
+	 * @returns True when the agreement was removed.
+	 * @internal
+	 */
+	private async removeSweptAgreement(candidate: {
+		agreementId: string;
+		reason: string;
+	}): Promise<boolean> {
+		try {
+			await this._policyAdministrationPointComponent.remove(candidate.agreementId);
+		} catch (error) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "agreementSweepRemoveFailed",
+				error: BaseError.fromError(error),
+				data: { agreementId: candidate.agreementId }
+			});
+			return false;
+		}
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.AgreementsSwept
+		);
+		await this._loggingComponent?.log({
+			level: "info",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "agreementSwept",
+			data: { agreementId: candidate.agreementId, reason: candidate.reason }
+		});
+		return true;
+	}
+
+	/**
+	 * Build the per-agreement usage map from the transfer records: whether any live transfer
+	 * references the agreement and the latest activity (state change or retrieval) across its
+	 * transfers. A single paged pass, since agreementId is not an indexed property.
+	 * @returns The usage map keyed by agreement ID.
+	 * @internal
+	 */
+	private async buildAgreementUsageMap(): Promise<
+		Map<string, { hasLive: boolean; lastActivityMs: number }>
+	> {
+		const usage = new Map<string, { hasLive: boolean; lastActivityMs: number }>();
+		let cursor: string | undefined;
+
+		do {
+			const page = await this._transferProcessStorage.query(
+				undefined,
+				undefined,
+				["agreementId", "state", "dateModified", "consumerPid"],
+				cursor
+			);
+
+			for (const entity of page.entities) {
+				const transfer = entity as TransferProcess;
+				if (Is.stringValue(transfer.agreementId)) {
+					const isLive =
+						transfer.state === DataspaceProtocolTransferProcessStateType.REQUESTED ||
+						transfer.state === DataspaceProtocolTransferProcessStateType.STARTED ||
+						transfer.state === DataspaceProtocolTransferProcessStateType.SUSPENDED;
+
+					const modifiedMs = new Date(transfer.dateModified).getTime();
+					let lastActivityMs = Is.integer(modifiedMs) ? modifiedMs : 0;
+
+					// Retrieval rows are removed on completion/termination; consult them for terminal
+					// transfers anyway so an orphaned row still counts as activity.
+					if (!isLive && !Is.empty(this._transferRetrievalStorage)) {
+						const retrieval = await this._transferRetrievalStorage.get(transfer.consumerPid);
+						const lastRetrieved = retrieval?.dateLastRetrieved;
+						if (Is.stringValue(lastRetrieved)) {
+							const retrievedMs = new Date(lastRetrieved).getTime();
+							if (Is.integer(retrievedMs)) {
+								lastActivityMs = Math.max(lastActivityMs, retrievedMs);
+							}
+						}
+					}
+
+					const existing = usage.get(transfer.agreementId);
+					if (Is.empty(existing)) {
+						usage.set(transfer.agreementId, { hasLive: isLive, lastActivityMs });
+					} else {
+						existing.hasLive = existing.hasLive || isLive;
+						existing.lastActivityMs = Math.max(existing.lastActivityMs, lastActivityMs);
+					}
+				}
+			}
+
+			cursor = page.cursor;
+		} while (Is.stringValue(cursor));
+
+		return usage;
 	}
 
 	/**

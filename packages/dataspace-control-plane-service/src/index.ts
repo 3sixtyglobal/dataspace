@@ -7,6 +7,7 @@ export * from "./factories/transferHandlerFactory.js";
 export * from "./handlers/httpDataPostTransferHandler.js";
 export * from "./handlers/httpDataPullTransferHandler.js";
 export * from "./handlers/httpDataPushTransferHandler.js";
+export * from "./models/agreementSweepReason.js";
 export * from "./models/endpointProperties.js";
 export * from "./models/IDataspaceControlPlaneServiceConfig.js";
 export * from "./models/IDataspaceControlPlaneServiceConstructorOptions.js";

@@ -26,7 +26,9 @@
 			"stalledTransfersCleanupComplete": "Stalled transfers cleanup completed (cleanedUp: {cleanedUp})",
 			"providerTransferPolicySweepComplete": "Provider transfer policy sweep completed (terminated: {terminated})",
 			"preparingTransfer": "Preparing consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
-			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
+			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})",
+			"agreementSwept": "Unused agreement removed by the sweep (agreementId: {agreementId}, reason: {reason})",
+			"agreementSweepComplete": "Agreement sweep completed (scanned: {scanned}, skipped: {skipped}, candidates: {candidates}, swept: {swept})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"offerReceived": "Offer received from provider (negotiationId: {negotiationId}, offerId: {offerId})",
@@ -38,7 +40,8 @@
 	},
 	"debug": {
 		"dataspaceControlPlaneService": {
-			"engineCloneStart": "Skipping control plane startup tasks (engine clone or no engine)"
+			"engineCloneStart": "Skipping control plane startup tasks (engine clone or no engine)",
+			"agreementSweepSkipped": "Agreement excluded from the sweep (agreementId: {agreementId}, reason: {reason})"
 		}
 	},
 	"warn": {
@@ -111,7 +114,8 @@
 			"datasetWrongOrganization": "The calling organization does not own this dataset.",
 			"transferWrongOrganization": "The calling organization does not own this transfer.",
 			"invalidDatasetId": "Dataset ID \"{id}\" is not a valid URN or URL",
-			"providerTransferTerminateFailed": "Failed to terminate a provider transfer for a lifecycle policy (consumerPid: {consumerPid})"
+			"providerTransferTerminateFailed": "Failed to terminate a provider transfer for a lifecycle policy (consumerPid: {consumerPid})",
+			"agreementSweepRemoveFailed": "Failed to remove an agreement during the sweep (agreementId: {agreementId})"
 		},
 		"dataspaceControlPlanePolicyRequester": {},
 		"httpDataPullTransferHandler": {
