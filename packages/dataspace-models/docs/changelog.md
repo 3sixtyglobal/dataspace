@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.9...dataspace-models-v0.9.2-next.10) (2026-08-16)
+
+
+### Features
+
+* add unused agreement sweep to the control plane ([#344](https://github.com/iotaledger/twin-dataspace/issues/344)) ([8633642](https://github.com/iotaledger/twin-dataspace/commit/86336424ced7aeab3259c78373447074f4140e90))
+
 ## [0.9.2-next.9](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.8...dataspace-models-v0.9.2-next.9) (2026-08-13)
 
 
