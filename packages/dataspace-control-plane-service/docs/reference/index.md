@@ -19,12 +19,14 @@
 
 ## Type Aliases
 
+- [AgreementSweepReason](type-aliases/AgreementSweepReason.md)
 - [EndpointProperties](type-aliases/EndpointProperties.md)
 
 ## Variables
 
 - [tagsDataspaceControlPlane](variables/tagsDataspaceControlPlane.md)
 - [TransferHandlerFactory](variables/TransferHandlerFactory.md)
+- [AgreementSweepReason](variables/AgreementSweepReason.md)
 - [EndpointProperties](variables/EndpointProperties.md)
 - [restEntryPoints](variables/restEntryPoints.md)
 

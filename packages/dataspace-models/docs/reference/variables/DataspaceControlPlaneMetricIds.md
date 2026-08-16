@@ -65,3 +65,9 @@ Number of app datasets updated.
 > `readonly` **AppDatasetsDeleted**: `"dcp_app_datasets_deleted"` = `"dcp_app_datasets_deleted"`
 
 Number of app datasets deleted.
+
+### AgreementsSwept {#agreementsswept}
+
+> `readonly` **AgreementsSwept**: `"dcp_agreements_swept"` = `"dcp_agreements_swept"`
+
+Number of agreements removed by the agreement sweep.
