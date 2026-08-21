@@ -78,7 +78,7 @@ describe("appRunner - concurrent startup and task dispatch", () => {
 	});
 
 	it("appRunner succeeds when called concurrently with appRunnerStart", async () => {
-		let releaseStartup!: () => void;
+		let releaseStartup = (): void => {};
 		const startupBarrier = new Promise<void>(resolve => {
 			releaseStartup = resolve;
 		});

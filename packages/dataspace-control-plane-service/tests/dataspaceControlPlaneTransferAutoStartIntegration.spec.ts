@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { HttpContextIdKeys } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Converter } from "@twin.org/core";
+import { ComponentFactory, Converter, Is } from "@twin.org/core";
 import {
 	DataspaceTransferFormat,
 	TransferTerminationCode,
@@ -61,7 +61,7 @@ const REMOTE_CP_TYPE = "loopback-remote-control-plane";
  * @returns The decoded issuer identity, or undefined if it cannot be decoded.
  */
 function decodeIssuer(token: unknown): string | undefined {
-	if (typeof token !== "string") {
+	if (!Is.string(token)) {
 		return undefined;
 	}
 	const parts = token.split(".");

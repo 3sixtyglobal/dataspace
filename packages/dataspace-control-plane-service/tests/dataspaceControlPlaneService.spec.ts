@@ -7283,8 +7283,8 @@ describe("DataspaceControlPlaneService", () => {
 				agreementId: "agreement-policy",
 				datasetId: "urn:uuid:dataset-policy",
 				consumerIdentity: "did:iota:consumer",
-				...(options?.omitProviderIdentity === true ? {} : { providerIdentity: PROVIDER_IDENTITY }),
-				...(localRole === undefined ? {} : { localRole }),
+				providerIdentity: options?.omitProviderIdentity === true ? undefined : PROVIDER_IDENTITY,
+				localRole: localRole ?? undefined,
 				offerId: "agreement-policy",
 				format: options?.format ?? "HttpData-PULL",
 				organizationIdentity: options?.organizationIdentity ?? "did:iota:provider-node-xyz",
@@ -7354,7 +7354,7 @@ describe("DataspaceControlPlaneService", () => {
 				onSuspended: vi.fn().mockResolvedValue(undefined),
 				onTerminated: vi.fn().mockResolvedValue(undefined),
 				onFailed: vi.fn().mockResolvedValue(undefined),
-				...(withOnTimeout ? { onTimeout: vi.fn().mockResolvedValue(undefined) } : {})
+				onTimeout: withOnTimeout ? vi.fn().mockResolvedValue(undefined) : undefined
 			};
 		}
 

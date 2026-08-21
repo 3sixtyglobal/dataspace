@@ -75,7 +75,7 @@ describe("pushDeliveryRunner - concurrent startup and task dispatch", () => {
 	});
 
 	it("pushDeliveryRunner succeeds when called concurrently with pushDeliveryRunnerStart", async () => {
-		let releaseStartup!: () => void;
+		let releaseStartup = (): void => {};
 		const startupBarrier = new Promise<void>(resolve => {
 			releaseStartup = resolve;
 		});
