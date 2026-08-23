@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.2-next.10...dataspace-control-plane-service-v0.9.2-next.11) (2026-08-23)
+
+
+### Features
+
+* add correlation callbacks ([#354](https://github.com/iotaledger/twin-dataspace/issues/354)) ([d362fb6](https://github.com/iotaledger/twin-dataspace/commit/d362fb6b0816a62f72a77478d78fb3959a437b3c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.9.2-next.10 to 0.9.2-next.11
+
 ## [0.9.2-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.9.2-next.9...dataspace-control-plane-service-v0.9.2-next.10) (2026-08-16)
 
 

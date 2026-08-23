@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.10...dataspace-models-v0.9.2-next.11) (2026-08-23)
+
+
+### Features
+
+* add correlation callbacks ([#354](https://github.com/iotaledger/twin-dataspace/issues/354)) ([d362fb6](https://github.com/iotaledger/twin-dataspace/commit/d362fb6b0816a62f72a77478d78fb3959a437b3c))
+
 ## [0.9.2-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.9.2-next.9...dataspace-models-v0.9.2-next.10) (2026-08-16)
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.2-next.11](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.9.2-next.10...dataspace-data-plane-rest-client-v0.9.2-next.11) (2026-08-23)
+
+
+### Miscellaneous Chores
+
+* **dataspace-data-plane-rest-client:** Synchronize repo versions
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @twin.org/dataspace-models bumped from 0.9.2-next.10 to 0.9.2-next.11
+
 ## [0.9.2-next.10](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.9.2-next.9...dataspace-data-plane-rest-client-v0.9.2-next.10) (2026-08-16)
 
 
