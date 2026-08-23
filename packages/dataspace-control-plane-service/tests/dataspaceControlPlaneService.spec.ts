@@ -4224,7 +4224,11 @@ describe("DataspaceControlPlaneService", () => {
 			await requester.agreement("cb-neg-003", mockAgreement);
 			await requester.finalised("cb-neg-003");
 
-			expect(callbackSpy.onFinalized).toHaveBeenCalledWith("cb-neg-003", "final-agreement-uid");
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				"cb-neg-003",
+				"final-agreement-uid",
+				undefined
+			);
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
@@ -4609,12 +4613,16 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				result.agreementId,
+				"offer-negotiation-valid"
+			);
 			expect(callbackSpy.onStateChanged).not.toHaveBeenCalled();
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
-		test("should call onFinalized(undefined, agreementId) when reusing an existing implicit agreement", async () => {
+		test("should call onFinalized(undefined, agreementId, offerId) when reusing an existing implicit agreement", async () => {
 			ComponentFactory.register("test-trust", () =>
 				createMockTrustComponent("did:iota:provider-node-xyz")
 			);
@@ -4646,7 +4654,11 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(result.agreementId).toBe("implicit-reuse-agreement-1");
 			expect(result.negotiationId).toBeUndefined();
-			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(undefined, "implicit-reuse-agreement-1");
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				"implicit-reuse-agreement-1",
+				"offer-negotiation-valid"
+			);
 		});
 
 		test("should not create a new agreement when one already exists", async () => {
@@ -4704,8 +4716,16 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			expect(callbackSpy1.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
-			expect(callbackSpy2.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
+			expect(callbackSpy1.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				result.agreementId,
+				"offer-negotiation-valid"
+			);
+			expect(callbackSpy2.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				result.agreementId,
+				"offer-negotiation-valid"
+			);
 		});
 
 		test("should still return agreementId if a callback throws during implicit trust", async () => {
@@ -4817,7 +4837,8 @@ describe("DataspaceControlPlaneService", () => {
 			expect(result.agreementId).toBe("cross-org-callback-agreement");
 			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
 				undefined,
-				"cross-org-callback-agreement"
+				"cross-org-callback-agreement",
+				"offer-negotiation-valid"
 			);
 			expect(callbackSpy.onStateChanged).not.toHaveBeenCalled();
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();

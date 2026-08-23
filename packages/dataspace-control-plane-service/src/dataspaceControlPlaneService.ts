@@ -1992,7 +1992,7 @@ export class DataspaceControlPlaneService
 			localProviderContext?.[ContextIdKeys.Organization] === organizationId &&
 			trustInfo.identity === organizationId
 		) {
-			return this.negotiateImplicitTrustAgreement(organizationId, datasetId);
+			return this.negotiateImplicitTrustAgreement(organizationId, datasetId, offerId);
 		}
 
 		// For cross-org negotiations, reuse a compatible existing agreement when one exists.
@@ -2016,7 +2016,7 @@ export class DataspaceControlPlaneService
 
 				for (const [key, cb] of this._negotiationCallbacks.entries()) {
 					try {
-						await cb.onFinalized(undefined, existingAgreementId);
+						await cb.onFinalized(undefined, existingAgreementId, offerId);
 					} catch (error) {
 						await this._loggingComponent?.log({
 							level: "error",
@@ -2027,7 +2027,7 @@ export class DataspaceControlPlaneService
 								key,
 								negotiationId: existingAgreementId,
 								method: "onFinalized",
-								error
+								error: BaseError.fromError(error)
 							}
 						});
 					}
@@ -2694,7 +2694,12 @@ export class DataspaceControlPlaneService
 						source: DataspaceControlPlaneService.CLASS_NAME,
 						ts: Date.now(),
 						message: "negotiationCallbackError",
-						data: { key, negotiationId, method: onTimeout ? "onTimeout" : "onFailed", error }
+						data: {
+							key,
+							negotiationId,
+							method: onTimeout ? "onTimeout" : "onFailed",
+							error: BaseError.fromError(error)
+						}
 					});
 				}
 			}
@@ -4022,22 +4027,27 @@ export class DataspaceControlPlaneService
 							source: DataspaceControlPlaneService.CLASS_NAME,
 							ts: Date.now(),
 							message: "negotiationCallbackError",
-							data: { key, negotiationId, method: "onStateChanged", error }
+							data: {
+								key,
+								negotiationId,
+								method: "onStateChanged",
+								error: BaseError.fromError(error)
+							}
 						});
 					}
 				}
 			},
-			onFinalized: async (negotiationId, agreementId) => {
+			onFinalized: async (negotiationId, agreementId, offerId) => {
 				for (const [key, cb] of this._negotiationCallbacks.entries()) {
 					try {
-						await cb.onFinalized(negotiationId, agreementId);
+						await cb.onFinalized(negotiationId, agreementId, offerId);
 					} catch (error) {
 						await this._loggingComponent?.log({
 							level: "error",
 							source: DataspaceControlPlaneService.CLASS_NAME,
 							ts: Date.now(),
 							message: "negotiationCallbackError",
-							data: { key, negotiationId, method: "onCompleted", error }
+							data: { key, negotiationId, method: "onFinalized", error: BaseError.fromError(error) }
 						});
 					}
 				}
@@ -4052,7 +4062,7 @@ export class DataspaceControlPlaneService
 							source: DataspaceControlPlaneService.CLASS_NAME,
 							ts: Date.now(),
 							message: "negotiationCallbackError",
-							data: { key, negotiationId, method: "onFailed", error }
+							data: { key, negotiationId, method: "onFailed", error: BaseError.fromError(error) }
 						});
 					}
 				}
@@ -4295,12 +4305,14 @@ export class DataspaceControlPlaneService
 	 * both cases.
 	 * @param organizationId The local organization ID (both assigner and assignee).
 	 * @param datasetId The dataset being granted access to.
+	 * @param offerId The offer ID to pass as a correlation to onFinalized callbacks.
 	 * @returns The agreement ID.
 	 * @internal
 	 */
 	private async negotiateImplicitTrustAgreement(
 		organizationId: string,
-		datasetId: string
+		datasetId: string,
+		offerId?: string
 	): Promise<{ agreementId: string }> {
 		const existingId = await this.findExistingAgreement(organizationId, organizationId, datasetId);
 
@@ -4344,14 +4356,19 @@ export class DataspaceControlPlaneService
 
 		for (const [key, cb] of this._negotiationCallbacks.entries()) {
 			try {
-				await cb.onFinalized(undefined, agreementId);
+				await cb.onFinalized(undefined, agreementId, offerId);
 			} catch (error) {
 				await this._loggingComponent?.log({
 					level: "error",
 					source: DataspaceControlPlaneService.CLASS_NAME,
 					ts: Date.now(),
 					message: "negotiationCallbackError",
-					data: { key, negotiationId: agreementId, method: "onFinalized", error }
+					data: {
+						key,
+						negotiationId: agreementId,
+						method: "onFinalized",
+						error: BaseError.fromError(error)
+					}
 				});
 			}
 		}
