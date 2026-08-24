@@ -35,7 +35,7 @@ The identity of the organization that owns this entity.
 > `optional` **tenantId?**: `string`
 
 The tenant that owns this dataset, captured from the request context at
-write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`)
+write time. Optional - single-tenant nodes (no `TWIN_TENANT_ENABLED`)
 register datasets without a tenant context.
 
 ***
@@ -59,6 +59,15 @@ opaque object and validated/populated at publish time.
 #### Index Signature
 
 \[`key`: `string`\]: `unknown`
+
+***
+
+### transferIdleTimeoutMs? {#transferidletimeoutms}
+
+> `optional` **transferIdleTimeoutMs?**: `number`
+
+Idle window (ms) for this dataset's PULL transfers, overriding the node-level
+providerTransferIdleTimeoutMs; 0 disables the idle policy for this dataset.
 
 ***
 

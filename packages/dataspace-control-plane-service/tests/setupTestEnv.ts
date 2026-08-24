@@ -1,14 +1,15 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IPlatformComponent } from "@twin.org/api-models";
+import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import { Converter, ComponentFactory, I18n } from "@twin.org/core";
 import {
 	DataspaceAppDataset,
 	TransferProcess,
+	TransferRetrieval,
 	type IDataspaceDataPlaneComponent
 } from "@twin.org/dataspace-models";
-import type { IEngineCore } from "@twin.org/engine-models";
 import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import { DataspaceProtocolDataTypes } from "@twin.org/standards-dataspace-protocol";
@@ -120,6 +121,18 @@ export function createMockDataspaceDataPlaneComponent(): IDataspaceDataPlaneComp
 }
 
 /**
+ * Creates a minimal mock task scheduler for testing.
+ * @returns A mock ITaskSchedulerComponent.
+ */
+export function createMockTaskScheduler(): ITaskSchedulerComponent {
+	return {
+		className: () => "MockTaskScheduler",
+		addTask: vi.fn().mockResolvedValue(undefined),
+		removeTask: vi.fn().mockResolvedValue(undefined)
+	} as unknown as ITaskSchedulerComponent;
+}
+
+/**
  * Setup the test environment for Dataspace Control Plane Service tests.
  * Registers schemas, contexts, and locales required for all tests.
  * Call this in beforeAll() of test suites.
@@ -142,6 +155,10 @@ export async function setupTestEnv(): Promise<void> {
 		EntitySchemaHelper.getSchema(DataspaceAppDataset)
 	);
 
+	EntitySchemaFactory.register(nameof<TransferRetrieval>(), () =>
+		EntitySchemaHelper.getSchema(TransferRetrieval)
+	);
+
 	// Register a default single-tenant platform component. Tests that need
 	// multi-tenant behaviour register their own under a separate key.
 	ComponentFactory.register("platform", () => createSingleTenantPlatformComponent());
@@ -159,18 +176,25 @@ export async function setupTestEnv(): Promise<void> {
 		"policy-negotiation-admin-point",
 		() => new MockPolicyNegotiationAdminPointComponent()
 	);
+
+	// Register a default mock task scheduler. The task scheduler is now required
+	// (get vs getIfExists), so a default must always be present.
+	ComponentFactory.register("task-scheduler", () => createMockTaskScheduler());
 }
 
 /**
  * Creates a mock Engine Core for testing.
  * @param isClone Whether this engine is a clone.
- * @returns A mock IEngineCore.
+ * @returns A mock engine core object.
  */
-export function createMockEngineCore(isClone: boolean = false): IEngineCore {
+export function createMockEngineCore(isClone: boolean = false): {
+	className: () => string;
+	isClone: () => boolean;
+} {
 	return {
 		className: () => "MockEngineCore",
 		isClone: () => isClone
-	} as unknown as IEngineCore;
+	};
 }
 
 /**

@@ -115,7 +115,7 @@ const transferProcessExample = {
  * The REST routes for dataspace control plane (DSP Protocol only).
  * These routes implement the Eclipse Dataspace Protocol Transfer Process Protocol.
  *
- * Contract Negotiation is handled internally via PNP callbacks — no REST endpoints needed.
+ * Contract Negotiation is handled internally via PNP callbacks - no REST endpoints needed.
  * PNP registers its own inbound callback routes for negotiation messages from providers.
  *
  * @param baseRouteName Prefix to prepend to the paths.
@@ -458,7 +458,8 @@ export function generateRestRoutesDataspaceControlPlane(
 										version: "2025-1",
 										path: "/dataspace-control-plane/2025-1",
 										binding: "HTTPS",
-										serviceId: "twin-connector"
+										identifierType: "did:iota",
+										serviceId: "iota/twin.org/dspace-connector"
 									}
 								]
 							}
@@ -586,7 +587,7 @@ export function generateRestRoutesDataspaceControlPlane(
 			examples: [
 				{
 					id: "datasetUpdateRequestExample",
-					// `dataset["@id"]` is intentionally omitted — the path id is
+					// `dataset["@id"]` is intentionally omitted - the path id is
 					// authoritative and any body `@id` is stripped before storage.
 					request: {
 						pathParams: { id: "dataspace-app-dataset-1" },
@@ -884,7 +885,10 @@ async function createAppDatasetHandler(
 	const id = await component.createAppDataset(
 		request.body.id,
 		request.body.appId,
-		request.body.dataset
+		request.body.dataset,
+		{
+			transferIdleTimeoutMs: request.body.transferIdleTimeoutMs
+		}
 	);
 
 	const contextIds = await ContextIdStore.getContextIds();
@@ -968,7 +972,14 @@ async function updateAppDatasetHandler(
 	Guards.object(ROUTES_SOURCE, nameof(request.body.dataset), request.body.dataset);
 
 	const component = ComponentFactory.get<IDataspaceControlPlaneComponent>(componentName);
-	await component.updateAppDataset(request.pathParams.id, request.body.appId, request.body.dataset);
+	await component.updateAppDataset(
+		request.pathParams.id,
+		request.body.appId,
+		request.body.dataset,
+		{
+			transferIdleTimeoutMs: request.body.transferIdleTimeoutMs
+		}
+	);
 
 	return {
 		statusCode: HttpStatusCode.noContent

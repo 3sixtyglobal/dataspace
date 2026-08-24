@@ -57,5 +57,10 @@ export const DataspaceControlPlaneMetrics: ITelemetryMetric[] = [
 		id: DataspaceControlPlaneMetricIds.AppDatasetsDeleted,
 		label: "App datasets deleted",
 		type: MetricType.Counter
+	},
+	{
+		id: DataspaceControlPlaneMetricIds.AgreementsSwept,
+		label: "Agreements removed by the sweep",
+		type: MetricType.Counter
 	}
 ];

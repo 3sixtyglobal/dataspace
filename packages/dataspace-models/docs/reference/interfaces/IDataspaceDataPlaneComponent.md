@@ -119,7 +119,7 @@ NotFoundError if activity log entry is not known.
 
 #### Throws
 
-UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
+UnauthorizedError if trustPayload is absent or the verified identity is not authorised for the entry.
 
 ***
 

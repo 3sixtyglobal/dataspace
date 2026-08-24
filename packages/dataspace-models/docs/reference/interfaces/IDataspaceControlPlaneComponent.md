@@ -79,7 +79,7 @@ Otherwise the method returns immediately with a `negotiationId`. The caller is
 notified via the registered INegotiationCallback when the negotiation completes.
 The negotiation follows DSP state machine: REQUESTED → OFFERED → AGREED → VERIFIED → FINALIZED.
 
-The REST client does not support this method and throws a not supported error —
+The REST client does not support this method and throws a not supported error -
 use ComponentFactory.get() for the in-process service.
 
 DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1/#negotiation-protocol
@@ -200,7 +200,7 @@ Upstream modules register their callback here to be notified when a
 consumer-initiated transfer changes state (STARTED, COMPLETED, SUSPENDED,
 TERMINATED).
 
-The REST client does not support this method and throws a not supported error —
+The REST client does not support this method and throws a not supported error -
 use ComponentFactory.get() for the in-process service.
 
 #### Parameters
@@ -260,7 +260,7 @@ The caller is notified of subsequent state changes (STARTED, COMPLETED, etc.)
 via the registered ITransferCallback. The transfer moves to STARTED when the
 provider POSTs a TransferStartMessage back to this node's callback address.
 
-The REST client does not support this method and throws a not supported error —
+The REST client does not support this method and throws a not supported error -
 use ComponentFactory.get() for the in-process service.
 
 #### Parameters
@@ -550,9 +550,59 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ***
 
+### queryDataTransfer() {#querydatatransfer}
+
+> **queryDataTransfer**(`agreementId`, `state`, `cursor`, `trustPayload`): `Promise`\<[`ITransferQueryResult`](ITransferQueryResult.md)\>
+
+Query Transfer Processes by agreement id.
+Lets a caller check whether transfers already exist for an agreement
+(e.g. before initiating a new one) without knowing any process ids.
+
+Role Performed: Consumer / Provider
+Called by: Consumer orchestration before requesting a new transfer, or either
+party inspecting the transfers attached to an agreement on their side.
+
+Results are limited to transfers where the authenticated caller is a party
+(consumer or provider identity). A returned dataAddress is a point-in-time copy;
+if its token has expired the data plane rejects it and a new start is required.
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+The agreement id to look up transfer processes for.
+
+##### state
+
+`DataspaceProtocolTransferProcessStateType` \| `undefined`
+
+Optional filter to a single transfer process state.
+
+##### cursor
+
+`string` \| `undefined`
+
+Optional pagination cursor from a previous result page.
+
+##### trustPayload
+
+`unknown`
+
+Trust payload containing authorization information (JWT, VC, etc.).
+
+#### Returns
+
+`Promise`\<[`ITransferQueryResult`](ITransferQueryResult.md)\>
+
+The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+
+***
+
 ### createAppDataset() {#createappdataset}
 
-> **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>
+> **createAppDataset**(`id`, `appId`, `dataset`, `options?`): `Promise`\<`string`\>
 
 Register an app dataset for a dataspace app, owned by the calling tenant.
 
@@ -577,6 +627,17 @@ The dataspace app this dataset belongs to (matches
 `IDataspaceProtocolDataset`
 
 The dataset payload (may omit system-stamped fields).
+
+##### options?
+
+Optional dataset settings.
+
+###### transferIdleTimeoutMs?
+
+`number`
+
+Optional idle window (ms) overriding the node-level idle
+policy for this dataset's PULL transfers; 0 disables it for this dataset.
 
 #### Returns
 
@@ -638,7 +699,7 @@ The stored app datasets and the next-page cursor if more exist.
 
 ### updateAppDataset() {#updateappdataset}
 
-> **updateAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`void`\>
+> **updateAppDataset**(`id`, `appId`, `dataset`, `options?`): `Promise`\<`void`\>
 
 Update an app dataset record owned by the calling tenant.
 
@@ -661,6 +722,17 @@ The dataspace app this dataset belongs to.
 `IDataspaceProtocolDataset`
 
 The dataset payload.
+
+##### options?
+
+Optional dataset settings.
+
+###### transferIdleTimeoutMs?
+
+`number`
+
+Optional idle window (ms) overriding the node-level idle
+policy for this dataset's PULL transfers; 0 disables it for this dataset.
 
 #### Returns
 

@@ -5,7 +5,7 @@ import { entity, property, SortDirection } from "@twin.org/entity";
 /**
  * Tenant-supplied Dataset shape persisted by the Control Plane.
  */
-@entity()
+@entity({ version: 1 })
 export class DataspaceAppDataset {
 	/**
 	 * The unique identifier for the dataset.
@@ -21,7 +21,7 @@ export class DataspaceAppDataset {
 
 	/**
 	 * The tenant that owns this dataset, captured from the request context at
-	 * write time. Optional — single-tenant nodes (no `TWIN_TENANT_ENABLED`)
+	 * write time. Optional - single-tenant nodes (no `TWIN_TENANT_ENABLED`)
 	 * register datasets without a tenant context.
 	 */
 	@property({ type: "string", optional: true })
@@ -40,6 +40,13 @@ export class DataspaceAppDataset {
 	 */
 	@property({ type: "object", format: "json" })
 	public dataset!: { [key: string]: unknown };
+
+	/**
+	 * Idle window (ms) for this dataset's PULL transfers, overriding the node-level
+	 * providerTransferIdleTimeoutMs; 0 disables the idle policy for this dataset.
+	 */
+	@property({ type: "number", optional: true })
+	public transferIdleTimeoutMs?: number;
 
 	/**
 	 * Creation timestamp (ISO string format).

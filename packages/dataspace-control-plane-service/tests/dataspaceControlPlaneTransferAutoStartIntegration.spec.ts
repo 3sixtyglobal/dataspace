@@ -2,16 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { HttpContextIdKeys } from "@twin.org/api-models";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Converter } from "@twin.org/core";
+import { ComponentFactory, Converter, Is } from "@twin.org/core";
 import {
 	DataspaceTransferFormat,
+	TransferTerminationCode,
 	type DataspaceAppDataset,
 	type IDataspaceControlPlaneComponent,
 	type ITransferCallback,
-	type TransferProcess
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
+import type { ILogEntry, ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	DataspaceProtocolContexts,
@@ -25,6 +28,7 @@ import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.
 import { MockPolicyAdministrationPointComponent } from "./mocks/mockPolicyAdministrationPoint.js";
 import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiationPoint.js";
 import { setupTestEnv } from "./setupTestEnv.js";
+import type { IDataspaceControlPlaneServiceConfig } from "../src/models/IDataspaceControlPlaneServiceConfig.js";
 
 // Two-node identities. agreement-123 is pre-seeded in MockPolicyAdministrationPointComponent
 // (assigner=PROVIDER_ORG, assignee=CONSUMER_ORG, target=urn:uuid:dataset-123) and reused as the shared
@@ -57,7 +61,7 @@ const REMOTE_CP_TYPE = "loopback-remote-control-plane";
  * @returns The decoded issuer identity, or undefined if it cannot be decoded.
  */
 function decodeIssuer(token: unknown): string | undefined {
-	if (typeof token !== "string") {
+	if (!Is.string(token)) {
 		return undefined;
 	}
 	const parts = token.split(".");
@@ -116,7 +120,9 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	let consumerService: DataspaceControlPlaneService;
 	let consumerStorage: MemoryEntityStorageConnector<TransferProcess>;
 	let providerStorage: MemoryEntityStorageConnector<TransferProcess>;
+	let transferRetrievalStorage: MemoryEntityStorageConnector<TransferRetrieval>;
 	let consumerCallback: ITransferCallback;
+	let loggingComponent: ILoggingComponent;
 
 	beforeAll(async () => {
 		await setupTestEnv();
@@ -131,10 +137,12 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	 * Defaults to false (no auto-start).
 	 * @param providerContextOrg The provider node's tenant-routing organization context. Defaults to
 	 * PROVIDER_ORG (org == agreement assigner). Pass a distinct value to exercise the org != assigner split.
+	 * @param providerExtraConfig Additional provider-node service config merged over the shared defaults.
 	 */
 	function arrangeTwoNodes(
 		autoStart: boolean = false,
-		providerContextOrg: string = PROVIDER_ORG
+		providerContextOrg: string = PROVIDER_ORG,
+		providerExtraConfig: Partial<IDataspaceControlPlaneServiceConfig> = {}
 	): void {
 		ComponentFactory.register("test-pap", () => new MockPolicyAdministrationPointComponent());
 		ComponentFactory.register("test-fedcat", () => new MockFederatedCatalogueComponent());
@@ -143,6 +151,13 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// so it correctly resolves provider-issued tokens to PROVIDER_ORG and
 		// consumer-issued tokens to CONSUMER_ORG on either node.
 		ComponentFactory.register("test-trust", () => createDecodingTrustComponent());
+		// Recording logging component shared by both nodes, so tests can assert log entries.
+		loggingComponent = {
+			className: () => "test-logging",
+			log: vi.fn().mockResolvedValue(undefined),
+			query: vi.fn().mockResolvedValue({ entities: [] })
+		};
+		ComponentFactory.register("test-logging", () => loggingComponent);
 
 		// Each node has its own transfer-process storage. A distinct `storageKey` is REQUIRED to give two
 		// connectors with the same entitySchema separate backing storage (per the connector's config), so
@@ -157,6 +172,14 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		});
 		EntityStorageConnectorFactory.register(PROVIDER_TP_STORAGE, () => providerStorage);
 		EntityStorageConnectorFactory.register(CONSUMER_TP_STORAGE, () => consumerStorage);
+		transferRetrievalStorage = new MemoryEntityStorageConnector<TransferRetrieval>({
+			entitySchema: nameof<TransferRetrieval>(),
+			config: { storageKey: "transfer-retrieval" }
+		});
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<TransferRetrieval>(),
+			() => transferRetrievalStorage
+		);
 		EntityStorageConnectorFactory.register(
 			SHARED_DATASET_STORAGE,
 			() =>
@@ -171,6 +194,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			policyNegotiationPointComponentType: "test-pnp",
 			federatedCatalogueComponentType: "test-fedcat",
 			trustComponentType: "test-trust",
+			loggingComponentType: "test-logging",
 			dataspaceAppDatasetEntityStorageType: SHARED_DATASET_STORAGE,
 			remoteControlPlaneComponentType: REMOTE_CP_TYPE,
 			config: { dataPlanePath: "data-plane/data" }
@@ -181,7 +205,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		providerService = new DataspaceControlPlaneService({
 			...sharedDeps,
 			transferProcessEntityStorageType: PROVIDER_TP_STORAGE,
-			config: { ...sharedDeps.config, autoStartTransfers: autoStart }
+			config: { ...sharedDeps.config, autoStartTransfers: autoStart, ...providerExtraConfig }
 		});
 
 		// Consumer node (consumers never auto-start).
@@ -253,14 +277,26 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	}
 
 	afterEach(async () => {
-		for (const type of ["test-pap", "test-fedcat", "test-pnp", "test-trust", REMOTE_CP_TYPE]) {
+		for (const type of [
+			"test-pap",
+			"test-fedcat",
+			"test-pnp",
+			"test-trust",
+			"test-logging",
+			REMOTE_CP_TYPE
+		]) {
 			try {
 				ComponentFactory.unregister(type);
 			} catch {
 				// Ignore if not registered.
 			}
 		}
-		for (const type of [PROVIDER_TP_STORAGE, CONSUMER_TP_STORAGE, SHARED_DATASET_STORAGE]) {
+		for (const type of [
+			PROVIDER_TP_STORAGE,
+			CONSUMER_TP_STORAGE,
+			SHARED_DATASET_STORAGE,
+			nameofKebabCase<TransferRetrieval>()
+		]) {
 			try {
 				EntityStorageConnectorFactory.unregister(type);
 			} catch {
@@ -278,7 +314,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(
@@ -326,8 +362,29 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			consumerPid,
 			DataspaceProtocolTransferProcessStateType.STARTED
 		);
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+
+		// The provider-built PULL dataAddress was persisted on the consumer record and is
+		// re-readable via queryDataTransfer without a new start.
+		expect(storedConsumer?.dataAddress?.endpoint).toContain(PROVIDER_ENDPOINT);
+		const queried = await ContextIdStore.run(
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
+			async () =>
+				consumerService.queryDataTransfer(
+					AGREEMENT_ID,
+					DataspaceProtocolTransferProcessStateType.STARTED,
+					undefined,
+					consumerToken
+				)
+		);
+		expect(queried.transfers).toHaveLength(1);
+		expect(queried.transfers[0].consumerPid).toBe(consumerPid);
+		expect(queried.transfers[0].dataAddress?.endpoint).toContain(PROVIDER_ENDPOINT);
 
 		// Provider-side record also reached STARTED (the auto-start really ran).
 		const providerEntities = await providerStorage.query();
@@ -340,14 +397,14 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 	test("delivers the start under the assigner identity when the provider's org context differs (org != assigner)", async () => {
 		// The provider node runs in a tenant org distinct from the agreement assigner. The cross-node start
 		// token must be minted under the assigner DID the consumer's gate checks (providerIdentity), NOT the
-		// tenant org — otherwise the consumer silently rejects every delivery and never reaches STARTED.
+		// tenant org - otherwise the consumer silently rejects every delivery and never reaches STARTED.
 		arrangeTwoNodes(true, PROVIDER_TENANT_ORG);
 
 		let resolveStarted: (message: IDataspaceProtocolTransferStartMessage) => void = () => {};
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
@@ -375,7 +432,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		await onStartedFired;
 
 		expect(consumerCallback.onStarted).toHaveBeenCalledWith(consumerPid, expect.anything());
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 		// Confirm the provider record genuinely carried a tenant org distinct from the assigner identity, so
@@ -386,6 +443,72 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		) as TransferProcess | undefined;
 		expect(providerRecord?.organizationIdentity).toBe(PROVIDER_TENANT_ORG);
 		expect(providerRecord?.providerIdentity).toBe(PROVIDER_ORG);
+	});
+
+	test("logs the TransferError diagnostics when the auto-start fails with an error result", async () => {
+		arrangeTwoNodes(true);
+
+		// Fail verification of provider-issued tokens only, so the deferred auto-start's self-token is
+		// rejected and transferStarted returns a TransferError result (the throwing paths are covered by
+		// the catch branch). Consumer-issued tokens still verify, so the request leg succeeds.
+		const trustComponent = ComponentFactory.get<ITrustComponent>("test-trust");
+		const originalVerify = trustComponent.verify;
+		vi.spyOn(trustComponent, "verify").mockImplementation(async payload => {
+			if (decodeIssuer(payload) === PROVIDER_ORG) {
+				return { verified: false };
+			}
+			return originalVerify(payload);
+		});
+
+		// Resolve when the provider's autoStartFailed log lands; fail loudly if it never does.
+		let resolveFailed: (entry: ILogEntry) => void = () => {};
+		const autoStartFailedLogged = new Promise<ILogEntry>((resolve, reject) => {
+			resolveFailed = resolve;
+			setTimeout(() => reject(new Error("Timed out waiting for the autoStartFailed log")), 10000);
+		});
+		vi.mocked(loggingComponent.log).mockImplementation(async entry => {
+			if (entry.message === "autoStartFailed") {
+				resolveFailed(entry);
+			}
+		});
+
+		const consumerToken = await createDecodingTrustComponent().generate(CONSUMER_ORG);
+		const { consumerPid } = await ContextIdStore.run(
+			{
+				[ContextIdKeys.Node]: CONSUMER_ORG,
+				[ContextIdKeys.Organization]: CONSUMER_ORG,
+				[HttpContextIdKeys.PublicOrigin]: CONSUMER_ORIGIN
+			},
+			async () =>
+				consumerService.prepareTransfer(
+					AGREEMENT_ID,
+					PROVIDER_ENDPOINT,
+					DataspaceTransferFormat.HttpDataPull,
+					consumerToken
+				)
+		);
+
+		// The log entry carries the TransferError diagnostics, not just the consumerPid.
+		const entry = await autoStartFailedLogged;
+		expect(entry.data).toEqual(
+			expect.objectContaining({
+				consumerPid,
+				code: expect.stringContaining("UnauthorizedError")
+			})
+		);
+		expect(entry.error).toEqual(
+			expect.objectContaining({
+				name: "UnauthorizedError"
+			})
+		);
+
+		// The start never happened: no consumer notification, provider record still REQUESTED.
+		expect(consumerCallback.onStarted).not.toHaveBeenCalled();
+		const providerEntities = await providerStorage.query();
+		const providerRecord = providerEntities.entities.find(
+			e => (e as TransferProcess).consumerPid === consumerPid
+		) as TransferProcess | undefined;
+		expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 	});
 
 	test("does NOT auto-start when autoStart is not requested", async () => {
@@ -418,7 +541,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		expect(consumerCallback.onStateChanged).not.toHaveBeenCalled();
 
 		// Both records remain REQUESTED (the transfer was prepared/requested but never started).
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(
@@ -436,7 +559,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		let resolveStarted: (message: IDataspaceProtocolTransferStartMessage) => void = () => {};
 		const fired = new Promise<IDataspaceProtocolTransferStartMessage>((resolve, reject) => {
 			resolveStarted = resolve;
-			setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+			setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 		});
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
 			resolveStarted(message);
@@ -484,7 +607,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		// The provider's suspension was POSTed cross-node to the consumer callback (either-party auth),
 		// so the consumer's onSuspended fired (with the forwarded reason) and its record reached SUSPENDED.
 		expect(consumerCallback.onSuspended).toHaveBeenCalledWith(consumerPid, "maintenance");
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
 	});
 
@@ -510,8 +633,33 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		// The consumer's onTerminated fired with the forwarded reason and its record reached TERMINATED.
 		expect(consumerCallback.onTerminated).toHaveBeenCalledWith(consumerPid, "policy");
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+	});
+
+	test("idle policy sweep terminates an idle STARTED transfer and notifies the consumer node", async () => {
+		// A negative window treats any STARTED transfer as immediately idle, so the assertion
+		// does not depend on wall-clock timing.
+		arrangeTwoNodes(true, PROVIDER_ORG, { providerTransferIdleTimeoutMs: -1 });
+		const { consumerPid } = await startedTransfer();
+
+		await (
+			providerService as unknown as { applyProviderTransferPolicies(): Promise<void> }
+		).applyProviderTransferPolicies();
+
+		// The sweep terminated the provider-side record and delivered the termination cross-node:
+		// both records reached TERMINATED and the consumer's onTerminated fired with the policy reason.
+		expect(consumerCallback.onTerminated).toHaveBeenCalledWith(
+			consumerPid,
+			TransferTerminationCode.IdleTimeout
+		);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
+		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+		const providerEntities = await providerStorage.query();
+		const providerRecord = providerEntities.entities.find(
+			e => (e as TransferProcess).consumerPid === consumerPid
+		) as TransferProcess | undefined;
+		expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
 	});
 
 	/**
@@ -552,7 +700,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 3000);
+				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
@@ -562,7 +710,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const { consumerPid, providerPid } = await requestedTransfer();
 
 		// Nothing has started yet: autoStart was false.
-		const beforeConsumer = await consumerStorage.get(consumerPid);
+		const beforeConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(beforeConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 
 		// Provider explicitly starts, authenticated as the provider (agreement assigner) identity.
@@ -591,7 +739,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			consumerPid,
 			DataspaceProtocolTransferProcessStateType.STARTED
 		);
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(
@@ -640,7 +788,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			expect(result.code).toMatch(/transferStartNotProvider/);
 		}
 		// The consumer record is untouched.
-		const storedConsumer = await consumerStorage.get(consumerPid);
+		const storedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(storedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 	});
 
@@ -686,7 +834,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 					providerToken
 				)
 		);
-		const suspended = await consumerStorage.get(consumerPid);
+		const suspended = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(suspended?.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
 
 		// Provider resumes via the explicit start; the consumer's onStarted fires again and both reach STARTED.
@@ -695,7 +843,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			resolveResumed = resolve;
 			setTimeout(
 				() => reject(new Error("Timed out waiting for consumer onStarted (resume)")),
-				3000
+				10000
 			);
 		});
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async () => {
@@ -713,7 +861,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 
 		expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferStartMessage);
 		await resumedFired;
-		const resumedConsumer = await consumerStorage.get(consumerPid);
+		const resumedConsumer = await consumerStorage.get(consumerPid, "consumerPid");
 		expect(resumedConsumer?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 		const providerEntities = await providerStorage.query();
 		const providerRecord = providerEntities.entities.find(

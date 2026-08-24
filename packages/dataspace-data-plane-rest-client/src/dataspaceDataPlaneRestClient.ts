@@ -208,7 +208,7 @@ export class DataspaceDataPlaneRestClient
 	}
 
 	/**
-	 * Unsubscribes from the activity log — implemented in Socket Client.
+	 * Unsubscribes from the activity log - implemented in Socket Client.
 	 * @param subscriptionId The subscription Id to remove.
 	 * @returns A promise that always rejects since this operation is not supported on the REST client.
 	 * @throws NotSupportedError as this method is not supported on the REST client.
@@ -221,7 +221,7 @@ export class DataspaceDataPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — push subscriptions are server-side only.
+	 * Not supported on REST client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async setupPushSubscription(consumerPid: string): Promise<void> {
@@ -231,7 +231,7 @@ export class DataspaceDataPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — push subscriptions are server-side only.
+	 * Not supported on REST client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async suspendPushSubscription(consumerPid: string): Promise<void> {
@@ -241,7 +241,7 @@ export class DataspaceDataPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — push subscriptions are server-side only.
+	 * Not supported on REST client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async resumePushSubscription(consumerPid: string): Promise<void> {
@@ -251,7 +251,7 @@ export class DataspaceDataPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — push subscriptions are server-side only.
+	 * Not supported on REST client - push subscriptions are server-side only.
 	 * @param consumerPid Unused.
 	 */
 	public async teardownPushSubscription(consumerPid: string): Promise<void> {
@@ -261,7 +261,7 @@ export class DataspaceDataPlaneRestClient
 	}
 
 	/**
-	 * Not supported on REST client — processOutboxActivity is server-side only.
+	 * Not supported on REST client - processOutboxActivity is server-side only.
 	 * @param activity Unused.
 	 */
 	public async processOutboxActivity(activity: IActivityStreamsActivity): Promise<void> {
@@ -276,7 +276,7 @@ export class DataspaceDataPlaneRestClient
 	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
-	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not authorized for the entry.
 	 */
 	public async getActivityLogEntry(
 		logEntryId: string,

@@ -18,7 +18,7 @@
  * DID resolution and signature validation.
  */
 
-import { GeneralError, type IError } from "@twin.org/core";
+import { GeneralError, Is, type IError } from "@twin.org/core";
 import type { ITrustVerificationInfo, ITrustVerifier } from "@twin.org/trust-models";
 import { Jwt } from "@twin.org/web";
 
@@ -50,7 +50,7 @@ export class TestJwtVerifier implements ITrustVerifier {
 		errors: IError[]
 	): Promise<boolean | undefined> {
 		// Only process string payloads (JWT tokens)
-		if (typeof payload !== "string") {
+		if (!Is.string(payload)) {
 			return undefined; // Not our type, skip
 		}
 
@@ -73,7 +73,7 @@ export class TestJwtVerifier implements ITrustVerifier {
 			const jwtPayload = decoded.payload as { [key: string]: unknown };
 
 			// Check expiration (basic security check)
-			if (jwtPayload.exp && typeof jwtPayload.exp === "number") {
+			if (jwtPayload.exp && Is.number(jwtPayload.exp)) {
 				const expirationTime = jwtPayload.exp * 1000; // Convert to milliseconds
 				if (Date.now() > expirationTime) {
 					const error: IError = new GeneralError(TestJwtVerifier.CLASS_NAME, "tokenExpired", {
@@ -88,7 +88,7 @@ export class TestJwtVerifier implements ITrustVerifier {
 			// Expected format: { sub: "did:iota:..." }
 			const identity = jwtPayload.sub as string | undefined;
 
-			if (!identity || typeof identity !== "string" || identity.length === 0) {
+			if (!identity || !Is.string(identity) || identity.length === 0) {
 				const error: IError = new GeneralError(TestJwtVerifier.CLASS_NAME, "missingIdentity", {
 					message: "JWT token missing or invalid 'sub' claim"
 				});

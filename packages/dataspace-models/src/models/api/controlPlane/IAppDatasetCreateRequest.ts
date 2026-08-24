@@ -6,7 +6,7 @@ import type { IDataspaceProtocolDataset } from "@twin.org/standards-dataspace-pr
  * API request to register an app dataset.
  *
  * The owning `tenantId` is captured automatically from the request's tenant
- * context — callers do not supply it.
+ * context - callers do not supply it.
  */
 export interface IAppDatasetCreateRequest {
 	/**
@@ -29,8 +29,14 @@ export interface IAppDatasetCreateRequest {
 
 		/**
 		 * The dataset payload. System-stamped fields like `dcterms:publisher`
-		 * may be omitted — the Control Plane fills them in at publish time.
+		 * may be omitted - the Control Plane fills them in at publish time.
 		 */
 		dataset: IDataspaceProtocolDataset;
+
+		/**
+		 * Optional idle window (ms) overriding the node-level idle policy for this
+		 * dataset's PULL transfers; 0 disables it for this dataset.
+		 */
+		transferIdleTimeoutMs?: number;
 	};
 }

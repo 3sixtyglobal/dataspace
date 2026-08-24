@@ -14,11 +14,13 @@ import {
 	ComponentFactory,
 	ConflictError,
 	Converter,
+	Factory,
 	GeneralError,
 	GuardError,
 	Guards,
 	Is,
 	JsonHelper,
+	LruCache,
 	NotFoundError,
 	RandomHelper,
 	UnauthorizedError,
@@ -66,9 +68,9 @@ import {
 	type IPushDeliveryPayload,
 	type ITransferContext,
 	type IUndoActivity,
-	type TransferProcess
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
-import { EngineCoreFactory } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
@@ -78,6 +80,7 @@ import type { ILoggingComponent } from "@twin.org/logging-models";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
+	type IPolicyAdministrationPointComponent,
 	type IPolicyEnforcementPointComponent,
 	type IRightsManagementAgreement
 } from "@twin.org/rights-management-models";
@@ -96,7 +99,7 @@ import {
 	ActivityStreamsTypes,
 	type IActivityStreamsActivity
 } from "@twin.org/standards-w3c-activity-streams";
-import { OdrlActionType, OdrlContexts, OdrlTypes } from "@twin.org/standards-w3c-odrl";
+import { OdrlActionType } from "@twin.org/standards-w3c-odrl";
 import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
@@ -146,6 +149,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private static readonly _DEFAULT_PUSH_SUBSCRIPTION_CLEANUP_INTERVAL_MS: number = 60 * 60 * 1000;
+
+	/**
+	 * The maximum number of agreements held in-memory for PAP lookups.
+	 * @internal
+	 */
+	private static readonly _DEFAULT_AGREEMENT_CACHE_CAPACITY: number = 50;
 
 	/**
 	 * Logging service type.
@@ -284,6 +293,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	private readonly _pushSubscriptionStorageType: string;
 
 	/**
+	 * Storage for transfer retrievals; undefined when the hosting engine does not register it.
+	 * @internal
+	 */
+	private readonly _transferRetrievalStorage?: IEntityStorageConnector<TransferRetrieval>;
+
+	/**
 	 * Entity storage for tenant-supplied Dataspace App Dataset entities.
 	 * @internal
 	 */
@@ -294,6 +309,24 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private readonly _telemetryComponent?: ITelemetryComponent;
+
+	/**
+	 * PAP component for fetching fresh agreements at access time.
+	 * @internal
+	 */
+	private readonly _policyAdministrationPoint: IPolicyAdministrationPointComponent;
+
+	/**
+	 * TTL in ms for the in-memory PAP agreement cache.
+	 * @internal
+	 */
+	private readonly _agreementCacheTtlMs: number;
+
+	/**
+	 * In-memory cache of PAP-fetched agreements, keyed by agreement ID.
+	 * @internal
+	 */
+	private readonly _agreementCache?: LruCache<IRightsManagementAgreement>;
 
 	/**
 	 * Create a new instance of DataspaceDataPlane.
@@ -339,9 +372,13 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		// Push-subscription storage is optional and resolved lazily. The data plane is typically
 		// constructed before its dependent storages register, so caching the connector here would
-		// permanently miss it. We only need the factory key — every push call site re-resolves.
+		// permanently miss it. We only need the factory key - every push call site re-resolves.
 		this._pushSubscriptionStorageType =
 			options?.pushSubscriptionEntityStorageType ?? nameofKebabCase<PushSubscription>();
+
+		this._transferRetrievalStorage = EntityStorageConnectorFactory.getIfExists<
+			IEntityStorageConnector<TransferRetrieval>
+		>(options?.transferRetrievalEntityStorageType ?? nameofKebabCase<TransferRetrieval>());
 
 		this._dataspaceAppDatasetStorage = EntityStorageConnectorFactory.get<
 			IEntityStorageConnector<DataspaceAppDataset>
@@ -350,6 +387,20 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		this._telemetryComponent = ComponentFactory.getIfExists<ITelemetryComponent>(
 			options?.telemetryComponentType
 		);
+
+		this._policyAdministrationPoint = ComponentFactory.get<IPolicyAdministrationPointComponent>(
+			options?.papComponentType ?? "policy-administration-point"
+		);
+		this._agreementCacheTtlMs = Is.integer(options?.config?.agreementCacheTtlMs)
+			? options.config.agreementCacheTtlMs
+			: 30_000;
+		if (this._agreementCacheTtlMs > 0) {
+			this._agreementCache = new LruCache<IRightsManagementAgreement>({
+				capacity: DataspaceDataPlaneService._DEFAULT_AGREEMENT_CACHE_CAPACITY,
+				ttiMs: this._agreementCacheTtlMs,
+				mutexTimeoutMs: options?.config?.agreementCacheMutexTimeoutMs
+			});
+		}
 
 		JsonLdDataTypes.registerTypes();
 		DataspaceDataTypes.registerTypes();
@@ -459,7 +510,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
 			"@twin.org/dataspace-app-runner",
 			"pushDeliveryRunner",
-			undefined,
+			async task => {
+				if (task.status === TaskStatus.Success && !Is.empty(task.payload)) {
+					await this.recordPushDeliveryRetrieval(task.payload);
+				}
+			},
 			{
 				initialiseMethod: "pushDeliveryRunnerStart",
 				shutdownMethod: "pushDeliveryRunnerEnd",
@@ -467,8 +522,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 		);
 
-		const engine = EngineCoreFactory.getIfExists("engine");
-		if (Is.empty(engine) || engine.isClone()) {
+		const isCloneOrNoEngine =
+			Factory.getFactory<{ isClone: () => boolean }>("engine-core")
+				?.getIfExists("engine")
+				?.isClone() ?? true;
+
+		if (isCloneOrNoEngine) {
 			await this._logging?.log({
 				level: "debug",
 				source: DataspaceDataPlaneService.CLASS_NAME,
@@ -523,6 +582,16 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
+	 * Stop the service.
+	 * Destroys in-memory resources owned by this component.
+	 * @param nodeLoggingComponentType The node logging component type.
+	 * @returns A promise that resolves when the service has stopped.
+	 */
+	public async stop(nodeLoggingComponentType?: string): Promise<void> {
+		this._agreementCache?.destroy();
+	}
+
+	/**
 	 * Notify an Activity.
 	 * @param activity The Activity notified.
 	 * @param trustPayload Trust payload to verify the requesters identity.
@@ -538,7 +607,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			activity
 		);
 
-		// Every caller must present a trust payload — internal calls have no bypass,
+		// Every caller must present a trust payload - internal calls have no bypass,
 		// a missing payload fails verification. Verify it, confirm the referenced
 		// transfer is still in STARTED state, and assert the verified identity is
 		// one of the two parties on that transfer.
@@ -548,34 +617,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			"notifyActivity"
 		);
 		const generatorPid = this.calculateActivityGeneratorIdentity(activity);
-		// Primary lookup: by consumerPid (the entity's primary key). If this hits, the
-		// generator's PID equals consumerPid — the generator is the consumer side.
-		let transferProcess = await this._transferProcessStorage.get(generatorPid);
-		const generatorIsConsumer = Boolean(transferProcess);
-
-		if (!transferProcess) {
-			// Fallback: generatorPid === providerPid. providerPid is a UUIDv7 so it's
-			// unique per transfer, but defensively reject any case where the secondary
-			// index returns more than one match — silent first-match would risk
-			// authorising the wrong transfer if the invariant ever breaks.
-			const result = await this._transferProcessStorage.query({
-				conditions: [
-					{
-						property: "providerPid",
-						value: generatorPid,
-						comparison: ComparisonOperator.Equals
-					}
-				]
-			});
-			if (result.entities.length > 1) {
-				throw new UnauthorizedError(
-					DataspaceDataPlaneService.CLASS_NAME,
-					"pushActivityNotAuthorized"
-				);
-			}
-			transferProcess = result.entities[0] as TransferProcess | undefined;
-			// generatorIsConsumer stays false → generator is the provider side.
-		}
+		const transferProcess = await this.getTransferProcessByGeneratorPid(generatorPid);
+		const generatorIsConsumer = generatorPid === transferProcess?.consumerPid;
 
 		if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
 			throw new UnauthorizedError(
@@ -779,12 +822,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Returns Activity Log Entry which contains the Activity processing details.
-	 * Verifies the trust payload and asserts the caller is the entry's generator.
+	 * Verifies the trust payload and asserts the caller is authorized for the entry.
 	 * @param logEntryId The Id of the Activity Log Entry (a URI).
 	 * @param trustPayload Trust payload to verify the requester's identity.
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
-	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
+	 * @throws UnauthorizedError if trustPayload is absent or the verified identity is not authorised for the entry.
 	 */
 	public async getActivityLogEntry(
 		logEntryId: string,
@@ -800,7 +843,18 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		const entry = await this.retrieveActivityLogEntry(logEntryId);
 
-		if (trustInfo.identity !== entry.generator) {
+		if (trustInfo.identity === entry.generator) {
+			return entry;
+		}
+
+		const transferProcess = await this.getTransferProcessByGeneratorPid(entry.generator);
+		const isTransferParty =
+			(Is.stringValue(transferProcess?.consumerIdentity) &&
+				trustInfo.identity === transferProcess.consumerIdentity) ||
+			(Is.stringValue(transferProcess?.providerIdentity) &&
+				trustInfo.identity === transferProcess.providerIdentity);
+
+		if (!isTransferParty) {
 			throw new UnauthorizedError(
 				DataspaceDataPlaneService.CLASS_NAME,
 				"activityLogEntryNotAuthorized"
@@ -928,6 +982,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 		}
 
+		await this.recordTransferRetrieval(consumerPid);
+
 		await MetricHelper.metricIncrement(
 			this._telemetryComponent,
 			DataspaceDataPlaneMetricIds.DataAssetsRetrieved
@@ -1030,6 +1086,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 		}
 
+		await this.recordTransferRetrieval(consumerPid);
+
 		await MetricHelper.metricIncrement(
 			this._telemetryComponent,
 			DataspaceDataPlaneMetricIds.DataAssetsQueried
@@ -1063,8 +1121,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			"validateTransfer"
 		);
 
-		// Direct lookup from shared entity storage by consumerPid (which is the primary key)
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		// Provider record preferred: this is a provider-serving path.
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 
 		if (!transferProcess) {
 			throw new NotFoundError(
@@ -1114,7 +1172,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	public async setupPushSubscription(consumerPid: string): Promise<void> {
 		Guards.stringValue(DataspaceDataPlaneService.CLASS_NAME, nameof(consumerPid), consumerPid);
 
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		// Prefer the provider record: subscription setup runs on the provider right after its
+		// record transitions to STARTED, when a self node's consumer record is still REQUESTED.
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 		if (!transferProcess) {
 			throw new NotFoundError(
 				DataspaceDataPlaneService.CLASS_NAME,
@@ -1195,7 +1255,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		} catch (storageError) {
 			// Compensating Undo: the app's subscribeToData succeeded but the row didn't
 			// persist. Without compensation, a retry generates a new followActivityId and
-			// registers a second Follow on the app — with no persisted id to drive an Undo.
+			// registers a second Follow on the app - with no persisted id to drive an Undo.
 			if (appForCompensation) {
 				const compensatingUndo: IUndoActivity = {
 					"@context": ActivityStreamsContexts.Context,
@@ -1323,7 +1383,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			return;
 		}
 
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 
 		const undoActivity: IUndoActivity = {
 			"@context": ActivityStreamsContexts.Context,
@@ -1418,8 +1478,8 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			return;
 		}
 
-		// Load TransferProcess and validate it is STARTED
-		const transferProcess = await this._transferProcessStorage.get(consumerPid);
+		// Load TransferProcess (provider record preferred) and validate it is STARTED
+		const transferProcess = await this.getTransferProcessByConsumerPid(consumerPid);
 		if (transferProcess?.state !== DataspaceProtocolTransferProcessStateType.STARTED) {
 			await this._logging?.log({
 				level: "warn",
@@ -1431,9 +1491,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		}
 
 		// Build agreement from stored transfer context
-		const { agreement } = this.buildTransferContext(transferProcess);
+		const { agreement } = await this.buildTransferContext(transferProcess);
 
-		// Extract data object from activity; a string value is an IRI reference — wrap it so the IRI is preserved.
+		// Extract data object from activity; a string value is an IRI reference - wrap it so the IRI is preserved.
 		let data: IJsonLdNodeObject;
 		if (Is.object(activity.object)) {
 			data = activity.object;
@@ -1494,7 +1554,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 	/**
 	 * Fetches an activity log entry from storage without any trust verification.
-	 * Internal use only — public callers must use getActivityLogEntry.
+	 * Internal use only - public callers must use getActivityLogEntry.
 	 * @param logEntryId The Id of the Activity Log Entry (a URI).
 	 * @returns the Activity Log Entry with the processing details.
 	 * @throws NotFoundError if activity log entry is not known.
@@ -1548,6 +1608,52 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 				actor: activity.actor
 			}
 		);
+	}
+
+	/**
+	 * Record a successful retrieval (first and most recent), read by the control plane's one-shot
+	 * policy sweep. A no-op without the storage, never throws.
+	 * @param consumerPid The consumer process ID.
+	 * @internal
+	 */
+	private async recordTransferRetrieval(consumerPid: string): Promise<void> {
+		try {
+			if (Is.empty(this._transferRetrievalStorage)) {
+				return;
+			}
+			const now = new Date().toISOString();
+			const existing = await this._transferRetrievalStorage.get(consumerPid);
+			await this._transferRetrievalStorage.set({
+				consumerPid,
+				dateFirstRetrieved: existing?.dateFirstRetrieved ?? now,
+				dateLastRetrieved: now
+			});
+		} catch (error) {
+			await this._logging?.log({
+				level: "warn",
+				source: DataspaceDataPlaneService.CLASS_NAME,
+				message: "transferRetrievalRecordFailed",
+				data: { consumerPid, error }
+			});
+		}
+	}
+
+	/**
+	 * Record a successful push delivery as the transfer's first retrieval, inside the owning
+	 * tenant's context.
+	 * @param payload The delivered push payload.
+	 * @internal
+	 */
+	private async recordPushDeliveryRetrieval(payload: IPushDeliveryPayload): Promise<void> {
+		if (Is.stringValue(payload.tenantId)) {
+			const contextIds = await ContextIdStore.getContextIds();
+			await ContextIdStore.run(
+				{ ...contextIds, [ContextIdKeys.Tenant]: payload.tenantId },
+				async () => this.recordTransferRetrieval(payload.consumerPid)
+			);
+		} else {
+			await this.recordTransferRetrieval(payload.consumerPid);
+		}
 	}
 
 	/**
@@ -1789,7 +1895,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private async cleanupOrphanedPushSubscriptions(): Promise<void> {
-		// Pull-only deployments may run the data plane without push-subscription storage —
+		// Pull-only deployments may run the data plane without push-subscription storage -
 		// the scheduled cleanup task fires regardless, so silent no-op is the right behaviour.
 		const storage = EntityStorageConnectorFactory.getIfExists<
 			IEntityStorageConnector<PushSubscription>
@@ -1842,7 +1948,14 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 						value: pids,
 						comparison: ComparisonOperator.In
 					});
-					const tpMap = new Map(tpResult.entities.map(tp => [tp.consumerPid, tp.state]));
+					// Push subscriptions are provider-side, so when a self transfer yields two
+					// records per consumerPid the provider record's state decides the cleanup.
+					const tpMap = new Map<string, DataspaceProtocolTransferProcessStateType>();
+					for (const tp of tpResult.entities as TransferProcess[]) {
+						if (!tpMap.has(tp.consumerPid) || tp.localRole === TransferProcessRole.Provider) {
+							tpMap.set(tp.consumerPid, tp.state);
+						}
+					}
 
 					for (const sub of result.entities as PushSubscription[]) {
 						const state = tpMap.get(sub.consumerPid);
@@ -2080,49 +2193,90 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	}
 
 	/**
+	 * Resolve a transfer process on the consumerPid index, preferring the provider record when a
+	 * self transfer stores both role records under the same consumerPid.
+	 * @param consumerPid The consumer process ID.
+	 * @returns The transfer process, or undefined when none matches.
+	 * @internal
+	 */
+	private async getTransferProcessByConsumerPid(
+		consumerPid: string
+	): Promise<TransferProcess | undefined> {
+		let transferProcess = await this._transferProcessStorage.get(consumerPid, "consumerPid", [
+			{ property: "localRole", value: TransferProcessRole.Provider }
+		]);
+		transferProcess ??= await this._transferProcessStorage.get(consumerPid, "consumerPid");
+		return transferProcess;
+	}
+
+	/**
+	 * Resolve a transfer process on the providerPid index.
+	 * @param providerPid The provider process ID.
+	 * @returns The matching transfer processes, empty when none match.
+	 * @internal
+	 */
+	private async getTransferProcessByProviderPid(providerPid: string): Promise<TransferProcess[]> {
+		const result = await this._transferProcessStorage.query({
+			conditions: [
+				{
+					property: "providerPid",
+					value: providerPid,
+					comparison: ComparisonOperator.Equals
+				}
+			]
+		});
+		return result.entities as TransferProcess[];
+	}
+
+	/**
+	 * Resolve a transfer process for an activity generator value, which can be either a consumerPid
+	 * or a providerPid depending on the activity path.
+	 * @param generatorPid The generator PID from the activity log entry.
+	 * @returns The transfer process, or undefined when none matches.
+	 * @internal
+	 */
+	private async getTransferProcessByGeneratorPid(
+		generatorPid: string
+	): Promise<TransferProcess | undefined> {
+		let transferProcess = await this.getTransferProcessByConsumerPid(generatorPid);
+		if (transferProcess) {
+			return transferProcess;
+		}
+
+		const matches = await this.getTransferProcessByProviderPid(generatorPid);
+
+		if (matches.length > 1) {
+			const sameTransfer = matches.every(
+				match =>
+					match.consumerPid === matches[0].consumerPid &&
+					match.providerPid === matches[0].providerPid
+			);
+			if (!sameTransfer) {
+				return undefined;
+			}
+		}
+
+		transferProcess =
+			matches.find(match => match.localRole === TransferProcessRole.Provider) ?? matches[0];
+
+		return transferProcess;
+	}
+
+	/**
 	 * Build transfer context from a TransferProcessEntity.
+	 * The agreement is fetched fresh from PAP on every access (subject to a short-TTL
+	 * in-memory cache) so that revoked or updated agreements take effect within one cache
+	 * TTL.
 	 * @param transferProcess The transfer process entity.
 	 * @returns The transfer context for use by data access methods.
 	 * @internal
 	 */
-	private buildTransferContext(transferProcess: TransferProcess): ITransferContext {
-		// Build the IRightsManagementAgreement from stored data
-		// The entity stores agreementId and policies separately
-		//
-		// NOTE: Currently policies are cached in the TransferProcessEntity at transfer start time.
-		// Eventually, this should fetch fresh policies from Rights Management (PAP) using:
-		//   const freshAgreement = await this._policyAdministrationPoint.get(transferProcess.agreementId);
-		// This would ensure policies are always up-to-date and support dynamic policy updates.
-		const agreement: IRightsManagementAgreement = {
-			"@context": OdrlContexts.Context,
-			"@type": OdrlTypes.Agreement,
-			"@id": transferProcess.agreementId,
-			target: transferProcess.datasetId,
-			// Provider is the assigner, consumer is the assignee
-			assigner: transferProcess.providerIdentity ?? "",
-			assignee: transferProcess.consumerIdentity ?? ""
-		};
-
-		// Extract policies from the stored Agreement
-		// Extract permission, prohibition, and obligation
-		if (Is.arrayValue(transferProcess.policies)) {
-			const storedAgreement = transferProcess.policies[0];
-			if (storedAgreement) {
-				agreement.permission = storedAgreement.permission;
-				agreement.prohibition = storedAgreement.prohibition;
-				agreement.obligation = storedAgreement.obligation;
-				// Only the provider's cached agreement carries the CONSUMER's verified attributes
-				// (captured from the negotiation trust token). On a consumer node the cached
-				// trustData holds the provider's verification info instead, so forwarding it
-				// would evaluate trust-subject constraints against the wrong party.
-				if (transferProcess.localRole === TransferProcessRole.Provider) {
-					agreement.trustData = storedAgreement.trustData;
-				}
-			}
-		}
-
-		const state = transferProcess.state;
-		const dataAddress = transferProcess.dataAddress;
+	private async buildTransferContext(transferProcess: TransferProcess): Promise<ITransferContext> {
+		const agreement = this._agreementCache
+			? await this._agreementCache.getOrSet(transferProcess.agreementId, async () =>
+					this._policyAdministrationPoint.getAgreement(transferProcess.agreementId)
+				)
+			: await this._policyAdministrationPoint.getAgreement(transferProcess.agreementId);
 
 		return {
 			consumerPid: transferProcess.consumerPid,
@@ -2130,10 +2284,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			agreement,
 			datasetId: transferProcess.datasetId,
 			offerId: transferProcess.offerId,
-			state,
+			state: transferProcess.state,
 			consumerIdentity: transferProcess.consumerIdentity,
 			providerIdentity: transferProcess.providerIdentity,
-			dataAddress
+			dataAddress: transferProcess.dataAddress
 		};
 	}
 
@@ -2175,7 +2329,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	/**
 	 * Enforce the transfer's ODRL agreement on an inbound inbox activity via the PEP.
 	 * The PEP evaluates the agreement against the activity and either denies it or
-	 * permits it — potentially manipulating (filtering/redacting) the payload — and
+	 * permits it - potentially manipulating (filtering/redacting) the payload - and
 	 * the returned activity is what gets dispatched. The action is derived from the
 	 * transfer direction: provider-generated activities are read deliveries, while
 	 * consumer-generated activities are write contributions whose Activity Streams
@@ -2194,7 +2348,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		activity: IActivityStreamsActivity,
 		generatorIsConsumer: boolean
 	): Promise<IActivityStreamsActivity> {
-		const { agreement, consumerPid } = this.buildTransferContext(transferProcess);
+		const { agreement, consumerPid } = await this.buildTransferContext(transferProcess);
 		const hasRules =
 			Is.arrayValue(agreement.permission) ||
 			Is.arrayValue(agreement.prohibition) ||

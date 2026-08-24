@@ -44,7 +44,8 @@
 	"warn": {
 		"dataspaceDataPlaneService": {
 			"pushSubscriptionNotFoundOnTeardown": "Push subscription not found for consumerPid \"{consumerPid}\" during teardown — treating as no-op",
-			"pushSubscriptionNotFoundForActivity": "Push subscription not found for outbound activity (consumerPid: {consumerPid})"
+			"pushSubscriptionNotFoundForActivity": "Push subscription not found for outbound activity (consumerPid: {consumerPid})",
+			"transferRetrievalRecordFailed": "Failed to record the transfer retrieval (consumerPid: {consumerPid})"
 		}
 	},
 	"debug": {

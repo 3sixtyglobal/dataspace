@@ -53,7 +53,7 @@ Nothing.
 
 ### onFinalized() {#onfinalized}
 
-> **onFinalized**(`negotiationId`, `agreementId`): `Promise`\<`void`\>
+> **onFinalized**(`negotiationId`, `agreementId`, `offerId?`): `Promise`\<`void`\>
 
 Called when the negotiation finalizes.
 
@@ -63,13 +63,20 @@ Called when the negotiation finalizes.
 
 `string` \| `undefined`
 
-The negotiation ID, or undefined for implicit-trust agreements.
+The negotiation ID, or undefined for implicit-trust or agreement-reuse paths.
 
 ##### agreementId
 
 `string`
 
 The agreement ID (from agreement.uid).
+
+##### offerId?
+
+`string`
+
+The offer ID that triggered the negotiation; present when negotiationId is undefined so
+callers with concurrent negotiations can discriminate which finalization belongs to them.
 
 #### Returns
 

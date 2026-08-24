@@ -88,6 +88,33 @@ A promise that resolves when the push-delivery handler and cleanup task are regi
 
 ***
 
+### stop() {#stop}
+
+> **stop**(`nodeLoggingComponentType?`): `Promise`\<`void`\>
+
+Stop the service.
+Destroys in-memory resources owned by this component.
+
+#### Parameters
+
+##### nodeLoggingComponentType?
+
+`string`
+
+The node logging component type.
+
+#### Returns
+
+`Promise`\<`void`\>
+
+A promise that resolves when the service has stopped.
+
+#### Implementation of
+
+`IDataspaceDataPlaneComponent.stop`
+
+***
+
 ### notifyActivity() {#notifyactivity}
 
 > **notifyActivity**(`activity`, `trustPayload?`): `Promise`\<`string` \| `IActivityLogEntry`\>
@@ -183,7 +210,7 @@ A promise that resolves when the subscription has been removed.
 > **getActivityLogEntry**(`logEntryId`, `trustPayload?`): `Promise`\<`IActivityLogEntry`\>
 
 Returns Activity Log Entry which contains the Activity processing details.
-Verifies the trust payload and asserts the caller is the entry's generator.
+Verifies the trust payload and asserts the caller is authorized for the entry.
 
 #### Parameters
 
@@ -211,7 +238,7 @@ NotFoundError if activity log entry is not known.
 
 #### Throws
 
-UnauthorizedError if trustPayload is absent or the verified identity is not the entry generator.
+UnauthorizedError if trustPayload is absent or the verified identity is not authorised for the entry.
 
 #### Implementation of
 

@@ -116,7 +116,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-valid-urn",
 				consumerPid: "consumer-pid-001",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -129,7 +129,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 		expect(transferProcess.providerPid).toBeDefined();
 
 		// Verify internal entity has Agreement data
-		const storedEntity = await transferProcessStorage.get("consumer-pid-001");
+		const storedEntity = await transferProcessStorage.get("consumer-pid-001", "consumerPid");
 		expect(storedEntity).toBeDefined();
 		if (!storedEntity) {
 			throw new Error("Entity not found");
@@ -169,13 +169,13 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-urn",
 				consumerPid: "consumer-pid-urn",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
 
 		// Assert - datasetId is now the full URN (not parsed)
-		const storedEntity = await transferProcessStorage.get("consumer-pid-urn");
+		const storedEntity = await transferProcessStorage.get("consumer-pid-urn", "consumerPid");
 		expect(storedEntity).toBeDefined();
 		if (!storedEntity) {
 			throw new Error("Entity not found");
@@ -196,7 +196,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-active",
 				consumerPid: "consumer-pid-active",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -220,7 +220,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "non-existent-agreement",
 				consumerPid: "consumer-pid-notfound",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -262,7 +262,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-no-assignee",
 				consumerPid: "consumer-pid-error-1",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -290,7 +290,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-no-target",
 				consumerPid: "consumer-pid-error-2",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -315,7 +315,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "offer-not-agreement",
 				consumerPid: "consumer-pid-error-3",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -337,7 +337,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 
 	test("Should succeed when catalogue offer has no explicit target (DSP spec compliant)", async () => {
 		// Per DSP spec (2025-1-err1), offers in a Dataset's hasPolicy MUST NOT include
-		// explicit targets — the target is implicitly the Dataset itself.
+		// explicit targets - the target is implicitly the Dataset itself.
 		// The agreement DOES have an explicit target (the dataset).
 		// isPolicyDerivedFrom must accept this asymmetry.
 
@@ -347,12 +347,13 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-no-target-offer",
 			"dcterms:title": "Dataset with DSP-compliant offer",
+			"dcat:distribution": [{ "dcterms:format": "HttpData-PULL" }],
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
 					"@id": "offer-no-target",
 					assigner: "did:iota:provider-node-xyz",
-					// No target — DSP spec compliant
+					// No target - DSP spec compliant
 					permission: [
 						{
 							action: "read"
@@ -385,7 +386,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-catalogue-no-target",
 				consumerPid: "consumer-pid-no-target",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -406,7 +407,7 @@ describe("DataspaceControlPlaneService - PAP Integration", () => {
 				agreementId: "agreement-multiple-targets",
 				consumerPid: "consumer-pid-error-4",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);

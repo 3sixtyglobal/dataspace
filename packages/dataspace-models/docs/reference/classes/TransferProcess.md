@@ -15,20 +15,21 @@ This entity is the persistent representation of ITransferProcess.
 
 ## Properties
 
-### consumerPid {#consumerpid}
-
-> **consumerPid**: `string`
-
-The consumer PID is the primary key.
-Used for direct lookup by consumerPid.
-
-***
-
 ### id {#id}
 
 > **id**: `string`
 
-Internal UUID for storage (secondary key for providerPid lookup).
+Internal id, the primary key. Both role records of a self transfer share consumerPid and
+providerPid, so only the internal id is collision-free within one partition.
+
+***
+
+### consumerPid {#consumerpid}
+
+> **consumerPid**: `string`
+
+Consumer Process ID from the DSP protocol.
+Indexed for lookup by consumerPid.
 
 ***
 
@@ -95,8 +96,8 @@ Provider identity (DID or URI).
 > `optional` **localRole?**: [`TransferProcessRole`](../type-aliases/TransferProcessRole.md)
 
 This node's role in the transfer, captured at write time so state transitions and async delivery
-can tell which party we are without inferring it from the matched PID (consumerPid is the primary
-key on both nodes). Optional for back-compat with records written before this field existed.
+can tell which party we are without inferring it from the matched PID (a self transfer stores two
+records sharing both pids). Optional for back-compat with records written before this field existed.
 
 ***
 
@@ -140,16 +141,9 @@ Last update timestamp (ISO string format).
 
 ***
 
-### policies? {#policies}
-
-> `optional` **policies?**: `IRightsManagementPolicy`[]
-
-Policies from the Agreement (stored as JSON).
-
-***
-
 ### dataAddress? {#dataaddress}
 
 > `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
-Data address for push mode transfers (stored as JSON).
+Data address for the transfer (stored as JSON): the consumer's inbox for PUSH, or the
+provider-built address persisted at start for PULL/POST; may expire while STARTED.

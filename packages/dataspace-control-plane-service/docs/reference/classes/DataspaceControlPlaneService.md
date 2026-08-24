@@ -514,6 +514,52 @@ Transfer Process (DSP compliant) with current state, or TransferError if the ope
 
 ***
 
+### queryDataTransfer() {#querydatatransfer}
+
+> **queryDataTransfer**(`agreementId`, `state`, `cursor`, `trustPayload`): `Promise`\<`ITransferQueryResult`\>
+
+Query Transfer Processes by agreement id.
+Results are limited to transfers where the authenticated caller is a party
+(consumer or provider identity).
+
+#### Parameters
+
+##### agreementId
+
+`string`
+
+The agreement id to look up transfer processes for.
+
+##### state
+
+`DataspaceProtocolTransferProcessStateType` \| `undefined`
+
+Optional filter to a single transfer process state.
+
+##### cursor
+
+`string` \| `undefined`
+
+Optional pagination cursor from a previous result page.
+
+##### trustPayload
+
+`unknown`
+
+Trust payload containing authorization information.
+
+#### Returns
+
+`Promise`\<`ITransferQueryResult`\>
+
+The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+
+#### Implementation of
+
+`IDataspaceControlPlaneComponent.queryDataTransfer`
+
+***
+
 ### negotiateAgreement() {#negotiateagreement}
 
 > **negotiateAgreement**(`datasetId`, `offerId`, `providerEndpoint`, `trustPayload`): `Promise`\<\{ `negotiationId?`: `string`; `agreementId?`: `string`; \}\>
@@ -696,7 +742,7 @@ Transfer Context with Agreement, datasetId, and Transfer Process metadata.
 
 ### createAppDataset() {#createappdataset}
 
-> **createAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`string`\>
+> **createAppDataset**(`id`, `appId`, `dataset`, `options?`): `Promise`\<`string`\>
 
 Register a dataset for a dataspace app, owned by the calling organization.
 
@@ -720,6 +766,17 @@ The dataspace app this dataset belongs to.
 `IDataspaceProtocolDataset`
 
 The dataset payload.
+
+##### options?
+
+Optional dataset settings.
+
+###### transferIdleTimeoutMs?
+
+`number`
+
+Optional idle window (ms) overriding the node-level idle
+policy for this dataset's PULL transfers; 0 disables it for this dataset.
 
 #### Returns
 
@@ -793,7 +850,7 @@ The stored datasets and the next-page cursor if more exist.
 
 ### updateAppDataset() {#updateappdataset}
 
-> **updateAppDataset**(`id`, `appId`, `dataset`): `Promise`\<`void`\>
+> **updateAppDataset**(`id`, `appId`, `dataset`, `options?`): `Promise`\<`void`\>
 
 Update a dataset record owned by the calling organization.
 
@@ -816,6 +873,17 @@ The dataspace app this dataset belongs to.
 `IDataspaceProtocolDataset`
 
 The dataset payload.
+
+##### options?
+
+Optional dataset settings.
+
+###### transferIdleTimeoutMs?
+
+`number`
+
+Optional idle window (ms) overriding the node-level idle
+policy for this dataset's PULL transfers; 0 disables it for this dataset.
 
 #### Returns
 

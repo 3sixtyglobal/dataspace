@@ -73,34 +73,6 @@ Logging component type.
 
 ***
 
-### identityComponentType? {#identitycomponenttype}
-
-> `optional` **identityComponentType?**: `string`
-
-Identity component type (for token signing/verification).
-
-#### Default
-
-```ts
-identity
-```
-
-***
-
-### identityAuthenticationComponentType? {#identityauthenticationcomponenttype}
-
-> `optional` **identityAuthenticationComponentType?**: `string`
-
-Identity Authentication component type (for token validation).
-
-#### Default
-
-```ts
-identity-authentication
-```
-
-***
-
 ### trustComponentType? {#trustcomponenttype}
 
 > `optional` **trustComponentType?**: `string`
@@ -142,6 +114,21 @@ Entity storage type for Dataspace App Dataset entities.
 
 ```ts
 dataspace-app-dataset
+```
+
+***
+
+### transferRetrievalEntityStorageType? {#transferretrievalentitystoragetype}
+
+> `optional` **transferRetrievalEntityStorageType?**: `string`
+
+Entity storage type for Transfer Retrieval entities; when not registered the one-shot
+policy is inactive. Must match the Data Plane's setting.
+
+#### Default
+
+```ts
+transfer-retrieval
 ```
 
 ***

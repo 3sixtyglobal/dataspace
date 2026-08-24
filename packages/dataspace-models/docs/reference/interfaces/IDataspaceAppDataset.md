@@ -28,6 +28,15 @@ The dataset payload.
 
 ***
 
+### transferIdleTimeoutMs? {#transferidletimeoutms}
+
+> `optional` **transferIdleTimeoutMs?**: `number`
+
+Idle window (ms) for this dataset's PULL transfers, overriding the node-level
+providerTransferIdleTimeoutMs; 0 disables the idle policy for this dataset.
+
+***
+
 ### dateCreated {#datecreated}
 
 > **dateCreated**: `string`

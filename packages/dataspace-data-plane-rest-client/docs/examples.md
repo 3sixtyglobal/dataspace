@@ -67,8 +67,10 @@ const activity: IActivityStreamsActivity = {
   object: 'urn:ucr:24PLP051219453I002610799053311'
 };
 
-const logEntryId = await client.notifyActivity(activity);
-const logEntry = await client.getActivityLogEntry(logEntryId);
+const trustPayload = 'eyJhbGciOi...';
+
+const logEntryId = await client.notifyActivity(activity, trustPayload);
+const logEntry = await client.getActivityLogEntry(logEntryId, trustPayload);
 
 console.log(logEntry.id); // urn:activity-log:0001
 console.log(logEntry.status); // completed

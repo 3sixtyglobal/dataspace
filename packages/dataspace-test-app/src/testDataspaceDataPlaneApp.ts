@@ -17,7 +17,7 @@ import { nameof } from "@twin.org/nameof";
 import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
-// Default consignments — two entries with different port locations for filtering tests.
+// Default consignments - two entries with different port locations for filtering tests.
 // Can be overridden via constructor options (e.g. loaded from a JSON file via @json: env syntax).
 const DEFAULT_CONSIGNMENTS: IJsonLdDocument[] = [
 	{

@@ -41,18 +41,6 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	loggingComponentType?: string;
 
 	/**
-	 * Identity component type (for token signing/verification).
-	 * @default identity
-	 */
-	identityComponentType?: string;
-
-	/**
-	 * Identity Authentication component type (for token validation).
-	 * @default identity-authentication
-	 */
-	identityAuthenticationComponentType?: string;
-
-	/**
 	 * Trust component type for trust verification.
 	 * Used to verify JWT/VC tokens and extract identity information.
 	 * @default trust
@@ -72,6 +60,13 @@ export interface IDataspaceControlPlaneServiceConstructorOptions {
 	 * @default dataspace-app-dataset
 	 */
 	dataspaceAppDatasetEntityStorageType?: string;
+
+	/**
+	 * Entity storage type for Transfer Retrieval entities; when not registered the one-shot
+	 * policy is inactive. Must match the Data Plane's setting.
+	 * @default transfer-retrieval
+	 */
+	transferRetrievalEntityStorageType?: string;
 
 	/**
 	 * Task scheduler component type for periodic cleanup of stalled negotiations.

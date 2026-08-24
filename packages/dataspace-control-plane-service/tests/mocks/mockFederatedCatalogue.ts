@@ -166,6 +166,26 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 	 * @internal
 	 */
 	private initializeTestDatasets(): void {
+		// Standard distributions covering all supported transfer formats,
+		// used across all transfer-capable datasets in the mock.
+		const allFormatsDistribution = [
+			{
+				"@type": "Distribution",
+				"dcterms:format": "HttpData-PULL",
+				accessService: "https://provider.example.com/api"
+			},
+			{
+				"@type": "Distribution",
+				"dcterms:format": "HttpData-PUSH",
+				accessService: "https://provider.example.com/api"
+			},
+			{
+				"@type": "Distribution",
+				"dcterms:format": "HttpData-POST",
+				accessService: "https://provider.example.com/api"
+			}
+		];
+
 		// Dataset for agreement-valid-urn
 		// KEY CHANGE: Use full URN as key, not short ID
 		this._datasets.set("urn:uuid:dataset-123", {
@@ -173,6 +193,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-123",
 			"dcterms:title": "Test Dataset 123",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -194,6 +215,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-456",
 			"dcterms:title": "Test Dataset 456",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -215,6 +237,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-789",
 			"dcterms:title": "Test Dataset 789",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -236,6 +259,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-new-test",
 			"dcterms:title": "Test Dataset New Test",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -257,6 +281,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-push",
 			"dcterms:title": "Test Dataset Push",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -278,6 +303,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-push-123",
 			"dcterms:title": "Test Dataset Push 123",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -299,6 +325,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-workflow-123",
 			"dcterms:title": "Test Dataset Workflow 123",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -320,6 +347,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-negotiation-valid",
 			"dcterms:title": "Test Dataset for Negotiation",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",
@@ -341,6 +369,7 @@ export class MockFederatedCatalogueComponent implements IFederatedCatalogueCompo
 			"@type": "dcat:Dataset",
 			"@id": "urn:uuid:dataset-multi-offers",
 			"dcterms:title": "Dataset with Multiple Offers",
+			"dcat:distribution": allFormatsDistribution,
 			"odrl:hasPolicy": [
 				{
 					"@type": "odrl:Offer",

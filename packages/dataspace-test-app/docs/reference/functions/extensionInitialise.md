@@ -12,9 +12,13 @@ The environment variables for the node.
 
 ### nodeEngineConfig
 
-`IEngineCoreConfig`
-
 The node engine config.
+
+#### types
+
+\{\[`key`: `string`\]: `unknown`[]; \}
+
+The component type configurations keyed by type name.
 
 ## Returns
 

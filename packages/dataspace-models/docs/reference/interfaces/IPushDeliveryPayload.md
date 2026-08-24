@@ -79,7 +79,7 @@ The JSON-LD
 The tenant that owns this push delivery, captured at schedule time from the active
 `ContextIdStore` context (typically from the subscription's `tenantId` field).
 The runner re-establishes this tenant context via `ContextIdStore.run` before invoking
-tenant-scoped operations (PEP, trust signing, vault lookups). Optional — single-tenant
+tenant-scoped operations (PEP, trust signing, vault lookups). Optional - single-tenant
 nodes operate without a tenant context.
 
 ***

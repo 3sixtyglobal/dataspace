@@ -38,7 +38,7 @@ export class HttpDataPostTransferHandler implements ITransferHandler {
 	}
 
 	/**
-	 * POST consumers do not supply a dataAddress — provider returns its own /inbox on start.
+	 * POST consumers do not supply a dataAddress - provider returns its own /inbox on start.
 	 * @param ctx Prepare context (unused for POST).
 	 * @returns undefined.
 	 */

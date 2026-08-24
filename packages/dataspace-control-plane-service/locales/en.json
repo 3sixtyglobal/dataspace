@@ -3,6 +3,7 @@
 		"dataspaceControlPlaneService": {
 			"transferProcessInitiated": "Transfer Process initiated",
 			"transferProcessQueried": "Transfer Process queried (role: {role})",
+			"dataTransfersQueried": "Data transfers queried (agreementId: {agreementId}, count: {count})",
 			"transferProcessStarted": "Transfer Process started",
 			"transferProcessCompleted": "Transfer Process completed",
 			"transferProcessSuspended": "Transfer Process suspended",
@@ -15,6 +16,7 @@
 			"offerFoundInCatalog": "Offer found in Federated Catalogue and validated",
 			"negotiationInitiated": "Contract negotiation initiated successfully",
 			"implicitTrustAgreementCreated": "Implicit trust agreement created (agreementId: {agreementId}, datasetId: {datasetId}, organizationId: {organizationId})",
+			"agreementReused": "Existing agreement reused (agreementId: {agreementId}, offerId: {offerId}, datasetId: {datasetId})",
 			"implicitTrustAgreementReused": "Existing implicit trust agreement reused (agreementId: {agreementId}, datasetId: {datasetId}, organizationId: {organizationId})",
 			"getNegotiation": "Retrieving negotiation status",
 			"negotiationStateRetrieved": "Negotiation state retrieved successfully",
@@ -22,8 +24,11 @@
 			"negotiationHistoryRetrieved": "Negotiation history retrieved successfully",
 			"stalledNegotiationsCleanupComplete": "Stalled negotiations cleanup completed (cleanedUp: {cleanedUp})",
 			"stalledTransfersCleanupComplete": "Stalled transfers cleanup completed (cleanedUp: {cleanedUp})",
+			"providerTransferPolicySweepComplete": "Provider transfer policy sweep completed (terminated: {terminated})",
 			"preparingTransfer": "Preparing consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
-			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})"
+			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})",
+			"agreementSwept": "Unused agreement removed by the sweep (agreementId: {agreementId}, reason: {reason})",
+			"agreementSweepComplete": "Agreement sweep completed (scanned: {scanned}, skipped: {skipped}, candidates: {candidates}, swept: {swept})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"offerReceived": "Offer received from provider (negotiationId: {negotiationId}, offerId: {offerId})",
@@ -35,14 +40,18 @@
 	},
 	"debug": {
 		"dataspaceControlPlaneService": {
-			"engineCloneStart": "Skipping control plane startup tasks (engine clone or no engine)"
+			"engineCloneStart": "Skipping control plane startup tasks (engine clone or no engine)",
+			"agreementSweepSkipped": "Agreement excluded from the sweep (agreementId: {agreementId}, reason: {reason})"
 		}
 	},
 	"warn": {
 		"dataspaceControlPlaneService": {
 			"catalogDatasetHasNoOffers": "Dataset has no Offers (odrl:hasPolicy) in Federated Catalogue",
 			"stalledNegotiationCleanedUp": "Stalled negotiation cleaned up (negotiationId: {negotiationId})",
-			"stalledTransferCleanedUp": "Stalled transfer cleaned up (consumerPid: {consumerPid})"
+			"stalledTransferCleanedUp": "Stalled transfer cleaned up (consumerPid: {consumerPid})",
+			"providerTransferIdleTimedOut": "Provider-side STARTED transfer had no data-plane activity within the idle window and will be terminated (consumerPid: {consumerPid}, providerPid: {providerPid}, idleTimeoutMs: {idleTimeoutMs})",
+			"providerTransferIdleStorageMissing": "The idle policy is configured but the transfer-retrieval entity storage is not registered, so the policy is skipped",
+			"providerTransferPolicyNoProviderIdentity": "Removed a Provider-side STARTED transfer with no provider identity (DID), it cannot be transitioned (consumerPid: {consumerPid})"
 		},
 		"dataspaceControlPlanePolicyRequester": {
 			"unknownNegotiationFinalized": "Unknown negotiation finalized (negotiationId: {negotiationId})",
@@ -90,6 +99,7 @@
 			"transferRequestRejectedByProvider": "Provider rejected transfer request for agreement {agreementId} at {providerEndpoint} (code: {code})",
 			"providerPidMissingInResponse": "Provider accepted transfer request for {consumerPid} but returned no providerPid",
 			"unsupportedTransferFormat": "Transfer format \"{format}\" is not supported. Supported formats: {supported}",
+			"transferFormatNotInDistributions": "Transfer format \"{format}\" is not available in any distribution of dataset \"{datasetId}\" (Agreement: {agreementId}). Available formats: {availableFormats}",
 			"catalogDatasetMissingId": "Catalog dataset is missing a required @id identifier",
 			"providerIdentityMissing": "Provider identity (DID) is required to sign data access tokens but was not set on the Transfer Process",
 			"callerNotAuthorizedForAgreement": "The caller's verified identity does not match the agreement assignee (consumer)",
@@ -103,7 +113,9 @@
 			"datasetNotFound": "Dataset not found",
 			"datasetWrongOrganization": "The calling organization does not own this dataset.",
 			"transferWrongOrganization": "The calling organization does not own this transfer.",
-			"invalidDatasetId": "Dataset ID \"{id}\" is not a valid URN or URL"
+			"invalidDatasetId": "Dataset ID \"{id}\" is not a valid URN or URL",
+			"providerTransferTerminateFailed": "Failed to terminate a provider transfer for a lifecycle policy (consumerPid: {consumerPid})",
+			"agreementSweepRemoveFailed": "Failed to remove an agreement during the sweep (agreementId: {agreementId})"
 		},
 		"dataspaceControlPlanePolicyRequester": {},
 		"httpDataPullTransferHandler": {

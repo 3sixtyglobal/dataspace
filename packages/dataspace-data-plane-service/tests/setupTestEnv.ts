@@ -2,8 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0.
 import fs from "node:fs";
 import path from "node:path";
-import { EnvHelper, RandomHelper } from "@twin.org/core";
-import type { IPolicyEnforcementPointComponent } from "@twin.org/rights-management-models";
+import { EnvHelper, NotFoundError, RandomHelper } from "@twin.org/core";
+import { nameof } from "@twin.org/nameof";
+import type {
+	IPolicyAdministrationPointComponent,
+	IPolicyEnforcementPointComponent,
+	IRightsManagementAgreement,
+	IRightsManagementOffer,
+	IRightsManagementPolicy,
+	IRightsManagementSet
+} from "@twin.org/rights-management-models";
 import type { ITrustComponent } from "@twin.org/trust-models";
 import * as dotenv from "dotenv";
 
@@ -56,6 +64,78 @@ export function createMockPolicyEnforcementPoint<D = unknown>(
 		interceptWithLocator: async <T = unknown>(locator: unknown, data?: T): Promise<T> =>
 			(interceptResult as T) ?? (data as T)
 	} as unknown as IPolicyEnforcementPointComponent;
+}
+
+/**
+ * Creates a simple in-memory mock PAP for testing.
+ * Pre-seed agreements with addAgreement; remove them with removeAgreement to simulate revocation.
+ * @returns A mock IPolicyAdministrationPointComponent with helper methods.
+ */
+export function createMockPolicyAdministrationPoint(): IPolicyAdministrationPointComponent & {
+	addAgreement(agreement: IRightsManagementAgreement): void;
+	removeAgreement(agreementId: string): void;
+} {
+	const policies = new Map<string, IRightsManagementPolicy>();
+	const CLASS_NAME = "MockPolicyAdministrationPointComponent";
+
+	const impl: unknown = {
+		className: () => CLASS_NAME,
+		bootstrap: async () => true,
+		start: async () => {},
+		stop: async () => {},
+		create: async (policy: Omit<IRightsManagementPolicy, "uid"> & { uid?: string }) => {
+			const uid = (policy as { uid?: string }).uid ?? `generated-${nameof(policy)}`;
+			policies.set(uid, { ...policy, uid } as IRightsManagementPolicy);
+			return uid;
+		},
+		get: async (policyId: string) => {
+			const policy = policies.get(policyId);
+			if (!policy) {
+				throw new NotFoundError(CLASS_NAME, "policyNotFound", undefined, { policyId });
+			}
+			return policy;
+		},
+		getAgreement: async (agreementId: string) => {
+			const agreement = policies.get(agreementId);
+			if (!agreement) {
+				throw new NotFoundError(CLASS_NAME, "policyNotFound", undefined, {
+					policyId: agreementId
+				});
+			}
+			return agreement as IRightsManagementAgreement;
+		},
+		getOffer: async (offerId: string) => {
+			const offer = policies.get(offerId);
+			if (!offer) {
+				throw new NotFoundError(CLASS_NAME, "policyNotFound", undefined, { policyId: offerId });
+			}
+			return offer as IRightsManagementOffer;
+		},
+		getSet: async (setId: string) => {
+			const set = policies.get(setId);
+			if (!set) {
+				throw new NotFoundError(CLASS_NAME, "policyNotFound", undefined, { policyId: setId });
+			}
+			return set as IRightsManagementSet;
+		},
+		update: async (policy: IRightsManagementPolicy) => {
+			policies.set(policy["@id"], policy);
+		},
+		remove: async (policyId: string) => {
+			policies.delete(policyId);
+		},
+		query: async () => ({ policies: [...policies.values()] }),
+		addAgreement(agreement: IRightsManagementAgreement) {
+			policies.set(agreement["@id"], agreement);
+		},
+		removeAgreement(agreementId: string) {
+			policies.delete(agreementId);
+		}
+	};
+	return impl as IPolicyAdministrationPointComponent & {
+		addAgreement(agreement: IRightsManagementAgreement): void;
+		removeAgreement(agreementId: string): void;
+	};
 }
 
 /**

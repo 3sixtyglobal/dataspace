@@ -1,7 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { entity, property, SortDirection } from "@twin.org/entity";
-import type { IRightsManagementPolicy } from "@twin.org/rights-management-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolDataAddress
@@ -12,20 +11,21 @@ import type { TransferProcessRole } from "../models/controlPlane/transferProcess
  * Transfer Process for shared storage between Control Plane and Data Plane.
  * This entity is the persistent representation of ITransferProcess.
  */
-@entity()
+@entity({ version: 1 })
 export class TransferProcess {
 	/**
-	 * The consumer PID is the primary key.
-	 * Used for direct lookup by consumerPid.
+	 * Internal id, the primary key. Both role records of a self transfer share consumerPid and
+	 * providerPid, so only the internal id is collision-free within one partition.
 	 */
 	@property({ type: "string", isPrimary: true })
-	public consumerPid!: string;
+	public id!: string;
 
 	/**
-	 * Internal UUID for storage (secondary key for providerPid lookup).
+	 * Consumer Process ID from the DSP protocol.
+	 * Indexed for lookup by consumerPid.
 	 */
-	@property({ type: "string" })
-	public id!: string;
+	@property({ type: "string", isSecondary: true })
+	public consumerPid!: string;
 
 	/**
 	 * Provider Process ID from the DSP protocol.
@@ -73,8 +73,8 @@ export class TransferProcess {
 
 	/**
 	 * This node's role in the transfer, captured at write time so state transitions and async delivery
-	 * can tell which party we are without inferring it from the matched PID (consumerPid is the primary
-	 * key on both nodes). Optional for back-compat with records written before this field existed.
+	 * can tell which party we are without inferring it from the matched PID (a self transfer stores two
+	 * records sharing both pids). Optional for back-compat with records written before this field existed.
 	 */
 	@property({ type: "string", optional: true })
 	public localRole?: TransferProcessRole;
@@ -110,13 +110,8 @@ export class TransferProcess {
 	public dateModified!: string;
 
 	/**
-	 * Policies from the Agreement (stored as JSON).
-	 */
-	@property({ type: "array", format: "json", optional: true })
-	public policies?: IRightsManagementPolicy[];
-
-	/**
-	 * Data address for push mode transfers (stored as JSON).
+	 * Data address for the transfer (stored as JSON): the consumer's inbox for PUSH, or the
+	 * provider-built address persisted at start for PULL/POST; may expire while STARTED.
 	 */
 	@property({ type: "object", format: "json", optional: true })
 	public dataAddress?: IDataspaceProtocolDataAddress;

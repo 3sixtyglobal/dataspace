@@ -56,12 +56,9 @@ export function transformToTransferError(
  */
 export function transformErrorToStatusCode(result: unknown): HttpStatusCode | undefined {
 	// Is this a transfer error?
-	if (
-		Is.object<IDataspaceProtocolTransferError>(result) &&
-		result["@type"] === DataspaceProtocolTransferProcessTypes.TransferError
-	) {
+	if (isTransferError(result)) {
 		// Extract the error name to map to status codes
-		if (result.code) {
+		if (Is.stringValue(result.code)) {
 			const codePart = result.code.split(":")[0];
 			return HttpErrorHelper.ERROR_TYPE_MAP[codePart] ?? HttpStatusCode.badRequest;
 		}
@@ -96,4 +93,13 @@ export function isCatalogErrorName(
  */
 export function isCatalogError(error: unknown): error is IDataspaceProtocolCatalogError {
 	return getJsonLdType(error) === DataspaceProtocolCatalogTypes.CatalogError;
+}
+
+/**
+ * Type guard that checks whether an unknown value is a DSP TransferError.
+ * @param error The value to check.
+ * @returns True if the value has the JSON-LD type of a DSP TransferError.
+ */
+export function isTransferError(error: unknown): error is IDataspaceProtocolTransferError {
+	return getJsonLdType(error) === DataspaceProtocolTransferProcessTypes.TransferError;
 }

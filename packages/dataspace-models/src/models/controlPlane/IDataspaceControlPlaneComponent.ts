@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import type { IComponent } from "@twin.org/core";
 import type {
+	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolContractNegotiation,
 	IDataspaceProtocolContractNegotiationError,
 	IDataspaceProtocolDataset,
@@ -17,6 +18,7 @@ import type {
 import type { IDataspaceAppDataset } from "./IDataspaceAppDataset.js";
 import type { INegotiationCallback } from "./INegotiationCallback.js";
 import type { ITransferCallback } from "./ITransferCallback.js";
+import type { ITransferQueryResult } from "./ITransferQueryResult.js";
 
 /**
  * Dataspace Control Plane Component interface.
@@ -62,7 +64,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * notified via the registered INegotiationCallback when the negotiation completes.
 	 * The negotiation follows DSP state machine: REQUESTED → OFFERED → AGREED → VERIFIED → FINALIZED.
 	 *
-	 * The REST client does not support this method and throws a not supported error —
+	 * The REST client does not support this method and throws a not supported error -
 	 * use ComponentFactory.get() for the in-process service.
 	 *
 	 * DSP Spec: https://eclipse-dataspace-protocol-base.github.io/DataspaceProtocol/2025-1/#negotiation-protocol
@@ -143,7 +145,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * consumer-initiated transfer changes state (STARTED, COMPLETED, SUSPENDED,
 	 * TERMINATED).
 	 *
-	 * The REST client does not support this method and throws a not supported error —
+	 * The REST client does not support this method and throws a not supported error -
 	 * use ComponentFactory.get() for the in-process service.
 	 * @param key A unique key identifying this callback registration.
 	 * @param callback The callback interface to register.
@@ -170,7 +172,7 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * via the registered ITransferCallback. The transfer moves to STARTED when the
 	 * provider POSTs a TransferStartMessage back to this node's callback address.
 	 *
-	 * The REST client does not support this method and throws a not supported error —
+	 * The REST client does not support this method and throws a not supported error -
 	 * use ComponentFactory.get() for the in-process service.
 	 *
 	 * @param agreementId The finalized agreement ID (from contract negotiation).
@@ -255,7 +257,8 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 
 	// ============================================================================
 	// SHARED STATE MANAGEMENT OPERATIONS
-	// Methods that can be called by either Consumer or Provider
+	// Methods that can be called by either Consumer or Provider, except
+	// completeTransfer which is consumer-initiated only
 	// ============================================================================
 
 	/**
@@ -334,6 +337,31 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 		trustPayload: unknown
 	): Promise<IDataspaceProtocolTransferProcess | IDataspaceProtocolTransferError>;
 
+	/**
+	 * Query Transfer Processes by agreement id.
+	 * Lets a caller check whether transfers already exist for an agreement
+	 * (e.g. before initiating a new one) without knowing any process ids.
+	 *
+	 * Role Performed: Consumer / Provider
+	 * Called by: Consumer orchestration before requesting a new transfer, or either
+	 * party inspecting the transfers attached to an agreement on their side.
+	 *
+	 * Results are limited to transfers where the authenticated caller is a party
+	 * (consumer or provider identity). A returned dataAddress is a point-in-time copy;
+	 * if its token has expired the data plane rejects it and a new start is required.
+	 * @param agreementId The agreement id to look up transfer processes for.
+	 * @param state Optional filter to a single transfer process state.
+	 * @param cursor Optional pagination cursor from a previous result page.
+	 * @param trustPayload Trust payload containing authorization information (JWT, VC, etc.).
+	 * @returns The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+	 */
+	queryDataTransfer(
+		agreementId: string,
+		state: DataspaceProtocolTransferProcessStateType | undefined,
+		cursor: string | undefined,
+		trustPayload: unknown
+	): Promise<ITransferQueryResult>;
+
 	// ============================================================================
 	// DATASET MANAGEMENT
 	// CRUD over the tenant-scoped dataset records the Control Plane reads at
@@ -347,12 +375,16 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param appId The dataspace app this dataset belongs to (matches
 	 * `DataspaceAppFactory` registration name).
 	 * @param dataset The dataset payload (may omit system-stamped fields).
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns The resolved dataset id.
 	 */
 	createAppDataset(
 		id: string | undefined,
 		appId: string,
-		dataset: IDataspaceProtocolDataset
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
 	): Promise<string>;
 
 	/**
@@ -381,9 +413,17 @@ export interface IDataspaceControlPlaneComponent extends IComponent {
 	 * @param id The stored app dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns A promise that resolves when the dataset has been updated in storage and the catalogue.
 	 */
-	updateAppDataset(id: string, appId: string, dataset: IDataspaceProtocolDataset): Promise<void>;
+	updateAppDataset(
+		id: string,
+		appId: string,
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
+	): Promise<void>;
 
 	/**
 	 * Delete an app dataset record owned by the calling tenant.

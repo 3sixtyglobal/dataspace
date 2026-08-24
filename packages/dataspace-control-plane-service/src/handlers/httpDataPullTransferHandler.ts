@@ -38,7 +38,7 @@ export class HttpDataPullTransferHandler implements ITransferHandler {
 	}
 
 	/**
-	 * PULL consumers do not supply a dataAddress — the provider generates one on start.
+	 * PULL consumers do not supply a dataAddress - the provider generates one on start.
 	 * @param ctx Prepare context (unused for PULL).
 	 * @returns undefined.
 	 */

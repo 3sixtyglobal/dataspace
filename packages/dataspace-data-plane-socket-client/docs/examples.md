@@ -35,6 +35,17 @@ await client.unSubscribeToActivityLog(subscriptionId);
 ```
 
 ```typescript
+import { DataspaceDataPlaneRestClient } from '@twin.org/dataspace-data-plane-rest-client';
+
+const client = new DataspaceDataPlaneRestClient({ endpoint: 'http://localhost:8090' });
+const trustPayload = 'eyJhbGciOi...';
+
+const logEntry = await client.getActivityLogEntry('urn:activity-log:2001', trustPayload);
+console.log(logEntry.id); // urn:activity-log:2001
+console.log(logEntry.status); // completed
+```
+
+```typescript
 import { DataspaceDataPlaneSocketClient } from '@twin.org/dataspace-data-plane-socket-client';
 
 const client = new DataspaceDataPlaneSocketClient({
@@ -42,12 +53,6 @@ const client = new DataspaceDataPlaneSocketClient({
     endpoint: 'ws://localhost:8090'
   }
 });
-
-try {
-  await client.getActivityLogEntry('urn:activity-log:2001');
-} catch (error) {
-  console.log(error instanceof Error); // true
-}
 
 try {
   await client.getDataAssetEntities(

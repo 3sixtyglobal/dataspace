@@ -3,14 +3,6 @@
 import type { IRestRoute } from "@twin.org/api-models";
 import { Is } from "@twin.org/core";
 import { DataspaceAppFactory } from "@twin.org/dataspace-models";
-import type {
-	EngineTypeInitialiserReturn,
-	IEngineCore,
-	IEngineCoreConfig,
-	IEngineCoreContext,
-	IEngineServer
-} from "@twin.org/engine-models";
-import { type IEngineConfig, EngineTypeHelper } from "@twin.org/engine-types";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 import { TestDataspaceDataPlaneApp } from "./testDataspaceDataPlaneApp.js";
 
@@ -18,11 +10,12 @@ import { TestDataspaceDataPlaneApp } from "./testDataspaceDataPlaneApp.js";
  * Initialise the extension.
  * @param envVars The environment variables for the node.
  * @param nodeEngineConfig The node engine config.
+ * @param nodeEngineConfig.types The component type configurations keyed by type name.
  * @returns A promise that resolves when the test app component type has been registered in the engine config.
  */
 export async function extensionInitialise(
 	envVars: { [id: string]: string | unknown },
-	nodeEngineConfig: IEngineCoreConfig
+	nodeEngineConfig: { types: { [key: string]: unknown[] } }
 ): Promise<void> {
 	nodeEngineConfig.types.testAppComponent = [
 		{
@@ -39,9 +32,12 @@ export async function extensionInitialise(
 /**
  * Initialise the engine for the extension.
  * @param engineCore The engine core instance.
+ * @param engineCore.addTypeInitialiser Registers a named type initialiser module and export with the engine.
  * @returns A promise that resolves when the type initialiser has been registered with the engine.
  */
-export async function extensionInitialiseEngine(engineCore: IEngineCore): Promise<void> {
+export async function extensionInitialiseEngine(engineCore: {
+	addTypeInitialiser: (type: string, module: string, name: string) => void;
+}): Promise<void> {
 	engineCore.addTypeInitialiser(
 		"testAppComponent",
 		"@twin.org/dataspace-test-app",
@@ -51,13 +47,16 @@ export async function extensionInitialiseEngine(engineCore: IEngineCore): Promis
 
 /**
  * Initialise the engine server for the extension.
- * @param engineCore The engine core instance.
+ * @param engineCore The engine core instance (unused by this extension).
  * @param engineServer The engine server instance.
+ * @param engineServer.addRestRouteGenerator Registers a named REST route generator module and export with the engine server.
  * @returns A promise that resolves when the REST route generator has been registered with the engine server.
  */
 export async function extensionInitialiseEngineServer(
-	engineCore: IEngineCore,
-	engineServer: IEngineServer
+	engineCore: unknown,
+	engineServer: {
+		addRestRouteGenerator: (type: string, module: string, name: string) => void;
+	}
 ): Promise<void> {
 	engineServer.addRestRouteGenerator(
 		"testAppComponent",
@@ -69,30 +68,31 @@ export async function extensionInitialiseEngineServer(
 /**
  * Test Dataspace Data Plane App initializer.
  * @param engineCore The engine core.
- * @param context The context for the engine.
+ * @param engineCore.getRegisteredInstanceType Returns the registered instance type name for a given component type.
+ * @param context The engine core context (unused by this extension).
  * @param instanceConfig The instance config.
  * @param instanceConfig.options The instance config options.
  * @param instanceConfig.type The instance type.
  * @returns The instance created and the factory for it.
  */
 export function testAppInitialiser(
-	engineCore: IEngineCore<IEngineConfig>,
-	context: IEngineCoreContext,
+	engineCore: { getRegisteredInstanceType: (type: string) => string },
+	context: unknown,
 	instanceConfig: { type: "service"; options: ITestAppConstructorOptions }
-): EngineTypeInitialiserReturn<typeof instanceConfig, typeof DataspaceAppFactory> {
+): {
+	instanceTypeName?: string;
+	factory: typeof DataspaceAppFactory;
+	createComponent?: (createConfig: typeof instanceConfig) => TestDataspaceDataPlaneApp;
+} {
 	let instanceTypeName: string | undefined;
 	let createComponent;
 
 	if (instanceConfig.type === "service") {
 		createComponent = (createConfig: typeof instanceConfig) =>
-			new TestDataspaceDataPlaneApp(
-				EngineTypeHelper.mergeConfig<ITestAppConstructorOptions>(
-					{
-						loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent")
-					},
-					createConfig.options
-				)
-			);
+			new TestDataspaceDataPlaneApp({
+				loggingComponentType: engineCore.getRegisteredInstanceType("loggingComponent"),
+				...createConfig.options
+			});
 		instanceTypeName = TestDataspaceDataPlaneApp.APP_ID;
 	}
 

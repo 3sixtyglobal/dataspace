@@ -525,6 +525,14 @@ describe("DataspaceControlPlaneRestClient", () => {
 		});
 	});
 
+	describe("queryDataTransfer", () => {
+		test("rejects with NotSupportedError", async () => {
+			await expect(
+				client.queryDataTransfer(TEST_AGREEMENT_ID, undefined, undefined, TEST_TRUST_PAYLOAD)
+			).rejects.toThrow(NotSupportedError);
+		});
+	});
+
 	describe("createAppDataset", () => {
 		test("throws guard error when appId is empty", async () => {
 			await expect(client.createAppDataset(undefined, "", TEST_DATASET)).rejects.toMatchObject({

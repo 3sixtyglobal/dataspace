@@ -97,6 +97,21 @@ push-subscription
 
 ***
 
+### transferRetrievalEntityStorageType? {#transferretrievalentitystoragetype}
+
+> `optional` **transferRetrievalEntityStorageType?**: `string`
+
+The entity storage type for Transfer Retrieval entities; when not registered no retrievals
+are recorded. Must match the Control Plane's setting.
+
+#### Default
+
+```ts
+transfer-retrieval
+```
+
+***
+
 ### dataspaceAppDatasetEntityStorageType? {#dataspaceappdatasetentitystoragetype}
 
 > `optional` **dataspaceAppDatasetEntityStorageType?**: `string`
@@ -149,6 +164,22 @@ Platform component type.
 
 ```ts
 platform
+```
+
+***
+
+### papComponentType? {#papcomponenttype}
+
+> `optional` **papComponentType?**: `string`
+
+Policy administration point component type.
+The data plane fetches fresh agreements from PAP at access time (with a short-TTL
+in-memory cache) so that revoked or updated agreements take effect promptly.
+
+#### Default
+
+```ts
+policy-administration-point
 ```
 
 ***

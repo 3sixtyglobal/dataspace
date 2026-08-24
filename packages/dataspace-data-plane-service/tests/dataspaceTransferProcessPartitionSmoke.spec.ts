@@ -54,10 +54,9 @@ describe("TransferProcess partition key compatibility (Phase 0 Smoke Test)", () 
 		entity.consumerIdentity = TEST_TENANT_ID;
 		entity.providerIdentity = TEST_NODE_ID;
 		entity.organizationIdentity = TEST_NODE_ID;
-		entity.format = "application/json";
+		entity.format = "HttpData-PULL";
 		entity.dateCreated = now;
 		entity.dateModified = now;
-		entity.policies = [];
 		return entity;
 	}
 
@@ -92,7 +91,7 @@ describe("TransferProcess partition key compatibility (Phase 0 Smoke Test)", () 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(dataPlaneStorage as any)._store = (controlPlaneStorage as any)._store;
 
-		const found = await dataPlaneStorage.get(TEST_CONSUMER_PID);
+		const found = await dataPlaneStorage.get(TEST_CONSUMER_PID, "consumerPid");
 
 		// Assert: with matching [Node] partition keys, the read must succeed
 		expect(found).toBeDefined();
@@ -129,7 +128,7 @@ describe("TransferProcess partition key compatibility (Phase 0 Smoke Test)", () 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(dataPlaneStorageMismatched as any)._store = (controlPlaneStorage as any)._store;
 
-		const found = await dataPlaneStorageMismatched.get(TEST_CONSUMER_PID);
+		const found = await dataPlaneStorageMismatched.get(TEST_CONSUMER_PID, "consumerPid");
 
 		// Mismatched partition keys → entity not found. This is the broken state.
 		expect(found).toBeUndefined();

@@ -97,7 +97,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		// node+tenant. This file's fixtures all use a bare DID
 		// (`did:iota:provider-node-xyz`) as the agreement assigner, so we pin
 		// the context to a single-tenant shape (no Tenant) and Node = same DID
-		// — making the composite collapse to the bare DID and line up.
+		// - making the composite collapse to the bare DID and line up.
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
 			[ContextIdKeys.Node]: "did:iota:provider-node-xyz",
 			[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
@@ -150,7 +150,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: agreementUrn,
 				consumerPid: "consumer-pid-001",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -163,7 +163,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 		expect(transferProcess.providerPid).toBeDefined();
 
 		// Verify internal entity has Agreement data
-		const storedEntity = await transferProcessStorage.get("consumer-pid-001");
+		const storedEntity = await transferProcessStorage.get("consumer-pid-001", "consumerPid");
 		expect(storedEntity).toBeDefined();
 		if (!storedEntity) {
 			throw new Error("Entity not found");
@@ -209,13 +209,13 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: agreementUrn,
 				consumerPid: "consumer-pid-urn",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
 
 		// Assert - datasetId is now the full URN (not parsed)
-		const storedEntity = await transferProcessStorage.get("consumer-pid-urn");
+		const storedEntity = await transferProcessStorage.get("consumer-pid-urn", "consumerPid");
 		expect(storedEntity).toBeDefined();
 		if (!storedEntity) {
 			throw new Error("Entity not found");
@@ -246,7 +246,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: "non-existent-agreement",
 				consumerPid: "consumer-pid-notfound",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -318,7 +318,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: agreementUrn,
 				consumerPid: "consumer-pid-active",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -358,7 +358,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: agreementUrn,
 				consumerPid: "consumer-pid-no-target",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -401,7 +401,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: offerUrn,
 				consumerPid: "consumer-pid-error-3",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -442,7 +442,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: agreementUrn,
 				consumerPid: "consumer-pid-multi-target",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);
@@ -498,7 +498,7 @@ describe("DataspaceControlPlaneService - PAP Integration (Real Service)", () => 
 				agreementId: agreementUrn,
 				consumerPid: "consumer-pid-rule-refinement",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			},
 			"valid-trust-payload"
 		);

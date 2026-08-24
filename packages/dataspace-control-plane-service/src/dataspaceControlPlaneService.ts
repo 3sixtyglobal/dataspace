@@ -7,13 +7,16 @@ import {
 	AlreadyExistsError,
 	ArrayHelper,
 	BaseError,
+	Coerce,
 	ComponentFactory,
 	Converter,
+	Factory,
 	GeneralError,
 	Guards,
 	Is,
 	NotFoundError,
 	ObjectHelper,
+	type ObjectOrArray,
 	RandomHelper,
 	StringHelper,
 	UnauthorizedError,
@@ -23,14 +26,15 @@ import {
 } from "@twin.org/core";
 import {
 	JsonLdHelper,
-	type JsonLdObjectWithOptionalAtId,
-	type JsonLdObjectWithNoContext
+	type JsonLdObjectWithNoContext,
+	type JsonLdObjectWithOptionalAtId
 } from "@twin.org/data-json-ld";
 import {
 	DataspaceControlPlaneMetricIds,
 	DataspaceControlPlaneMetrics,
 	DataspaceTransferFormat,
 	TransferProcessRole,
+	TransferTerminationCode,
 	getJsonLdId,
 	getJsonLdType,
 	type DataspaceAppDataset,
@@ -42,10 +46,18 @@ import {
 	type ITransferCallback,
 	type ITransferContext,
 	type ITransferProcess,
-	type TransferProcess
+	type ITransferQueryResult,
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
-import { EngineCoreFactory } from "@twin.org/engine-models";
-import { ComparisonOperator } from "@twin.org/entity";
+import {
+	ComparisonOperator,
+	EntitySchemaPropertyType,
+	EntitySorter,
+	LogicalOperator,
+	SortDirection,
+	type EntityCondition
+} from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
@@ -69,6 +81,7 @@ import {
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes,
 	DataspaceProtocolVersionBindingType,
+	type IDataspaceProtocolDistributionBase,
 	type DataspaceProtocolContractNegotiationStateType,
 	type IDataspaceProtocolContractNegotiation,
 	type IDataspaceProtocolContractNegotiationError,
@@ -82,7 +95,7 @@ import {
 	type IDataspaceProtocolTransferTerminationMessage,
 	type IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
-import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
+import type { IDcatDataset, IDcatDistributionBase } from "@twin.org/standards-w3c-dcat";
 import { OdrlActionType, OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
 import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
 import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
@@ -91,10 +104,12 @@ import { TransferHandlerFactory } from "./factories/transferHandlerFactory.js";
 import { HttpDataPostTransferHandler } from "./handlers/httpDataPostTransferHandler.js";
 import { HttpDataPullTransferHandler } from "./handlers/httpDataPullTransferHandler.js";
 import { HttpDataPushTransferHandler } from "./handlers/httpDataPushTransferHandler.js";
+import { AgreementSweepReason } from "./models/agreementSweepReason.js";
 import type { IDataspaceControlPlaneServiceConstructorOptions } from "./models/IDataspaceControlPlaneServiceConstructorOptions.js";
 import {
 	isCatalogError,
 	isCatalogErrorName,
+	isTransferError,
 	transformToTransferError
 } from "./utils/transferErrorUtils.js";
 
@@ -133,6 +148,18 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private static readonly _STALLED_TRANSFER_THRESHOLD_MS = 30 * 60 * 1000;
+
+	/**
+	 * Default provider transfer policy sweep interval in milliseconds (5 minutes).
+	 * @internal
+	 */
+	private static readonly _PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+
+	/**
+	 * Default agreement sweep interval in milliseconds (1 hour).
+	 * @internal
+	 */
+	private static readonly _AGREEMENT_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
 	/**
 	 * The logging component.
@@ -222,7 +249,7 @@ export class DataspaceControlPlaneService
 	 * Task scheduler for periodic stalled negotiation cleanup.
 	 * @internal
 	 */
-	private readonly _taskScheduler?: ITaskSchedulerComponent;
+	private readonly _taskScheduler: ITaskSchedulerComponent;
 
 	/**
 	 * Platform component.
@@ -278,6 +305,37 @@ export class DataspaceControlPlaneService
 	 * @internal
 	 */
 	private readonly _stalledTransferTimeoutMs: number;
+
+	/**
+	 * Idle window (ms) for Provider-side STARTED PULL transfers; undefined disables the policy
+	 * node-wide.
+	 * @internal
+	 */
+	private readonly _providerTransferIdleTimeoutMs?: number;
+
+	/**
+	 * Interval (ms) at which the provider transfer policy sweep runs.
+	 * @internal
+	 */
+	private readonly _providerTransferPolicySweepIntervalMs: number;
+
+	/**
+	 * Unused window (ms) for the agreement sweep; undefined disables the sweep node-wide.
+	 * @internal
+	 */
+	private readonly _agreementUnusedThresholdMs?: number;
+
+	/**
+	 * Interval (ms) at which the agreement sweep runs.
+	 * @internal
+	 */
+	private readonly _agreementSweepIntervalMs: number;
+
+	/**
+	 * Storage for transfer retrievals; undefined when the hosting engine does not register it.
+	 * @internal
+	 */
+	private readonly _transferRetrievalStorage?: IEntityStorageConnector<TransferRetrieval>;
 
 	/**
 	 * Create a new instance of DataspaceControlPlaneService.
@@ -342,7 +400,30 @@ export class DataspaceControlPlaneService
 			options?.config?.stalledTransferTimeoutMs ??
 			DataspaceControlPlaneService._STALLED_TRANSFER_THRESHOLD_MS;
 
-		this._taskScheduler = ComponentFactory.getIfExists<ITaskSchedulerComponent>(
+		this._providerTransferIdleTimeoutMs = options?.config?.providerTransferIdleTimeoutMs;
+
+		this._providerTransferPolicySweepIntervalMs =
+			options?.config?.providerTransferPolicySweepIntervalMs ??
+			DataspaceControlPlaneService._PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS;
+
+		// A non-positive window would classify every idle agreement as unused; treat it as unset.
+		const agreementUnusedThresholdMs = options?.config?.agreementUnusedThresholdMs;
+		this._agreementUnusedThresholdMs =
+			Is.integer(agreementUnusedThresholdMs) && agreementUnusedThresholdMs > 0
+				? agreementUnusedThresholdMs
+				: undefined;
+
+		const agreementSweepIntervalMs = options?.config?.agreementSweepIntervalMs;
+		this._agreementSweepIntervalMs =
+			Is.integer(agreementSweepIntervalMs) && agreementSweepIntervalMs > 0
+				? agreementSweepIntervalMs
+				: DataspaceControlPlaneService._AGREEMENT_SWEEP_INTERVAL_MS;
+
+		this._transferRetrievalStorage = EntityStorageConnectorFactory.getIfExists<
+			IEntityStorageConnector<TransferRetrieval>
+		>(options?.transferRetrievalEntityStorageType ?? nameofKebabCase<TransferRetrieval>());
+
+		this._taskScheduler = ComponentFactory.get<ITaskSchedulerComponent>(
 			options?.taskSchedulerComponentType ?? "task-scheduler"
 		);
 
@@ -444,11 +525,12 @@ export class DataspaceControlPlaneService
 	 * @returns A promise that resolves when the federated catalogue is populated and the cleanup task is scheduled.
 	 */
 	public async start(nodeLoggingComponentType?: string): Promise<void> {
-		await MetricHelper.createMetrics(this._telemetryComponent, DataspaceControlPlaneMetrics);
+		const isCloneOrNoEngine =
+			Factory.getFactory<{ isClone: () => boolean }>("engine-core")
+				?.getIfExists("engine")
+				?.isClone() ?? true;
 
-		const engine = EngineCoreFactory.getIfExists("engine");
-		// Skip if no engine exists OR if this is a clone instance
-		if (Is.empty(engine) || engine.isClone()) {
+		if (isCloneOrNoEngine) {
 			await this._loggingComponent?.log({
 				level: "debug",
 				ts: Date.now(),
@@ -458,30 +540,63 @@ export class DataspaceControlPlaneService
 			return;
 		}
 
-		if (this._taskScheduler) {
-			await this._taskScheduler.addTask(
-				"control-plane-negotiation-cleanup",
-				[
-					{
-						nextTriggerTime: Date.now(),
-						intervalMinutes: 5
-					}
-				],
-				async () => {
-					await this.cleanupStalledNegotiations();
-				}
-			);
+		await MetricHelper.createMetrics(this._telemetryComponent, DataspaceControlPlaneMetrics);
 
+		await this._taskScheduler.addTask(
+			"control-plane-negotiation-cleanup",
+			[
+				{
+					nextTriggerTime: Date.now(),
+					intervalMinutes: 5
+				}
+			],
+			async () => {
+				await this.cleanupStalledNegotiations();
+			}
+		);
+
+		await this._taskScheduler.addTask(
+			"control-plane-transfer-cleanup",
+			[
+				{
+					nextTriggerTime: Date.now(),
+					intervalMinutes: 5
+				}
+			],
+			async () => {
+				await this.cleanupStalledTransfers();
+			}
+		);
+
+		await this._taskScheduler.addTask(
+			"control-plane-transfer-policy",
+			[
+				{
+					nextTriggerTime: Date.now(),
+					// The scheduler has minute granularity; floor at one minute.
+					intervalMinutes: Math.max(
+						1,
+						Math.round(this._providerTransferPolicySweepIntervalMs / 60000)
+					)
+				}
+			],
+			async () => {
+				await this.applyProviderTransferPolicies();
+			}
+		);
+
+		if (Is.integer(this._agreementUnusedThresholdMs)) {
 			await this._taskScheduler.addTask(
-				"control-plane-transfer-cleanup",
+				"control-plane-agreement-sweep",
 				[
 					{
 						nextTriggerTime: Date.now(),
-						intervalMinutes: 5
+						// The scheduler has minute granularity; floor at one minute.
+						intervalMinutes: Math.max(1, Math.round(this._agreementSweepIntervalMs / 60000))
 					}
 				],
 				async () => {
-					await this.cleanupStalledTransfers();
+					await this.sweepUnusedAgreements();
 				}
 			);
 		}
@@ -494,9 +609,11 @@ export class DataspaceControlPlaneService
 	 * @returns A promise that resolves when the cleanup task has been removed.
 	 */
 	public async stop(nodeLoggingComponentType?: string): Promise<void> {
-		if (this._taskScheduler) {
-			await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
-			await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
+		await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
+		await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
+		await this._taskScheduler.removeTask("control-plane-transfer-policy");
+		if (Is.integer(this._agreementUnusedThresholdMs)) {
+			await this._taskScheduler.removeTask("control-plane-agreement-sweep");
 		}
 	}
 
@@ -524,6 +641,14 @@ export class DataspaceControlPlaneService
 			trustPayload,
 			"requestTransfer"
 		);
+
+		const transferHandlerTypes = TransferHandlerFactory.names();
+		if (!transferHandlerTypes.includes(request.format)) {
+			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "unsupportedTransferFormat", {
+				format: request.format,
+				supported: transferHandlerTypes
+			});
+		}
 
 		const validationFailures = await DataspaceProtocolHelper.validate(
 			JsonLdHelper.toNodeObject(request)
@@ -553,7 +678,6 @@ export class DataspaceControlPlaneService
 		let datasetId: string;
 		let consumerIdentity: string;
 		let providerIdentity: string;
-		let policies: IRightsManagementPolicy[];
 
 		try {
 			const agreement = await this.lookupAgreement(request.agreementId);
@@ -600,9 +724,7 @@ export class DataspaceControlPlaneService
 
 			datasetId = this.extractDatasetId(agreement);
 
-			await this.validateCatalogDataset(datasetId, agreement);
-
-			policies = [agreement];
+			await this.validateCatalogDataset(datasetId, agreement, request.format);
 		} catch (error) {
 			return transformToTransferError(error, { consumerPid: request.consumerPid, providerPid });
 		}
@@ -623,7 +745,6 @@ export class DataspaceControlPlaneService
 			// offerId should reference Catalog Offer (via Agreement)
 			// For now, use agreementId as reference (proper flow: Catalog → Negotiation → Agreement)
 			offerId: request.agreementId,
-			policies,
 			callbackAddress: request.callbackAddress,
 			format: request.format,
 			organizationIdentity,
@@ -706,16 +827,16 @@ export class DataspaceControlPlaneService
 			nameof(providerEndpoint),
 			providerEndpoint
 		);
-		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(format), format);
 
 		const contextIds = await ContextIdStore.getContextIds();
 		ContextIdHelper.guard(contextIds, HttpContextIdKeys.PublicOrigin);
 		const publicOrigin = contextIds[HttpContextIdKeys.PublicOrigin];
 
-		if (!(Object.values(DataspaceTransferFormat) as string[]).includes(format)) {
+		const transferHandlerTypes = TransferHandlerFactory.names();
+		if (!transferHandlerTypes.includes(format)) {
 			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "unsupportedTransferFormat", {
 				format,
-				supported: Object.values(DataspaceTransferFormat)
+				supported: transferHandlerTypes
 			});
 		}
 
@@ -804,16 +925,16 @@ export class DataspaceControlPlaneService
 			component.requestTransfer(transferRequestMessage, outboundToken)
 		);
 
-		if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
-			const transferError = result as { code?: string };
+		if (isTransferError(result)) {
 			throw new GeneralError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"transferRequestRejectedByProvider",
 				{
 					agreementId,
 					providerEndpoint,
-					code: transferError.code
-				}
+					code: result.code
+				},
+				BaseError.expand(result.reason)
 			);
 		}
 
@@ -840,7 +961,6 @@ export class DataspaceControlPlaneService
 			providerIdentity,
 			localRole: TransferProcessRole.Consumer,
 			offerId: agreementId,
-			policies: [agreement],
 			callbackAddress,
 			format,
 			dataAddress: transferRequestMessage.dataAddress,
@@ -923,7 +1043,10 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Provider-first; the callback delivery leg then resolves the consumer record.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				targetState: DataspaceProtocolTransferProcessStateType.STARTED
+			});
 
 			if (trustInfo.identity !== entity.providerIdentity) {
 				throw new UnauthorizedError(
@@ -958,6 +1081,14 @@ export class DataspaceControlPlaneService
 			// CONSUMER-RECEIVE: the provider POSTed a TransferStart to our callback. Use the dataAddress
 			// from the message (rebuilding it is provider work), mark our record STARTED, and notify.
 			if (role === TransferProcessRole.Consumer) {
+				// PUSH keeps the consumer's request-time inbox; format-less legacy records need dataAddress absent for format inference.
+				if (
+					!Is.empty(message.dataAddress) &&
+					(entity.format === DataspaceTransferFormat.HttpDataPull ||
+						entity.format === DataspaceTransferFormat.HttpDataPost)
+				) {
+					entity.dataAddress = message.dataAddress;
+				}
 				entity.state = DataspaceProtocolTransferProcessStateType.STARTED;
 				entity.dateModified = new Date();
 				await this._transferProcessStorage.set(this.modelToStorageEntity(entity));
@@ -1084,7 +1215,9 @@ export class DataspaceControlPlaneService
 		try {
 			Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(pid), pid);
 
-			const { entity, role } = await this.lookupTransferByPid(pid);
+			const { entity, role } = await this.lookupTransferByPid(pid, {
+				preferredRole: TransferProcessRole.Provider
+			});
 			consumerPid = entity.consumerPid;
 			providerPid = entity.providerPid;
 
@@ -1118,7 +1251,7 @@ export class DataspaceControlPlaneService
 	}
 
 	// ----------------------------------------------------------------------------
-	// SHARED STATE MANAGEMENT OPERATIONS (Either Side)
+	// SHARED STATE MANAGEMENT OPERATIONS (either side, except completeTransfer: consumer-initiated only)
 	// ----------------------------------------------------------------------------
 
 	/**
@@ -1161,7 +1294,13 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Consumer-first: completion has no onward delivery, so on a self node the first call
+			// completes the consumer record (and fires the internal callbacks); a follow-up call
+			// reaches the provider record because the consumer one is already COMPLETED.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				preferredRole: TransferProcessRole.Consumer,
+				targetState: DataspaceProtocolTransferProcessStateType.COMPLETED
+			});
 
 			if (trustInfo.identity !== entity.consumerIdentity) {
 				throw new UnauthorizedError(
@@ -1234,8 +1373,10 @@ export class DataspaceControlPlaneService
 				throw teardownError;
 			}
 
+			await this._transferRetrievalStorage?.remove(entity.consumerPid);
+
 			// Completion is consumer-initiated (the auth above accepts only the consumer): a consumer→provider
-			// notification, so no provider→consumer delivery here — unlike suspend/terminate (either party).
+			// notification, so no provider→consumer delivery here - unlike suspend/terminate (either party).
 			if (role === TransferProcessRole.Consumer) {
 				await this._internalTransferCallback.onStateChanged(
 					entity.consumerPid,
@@ -1301,7 +1442,10 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Provider-first; the callback delivery leg then resolves the consumer record.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				targetState: DataspaceProtocolTransferProcessStateType.SUSPENDED
+			});
 
 			if (
 				trustInfo.identity !== entity.consumerIdentity &&
@@ -1381,7 +1525,7 @@ export class DataspaceControlPlaneService
 					entity.consumerPid,
 					DataspaceProtocolTransferProcessStateType.SUSPENDED
 				);
-				// DSP reason is typed any[] — forward only the first entry since the callback
+				// DSP reason is typed any[] - forward only the first entry since the callback
 				// contract is reason?: string. Additional entries are intentionally dropped.
 				const suspendReason = Array.isArray(message.reason)
 					? (message.reason[0] as string | undefined)
@@ -1453,7 +1597,10 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			const { entity, role } = await this.lookupTransferByMessage(message);
+			// Provider-first; the callback delivery leg then resolves the consumer record.
+			const { entity, role } = await this.lookupTransferByMessage(message, {
+				targetState: DataspaceProtocolTransferProcessStateType.TERMINATED
+			});
 
 			if (
 				trustInfo.identity !== entity.consumerIdentity &&
@@ -1518,12 +1665,14 @@ export class DataspaceControlPlaneService
 				throw teardownError;
 			}
 
+			await this._transferRetrievalStorage?.remove(entity.consumerPid);
+
 			if (role === TransferProcessRole.Consumer) {
 				await this._internalTransferCallback.onStateChanged(
 					entity.consumerPid,
 					DataspaceProtocolTransferProcessStateType.TERMINATED
 				);
-				// DSP reason is typed any[] — forward only the first entry since the callback
+				// DSP reason is typed any[] - forward only the first entry since the callback
 				// contract is reason?: string. Additional entries are intentionally dropped.
 				const terminateReason = Array.isArray(message.reason)
 					? (message.reason[0] as string | undefined)
@@ -1608,6 +1757,91 @@ export class DataspaceControlPlaneService
 		}
 	}
 
+	/**
+	 * Query Transfer Processes by agreement id.
+	 * Results are limited to transfers where the authenticated caller is a party
+	 * (consumer or provider identity).
+	 * @param agreementId The agreement id to look up transfer processes for.
+	 * @param state Optional filter to a single transfer process state.
+	 * @param cursor Optional pagination cursor from a previous result page.
+	 * @param trustPayload Trust payload containing authorization information.
+	 * @returns The matching transfer processes and a pagination cursor when more pages exist, empty when none match.
+	 */
+	public async queryDataTransfer(
+		agreementId: string,
+		state: DataspaceProtocolTransferProcessStateType | undefined,
+		cursor: string | undefined,
+		trustPayload: unknown
+	): Promise<ITransferQueryResult> {
+		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(agreementId), agreementId);
+
+		const trustInfo = await TrustHelper.verifyTrust(
+			this._trustComponent,
+			trustPayload,
+			"queryDataTransfer"
+		);
+
+		const conditions: EntityCondition<TransferProcess>[] = [
+			{
+				property: "agreementId",
+				value: agreementId,
+				comparison: ComparisonOperator.Equals
+			},
+			{
+				conditions: [
+					{
+						property: "consumerIdentity",
+						value: trustInfo.identity,
+						comparison: ComparisonOperator.Equals
+					},
+					{
+						property: "providerIdentity",
+						value: trustInfo.identity,
+						comparison: ComparisonOperator.Equals
+					}
+				],
+				logicalOperator: LogicalOperator.Or
+			}
+		];
+
+		if (Is.stringValue(state)) {
+			conditions.push({
+				property: "state",
+				value: state,
+				comparison: ComparisonOperator.Equals
+			});
+		}
+
+		const page = await this._transferProcessStorage.query(
+			{ conditions, logicalOperator: LogicalOperator.And },
+			undefined,
+			undefined,
+			cursor
+		);
+
+		const transfers = page.entities.map(pageEntity =>
+			this.storageEntityToModel(pageEntity as TransferProcess)
+		);
+
+		await this._loggingComponent?.log({
+			level: "info",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "dataTransfersQueried",
+			data: {
+				agreementId,
+				state,
+				count: transfers.length,
+				hasCursor: Boolean(page.cursor)
+			}
+		});
+
+		return {
+			transfers,
+			cursor: page.cursor
+		};
+	}
+
 	// ============================================================================
 	// CONTRACT NEGOTIATION
 	// ============================================================================
@@ -1678,8 +1912,10 @@ export class DataspaceControlPlaneService
 					{
 						datasetId,
 						offerId,
-						providerEndpoint
-					}
+						providerEndpoint,
+						code: catalogResult.code
+					},
+					BaseError.expand(catalogResult.reason)
 				);
 			}
 
@@ -1690,8 +1926,9 @@ export class DataspaceControlPlaneService
 					datasetId,
 					offerId,
 					providerEndpoint,
-					errorCode: catalogResult.code
-				}
+					code: catalogResult.code
+				},
+				BaseError.expand(catalogResult.reason)
 			);
 		}
 
@@ -1755,7 +1992,49 @@ export class DataspaceControlPlaneService
 			localProviderContext?.[ContextIdKeys.Organization] === organizationId &&
 			trustInfo.identity === organizationId
 		) {
-			return this.negotiateImplicitTrustAgreement(organizationId, datasetId);
+			return this.negotiateImplicitTrustAgreement(organizationId, datasetId, offerId);
+		}
+
+		// For cross-org negotiations, reuse a compatible existing agreement when one exists.
+		// This avoids accumulating duplicate agreements on every fetch for the same offer.
+		const offerAssignerIds = OdrlPolicyHelper.getPartyIds(matchingOffer.assigner);
+		if (Is.arrayValue(offerAssignerIds)) {
+			const existingAgreementId = await this.findExistingAgreement(
+				offerAssignerIds[0],
+				organizationId,
+				datasetId
+			);
+
+			if (existingAgreementId) {
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "agreementReused",
+					data: { agreementId: existingAgreementId, offerId, datasetId }
+				});
+
+				for (const [key, cb] of this._negotiationCallbacks.entries()) {
+					try {
+						await cb.onFinalized(undefined, existingAgreementId, offerId);
+					} catch (error) {
+						await this._loggingComponent?.log({
+							level: "error",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "negotiationCallbackError",
+							data: {
+								key,
+								negotiationId: existingAgreementId,
+								method: "onFinalized",
+								error: BaseError.fromError(error)
+							}
+						});
+					}
+				}
+
+				return { agreementId: existingAgreementId };
+			}
 		}
 
 		const negotiationId = await this._policyNegotiationPointComponent.sendRequestToProvider(
@@ -1928,7 +2207,11 @@ export class DataspaceControlPlaneService
 
 		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "resolveConsumerPid");
 
-		const storageEntity = await this._transferProcessStorage.get(consumerPid);
+		// Provider-side resolution API: prefer the provider record, fall back for legacy rows.
+		let storageEntity = await this._transferProcessStorage.get(consumerPid, "consumerPid", [
+			{ property: "localRole", value: TransferProcessRole.Provider }
+		]);
+		storageEntity ??= await this._transferProcessStorage.get(consumerPid, "consumerPid");
 
 		if (!storageEntity) {
 			throw new NotFoundError(
@@ -2009,7 +2292,9 @@ export class DataspaceControlPlaneService
 
 		await TrustHelper.verifyTrust(this._trustComponent, trustPayload, "resolveProviderPid");
 
-		const { entity } = await this.lookupTransferByPid(providerPid);
+		const { entity } = await this.lookupTransferByPid(providerPid, {
+			preferredRole: TransferProcessRole.Provider
+		});
 
 		if (entity.state === DataspaceProtocolTransferProcessStateType.TERMINATED) {
 			throw new GeneralError(
@@ -2098,12 +2383,16 @@ export class DataspaceControlPlaneService
 	 * or generated.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns The resolved dataset id.
 	 */
 	public async createAppDataset(
 		id: string | undefined,
 		appId: string,
-		dataset: IDataspaceProtocolDataset
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
 	): Promise<string> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(appId), appId);
 		Guards.object<IDataspaceProtocolDataset>(
@@ -2146,6 +2435,7 @@ export class DataspaceControlPlaneService
 			tenantId: await this.resolveContextTenantId(),
 			appId,
 			dataset: ObjectHelper.omit(dataset, ["@id"]),
+			transferIdleTimeoutMs: Coerce.integer(options?.transferIdleTimeoutMs),
 			dateCreated: now,
 			dateModified: now
 		};
@@ -2186,6 +2476,7 @@ export class DataspaceControlPlaneService
 			id: entity.id,
 			appId: entity.appId,
 			dataset: this.restampDatasetId(entity.dataset, entity.id),
+			transferIdleTimeoutMs: entity.transferIdleTimeoutMs,
 			dateCreated: entity.dateCreated,
 			dateModified: entity.dateModified
 		};
@@ -2221,6 +2512,7 @@ export class DataspaceControlPlaneService
 			id: entity.id,
 			appId: entity.appId,
 			dataset: this.restampDatasetId(entity.dataset ?? {}, entity.id ?? ""),
+			transferIdleTimeoutMs: entity.transferIdleTimeoutMs,
 			dateCreated: entity.dateCreated,
 			dateModified: entity.dateModified
 		})) as IDataspaceAppDataset[];
@@ -2236,12 +2528,16 @@ export class DataspaceControlPlaneService
 	 * @param id The stored dataset id.
 	 * @param appId The dataspace app this dataset belongs to.
 	 * @param dataset The dataset payload.
+	 * @param options Optional dataset settings.
+	 * @param options.transferIdleTimeoutMs Optional idle window (ms) overriding the node-level idle
+	 * policy for this dataset's PULL transfers; 0 disables it for this dataset.
 	 * @returns A promise that resolves when the dataset has been updated in storage and the catalogue.
 	 */
 	public async updateAppDataset(
 		id: string,
 		appId: string,
-		dataset: IDataspaceProtocolDataset
+		dataset: IDataspaceProtocolDataset,
+		options?: { transferIdleTimeoutMs?: number }
 	): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(id), id);
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(appId), appId);
@@ -2267,6 +2563,7 @@ export class DataspaceControlPlaneService
 			...existing,
 			appId,
 			dataset: ObjectHelper.omit(dataset, ["@id"]),
+			transferIdleTimeoutMs: Coerce.integer(options?.transferIdleTimeoutMs),
 			dateModified: new Date().toISOString()
 		};
 
@@ -2314,7 +2611,7 @@ export class DataspaceControlPlaneService
 				{
 					datasetId: id,
 					tenantId: existing.tenantId ?? "",
-					catalogErrorCode: removeResult.code
+					code: removeResult.code
 				},
 				BaseError.expand(removeResult.reason)
 			);
@@ -2342,7 +2639,8 @@ export class DataspaceControlPlaneService
 					version: "2025-1",
 					path: `/${this._callbackPath}`,
 					binding: DataspaceProtocolVersionBindingType.HTTPS,
-					serviceId: "twin-connector"
+					identifierType: "did:iota",
+					serviceId: "iota/twin.org/dspace-connector"
 				}
 			]
 		};
@@ -2396,7 +2694,12 @@ export class DataspaceControlPlaneService
 						source: DataspaceControlPlaneService.CLASS_NAME,
 						ts: Date.now(),
 						message: "negotiationCallbackError",
-						data: { key, negotiationId, method: onTimeout ? "onTimeout" : "onFailed", error }
+						data: {
+							key,
+							negotiationId,
+							method: onTimeout ? "onTimeout" : "onFailed",
+							error: BaseError.fromError(error)
+						}
 					});
 				}
 			}
@@ -2426,8 +2729,8 @@ export class DataspaceControlPlaneService
 
 		// Runs per tenant so the storage access inherits the correct [Node, Tenant] + org partition.
 		await this._platformComponent.execute(async () => {
-			// consumerPid is the primary key of TransferProcess, so it is used for both removal and callbacks.
-			const stalled: string[] = [];
+			// Removal is by the internal id (the primary key); callbacks stay keyed on consumerPid.
+			const stalled: { id: string; consumerPid: string }[] = [];
 			let cursor: string | undefined;
 
 			do {
@@ -2450,15 +2753,15 @@ export class DataspaceControlPlaneService
 						transfer.localRole === TransferProcessRole.Consumer &&
 						now - new Date(transfer.dateModified).getTime() > this._stalledTransferTimeoutMs
 					) {
-						stalled.push(transfer.consumerPid);
+						stalled.push({ id: transfer.id, consumerPid: transfer.consumerPid });
 					}
 				}
 
 				cursor = page.cursor;
 			} while (Is.stringValue(cursor));
 
-			for (const consumerPid of stalled) {
-				await this._transferProcessStorage.remove(consumerPid);
+			for (const { id, consumerPid } of stalled) {
+				await this._transferProcessStorage.remove(id);
 
 				await this._loggingComponent?.log({
 					level: "warn",
@@ -2504,6 +2807,483 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
+	 * Apply the idle lifecycle policy to Provider-role STARTED transfers, transitioning through
+	 * the standard terminateTransfer path.
+	 * @returns A promise that resolves when all matching transfers have been processed.
+	 * @internal
+	 */
+	private async applyProviderTransferPolicies(): Promise<void> {
+		const now = Date.now();
+
+		// Runs per tenant so the storage access inherits the correct [Node, Tenant] partition.
+		await this._platformComponent.execute(async () => {
+			if (
+				Is.integer(this._providerTransferIdleTimeoutMs) &&
+				Is.empty(this._transferRetrievalStorage)
+			) {
+				await this._loggingComponent?.log({
+					level: "warn",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "providerTransferIdleStorageMissing"
+				});
+			}
+
+			const providerStarted: TransferProcess[] = [];
+			let cursor: string | undefined;
+
+			do {
+				// The localRole condition also skips legacy records without a persisted localRole.
+				const page = await this._transferProcessStorage.query(
+					{
+						conditions: [
+							{
+								property: "state",
+								value: DataspaceProtocolTransferProcessStateType.STARTED,
+								comparison: ComparisonOperator.Equals
+							},
+							{
+								property: "localRole",
+								value: TransferProcessRole.Provider,
+								comparison: ComparisonOperator.Equals
+							}
+						],
+						logicalOperator: LogicalOperator.And
+					},
+					undefined,
+					undefined,
+					cursor
+				);
+
+				providerStarted.push(...(page.entities as TransferProcess[]));
+
+				cursor = page.cursor;
+			} while (Is.stringValue(cursor));
+
+			const datasetIdleCache = new Map<string, number | undefined>();
+			let terminated = 0;
+			for (const transfer of providerStarted) {
+				if (!Is.stringValue(transfer.providerIdentity)) {
+					// Cannot be transitioned without a provider identity, so remove it directly.
+					await this._transferProcessStorage.remove(transfer.id);
+					await this._loggingComponent?.log({
+						level: "warn",
+						source: DataspaceControlPlaneService.CLASS_NAME,
+						ts: Date.now(),
+						message: "providerTransferPolicyNoProviderIdentity",
+						data: { consumerPid: transfer.consumerPid }
+					});
+				} else if (await this.terminateIdleProviderTransfer(transfer, now, datasetIdleCache)) {
+					terminated++;
+				}
+			}
+
+			if (terminated > 0) {
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "providerTransferPolicySweepComplete",
+					data: { terminated }
+				});
+			}
+		});
+	}
+
+	/**
+	 * Terminate a Provider-side PULL transfer idle beyond its effective window (dataset override,
+	 * falling back to the node config; 0 disables). Activity is the later of the last state change
+	 * and the last successful retrieval. Notifies the registered callbacks (onTimeout, falling
+	 * back to onFailed).
+	 * @param transfer The transfer process entity.
+	 * @param now The sweep timestamp.
+	 * @param datasetIdleCache Per-sweep cache of dataset overrides.
+	 * @returns True when the transfer was terminated.
+	 * @internal
+	 */
+	private async terminateIdleProviderTransfer(
+		transfer: TransferProcess,
+		now: number,
+		datasetIdleCache: Map<string, number | undefined>
+	): Promise<boolean> {
+		// Retrieval activity is invisible without the storage, so skip rather than cut off
+		// consumers that are actively pulling.
+		if (
+			this.inferTransferFormat(transfer) !== DataspaceTransferFormat.HttpDataPull ||
+			Is.empty(this._transferRetrievalStorage)
+		) {
+			return false;
+		}
+
+		let datasetIdleMs: number | undefined;
+		if (datasetIdleCache.has(transfer.datasetId)) {
+			datasetIdleMs = datasetIdleCache.get(transfer.datasetId);
+		} else {
+			const dataset = await this._dataspaceAppDatasetStorage.get(transfer.datasetId);
+			datasetIdleMs = dataset?.transferIdleTimeoutMs;
+			datasetIdleCache.set(transfer.datasetId, datasetIdleMs);
+		}
+
+		const idleMs = datasetIdleMs ?? this._providerTransferIdleTimeoutMs;
+		if (!Is.integer(idleMs) || idleMs === 0) {
+			return false;
+		}
+
+		const retrieval = await this._transferRetrievalStorage.get(transfer.consumerPid);
+		const lastRetrieved = retrieval?.dateLastRetrieved;
+		const lastActivity = Math.max(
+			new Date(transfer.dateModified).getTime(),
+			Is.stringValue(lastRetrieved) ? new Date(lastRetrieved).getTime() : 0
+		);
+		if (now - lastActivity <= idleMs) {
+			return false;
+		}
+
+		const consumerPid = transfer.consumerPid;
+
+		await this._loggingComponent?.log({
+			level: "warn",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "providerTransferIdleTimedOut",
+			data: {
+				consumerPid,
+				providerPid: transfer.providerPid,
+				idleTimeoutMs: idleMs
+			}
+		});
+
+		for (const [key, cb] of this._transferCallbacks.entries()) {
+			const onTimeout = cb.onTimeout?.bind(cb);
+			const onFailed = cb.onFailed?.bind(cb);
+			try {
+				if (Is.function(onTimeout)) {
+					await onTimeout(consumerPid);
+				} else if (Is.function(onFailed)) {
+					await onFailed(consumerPid, TransferTerminationCode.IdleTimeout);
+				}
+			} catch (error) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "transferCallbackError",
+					data: {
+						key,
+						consumerPid,
+						method: Is.function(onTimeout) ? "onTimeout" : "onFailed",
+						error
+					}
+				});
+			}
+		}
+
+		return this.terminateProviderPolicyTransfer(transfer, TransferTerminationCode.IdleTimeout);
+	}
+
+	/**
+	 * Terminate a Provider-side transfer for a lifecycle policy: a self-issued provider token and
+	 * the owning organization context (the per-tenant execute establishes only the tenant), then
+	 * the standard terminateTransfer path. Failures are logged, never thrown.
+	 * @param transfer The transfer process entity.
+	 * @param code The termination code, also forwarded as the reason.
+	 * @returns True when the transfer was terminated.
+	 * @internal
+	 */
+	private async terminateProviderPolicyTransfer(
+		transfer: TransferProcess,
+		code: TransferTerminationCode
+	): Promise<boolean> {
+		const consumerPid = transfer.consumerPid;
+
+		if (!Is.stringValue(transfer.providerIdentity)) {
+			return false;
+		}
+
+		try {
+			const selfToken = await this._trustComponent.generate(
+				transfer.providerIdentity,
+				this._overrideTrustGeneratorType,
+				{
+					subject: {
+						consumerPid,
+						providerPid: transfer.providerPid,
+						agreementId: transfer.agreementId
+					}
+				}
+			);
+
+			const terminationMessage: IDataspaceProtocolTransferTerminationMessage = {
+				"@context": [DataspaceProtocolContexts.Context],
+				"@type": DataspaceProtocolTransferProcessTypes.TransferTerminationMessage,
+				consumerPid,
+				providerPid: transfer.providerPid,
+				code,
+				reason: [code]
+			};
+
+			const contextIds = await ContextIdStore.getContextIds();
+			const result = await ContextIdStore.run(
+				{ ...contextIds, [ContextIdKeys.Organization]: transfer.organizationIdentity },
+				async () => this.terminateTransfer(terminationMessage, selfToken)
+			);
+
+			if (isTransferError(result)) {
+				await this._loggingComponent?.log({
+					level: "error",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "providerTransferTerminateFailed",
+					data: { consumerPid, code: result.code },
+					error: BaseError.expand(result.reason)
+				});
+				return false;
+			}
+			return true;
+		} catch (error) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "providerTransferTerminateFailed",
+				error: BaseError.fromError(error),
+				data: { consumerPid }
+			});
+			return false;
+		}
+	}
+
+	/**
+	 * Sweep agreements with no live usage signal within the unused window, removing them from the
+	 * PAP. Removal failures are logged, never thrown, and reruns are idempotent.
+	 * @returns A promise that resolves when the sweep has completed.
+	 * @internal
+	 */
+	private async sweepUnusedAgreements(): Promise<void> {
+		const now = Date.now();
+
+		// Runs per tenant so the PAP and storage access inherit the correct [Node, Tenant] partition.
+		await this._platformComponent.execute(async () => {
+			const unusedThresholdMs = this._agreementUnusedThresholdMs;
+			if (!Is.integer(unusedThresholdMs)) {
+				return;
+			}
+
+			const usage = await this.buildAgreementUsageMap();
+
+			let scanned = 0;
+			let skipped = 0;
+			const candidates: { agreementId: string; reason: string }[] = [];
+			let cursor: string | undefined;
+
+			do {
+				const page = await this._policyAdministrationPointComponent.query(
+					{ type: OdrlPolicyType.Agreement },
+					undefined,
+					cursor,
+					undefined,
+					// The PAP always includes the policy id in reduced results.
+					["dateCreated", "dateModified"]
+				);
+
+				for (const policy of page.policies) {
+					scanned++;
+					const evaluation = this.classifySweepAgreement(policy, usage, now, unusedThresholdMs);
+					if (
+						Is.stringValue(evaluation.candidateReason) &&
+						Is.stringValue(evaluation.agreementId)
+					) {
+						candidates.push({
+							agreementId: evaluation.agreementId,
+							reason: evaluation.candidateReason
+						});
+					} else {
+						skipped++;
+						await this._loggingComponent?.log({
+							level: "debug",
+							source: DataspaceControlPlaneService.CLASS_NAME,
+							ts: Date.now(),
+							message: "agreementSweepSkipped",
+							data: { agreementId: evaluation.agreementId, reason: evaluation.skipReason }
+						});
+					}
+				}
+
+				cursor = page.cursor;
+			} while (Is.stringValue(cursor));
+
+			let swept = 0;
+			for (const candidate of candidates) {
+				if (await this.removeSweptAgreement(candidate)) {
+					swept++;
+				}
+			}
+
+			if (Is.arrayValue(candidates)) {
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "agreementSweepComplete",
+					data: { scanned, skipped, candidates: candidates.length, swept }
+				});
+			}
+		});
+	}
+
+	/**
+	 * Classify an agreement for the sweep: skip reasons take precedence, otherwise the agreement
+	 * is a candidate. Activity is the latest of the referencing transfers' activity and the
+	 * agreement's own lifecycle timestamps.
+	 * @param policy The agreement returned by the PAP query.
+	 * @param usage The per-agreement usage map built from the transfer records.
+	 * @param now The sweep timestamp.
+	 * @param unusedThresholdMs The unused window.
+	 * @returns The agreement id plus either a skip reason or a candidate reason.
+	 * @internal
+	 */
+	private classifySweepAgreement(
+		policy: IRightsManagementPolicy,
+		usage: Map<string, { hasLive: boolean; lastActivityMs: number }>,
+		now: number,
+		unusedThresholdMs: number
+	): {
+		agreementId?: string;
+		skipReason?: string;
+		candidateReason?: string;
+	} {
+		// PAP-stored policies always carry an @id (the primary key), so this guard only narrows.
+		const agreementId = OdrlPolicyHelper.getUid(policy);
+		if (!Is.stringValue(agreementId)) {
+			return { skipReason: AgreementSweepReason.NoId };
+		}
+
+		const timestampMs = Coerce.dateTime(policy.dateModified ?? policy.dateCreated)?.getTime();
+		const refs = usage.get(agreementId);
+
+		if (refs?.hasLive) {
+			return { agreementId, skipReason: AgreementSweepReason.ActiveTransfer };
+		}
+
+		if (!Is.empty(refs)) {
+			const lastActivityMs = Math.max(refs.lastActivityMs, timestampMs ?? 0);
+			return now - lastActivityMs <= unusedThresholdMs
+				? { agreementId, skipReason: AgreementSweepReason.RecentActivity }
+				: { agreementId, candidateReason: AgreementSweepReason.Unused };
+		}
+
+		if (!Is.integer(timestampMs)) {
+			return { agreementId, skipReason: AgreementSweepReason.NoTimestamp };
+		}
+
+		return now - timestampMs <= unusedThresholdMs
+			? { agreementId, skipReason: AgreementSweepReason.RecentAgreement }
+			: { agreementId, candidateReason: AgreementSweepReason.NeverReferenced };
+	}
+
+	/**
+	 * Remove a sweep candidate from the PAP; removal of a missing id is a storage-level no-op, so
+	 * reruns stay idempotent. A removal failure is logged and reported as not swept.
+	 * @param candidate The sweep candidate.
+	 * @param candidate.agreementId The agreement ID to remove.
+	 * @param candidate.reason The selection reason, forwarded to the log.
+	 * @returns True when the agreement was removed.
+	 * @internal
+	 */
+	private async removeSweptAgreement(candidate: {
+		agreementId: string;
+		reason: string;
+	}): Promise<boolean> {
+		try {
+			await this._policyAdministrationPointComponent.remove(candidate.agreementId);
+		} catch (error) {
+			await this._loggingComponent?.log({
+				level: "error",
+				source: DataspaceControlPlaneService.CLASS_NAME,
+				ts: Date.now(),
+				message: "agreementSweepRemoveFailed",
+				error: BaseError.fromError(error),
+				data: { agreementId: candidate.agreementId }
+			});
+			return false;
+		}
+
+		await MetricHelper.metricIncrement(
+			this._telemetryComponent,
+			DataspaceControlPlaneMetricIds.AgreementsSwept
+		);
+		await this._loggingComponent?.log({
+			level: "info",
+			source: DataspaceControlPlaneService.CLASS_NAME,
+			ts: Date.now(),
+			message: "agreementSwept",
+			data: { agreementId: candidate.agreementId, reason: candidate.reason }
+		});
+		return true;
+	}
+
+	/**
+	 * Build the per-agreement usage map from the transfer records: whether any live transfer
+	 * references the agreement and the latest activity (state change or retrieval) across its
+	 * transfers. A single paged pass, since agreementId is not an indexed property.
+	 * @returns The usage map keyed by agreement ID.
+	 * @internal
+	 */
+	private async buildAgreementUsageMap(): Promise<
+		Map<string, { hasLive: boolean; lastActivityMs: number }>
+	> {
+		const usage = new Map<string, { hasLive: boolean; lastActivityMs: number }>();
+		let cursor: string | undefined;
+
+		do {
+			const page = await this._transferProcessStorage.query(
+				undefined,
+				undefined,
+				["agreementId", "state", "dateModified", "consumerPid"],
+				cursor
+			);
+
+			for (const entity of page.entities) {
+				const transfer = entity as TransferProcess;
+				if (Is.stringValue(transfer.agreementId)) {
+					const isLive =
+						transfer.state === DataspaceProtocolTransferProcessStateType.REQUESTED ||
+						transfer.state === DataspaceProtocolTransferProcessStateType.STARTED ||
+						transfer.state === DataspaceProtocolTransferProcessStateType.SUSPENDED;
+
+					const modifiedMs = new Date(transfer.dateModified).getTime();
+					let lastActivityMs = Is.integer(modifiedMs) ? modifiedMs : 0;
+
+					// Retrieval rows are removed on completion/termination; consult them for terminal
+					// transfers anyway so an orphaned row still counts as activity.
+					if (!isLive && !Is.empty(this._transferRetrievalStorage)) {
+						const retrieval = await this._transferRetrievalStorage.get(transfer.consumerPid);
+						const lastRetrieved = retrieval?.dateLastRetrieved;
+						if (Is.stringValue(lastRetrieved)) {
+							const retrievedMs = new Date(lastRetrieved).getTime();
+							if (Is.integer(retrievedMs)) {
+								lastActivityMs = Math.max(lastActivityMs, retrievedMs);
+							}
+						}
+					}
+
+					const existing = usage.get(transfer.agreementId);
+					if (Is.empty(existing)) {
+						usage.set(transfer.agreementId, { hasLive: isLive, lastActivityMs });
+					} else {
+						existing.hasLive = existing.hasLive || isLive;
+						existing.lastActivityMs = Math.max(existing.lastActivityMs, lastActivityMs);
+					}
+				}
+			}
+
+			cursor = page.cursor;
+		} while (Is.stringValue(cursor));
+
+		return usage;
+	}
+
+	/**
 	 * Perform the provider-side start of a just-requested transfer (build dataAddress, transition to
 	 * STARTED, deliver to the consumer). Only invoked when the request opted into auto-start, so there is no
 	 * approval step. Self-contained: failures are logged, never thrown. Runs inside the request's ALS
@@ -2514,7 +3294,10 @@ export class DataspaceControlPlaneService
 	 */
 	private async runProviderStart(consumerPid: string, publicOrigin?: string): Promise<void> {
 		try {
-			const { entity } = await this.lookupTransferByPid(consumerPid);
+			// Auto-start must act on the provider record deterministically.
+			const { entity } = await this.lookupTransferByPid(consumerPid, {
+				preferredRole: TransferProcessRole.Provider
+			});
 			if (entity.state !== DataspaceProtocolTransferProcessStateType.REQUESTED) {
 				// Already advanced (e.g. an explicit start raced the auto-start). Nothing to do.
 				return;
@@ -2554,13 +3337,14 @@ export class DataspaceControlPlaneService
 			);
 
 			const result = await this.transferStarted(consumerPid, selfToken);
-			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+			if (isTransferError(result)) {
 				await this._loggingComponent?.log({
 					level: "error",
 					source: DataspaceControlPlaneService.CLASS_NAME,
 					ts: Date.now(),
 					message: "autoStartFailed",
-					data: { consumerPid }
+					data: { consumerPid, code: result.code },
+					error: BaseError.expand(result.reason)
 				});
 			}
 		} catch (error) {
@@ -2631,7 +3415,7 @@ export class DataspaceControlPlaneService
 		}
 
 		try {
-			// Issue the token as the provider party (the agreement assigner) — the identity the consumer's
+			// Issue the token as the provider party (the agreement assigner) - the identity the consumer's
 			// receive gate checks (`!== providerIdentity`), not the tenant-routing org. Keeps the two
 			// identity spaces separate and works whether or not a node's org == its assigner DID.
 			const outboundToken = await this._trustComponent.generate(
@@ -2650,7 +3434,7 @@ export class DataspaceControlPlaneService
 				send(component, outboundToken)
 			);
 
-			if (getJsonLdType(result) === DataspaceProtocolTransferProcessTypes.TransferError) {
+			if (isTransferError(result)) {
 				await this._loggingComponent?.log({
 					level: "error",
 					source: DataspaceControlPlaneService.CLASS_NAME,
@@ -2660,8 +3444,10 @@ export class DataspaceControlPlaneService
 						messageKind,
 						consumerPid: entity.consumerPid,
 						providerPid: entity.providerPid,
-						callbackAddress: entity.callbackAddress
-					}
+						callbackAddress: entity.callbackAddress,
+						code: result.code
+					},
+					error: BaseError.expand(result.reason)
 				});
 			}
 		} catch (error) {
@@ -2704,7 +3490,6 @@ export class DataspaceControlPlaneService
 			organizationIdentity: storageEntity.organizationIdentity,
 			dateCreated: new Date(storageEntity.dateCreated),
 			dateModified: new Date(storageEntity.dateModified),
-			policies: storageEntity.policies,
 			dataAddress: storageEntity.dataAddress
 		};
 	}
@@ -2732,7 +3517,6 @@ export class DataspaceControlPlaneService
 			organizationIdentity: entity.organizationIdentity,
 			dateCreated: entity.dateCreated.toISOString(),
 			dateModified: entity.dateModified.toISOString(),
-			policies: entity.policies,
 			dataAddress: entity.dataAddress
 		};
 	}
@@ -2807,12 +3591,14 @@ export class DataspaceControlPlaneService
 	 * Validate that the dataset exists in the Federated Catalogue.
 	 * @param datasetId Dataset identifier extracted from Agreement.
 	 * @param agreement The Agreement being validated.
+	 * @param format The DSP transfer format requested by the consumer.
 	 * @returns A promise that resolves when the dataset has been confirmed in the catalogue and the offer has been validated.
 	 * @internal
 	 */
 	private async validateCatalogDataset(
 		datasetId: string,
-		agreement: IRightsManagementAgreement
+		agreement: IRightsManagementAgreement,
+		format: string
 	): Promise<void> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(datasetId), datasetId);
 		Guards.object<IRightsManagementAgreement>(
@@ -2837,15 +3623,22 @@ export class DataspaceControlPlaneService
 					datasetId,
 					{
 						datasetId,
-						agreementId: OdrlPolicyHelper.getUid(agreement)
-					}
+						agreementId: OdrlPolicyHelper.getUid(agreement),
+						code: catalogResult.code
+					},
+					BaseError.expand(catalogResult.reason)
 				);
 			}
-			throw new GeneralError(DataspaceControlPlaneService.CLASS_NAME, "catalogLookupFailed", {
-				datasetId,
-				agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
-				errorCode: catalogResult.code
-			});
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"catalogLookupFailed",
+				{
+					datasetId,
+					agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
+					code: catalogResult.code
+				},
+				BaseError.expand(catalogResult.reason)
+			);
 		}
 
 		await this._loggingComponent?.log({
@@ -2861,6 +3654,53 @@ export class DataspaceControlPlaneService
 		});
 
 		await this.validateAgreementMatchesOffer(agreement, catalogResult);
+		this.validateDistributionFormat(catalogResult, format, agreement);
+	}
+
+	/**
+	 * Validate that the requested transfer format matches one of the dataset's DSP distribution formats.
+	 * Only enforced when the dataset carries explicit DSP distribution format information.
+	 * @param catalogDataset The catalog dataset retrieved from the Federated Catalogue.
+	 * @param requestedFormat The DSP transfer format requested by the consumer.
+	 * @param agreement The Agreement being validated (used for error context).
+	 * @throws GeneralError if the dataset has DSP distribution format info and none match requestedFormat.
+	 * @internal
+	 */
+	private validateDistributionFormat(
+		catalogDataset: IDcatDataset | IDataspaceProtocolDataset,
+		requestedFormat: string,
+		agreement: IRightsManagementAgreement
+	): void {
+		const distribution = ObjectHelper.extractProperty<
+			ObjectOrArray<IDcatDistributionBase | IDataspaceProtocolDistributionBase>
+		>(catalogDataset, ["distribution", "dcat:distribution"], false);
+
+		const distributionFormats: string[] = [];
+		if (Is.arrayValue(distribution)) {
+			for (const dist of distribution) {
+				const format = ObjectHelper.extractProperty<string>(
+					dist,
+					["format", "dcterms:format"],
+					false
+				);
+				if (Is.stringValue(format)) {
+					distributionFormats.push(format);
+				}
+			}
+		}
+
+		if (!distributionFormats.includes(requestedFormat)) {
+			throw new GeneralError(
+				DataspaceControlPlaneService.CLASS_NAME,
+				"transferFormatNotInDistributions",
+				{
+					format: requestedFormat,
+					datasetId: getJsonLdId(catalogDataset) ?? "",
+					agreementId: OdrlPolicyHelper.getUid(agreement) ?? "",
+					availableFormats: distributionFormats
+				}
+			);
+		}
 	}
 
 	/**
@@ -2868,45 +3708,65 @@ export class DataspaceControlPlaneService
 	 * @param message DSP protocol message with consumerPid and/or providerPid fields.
 	 * @param message.consumerPid The consumer-side PID from the DSP message.
 	 * @param message.providerPid The provider-side PID from the DSP message.
+	 * @param options Candidate selection options, see lookupTransferByPid.
+	 * @param options.preferredRole The localRole to prefer among matching records.
+	 * @param options.targetState State the caller transitions to.
 	 * @returns Transfer Process entity and our role in this transfer.
 	 * @internal
 	 */
-	private async lookupTransferByMessage(message: {
-		consumerPid?: string;
-		providerPid?: string;
-	}): Promise<{
+	private async lookupTransferByMessage(
+		message: {
+			consumerPid?: string;
+			providerPid?: string;
+		},
+		options?: {
+			preferredRole?: TransferProcessRole;
+			targetState?: DataspaceProtocolTransferProcessStateType;
+		}
+	): Promise<{
 		entity: ITransferProcess;
 		role: TransferProcessRole;
 	}> {
 		const pid = message.consumerPid ?? message.providerPid;
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, "pid", pid);
 
-		return this.lookupTransferByPid(pid);
+		return this.lookupTransferByPid(pid, options);
 	}
 
 	/**
 	 * Lookup Transfer Process by PID and determine our role.
+	 * A self transfer (same organization both roles) stores two records sharing both pids, so a pid
+	 * can match more than one record within a partition and the options pick the intended one.
 	 * @param pid Either consumerPid or providerPid.
+	 * @param options Candidate selection options.
+	 * @param options.preferredRole The localRole to prefer among matching records (default Provider).
+	 * @param options.targetState State the caller transitions to; records already in it are only
+	 * selected when no other candidate remains, so an in-process self-transfer callback delivery
+	 * resolves the not-yet-transitioned record and duplicates still hit the idempotency branches.
 	 * @returns Transfer Process entity and our role in this transfer.
 	 * @internal
 	 */
-	private async lookupTransferByPid(pid: string): Promise<{
+	private async lookupTransferByPid(
+		pid: string,
+		options?: {
+			preferredRole?: TransferProcessRole;
+			targetState?: DataspaceProtocolTransferProcessStateType;
+		}
+	): Promise<{
 		entity: ITransferProcess;
 		role: TransferProcessRole;
 	}> {
 		Guards.stringValue(DataspaceControlPlaneService.CLASS_NAME, nameof(pid), pid);
 
-		// consumerPid is the primary key on BOTH nodes, so the matched key alone is not a reliable role
-		// signal; locate the record by primary, then the providerPid secondary index.
-		let storageEntity = await this._transferProcessStorage.get(pid);
 		let matchedByConsumerPid = true;
+		let candidates = await this.queryTransfersByIndex("consumerPid", pid);
 
-		if (!storageEntity) {
-			storageEntity = await this._transferProcessStorage.get(pid, "providerPid");
+		if (candidates.length === 0) {
+			candidates = await this.queryTransfersByIndex("providerPid", pid);
 			matchedByConsumerPid = false;
 		}
 
-		if (!storageEntity) {
+		if (candidates.length === 0) {
 			throw new NotFoundError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"transferProcessNotFound",
@@ -2916,6 +3776,19 @@ export class DataspaceControlPlaneService
 				}
 			);
 		}
+
+		let selectable = candidates;
+		const targetState = options?.targetState;
+		if (Is.stringValue(targetState)) {
+			const pending = candidates.filter(candidate => candidate.state !== targetState);
+			if (pending.length > 0) {
+				selectable = pending;
+			}
+		}
+
+		const preferredRole = options?.preferredRole ?? TransferProcessRole.Provider;
+		const storageEntity =
+			selectable.find(candidate => candidate.localRole === preferredRole) ?? selectable[0];
 
 		// Prefer the role persisted at write time (set in prepareTransfer / requestTransfer). Fall back
 		// to the matched-key heuristic only for legacy records written before localRole existed.
@@ -2927,6 +3800,25 @@ export class DataspaceControlPlaneService
 			entity: this.storageEntityToModel(storageEntity),
 			role
 		};
+	}
+
+	/**
+	 * Query all transfer process records matching a pid on the given index.
+	 * @param property The indexed pid property to match.
+	 * @param pid The pid value.
+	 * @returns The matching records.
+	 * @internal
+	 */
+	private async queryTransfersByIndex(
+		property: "consumerPid" | "providerPid",
+		pid: string
+	): Promise<TransferProcess[]> {
+		const page = await this._transferProcessStorage.query({
+			property,
+			value: pid,
+			comparison: ComparisonOperator.Equals
+		});
+		return page.entities as TransferProcess[];
 	}
 
 	/**
@@ -3047,7 +3939,7 @@ export class DataspaceControlPlaneService
 	/**
 	 * Check if an Agreement is derived from an Offer.
 	 * Per the DS Protocol spec, Offers within a Dataset's hasPolicy array must NOT
-	 * include an explicit "target" property — the target is implicitly the Dataset itself.
+	 * include an explicit "target" property - the target is implicitly the Dataset itself.
 	 * When the offer has no explicit targets, we use the datasetId as the implicit target
 	 * so that the comparison with the agreement's target can succeed.
 	 * @param agreement Agreement to check.
@@ -3063,7 +3955,7 @@ export class DataspaceControlPlaneService
 		const agreementTargets = OdrlPolicyHelper.getTargets(agreement);
 		const offerTargets = OdrlPolicyHelper.getTargets(offer);
 
-		// Per DSP spec, offers in a Dataset's hasPolicy MUST NOT include explicit targets —
+		// Per DSP spec, offers in a Dataset's hasPolicy MUST NOT include explicit targets -
 		// the target is implicitly the Dataset. When the catalogue offer has no targets,
 		// skip the target comparison entirely (the agreement's target is the dataset itself).
 		// Only reject if both have explicit targets that don't overlap.
@@ -3074,7 +3966,7 @@ export class DataspaceControlPlaneService
 				return false;
 			}
 		} else if (Is.arrayValue(offerTargets) && !Is.arrayValue(agreementTargets)) {
-			// Offer has targets but agreement doesn't — mismatch
+			// Offer has targets but agreement doesn't - mismatch
 			return false;
 		}
 		// If offer has no targets (catalogue offer), accept any agreement targets
@@ -3135,22 +4027,27 @@ export class DataspaceControlPlaneService
 							source: DataspaceControlPlaneService.CLASS_NAME,
 							ts: Date.now(),
 							message: "negotiationCallbackError",
-							data: { key, negotiationId, method: "onStateChanged", error }
+							data: {
+								key,
+								negotiationId,
+								method: "onStateChanged",
+								error: BaseError.fromError(error)
+							}
 						});
 					}
 				}
 			},
-			onFinalized: async (negotiationId, agreementId) => {
+			onFinalized: async (negotiationId, agreementId, offerId) => {
 				for (const [key, cb] of this._negotiationCallbacks.entries()) {
 					try {
-						await cb.onFinalized(negotiationId, agreementId);
+						await cb.onFinalized(negotiationId, agreementId, offerId);
 					} catch (error) {
 						await this._loggingComponent?.log({
 							level: "error",
 							source: DataspaceControlPlaneService.CLASS_NAME,
 							ts: Date.now(),
 							message: "negotiationCallbackError",
-							data: { key, negotiationId, method: "onCompleted", error }
+							data: { key, negotiationId, method: "onFinalized", error: BaseError.fromError(error) }
 						});
 					}
 				}
@@ -3165,7 +4062,7 @@ export class DataspaceControlPlaneService
 							source: DataspaceControlPlaneService.CLASS_NAME,
 							ts: Date.now(),
 							message: "negotiationCallbackError",
-							data: { key, negotiationId, method: "onFailed", error }
+							data: { key, negotiationId, method: "onFailed", error: BaseError.fromError(error) }
 						});
 					}
 				}
@@ -3314,7 +4211,7 @@ export class DataspaceControlPlaneService
 						datasetId: appDataset.id,
 						appId: appDataset.appId,
 						tenantId: appDataset.tenantId ?? "",
-						catalogErrorCode: publishResult.code
+						code: publishResult.code
 					},
 					BaseError.expand(publishResult.reason)
 				);
@@ -3347,16 +4244,16 @@ export class DataspaceControlPlaneService
 	 * Resolve the transfer format for handler dispatch. When the entity already carries a
 	 * format string (all transfers created by requestTransfer), that value is used directly.
 	 * For entities seeded without a format (e.g. older storage records), the format is inferred
-	 * from the presence of a consumer-supplied dataAddress — matching the pre-factory dispatch
+	 * from the presence of a consumer-supplied dataAddress - matching the pre-factory dispatch
 	 * logic so existing records continue to work correctly.
 	 * @param entity The transfer process entity.
 	 * @returns The effective DataspaceTransferFormat for handler lookup.
 	 * @internal
 	 */
-	private inferTransferFormat(entity: ITransferProcess): DataspaceTransferFormat {
+	private inferTransferFormat(entity: Pick<ITransferProcess, "format" | "dataAddress">): string {
 		const knownFormats = Object.values(DataspaceTransferFormat) as string[];
 		if (Is.stringValue(entity.format) && knownFormats.includes(entity.format)) {
-			return entity.format as DataspaceTransferFormat;
+			return entity.format;
 		}
 		// Backward-compat: entities without a recognized format string (e.g. stored before
 		// the factory was introduced, or using a non-standard format value) fall back to
@@ -3367,29 +4264,62 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
+	 * Queries the PAP for an existing agreement for the given assigner/assignee/target and
+	 * returns the ID of the newest one by dateCreated, or undefined if none exist.
+	 * @param assigner The expected assigner DID.
+	 * @param assignee The expected assignee DID.
+	 * @param datasetId The target dataset ID.
+	 * @returns The agreement ID of the newest matching agreement, or undefined.
+	 * @internal
+	 */
+	private async findExistingAgreement(
+		assigner: string,
+		assignee: string,
+		datasetId: string
+	): Promise<string | undefined> {
+		const { policies } = await this._policyAdministrationPointComponent.query({
+			type: OdrlPolicyType.Agreement,
+			assigner,
+			assignee,
+			target: datasetId
+		});
+
+		if (policies.length === 0) {
+			return undefined;
+		}
+
+		const sorted = EntitySorter.sort(policies, [
+			{
+				property: "dateCreated",
+				type: EntitySchemaPropertyType.String,
+				sortDirection: SortDirection.Descending
+			}
+		]);
+
+		return OdrlPolicyHelper.getUid(sorted[0]);
+	}
+
+	/**
 	 * Return an existing full-access agreement for the same-organization (implicit trust) case,
 	 * or create and store one if none exists. Fires onFinalized on all registered callbacks in
 	 * both cases.
 	 * @param organizationId The local organization ID (both assigner and assignee).
 	 * @param datasetId The dataset being granted access to.
+	 * @param offerId The offer ID to pass as a correlation to onFinalized callbacks.
 	 * @returns The agreement ID.
 	 * @internal
 	 */
 	private async negotiateImplicitTrustAgreement(
 		organizationId: string,
-		datasetId: string
+		datasetId: string,
+		offerId?: string
 	): Promise<{ agreementId: string }> {
-		const { policies } = await this._policyAdministrationPointComponent.query({
-			type: OdrlPolicyType.Agreement,
-			assigner: organizationId,
-			assignee: organizationId,
-			target: datasetId
-		});
+		const existingId = await this.findExistingAgreement(organizationId, organizationId, datasetId);
 
 		let agreementId: string;
 
-		if (policies.length > 0) {
-			agreementId = OdrlPolicyHelper.getUid(policies[0]) as string;
+		if (Is.stringValue(existingId)) {
+			agreementId = existingId;
 
 			await this._loggingComponent?.log({
 				level: "info",
@@ -3426,14 +4356,19 @@ export class DataspaceControlPlaneService
 
 		for (const [key, cb] of this._negotiationCallbacks.entries()) {
 			try {
-				await cb.onFinalized(undefined, agreementId);
+				await cb.onFinalized(undefined, agreementId, offerId);
 			} catch (error) {
 				await this._loggingComponent?.log({
 					level: "error",
 					source: DataspaceControlPlaneService.CLASS_NAME,
 					ts: Date.now(),
 					message: "negotiationCallbackError",
-					data: { key, negotiationId: agreementId, method: "onFinalized", error }
+					data: {
+						key,
+						negotiationId: agreementId,
+						method: "onFinalized",
+						error: BaseError.fromError(error)
+					}
 				});
 			}
 		}

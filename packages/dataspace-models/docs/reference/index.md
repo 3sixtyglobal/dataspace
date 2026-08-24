@@ -4,7 +4,10 @@
 
 - [DataspaceDataTypes](classes/DataspaceDataTypes.md)
 - [DataspaceAppDataset](classes/DataspaceAppDataset.md)
+- [DataspaceAppDatasetV0](classes/DataspaceAppDatasetV0.md)
 - [TransferProcess](classes/TransferProcess.md)
+- [TransferProcessV0](classes/TransferProcessV0.md)
+- [TransferRetrieval](classes/TransferRetrieval.md)
 
 ## Interfaces
 
@@ -65,6 +68,7 @@
 - [ITransferCallback](interfaces/ITransferCallback.md)
 - [ITransferContext](interfaces/ITransferContext.md)
 - [ITransferProcess](interfaces/ITransferProcess.md)
+- [ITransferQueryResult](interfaces/ITransferQueryResult.md)
 - [ITransferContextResponse](interfaces/ITransferContextResponse.md)
 - [IDataspaceDataPlaneComponent](interfaces/IDataspaceDataPlaneComponent.md)
 
@@ -76,6 +80,7 @@
 - [DataRequestType](type-aliases/DataRequestType.md)
 - [DataspaceControlPlaneMetricIds](type-aliases/DataspaceControlPlaneMetricIds.md)
 - [TransferProcessRole](type-aliases/TransferProcessRole.md)
+- [TransferTerminationCode](type-aliases/TransferTerminationCode.md)
 - [DataspaceDataPlaneMetricIds](type-aliases/DataspaceDataPlaneMetricIds.md)
 - [DataspaceContexts](type-aliases/DataspaceContexts.md)
 - [DataspaceTransferFormat](type-aliases/DataspaceTransferFormat.md)
@@ -90,6 +95,7 @@
 - [DataspaceControlPlaneMetricIds](variables/DataspaceControlPlaneMetricIds.md)
 - [DataspaceControlPlaneMetrics](variables/DataspaceControlPlaneMetrics.md)
 - [TransferProcessRole](variables/TransferProcessRole.md)
+- [TransferTerminationCode](variables/TransferTerminationCode.md)
 - [DataspaceDataPlaneMetricIds](variables/DataspaceDataPlaneMetricIds.md)
 - [DataspaceDataPlaneMetrics](variables/DataspaceDataPlaneMetrics.md)
 - [DataspaceContexts](variables/DataspaceContexts.md)

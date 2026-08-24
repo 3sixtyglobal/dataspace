@@ -5,6 +5,7 @@ import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
 import {
 	ComponentFactory,
 	Converter,
+	Factory,
 	GeneralError,
 	Is,
 	NotFoundError,
@@ -15,10 +16,12 @@ import {
 	DataspaceAppFactory,
 	DataspaceTransferFormat,
 	TransferProcessRole,
+	TransferTerminationCode,
 	type DataspaceAppDataset,
 	type INegotiationCallback,
 	type ITransferCallback,
-	type TransferProcess
+	type TransferProcess,
+	type TransferRetrieval
 } from "@twin.org/dataspace-models";
 import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
 import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
@@ -33,6 +36,7 @@ import {
 	DataspaceProtocolTransferProcessTypes,
 	type IDataspaceProtocolAgreement,
 	type IDataspaceProtocolCatalogError,
+	type IDataspaceProtocolDataAddress,
 	type IDataspaceProtocolOffer,
 	type IDataspaceProtocolTransferCompletionMessage,
 	type IDataspaceProtocolTransferError,
@@ -53,6 +57,8 @@ import { MockPolicyNegotiationPointComponent } from "./mocks/mockPolicyNegotiati
 import {
 	createFailingMockTrustComponent,
 	createMockDataspaceDataPlaneComponent,
+	createMockEngineCore,
+	createMockTaskScheduler,
 	createMockTrustComponent,
 	createSingleTenantPlatformComponent,
 	DEFAULT_SERVICE_OPTIONS,
@@ -81,6 +87,7 @@ describe("DataspaceControlPlaneService", () => {
 	// Create transfer process storage for tests
 	let transferProcessStorage: MemoryEntityStorageConnector<TransferProcess>;
 	let dataspaceAppDatasetStorage: MemoryEntityStorageConnector<DataspaceAppDataset>;
+	let transferRetrievalStorage: MemoryEntityStorageConnector<TransferRetrieval>;
 	let mockPap: MockPolicyAdministrationPointComponent;
 	let mockFedCat: MockFederatedCatalogueComponent;
 	let mockPnp: MockPolicyNegotiationPointComponent;
@@ -100,6 +107,10 @@ describe("DataspaceControlPlaneService", () => {
 			entitySchema: nameof<DataspaceAppDataset>(),
 			config: { storageKey: "dataspace-app-dataset" }
 		});
+		transferRetrievalStorage = new MemoryEntityStorageConnector<TransferRetrieval>({
+			entitySchema: nameof<TransferRetrieval>(),
+			config: { storageKey: "transfer-retrieval" }
+		});
 
 		// Register the entity storage connectors
 		EntityStorageConnectorFactory.register(
@@ -109,6 +120,10 @@ describe("DataspaceControlPlaneService", () => {
 		EntityStorageConnectorFactory.register(
 			nameofKebabCase<DataspaceAppDataset>(),
 			() => dataspaceAppDatasetStorage
+		);
+		EntityStorageConnectorFactory.register(
+			nameofKebabCase<TransferRetrieval>(),
+			() => transferRetrievalStorage
 		);
 
 		// Create and register mock PAP, PNP, FedCat and PNAP admin components
@@ -125,6 +140,7 @@ describe("DataspaceControlPlaneService", () => {
 
 		// Register mock trust component
 		ComponentFactory.register("test-trust", () => createMockTrustComponent());
+		ComponentFactory.register("task-scheduler", () => createMockTaskScheduler());
 
 		// Default platform: no URL is treated as local (getLocalOriginContext -> undefined).
 		// Re-registered each test so any per-block override (e.g. the implicit-trust block) cannot leak.
@@ -145,6 +161,7 @@ describe("DataspaceControlPlaneService", () => {
 		try {
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferProcess>());
 			EntityStorageConnectorFactory.unregister(nameofKebabCase<DataspaceAppDataset>());
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferRetrieval>());
 		} catch {
 			// Ignore errors if already unregistered
 		}
@@ -156,6 +173,7 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-fedcat");
 			ComponentFactory.unregister("test-pnap-admin");
 			ComponentFactory.unregister("test-trust");
+			ComponentFactory.unregister("task-scheduler");
 			ComponentFactory.unregister("test-url-transformer");
 			ComponentFactory.unregister("url-transformer");
 		} catch {
@@ -164,6 +182,7 @@ describe("DataspaceControlPlaneService", () => {
 
 		await transferProcessStorage.teardown();
 		await dataspaceAppDatasetStorage.teardown();
+		await transferRetrievalStorage.teardown();
 
 		vi.restoreAllMocks();
 	});
@@ -227,7 +246,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: consumerGeneratedPid,
 				agreementId: "agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			// 3. Provider receives request and returns Transfer Process with both PIDs
@@ -259,12 +278,12 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: consumerGeneratedPid,
 				agreementId: "agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PUSH"
 			};
 
 			await service.requestTransfer(request, "valid-trust-payload");
 
-			const stored = await transferProcessStorage.get(consumerGeneratedPid);
+			const stored = await transferProcessStorage.get(consumerGeneratedPid, "consumerPid");
 			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
 		});
 
@@ -280,7 +299,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: consumerGeneratedPid,
 				agreementId: "agreement-456",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			await service.requestTransfer(request, "valid-trust-payload");
@@ -321,6 +340,171 @@ describe("DataspaceControlPlaneService", () => {
 				// Semantic error code format: "ErrorName:message"
 				expect(transferError.code).toMatch(/^NotFoundError:/);
 			}
+		});
+	});
+
+	describe("queryDataTransfer()", () => {
+		/**
+		 * Seed a transfer process into storage with sensible defaults for query tests.
+		 * The default party identities match the mock trust component's caller identity.
+		 * @param overrides Field overrides for the seeded transfer process.
+		 */
+		async function seedTransferProcess(overrides: Partial<TransferProcess>): Promise<void> {
+			await transferProcessStorage.set({
+				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				id: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				providerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
+				agreementId: "agreement-query-001",
+				state: DataspaceProtocolTransferProcessStateType.STARTED,
+				datasetId: "dataset-query-001",
+				offerId: "offer-query-001",
+				consumerIdentity: "did:iota:consumer-node-abc",
+				providerIdentity: "did:iota:provider-node-xyz",
+				localRole: TransferProcessRole.Consumer,
+				format: DataspaceTransferFormat.HttpDataPull,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString(),
+				...overrides
+			});
+		}
+
+		test("should return a matching STARTED transfer including its dataAddress", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({
+				consumerPid: "urn:uuid:query-consumer-pid-001",
+				providerPid: "urn:uuid:query-provider-pid-001",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://consumer.example.com/dataspace/inbox"
+				}
+			});
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				DataspaceProtocolTransferProcessStateType.STARTED,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(1);
+			expect(result.transfers[0].consumerPid).toBe("urn:uuid:query-consumer-pid-001");
+			expect(result.transfers[0].providerPid).toBe("urn:uuid:query-provider-pid-001");
+			expect(result.transfers[0].state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(result.transfers[0].agreementId).toBe("agreement-query-001");
+			expect(result.transfers[0].datasetId).toBe("dataset-query-001");
+			expect(result.transfers[0].format).toBe(DataspaceTransferFormat.HttpDataPull);
+			expect(result.transfers[0].dataAddress?.endpoint).toBe(
+				"https://consumer.example.com/dataspace/inbox"
+			);
+			expect(result.cursor).toBeUndefined();
+		});
+
+		test("should return an empty result when no transfer exists for the agreement", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ agreementId: "agreement-query-other" });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				undefined,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toEqual([]);
+			expect(result.cursor).toBeUndefined();
+		});
+
+		test("should not return a transfer whose state differs from the filter", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.REQUESTED });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				DataspaceProtocolTransferProcessStateType.STARTED,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toEqual([]);
+		});
+
+		test("should return transfers in every state when no state filter is provided", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.REQUESTED });
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.STARTED });
+			await seedTransferProcess({ state: DataspaceProtocolTransferProcessStateType.COMPLETED });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				undefined,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(3);
+		});
+
+		test("should return every matching transfer when duplicates exist for the agreement", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ consumerPid: "urn:uuid:query-dup-pid-001" });
+			await seedTransferProcess({ consumerPid: "urn:uuid:query-dup-pid-002" });
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				DataspaceProtocolTransferProcessStateType.STARTED,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(2);
+			expect(result.transfers.map(transfer => transfer.consumerPid).sort()).toEqual([
+				"urn:uuid:query-dup-pid-001",
+				"urn:uuid:query-dup-pid-002"
+			]);
+		});
+
+		test("should exclude transfers where the caller is not a party", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			await seedTransferProcess({ consumerPid: "urn:uuid:query-party-pid-001" });
+			await seedTransferProcess({
+				consumerPid: "urn:uuid:query-party-pid-002",
+				consumerIdentity: "did:iota:another-consumer",
+				providerIdentity: "did:iota:another-provider"
+			});
+
+			const result = await service.queryDataTransfer(
+				"agreement-query-001",
+				undefined,
+				undefined,
+				"valid-trust-payload"
+			);
+
+			expect(result.transfers).toHaveLength(1);
+			expect(result.transfers[0].consumerPid).toBe("urn:uuid:query-party-pid-001");
+		});
+
+		test("should throw UnauthorizedError when trust verification fails", async () => {
+			ComponentFactory.register("test-trust-failing-query", () =>
+				createFailingMockTrustComponent()
+			);
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-failing-query"
+			});
+
+			await expect(
+				service.queryDataTransfer("agreement-query-001", undefined, undefined, "any-token")
+			).rejects.toMatchObject({ name: "UnauthorizedError" });
+
+			ComponentFactory.unregister("test-trust-failing-query");
 		});
 	});
 
@@ -438,6 +622,140 @@ describe("DataspaceControlPlaneService", () => {
 			} catch {}
 		});
 
+		test("should persist the provider-built PULL dataAddress on the consumer record at start", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Consumer-role REQUESTED PULL transfer; providerIdentity matches the mock trust identity.
+			await transferProcessStorage.set({
+				id: "start-persist-internal-01",
+				consumerPid: "start-persist-consumer-01",
+				providerPid: "start-persist-provider-01",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-persist-01",
+				providerIdentity: "did:iota:consumer-node-abc",
+				localRole: TransferProcessRole.Consumer,
+				format: DataspaceTransferFormat.HttpDataPull,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "start-persist-consumer-01",
+				providerPid: "start-persist-provider-01",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsQueryEndpoint,
+					endpoint: "https://provider.example.com/data-plane/data/entities",
+					endpointProperties: [
+						{
+							"@type": DataspaceProtocolTransferProcessTypes.EndpointProperty,
+							name: "authorization",
+							value: "pull-access-token"
+						}
+					]
+				}
+			};
+
+			const result = await service.startTransfer(message, "valid-trust-payload");
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("start-persist-consumer-01", "consumerPid");
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(stored?.dataAddress).toEqual(message.dataAddress);
+		});
+
+		test("should keep the consumer's stored PUSH dataAddress when the start message carries one", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// The consumer's own inbox, captured at request time, must not be clobbered by the
+			// provider-built address on the start message.
+			const consumerInbox: IDataspaceProtocolDataAddress = {
+				"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+				endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+				endpoint: "https://consumer.example.com/dataspace/inbox"
+			};
+
+			await transferProcessStorage.set({
+				id: "start-persist-internal-02",
+				consumerPid: "start-persist-consumer-02",
+				providerPid: "start-persist-provider-02",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-persist-02",
+				providerIdentity: "did:iota:consumer-node-abc",
+				localRole: TransferProcessRole.Consumer,
+				format: DataspaceTransferFormat.HttpDataPush,
+				dataAddress: consumerInbox,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "start-persist-consumer-02",
+				providerPid: "start-persist-provider-02",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsActivityStreamEndpoint,
+					endpoint: "https://provider.example.com/data-plane/data/inbox"
+				}
+			};
+
+			const result = await service.startTransfer(message, "valid-trust-payload");
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("start-persist-consumer-02", "consumerPid");
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(stored?.dataAddress).toEqual(consumerInbox);
+		});
+
+		test("should not persist a start-message dataAddress on a format-less legacy record", async () => {
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			// Legacy records without a format rely on dataAddress absence for format inference.
+			await transferProcessStorage.set({
+				id: "start-persist-internal-03",
+				consumerPid: "start-persist-consumer-03",
+				providerPid: "start-persist-provider-03",
+				agreementId: "agreement-123",
+				state: DataspaceProtocolTransferProcessStateType.REQUESTED,
+				datasetId: "dataset-123",
+				offerId: "offer-persist-03",
+				providerIdentity: "did:iota:consumer-node-abc",
+				localRole: TransferProcessRole.Consumer,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			});
+
+			const message: IDataspaceProtocolTransferStartMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferStartMessage",
+				consumerPid: "start-persist-consumer-03",
+				providerPid: "start-persist-provider-03",
+				dataAddress: {
+					"@type": DataspaceProtocolTransferProcessTypes.DataAddress,
+					endpointType: DataspaceProtocolEndpointType.HttpsQueryEndpoint,
+					endpoint: "https://provider.example.com/data-plane/data/entities"
+				}
+			};
+
+			const result = await service.startTransfer(message, "valid-trust-payload");
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			const stored = await transferProcessStorage.get("start-persist-consumer-03", "consumerPid");
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(stored?.dataAddress).toBeUndefined();
+		});
+
 		test("should call resumePushSubscription for SUSPENDED → STARTED PUSH transfer", async () => {
 			const resumePushCalls: string[] = [];
 			const setupPushCalls: string[] = [];
@@ -548,7 +866,7 @@ describe("DataspaceControlPlaneService", () => {
 				expect(response.code).toMatch(/invalidPushDataAddress/);
 			}
 
-			const storedBad = await transferProcessStorage.get("push-consumer-pid-bad");
+			const storedBad = await transferProcessStorage.get("push-consumer-pid-bad", "consumerPid");
 			expect((storedBad as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -599,7 +917,10 @@ describe("DataspaceControlPlaneService", () => {
 				expect(response.code).toMatch(/pullTransfersNotSupported/);
 			}
 
-			const storedPullNoconfig = await transferProcessStorage.get("pull-consumer-pid-noconfig");
+			const storedPullNoconfig = await transferProcessStorage.get(
+				"pull-consumer-pid-noconfig",
+				"consumerPid"
+			);
 			expect((storedPullNoconfig as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -651,7 +972,10 @@ describe("DataspaceControlPlaneService", () => {
 				expect(response.code).toMatch(/pushTransferDataPathNotConfigured/);
 			}
 
-			const storedPushNoconfig = await transferProcessStorage.get("push-consumer-pid-noconfig");
+			const storedPushNoconfig = await transferProcessStorage.get(
+				"push-consumer-pid-noconfig",
+				"consumerPid"
+			);
 			expect((storedPushNoconfig as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -670,7 +994,7 @@ describe("DataspaceControlPlaneService", () => {
 			const mockDataPlane = {
 				className: () => "MockDataPlane",
 				setupPushSubscription: async (consumerPid: string) => {
-					const stored = await transferProcessStorage.get(consumerPid);
+					const stored = await transferProcessStorage.get(consumerPid, "consumerPid");
 					observedStateAtCallTime = stored?.state;
 				}
 			};
@@ -774,7 +1098,10 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
-			const stored = await transferProcessStorage.get("push-consumer-pid-atomicity-req");
+			const stored = await transferProcessStorage.get(
+				"push-consumer-pid-atomicity-req",
+				"consumerPid"
+			);
 			expect((stored as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.REQUESTED
 			);
@@ -836,7 +1163,10 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
 
-			const stored = await transferProcessStorage.get("push-consumer-pid-atomicity-susp");
+			const stored = await transferProcessStorage.get(
+				"push-consumer-pid-atomicity-susp",
+				"consumerPid"
+			);
 			expect((stored as TransferProcess).state).toBe(
 				DataspaceProtocolTransferProcessStateType.SUSPENDED
 			);
@@ -988,7 +1318,7 @@ describe("DataspaceControlPlaneService", () => {
 					verifiableCredentialCreate.mock.calls[verifiableCredentialCreate.mock.calls.length - 1];
 				const subjectArg = lastCall[2] as { [key: string]: unknown };
 
-				// credentialSubject stays domain-only — tenant/org are NOT merged in.
+				// credentialSubject stays domain-only - tenant/org are NOT merged in.
 				expect(subjectArg.tenantId).toBeUndefined();
 				expect(subjectArg.organizationId).toBeUndefined();
 				// Original transfer claims still flow through unchanged.
@@ -1363,7 +1693,10 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-			const persisted = await transferProcessStorage.get("push-complete-rollback-pid");
+			const persisted = await transferProcessStorage.get(
+				"push-complete-rollback-pid",
+				"consumerPid"
+			);
 			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 			try {
@@ -1416,7 +1749,7 @@ describe("DataspaceControlPlaneService", () => {
 			if (response["@type"] === DataspaceProtocolTransferProcessTypes.TransferProcess) {
 				expect(response.state).toBe(DataspaceProtocolTransferProcessStateType.COMPLETED);
 			}
-			// No second data-plane teardown — the first attempt already ran it.
+			// No second data-plane teardown - the first attempt already ran it.
 			expect(teardownCallCount).toBe(0);
 
 			try {
@@ -1603,7 +1936,10 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-			const persisted = await transferProcessStorage.get("push-suspend-rollback-pid");
+			const persisted = await transferProcessStorage.get(
+				"push-suspend-rollback-pid",
+				"consumerPid"
+			);
 			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 			try {
@@ -1842,7 +2178,10 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(response["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
-			const persisted = await transferProcessStorage.get("push-terminate-rollback-pid");
+			const persisted = await transferProcessStorage.get(
+				"push-terminate-rollback-pid",
+				"consumerPid"
+			);
 			expect(persisted?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
 
 			try {
@@ -2029,7 +2368,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2040,7 +2379,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid = transferProcess.providerPid;
 
 				// Start the transfer as the provider (startTransfer requires provider identity).
-				// dataPlanePath is required for pull-mode transfers — without it, startTransfer
+				// dataPlanePath is required for pull-mode transfers - without it, startTransfer
 				// returns a `pullTransfersNotSupported` TransferError and (post-fix) leaves the
 				// state at REQUESTED, so we must configure it to get to STARTED.
 				const providerService = new DataspaceControlPlaneService({
@@ -2067,7 +2406,7 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-001");
+			const storedEntity = await transferProcessStorage.get("consumer-pid-001", "consumerPid");
 			expect(storedEntity).toBeDefined();
 
 			// Pass a valid trust payload (mock trust component accepts any payload)
@@ -2129,7 +2468,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2197,7 +2536,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-trust-fail",
 					agreementId: "agreement-trust-fail",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2265,7 +2604,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2311,7 +2650,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2359,7 +2698,7 @@ describe("DataspaceControlPlaneService", () => {
 					consumerPid: "consumer-pid-001",
 					agreementId: "agreement-001",
 					callbackAddress: "https://consumer.example.com/callback",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				"valid-trust-payload"
 			);
@@ -2371,7 +2710,7 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("should include dataAddress when present in transfer process", async () => {
-			// Same single-tenant context override as the parent test — collapses
+			// Same single-tenant context override as the parent test - collapses
 			// the caller composite to the bare node DID so it lines up with the
 			// fixture assigner below.
 			vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({
@@ -2444,7 +2783,7 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-push");
+			const storedEntity = await transferProcessStorage.get("consumer-pid-push", "consumerPid");
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -2555,7 +2894,7 @@ describe("DataspaceControlPlaneService", () => {
 				providerPid = transferProcess.providerPid;
 
 				// Start the transfer as the provider (startTransfer requires provider identity).
-				// dataPlanePath is required to reach STARTED — see sibling test above.
+				// dataPlanePath is required to reach STARTED - see sibling test above.
 				const providerService = new DataspaceControlPlaneService({
 					policyAdministrationPointComponentType: "test-pap-resolve-provider",
 					policyNegotiationPointComponentType: "test-pnp",
@@ -2580,7 +2919,7 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-push-001");
+			const storedEntity = await transferProcessStorage.get("consumer-pid-push-001", "consumerPid");
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -2744,7 +3083,10 @@ describe("DataspaceControlPlaneService", () => {
 			}
 
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("consumer-pid-push-terminate");
+			const storedEntity = await transferProcessStorage.get(
+				"consumer-pid-push-terminate",
+				"consumerPid"
+			);
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -3002,7 +3344,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "workflow-test-consumer-pid",
 				agreementId: "workflow-agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const initiateResponse = await service.requestTransfer(
@@ -3022,7 +3364,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 			expect(getResponse1.consumerPid).toBe("workflow-test-consumer-pid");
 
-			// Start Transfer (Provider side — requires provider identity)
+			// Start Transfer (Provider side - requires provider identity)
 			const providerService = new DataspaceControlPlaneService({
 				policyAdministrationPointComponentType: "test-pap-workflow",
 				policyNegotiationPointComponentType: "test-pnp",
@@ -3052,7 +3394,10 @@ describe("DataspaceControlPlaneService", () => {
 
 			// Resolve consumerPid (DSC internal API)
 			// Verify the entity was stored
-			const storedEntity = await transferProcessStorage.get("workflow-test-consumer-pid");
+			const storedEntity = await transferProcessStorage.get(
+				"workflow-test-consumer-pid",
+				"consumerPid"
+			);
 			expect(storedEntity).toBeDefined();
 			if (!storedEntity) {
 				throw new Error("Entity not found");
@@ -3116,6 +3461,7 @@ describe("DataspaceControlPlaneService", () => {
 							"@id": "urn:uuid:valid-dataset-123",
 							"@type": "dcat:Dataset",
 							"dcterms:title": "Test Dataset",
+							"dcat:distribution": [{ "dcterms:format": "HttpData-PULL" }],
 							"odrl:hasPolicy": [
 								{
 									"@type": "odrl:Offer",
@@ -3186,7 +3532,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "consumer-pid-catalog-test",
 				agreementId: "agreement-test-catalog",
 				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const response = await service.requestTransfer(request, "valid-trust-payload");
@@ -3264,7 +3610,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "consumer-pid-missing-dataset",
 				agreementId: "agreement-missing-dataset",
 				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			// Should return TransferError (DSP-compliant) instead of throwing
@@ -3371,7 +3717,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: "consumer-pid-mismatch",
 				agreementId: "agreement-mismatch-123",
 				callbackAddress: "https://callback.example.com",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			// Should return TransferError with specific error key
@@ -3390,6 +3736,189 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("mock-pap-mismatch-test");
 			ComponentFactory.unregister("mock-fedcat-mismatch-test");
 			ComponentFactory.unregister("mock-trust-mismatch-test");
+		});
+
+		test("should reject transfer when requested format is not in dataset distributions", async () => {
+			const mockCatalogWithDistributions = {
+				get: async (datasetId: string) => {
+					if (datasetId === "urn:uuid:dataset-format-check") {
+						return {
+							"@context": [DataspaceProtocolContexts.JsonLdContext],
+							"@type": "Dataset",
+							"@id": "urn:uuid:dataset-format-check",
+							"dcterms:title": "Dataset with distributions",
+							distribution: [
+								{
+									"@type": "Distribution",
+									format: "HttpData-PULL",
+									accessService: "https://provider.example.com/api"
+								}
+							],
+							hasPolicy: [
+								{
+									"@type": "odrl:Offer",
+									"@id": "offer-format-check",
+									assigner: "urn:uuid:provider-123",
+									permission: [{ action: "use" }]
+								}
+							]
+						};
+					}
+					return {
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": DataspaceProtocolCatalogTypes.CatalogError,
+						code: "NotFoundError:datasetNotFound"
+					} as IDataspaceProtocolCatalogError;
+				},
+				className: () => "MockFederatedCatalogue"
+			};
+
+			const mockPapFormatCheck = {
+				getAgreement: async (agreementId: string) => {
+					if (agreementId === "agreement-format-check") {
+						return {
+							"@type": "Agreement",
+							"@id": "agreement-format-check",
+							status: "active",
+							assignee: "urn:uuid:consumer-123",
+							assigner: "urn:uuid:provider-123",
+							target: "urn:uuid:dataset-format-check",
+							permission: [{ action: "use" }]
+						};
+					}
+					throw new NotFoundError("MockPAP", "agreementNotFound", agreementId);
+				},
+				className: () => "MockPolicyAdministrationPoint"
+			};
+
+			ComponentFactory.register("mock-pap-format-check", () => mockPapFormatCheck);
+			ComponentFactory.register("mock-fedcat-format-check", () => mockCatalogWithDistributions);
+			ComponentFactory.register("mock-trust-format-check", () =>
+				createMockTrustComponent("urn:uuid:consumer-123")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				policyAdministrationPointComponentType: "mock-pap-format-check",
+				policyNegotiationPointComponentType: "test-pnp",
+				federatedCatalogueComponentType: "mock-fedcat-format-check",
+				trustComponentType: "mock-trust-format-check",
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			});
+
+			const result = await service.requestTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferRequestMessage",
+					consumerPid: "consumer-pid-invalid-format",
+					agreementId: "agreement-format-check",
+					callbackAddress: "https://callback.example.com",
+					format: "HttpData-PUSH"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const transferError = result as IDataspaceProtocolTransferError;
+			expect(transferError.code).toMatch(/^GeneralError:/);
+			expect(transferError.consumerPid).toBe("consumer-pid-invalid-format");
+			if (transferError.reason && transferError.reason.length > 0) {
+				const firstError = transferError.reason[0] as { message?: string };
+				expect(firstError.message).toContain("transferFormatNotInDistributions");
+			}
+
+			ComponentFactory.unregister("mock-pap-format-check");
+			ComponentFactory.unregister("mock-fedcat-format-check");
+			ComponentFactory.unregister("mock-trust-format-check");
+		});
+
+		test("should accept transfer when requested format matches a dataset distribution", async () => {
+			const mockCatalogWithMatchingDist = {
+				get: async (datasetId: string) => {
+					if (datasetId === "urn:uuid:dataset-format-match") {
+						return {
+							"@context": [DataspaceProtocolContexts.JsonLdContext],
+							"@type": "Dataset",
+							"@id": "urn:uuid:dataset-format-match",
+							"dcterms:title": "Dataset with matching distribution",
+							distribution: [
+								{
+									"@type": "Distribution",
+									format: "HttpData-PULL",
+									accessService: "https://provider.example.com/api"
+								}
+							],
+							hasPolicy: [
+								{
+									"@type": "odrl:Offer",
+									"@id": "offer-format-match",
+									assigner: "urn:uuid:provider-123",
+									permission: [{ action: "use" }]
+								}
+							]
+						};
+					}
+					return {
+						"@context": [DataspaceProtocolContexts.JsonLdContext],
+						"@type": DataspaceProtocolCatalogTypes.CatalogError,
+						code: "NotFoundError:datasetNotFound"
+					} as IDataspaceProtocolCatalogError;
+				},
+				className: () => "MockFederatedCatalogue"
+			};
+
+			const mockPapFormatMatch = {
+				getAgreement: async (agreementId: string) => {
+					if (agreementId === "agreement-format-match") {
+						return {
+							"@type": "Agreement",
+							"@id": "agreement-format-match",
+							status: "active",
+							assignee: "urn:uuid:consumer-123",
+							assigner: "urn:uuid:provider-123",
+							target: "urn:uuid:dataset-format-match",
+							permission: [{ action: "use" }]
+						};
+					}
+					throw new NotFoundError("MockPAP", "agreementNotFound", agreementId);
+				},
+				className: () => "MockPolicyAdministrationPoint"
+			};
+
+			ComponentFactory.register("mock-pap-format-match", () => mockPapFormatMatch);
+			ComponentFactory.register("mock-fedcat-format-match", () => mockCatalogWithMatchingDist);
+			ComponentFactory.register("mock-trust-format-match", () =>
+				createMockTrustComponent("urn:uuid:consumer-123")
+			);
+
+			const service = new DataspaceControlPlaneService({
+				policyAdministrationPointComponentType: "mock-pap-format-match",
+				policyNegotiationPointComponentType: "test-pnp",
+				federatedCatalogueComponentType: "mock-fedcat-format-match",
+				trustComponentType: "mock-trust-format-match",
+				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>()
+			});
+
+			const result = await service.requestTransfer(
+				{
+					"@context": [DataspaceProtocolContexts.JsonLdContext],
+					"@type": "TransferRequestMessage",
+					consumerPid: "consumer-pid-valid-format",
+					agreementId: "agreement-format-match",
+					callbackAddress: "https://callback.example.com",
+					format: "HttpData-PULL"
+				},
+				"valid-trust-payload"
+			);
+
+			expect(result["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			expect(result.consumerPid).toBe("consumer-pid-valid-format");
+			expect((result as IDataspaceProtocolTransferProcess).state).toBe(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+
+			ComponentFactory.unregister("mock-pap-format-match");
+			ComponentFactory.unregister("mock-fedcat-format-match");
+			ComponentFactory.unregister("mock-trust-format-match");
 		});
 	});
 
@@ -3695,7 +4224,11 @@ describe("DataspaceControlPlaneService", () => {
 			await requester.agreement("cb-neg-003", mockAgreement);
 			await requester.finalised("cb-neg-003");
 
-			expect(callbackSpy.onFinalized).toHaveBeenCalledWith("cb-neg-003", "final-agreement-uid");
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				"cb-neg-003",
+				"final-agreement-uid",
+				undefined
+			);
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
@@ -4080,12 +4613,16 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				result.agreementId,
+				"offer-negotiation-valid"
+			);
 			expect(callbackSpy.onStateChanged).not.toHaveBeenCalled();
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
 		});
 
-		test("should call onFinalized(undefined, agreementId) when reusing an existing implicit agreement", async () => {
+		test("should call onFinalized(undefined, agreementId, offerId) when reusing an existing implicit agreement", async () => {
 			ComponentFactory.register("test-trust", () =>
 				createMockTrustComponent("did:iota:provider-node-xyz")
 			);
@@ -4117,7 +4654,11 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(result.agreementId).toBe("implicit-reuse-agreement-1");
 			expect(result.negotiationId).toBeUndefined();
-			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(undefined, "implicit-reuse-agreement-1");
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				"implicit-reuse-agreement-1",
+				"offer-negotiation-valid"
+			);
 		});
 
 		test("should not create a new agreement when one already exists", async () => {
@@ -4175,8 +4716,16 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			expect(callbackSpy1.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
-			expect(callbackSpy2.onFinalized).toHaveBeenCalledWith(undefined, result.agreementId);
+			expect(callbackSpy1.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				result.agreementId,
+				"offer-negotiation-valid"
+			);
+			expect(callbackSpy2.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				result.agreementId,
+				"offer-negotiation-valid"
+			);
 		});
 
 		test("should still return agreementId if a callback throws during implicit trust", async () => {
@@ -4224,6 +4773,110 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			expect(callbackSpy.onFinalized).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("Contract Negotiation - Cross-Org Agreement Reuse", () => {
+		// These tests exercise the cross-org path (provider endpoint is not local).
+		// The default platform component returns undefined from getLocalOriginContext, so the
+		// implicit-trust shortcut is never taken and findExistingAgreement runs instead.
+
+		test("should reuse an existing agreement for the same offer and organizations instead of starting a new negotiation", async () => {
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-existing-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }]
+			} as unknown as IDataspaceProtocolAgreement);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+			const sendSpy = vi.spyOn(mockPnp, "sendRequestToProvider");
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("cross-org-existing-agreement");
+			expect(result.negotiationId).toBeUndefined();
+			expect(sendSpy).not.toHaveBeenCalled();
+		});
+
+		test("should fire onFinalized callbacks with the existing agreementId when reusing", async () => {
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-callback-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }]
+			} as unknown as IDataspaceProtocolAgreement);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const callbackSpy: INegotiationCallback = {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onFinalized: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined)
+			};
+			service.registerNegotiationCallback("cross-org-reuse-test", callbackSpy);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("cross-org-callback-agreement");
+			expect(callbackSpy.onFinalized).toHaveBeenCalledWith(
+				undefined,
+				"cross-org-callback-agreement",
+				"offer-negotiation-valid"
+			);
+			expect(callbackSpy.onStateChanged).not.toHaveBeenCalled();
+			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
+		});
+
+		test("should select the newest agreement by dateCreated when multiple compatible agreements exist", async () => {
+			mockPap.clearAgreements();
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-older-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }],
+				dateCreated: "2025-01-01T00:00:00.000Z"
+			} as unknown as IDataspaceProtocolAgreement);
+			mockPap.addAgreement({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": "cross-org-newer-agreement",
+				assigner: "did:iota:provider-node-xyz",
+				assignee: "did:iota:provider-node-xyz",
+				target: "urn:uuid:dataset-negotiation-valid",
+				permission: [{ action: "read" }],
+				dateCreated: "2026-06-01T00:00:00.000Z"
+			} as unknown as IDataspaceProtocolAgreement);
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("cross-org-newer-agreement");
+			expect(result.negotiationId).toBeUndefined();
 		});
 	});
 
@@ -4441,7 +5094,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
 				agreementId: "agreement-123",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const result = await service.requestTransfer(request, "valid-trust-payload");
@@ -4620,7 +5273,7 @@ describe("DataspaceControlPlaneService", () => {
 				consumerPid: `urn:uuid:${RandomHelper.generateUuidV7()}`,
 				agreementId: "agreement-multi-assignee",
 				callbackAddress: "https://consumer.example.com/callback",
-				format: "application/json"
+				format: "HttpData-PULL"
 			};
 
 			const result = await service.requestTransfer(request, "valid-trust-payload");
@@ -4663,7 +5316,7 @@ describe("DataspaceControlPlaneService", () => {
 						...DEFAULT_SERVICE_OPTIONS,
 						dataPlaneComponentType: "not-a-registered-component"
 					})
-			).toThrow(GeneralError);
+			).toThrowError("factory.noGet");
 		});
 
 		test("setupPushSubscription is called with consumerPid on REQUESTED → STARTED (HttpData-PUSH)", async () => {
@@ -4881,7 +5534,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect(stored?.appId).toBe(TEST_APP_ID);
 			expect(stored?.tenantId).toBe(TEST_TENANT_A);
 			expect(stored?.organizationIdentity).toBe("did:iota:provider-node-xyz");
-			// `@id` is stripped from the stored blob — entity.id is the source of truth.
+			// `@id` is stripped from the stored blob - entity.id is the source of truth.
 			expect((stored?.dataset as { "@id"?: string })["@id"]).toBeUndefined();
 			expect(stored?.dataset?.["@type"]).toBe("Dataset");
 		});
@@ -5121,7 +5774,7 @@ describe("DataspaceControlPlaneService", () => {
 				buildDataset("https://twin.example.org/ds-idempotent-v3") as never
 			);
 
-			// Three publishes over the lifetime of one dataset — restampDatasetId always
+			// Three publishes over the lifetime of one dataset - restampDatasetId always
 			// stamps the entity's own id as @id, so every publish targets the same fedcat
 			// row (an upsert), never a new one.
 			expect(setSpy).toHaveBeenCalledTimes(3);
@@ -5219,7 +5872,7 @@ describe("DataspaceControlPlaneService", () => {
 				message: expect.stringContaining("datasetWrongOrganization")
 			});
 
-			// The record must still be present — denied delete shouldn't side-effect.
+			// The record must still be present - denied delete shouldn't side-effect.
 			const stored = await dataspaceAppDatasetStorage.get("urn:test:ds-del-cross");
 			expect(stored).toBeDefined();
 		});
@@ -5233,7 +5886,7 @@ describe("DataspaceControlPlaneService", () => {
 			});
 		});
 
-		describe("platform component — single-tenant vs multi-tenant mode", () => {
+		describe("platform component - single-tenant vs multi-tenant mode", () => {
 			const TENANT_A = "did:iota:tenant-a";
 			const TENANT_B = "did:iota:tenant-b";
 			const ORG_A = "did:iota:org-a";
@@ -5271,7 +5924,7 @@ describe("DataspaceControlPlaneService", () => {
 					dateModified: now
 				});
 
-				// One dataset belonging to ORG_B — must not appear in ORG_A's list.
+				// One dataset belonging to ORG_B - must not appear in ORG_A's list.
 				await dataspaceAppDatasetStorage.set({
 					id: "urn:test:mt-list-b1",
 					organizationIdentity: ORG_B,
@@ -5385,7 +6038,7 @@ describe("DataspaceControlPlaneService", () => {
 			expect((result.dataset as { "@id"?: string })["@id"]).toBe(id);
 		});
 
-		test("updateAppDataset strips @id from new payload — path id stays authoritative", async () => {
+		test("updateAppDataset strips @id from new payload - path id stays authoritative", async () => {
 			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
 
 			const pathId = "urn:test:ds-immutable-id";
@@ -6032,7 +6685,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			// Verify the TransferProcess was actually persisted with the correct initial state
-			const stored = await transferProcessStorage.get(result.consumerPid);
+			const stored = await transferProcessStorage.get(result.consumerPid, "consumerPid");
 			expect(stored).toBeDefined();
 			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
 			expect(stored?.providerPid).toBe("provider-pid-from-remote");
@@ -6083,7 +6736,7 @@ describe("DataspaceControlPlaneService", () => {
 			);
 
 			// Verify the consumer-side storage entity also has dataAddress
-			const stored = await transferProcessStorage.get(result.consumerPid);
+			const stored = await transferProcessStorage.get(result.consumerPid, "consumerPid");
 			expect(stored?.dataAddress).toBeDefined();
 			expect(stored?.dataAddress?.endpoint).toContain("/data-plane/data/inbox");
 
@@ -6177,7 +6830,7 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("dispatches requestTransfer in-process when providerEndpoint is a local origin", async () => {
-			// The remote REST client must never be used for a local-origin provider — the request
+			// The remote REST client must never be used for a local-origin provider - the request
 			// hop should run against this same instance (regression guard for #287).
 			const mockRemoteControlPlane = {
 				className: () => "MockRemoteControlPlane",
@@ -6213,19 +6866,31 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			// Remote client was NOT used — the request ran in-process against this instance.
+			// Remote client was NOT used - the request ran in-process against this instance.
 			expect(mockRemoteControlPlane.requestTransfer).not.toHaveBeenCalled();
 
-			// The transfer was still created and persisted in REQUESTED state.
+			// Both role records were created and persisted in REQUESTED state (#318): the
+			// provider record from the in-process requestTransfer and the consumer record
+			// from prepareTransfer, sharing both pids but keyed on distinct internal ids.
 			expect(result.consumerPid).toBeDefined();
-			const stored = await transferProcessStorage.get(result.consumerPid);
-			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
-			expect(stored?.agreementId).toBe("agreement-123");
-			// providerPid was minted by the real in-process requestTransfer (UUIDv7), not the
-			// mock remote's static "provider-pid-from-remote".
-			expect(stored?.providerPid).toMatch(
-				/^urn:uuid:[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
+			const records = (await transferProcessStorage.getStore()).filter(
+				record => record.consumerPid === result.consumerPid
 			);
+			expect(records).toHaveLength(2);
+			expect(records.map(record => record.localRole).sort()).toEqual([
+				TransferProcessRole.Consumer,
+				TransferProcessRole.Provider
+			]);
+			expect(records[0].id).not.toBe(records[1].id);
+			for (const stored of records) {
+				expect(stored.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+				expect(stored.agreementId).toBe("agreement-123");
+				// providerPid was minted by the real in-process requestTransfer (UUIDv7), not the
+				// mock remote's static "provider-pid-from-remote".
+				expect(stored.providerPid).toMatch(
+					/^urn:uuid:[\da-f]{8}-[\da-f]{4}-7[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
+				);
+			}
 
 			try {
 				ComponentFactory.unregister("test-remote-cp-local");
@@ -6344,7 +7009,7 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			// Remote component must NOT be invoked — the service called itself in-process.
+			// Remote component must NOT be invoked - the service called itself in-process.
 			expect(mockRemoteCP.terminateTransfer).not.toHaveBeenCalled();
 
 			try {
@@ -6355,7 +7020,7 @@ describe("DataspaceControlPlaneService", () => {
 
 		test("runs the in-process call under the target tenant context, not the caller context", async () => {
 			// TARGET_CONTEXT deliberately uses a different Organization than the caller's ambient
-			// "did:iota:provider-node-xyz" — this verifies the ContextIdStore.run receives the
+			// "did:iota:provider-node-xyz" - this verifies the ContextIdStore.run receives the
 			// context returned by getLocalOriginContext, not whatever the calling tenant happens to have.
 			const TARGET_CONTEXT = {
 				[ContextIdKeys.Node]: "did:iota:test-node",
@@ -6394,7 +7059,7 @@ describe("DataspaceControlPlaneService", () => {
 				"valid-trust-payload"
 			);
 
-			// Remote was not used — routing was in-process.
+			// Remote was not used - routing was in-process.
 			expect(mockRemoteCP.terminateTransfer).not.toHaveBeenCalled();
 
 			// ContextIdStore.run must have been called with exactly TARGET_CONTEXT so the inner
@@ -6538,7 +7203,6 @@ describe("DataspaceControlPlaneService", () => {
 				providerIdentity: "did:iota:provider",
 				localRole,
 				offerId: "agreement-stalled",
-				policies: [],
 				format: "HttpData-PULL",
 				organizationIdentity: "did:iota:provider-node-xyz",
 				// 1970: far older than any threshold, so it is unambiguously past the timeout window.
@@ -6574,8 +7238,7 @@ describe("DataspaceControlPlaneService", () => {
 
 			expect(callbackSpy.onTimeout).toHaveBeenCalledWith(consumerPid);
 			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
-			// consumerPid is the primary key of TransferProcess.
-			expect(await transferProcessStorage.get(consumerPid)).toBeUndefined();
+			expect(await transferProcessStorage.get(consumerPid, "consumerPid")).toBeUndefined();
 		});
 
 		test("cleanupStalledTransfers leaves a provider-side REQUESTED transfer alone", async () => {
@@ -6603,7 +7266,760 @@ describe("DataspaceControlPlaneService", () => {
 			).cleanupStalledTransfers();
 
 			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
-			expect(await transferProcessStorage.get(consumerPid)).toBeDefined();
+			expect(await transferProcessStorage.get(consumerPid, "consumerPid")).toBeDefined();
+		});
+	});
+
+	describe("Provider transfer lifecycle policies (#240)", () => {
+		const PROVIDER_IDENTITY = "did:iota:provider";
+
+		/**
+		 * Seed a Provider/Consumer transfer for the policy sweep tests. Defaults to a STARTED
+		 * PULL record whose dateModified is 1970, far older than any threshold.
+		 * @param consumerPid The consumerPid (indexed).
+		 * @param localRole The persisted local role, or undefined for a legacy record.
+		 * @param options Optional overrides.
+		 * @param options.state The transfer state (defaults to STARTED).
+		 * @param options.dateModified The last-modified timestamp (defaults to 1970).
+		 * @param options.organizationIdentity The owning organization (defaults to the ambient test org).
+		 * @param options.omitProviderIdentity Seed the record without a provider identity.
+		 * @param options.format The transfer format (defaults to HttpData-PULL).
+		 */
+		async function seedPolicyTransfer(
+			consumerPid: string,
+			localRole: TransferProcessRole | undefined,
+			options?: {
+				state?: DataspaceProtocolTransferProcessStateType;
+				dateModified?: string;
+				organizationIdentity?: string;
+				omitProviderIdentity?: boolean;
+				format?: string;
+			}
+		): Promise<void> {
+			await transferProcessStorage.set({
+				id: Converter.bytesToHex(RandomHelper.generate(32)),
+				consumerPid,
+				providerPid: `provider-pid-for-${consumerPid}`,
+				state: options?.state ?? DataspaceProtocolTransferProcessStateType.STARTED,
+				agreementId: "agreement-policy",
+				datasetId: "urn:uuid:dataset-policy",
+				consumerIdentity: "did:iota:consumer",
+				providerIdentity: options?.omitProviderIdentity === true ? undefined : PROVIDER_IDENTITY,
+				localRole: localRole ?? undefined,
+				offerId: "agreement-policy",
+				format: options?.format ?? "HttpData-PULL",
+				organizationIdentity: options?.organizationIdentity ?? "did:iota:provider-node-xyz",
+				dateCreated: new Date(0).toISOString(),
+				dateModified: options?.dateModified ?? new Date(0).toISOString()
+			});
+		}
+
+		/**
+		 * Seed a retrieval marker for a transfer.
+		 * @param consumerPid The consumerPid.
+		 * @param dateLastRetrieved The last retrieval timestamp.
+		 */
+		async function seedRetrieval(consumerPid: string, dateLastRetrieved: string): Promise<void> {
+			await transferRetrievalStorage.set({
+				consumerPid,
+				dateFirstRetrieved: dateLastRetrieved,
+				dateLastRetrieved
+			});
+		}
+
+		/**
+		 * Seed the policy dataset with an idle override.
+		 * @param transferIdleTimeoutMs The dataset-level idle window.
+		 */
+		async function seedDatasetOverride(transferIdleTimeoutMs: number): Promise<void> {
+			await dataspaceAppDatasetStorage.set({
+				id: "urn:uuid:dataset-policy",
+				organizationIdentity: "did:iota:provider-node-xyz",
+				appId: "policy-app",
+				dataset: {},
+				transferIdleTimeoutMs,
+				dateCreated: new Date(0).toISOString(),
+				dateModified: new Date(0).toISOString()
+			});
+		}
+
+		/**
+		 * Construct a service with the idle policy configured and a trust component resolving
+		 * to the provider identity (required by the terminate auth gate).
+		 * @param providerTransferIdleTimeoutMs The idle policy window.
+		 * @returns The service.
+		 */
+		function createPolicyService(
+			providerTransferIdleTimeoutMs?: number
+		): DataspaceControlPlaneService {
+			try {
+				ComponentFactory.unregister("test-trust");
+			} catch {}
+			ComponentFactory.register("test-trust", () => createMockTrustComponent(PROVIDER_IDENTITY));
+			return new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, providerTransferIdleTimeoutMs }
+			});
+		}
+
+		/**
+		 * Creates a full transfer callback spy object.
+		 * @param withOnTimeout Whether the spy implements the optional onTimeout hook.
+		 * @returns The callback spy.
+		 */
+		function createCallbackSpy(withOnTimeout: boolean = true): ITransferCallback {
+			return {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onFailed: vi.fn().mockResolvedValue(undefined),
+				onTimeout: withOnTimeout ? vi.fn().mockResolvedValue(undefined) : undefined
+			};
+		}
+
+		/**
+		 * Run the private policy sweep.
+		 * @param service The service.
+		 */
+		async function runSweep(service: DataspaceControlPlaneService): Promise<void> {
+			await (
+				service as unknown as { applyProviderTransferPolicies(): Promise<void> }
+			).applyProviderTransferPolicies();
+		}
+
+		test("applyProviderTransferPolicies terminates a never-retrieved transfer idle beyond the window", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-idle-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+
+			const callbackSpy = createCallbackSpy();
+			service.registerTransferCallback("policy-idle-listener", callbackSpy);
+
+			await runSweep(service);
+
+			const stored = await transferProcessStorage.get(consumerPid, "consumerPid");
+			expect(stored?.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+			expect(callbackSpy.onTimeout).toHaveBeenCalledWith(consumerPid);
+			expect(callbackSpy.onFailed).not.toHaveBeenCalled();
+			// Local onTerminated only fires for Consumer-role transitions; the provider role notifies
+			// the consumer node via its callbackAddress instead (none is set here).
+			expect(callbackSpy.onTerminated).not.toHaveBeenCalled();
+		});
+
+		test("applyProviderTransferPolicies falls back to onFailed(idleTimeout) when onTimeout is not implemented", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-idle-002";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+
+			const callbackSpy = createCallbackSpy(false);
+			service.registerTransferCallback("policy-fallback-listener", callbackSpy);
+
+			await runSweep(service);
+
+			expect(callbackSpy.onFailed).toHaveBeenCalledWith(
+				consumerPid,
+				TransferTerminationCode.IdleTimeout
+			);
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("applyProviderTransferPolicies leaves a transfer with a recent state change alone", async () => {
+			const service = createPolicyService(60 * 60 * 1000);
+			const consumerPid = "urn:uuid:policy-recent-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				dateModified: new Date().toISOString()
+			});
+
+			const callbackSpy = createCallbackSpy();
+			service.registerTransferCallback("policy-recent-listener", callbackSpy);
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
+		});
+
+		test("applyProviderTransferPolicies leaves a transfer with a recent retrieval alone", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-active-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedRetrieval(consumerPid, new Date(Date.now() + 60000).toISOString());
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("applyProviderTransferPolicies terminates a transfer whose retrieval and state are both stale", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-stale-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedRetrieval(consumerPid, new Date(0).toISOString());
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+			// The marker is removed once the transfer reaches a terminal state.
+			expect(await transferRetrievalStorage.get(consumerPid)).toBeUndefined();
+		});
+
+		test("applyProviderTransferPolicies keeps a resumed transfer alive despite an old retrieval", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-resumed-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				dateModified: new Date(Date.now() + 60000).toISOString()
+			});
+			await seedRetrieval(consumerPid, new Date(0).toISOString());
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("a dataset-level idle override enables the policy without node config", async () => {
+			const service = createPolicyService();
+			const consumerPid = "urn:uuid:policy-dataset-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedDatasetOverride(1);
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("a dataset-level idle override of 0 disables the policy despite node config", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-dataset-002";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+			await seedDatasetOverride(0);
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("applyProviderTransferPolicies skips PUSH transfers", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-push-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				format: "HttpData-PUSH"
+			});
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+		});
+
+		test("applyProviderTransferPolicies skips the policy when the retrieval storage is not registered", async () => {
+			EntityStorageConnectorFactory.unregister(nameofKebabCase<TransferRetrieval>());
+			try {
+				const service = createPolicyService(1);
+				const consumerPid = "urn:uuid:policy-nostorage-001";
+				await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
+
+				await runSweep(service);
+
+				expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+					DataspaceProtocolTransferProcessStateType.STARTED
+				);
+			} finally {
+				EntityStorageConnectorFactory.register(
+					nameofKebabCase<TransferRetrieval>(),
+					() => transferRetrievalStorage
+				);
+			}
+		});
+
+		test("applyProviderTransferPolicies skips Consumer-role and legacy records without a localRole", async () => {
+			const service = createPolicyService(1);
+			await seedPolicyTransfer("urn:uuid:policy-consumer-001", TransferProcessRole.Consumer);
+			await seedPolicyTransfer("urn:uuid:policy-legacy-001", undefined);
+
+			const callbackSpy = createCallbackSpy();
+			service.registerTransferCallback("policy-skip-listener", callbackSpy);
+
+			await runSweep(service);
+
+			expect(
+				(await transferProcessStorage.get("urn:uuid:policy-consumer-001", "consumerPid"))?.state
+			).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(
+				(await transferProcessStorage.get("urn:uuid:policy-legacy-001", "consumerPid"))?.state
+			).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(callbackSpy.onTimeout).not.toHaveBeenCalled();
+		});
+
+		test("applyProviderTransferPolicies skips transfers already in a terminal state", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-terminal-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				state: DataspaceProtocolTransferProcessStateType.COMPLETED
+			});
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.COMPLETED
+			);
+		});
+
+		test("a sweep termination racing an already-terminated transfer hits the idempotency guard", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-race-001";
+			// The transfer was TERMINATED between the sweep's query and its transition: the DSP
+			// idempotency guard must absorb the retry.
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				state: DataspaceProtocolTransferProcessStateType.TERMINATED
+			});
+			const staleEntity = await transferProcessStorage.get(consumerPid, "consumerPid");
+
+			const result = await (
+				service as unknown as {
+					terminateProviderPolicyTransfer(
+						t: TransferProcess,
+						code: TransferTerminationCode
+					): Promise<boolean>;
+				}
+			).terminateProviderPolicyTransfer(
+				staleEntity as TransferProcess,
+				TransferTerminationCode.IdleTimeout
+			);
+
+			expect(result).toBe(true);
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("applyProviderTransferPolicies establishes the owning organization context for the transition", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-org-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				organizationIdentity: "did:iota:other-org"
+			});
+
+			// Use the real context store: the sweep runs outside any request context (no ambient
+			// Organization), so the transition only succeeds because the sweep establishes the
+			// transfer's owning organization itself.
+			vi.mocked(ContextIdStore.getContextIds).mockRestore();
+
+			await runSweep(service);
+
+			expect((await transferProcessStorage.get(consumerPid, "consumerPid"))?.state).toBe(
+				DataspaceProtocolTransferProcessStateType.TERMINATED
+			);
+		});
+
+		test("applyProviderTransferPolicies removes a Provider-side STARTED transfer without a provider identity", async () => {
+			const service = createPolicyService(1);
+			const consumerPid = "urn:uuid:policy-no-identity-001";
+			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
+				omitProviderIdentity: true
+			});
+
+			await runSweep(service);
+
+			expect(await transferProcessStorage.get(consumerPid, "consumerPid")).toBeUndefined();
+		});
+
+		test("start always registers the policy sweep task with the configured interval", async () => {
+			const addTask = vi.fn().mockResolvedValue(undefined);
+			const removeTask = vi.fn().mockResolvedValue(undefined);
+			ComponentFactory.register("test-task-scheduler", () => ({
+				className: () => "MockTaskScheduler",
+				addTask,
+				removeTask,
+				tasksInfo: vi.fn()
+			}));
+			Factory.createFactory("engine-core").register("engine", () => createMockEngineCore());
+
+			try {
+				const defaultService = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					taskSchedulerComponentType: "test-task-scheduler"
+				});
+				await defaultService.start();
+				expect(addTask).toHaveBeenCalledTimes(3);
+				expect(addTask).toHaveBeenCalledWith(
+					"control-plane-transfer-policy",
+					expect.anything(),
+					expect.any(Function)
+				);
+				await defaultService.stop();
+				expect(removeTask).toHaveBeenCalledTimes(3);
+
+				addTask.mockClear();
+
+				const intervalService = new DataspaceControlPlaneService({
+					...DEFAULT_SERVICE_OPTIONS,
+					taskSchedulerComponentType: "test-task-scheduler",
+					config: {
+						...DEFAULT_SERVICE_OPTIONS.config,
+						providerTransferPolicySweepIntervalMs: 90000
+					}
+				});
+				await intervalService.start();
+				// 90000ms rounds to 2 whole minutes (the scheduler has minute granularity).
+				expect(addTask).toHaveBeenCalledWith(
+					"control-plane-transfer-policy",
+					[expect.objectContaining({ intervalMinutes: 2 })],
+					expect.any(Function)
+				);
+				await intervalService.stop();
+			} finally {
+				try {
+					ComponentFactory.unregister("test-task-scheduler");
+					Factory.createFactory("engine-core").unregister("engine");
+				} catch {}
+			}
+		});
+	});
+
+	describe("Self transfer (#318)", () => {
+		// Same actor on both sides: one node, one org partition, assigner === assignee.
+		const SELF_IDENTITY = "did:iota:self-node-org";
+		const SELF_AGREEMENT_ID = "agreement-self-318";
+		const SELF_DATASET_ID = "urn:uuid:dataset-self-318";
+
+		beforeEach(async () => {
+			await mockPap.create({
+				"@context": "http://www.w3.org/ns/odrl.jsonld",
+				"@type": "Agreement",
+				"@id": SELF_AGREEMENT_ID,
+				uid: SELF_AGREEMENT_ID,
+				assigner: SELF_IDENTITY,
+				assignee: SELF_IDENTITY,
+				target: SELF_DATASET_ID,
+				permission: [{ action: "read" }]
+			} as never);
+
+			// Catalogue dataset whose offer is assigned by the SAME identity the agreement uses,
+			// so the agreement-to-offer derivation check passes for the self actor.
+			mockFedCat.addDataset(SELF_DATASET_ID, {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "dcat:Dataset",
+				"@id": SELF_DATASET_ID,
+				"dcterms:title": "Self Transfer Dataset 318",
+				"dcat:distribution": [{ "dcterms:format": "HttpData-PULL" }],
+				"odrl:hasPolicy": [
+					{
+						"@type": "odrl:Offer",
+						"@id": "offer-self-318",
+						assigner: SELF_IDENTITY,
+						permission: [
+							{
+								action: "read"
+							}
+						]
+					}
+				]
+			} as never);
+
+			ComponentFactory.register("test-trust-self", () => createMockTrustComponent(SELF_IDENTITY));
+			ComponentFactory.register("test-remote-cp-self", () => ({
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi.fn(),
+				startTransfer: vi.fn(),
+				completeTransfer: vi.fn(),
+				suspendTransfer: vi.fn(),
+				terminateTransfer: vi.fn()
+			}));
+			ComponentFactory.register("test-platform-self", () => ({
+				...createSingleTenantPlatformComponent(),
+				// Every URL resolves as local, so the request hop and all callback deliveries
+				// run in-process against the same service instance and storage partition.
+				getLocalOriginContext: vi.fn().mockResolvedValue({
+					[ContextIdKeys.Node]: "did:iota:test-node",
+					[ContextIdKeys.Tenant]: "did:iota:test-tenant",
+					[ContextIdKeys.Organization]: "did:iota:provider-node-xyz",
+					[HttpContextIdKeys.PublicOrigin]: "https://test-origin.com"
+				})
+			}));
+		});
+
+		afterEach(() => {
+			try {
+				ComponentFactory.unregister("test-trust-self");
+				ComponentFactory.unregister("test-remote-cp-self");
+				ComponentFactory.unregister("test-platform-self");
+			} catch {}
+		});
+
+		function createSelfService(extraConfig?: {
+			autoStartTransfers?: boolean;
+			stalledTransferTimeoutMs?: number;
+		}): DataspaceControlPlaneService {
+			return new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				trustComponentType: "test-trust-self",
+				remoteControlPlaneComponentType: "test-remote-cp-self",
+				platformComponentType: "test-platform-self",
+				config: { ...DEFAULT_SERVICE_OPTIONS.config, ...extraConfig }
+			});
+		}
+
+		/**
+		 * Seed both role records of a self transfer, sharing both pids within one partition.
+		 * @param state The state to seed both records with.
+		 * @returns The shared pids.
+		 */
+		async function seedSelfTransferPair(
+			state: DataspaceProtocolTransferProcessStateType
+		): Promise<{ consumerPid: string; providerPid: string }> {
+			const consumerPid = "urn:uuid:self-consumer-pid-318";
+			const providerPid = "urn:uuid:self-provider-pid-318";
+			const base = {
+				consumerPid,
+				providerPid,
+				state,
+				agreementId: SELF_AGREEMENT_ID,
+				datasetId: SELF_DATASET_ID,
+				offerId: SELF_AGREEMENT_ID,
+				consumerIdentity: SELF_IDENTITY,
+				providerIdentity: SELF_IDENTITY,
+				organizationIdentity: "did:iota:provider-node-xyz",
+				format: DataspaceTransferFormat.HttpDataPull,
+				callbackAddress: "https://test-origin.com",
+				dateCreated: new Date().toISOString(),
+				dateModified: new Date().toISOString()
+			};
+			await transferProcessStorage.set({
+				...base,
+				id: "self-provider-record",
+				localRole: TransferProcessRole.Provider
+			});
+			await transferProcessStorage.set({
+				...base,
+				id: "self-consumer-record",
+				localRole: TransferProcessRole.Consumer
+			});
+			return { consumerPid, providerPid };
+		}
+
+		async function getSelfRecords(consumerPid: string): Promise<TransferProcess[]> {
+			return (await transferProcessStorage.getStore()).filter(
+				record => record.consumerPid === consumerPid
+			);
+		}
+
+		test("prepareTransfer persists one record per role instead of overwriting", async () => {
+			const service = createSelfService();
+
+			const result = await service.prepareTransfer(
+				SELF_AGREEMENT_ID,
+				"https://test-origin.com",
+				"HttpData-PULL",
+				"valid-trust-payload"
+			);
+
+			const records = await getSelfRecords(result.consumerPid);
+			expect(records).toHaveLength(2);
+			expect(records.map(record => record.localRole).sort()).toEqual([
+				TransferProcessRole.Consumer,
+				TransferProcessRole.Provider
+			]);
+			expect(records[0].id).not.toBe(records[1].id);
+			expect(records[0].providerPid).toBe(records[1].providerPid);
+			for (const record of records) {
+				expect(record.consumerIdentity).toBe(SELF_IDENTITY);
+				expect(record.providerIdentity).toBe(SELF_IDENTITY);
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.REQUESTED);
+			}
+		});
+
+		test("auto-start deterministically starts the provider record and cascades to the consumer record", async () => {
+			const service = createSelfService({ autoStartTransfers: true });
+
+			const startedPids: string[] = [];
+			service.registerTransferCallback("self-autostart-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onStarted: async (consumerPid: string) => {
+					startedPids.push(consumerPid);
+				}
+			});
+
+			const result = await service.prepareTransfer(
+				SELF_AGREEMENT_ID,
+				"https://test-origin.com",
+				"HttpData-PULL",
+				"valid-trust-payload"
+			);
+
+			// runProviderStart is scheduled via setTimeout(0); wait until BOTH records reach
+			// STARTED (provider via the auto-start, consumer via the in-process callback delivery).
+			await vi.waitFor(async () => {
+				const records = await getSelfRecords(result.consumerPid);
+				expect(records).toHaveLength(2);
+				for (const record of records) {
+					expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+				}
+			});
+
+			expect(startedPids).toEqual([result.consumerPid]);
+		});
+
+		test("suspendTransfer transitions both role records through the in-process callback delivery", async () => {
+			const { consumerPid, providerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			const service = createSelfService();
+
+			const suspendedEvents: { pid: string; reason?: string }[] = [];
+			service.registerTransferCallback("self-suspend-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onSuspended: async (pid: string, reason?: string) => {
+					suspendedEvents.push({ pid, reason });
+				}
+			});
+
+			const message: IDataspaceProtocolTransferSuspensionMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferSuspensionMessage",
+				consumerPid,
+				providerPid,
+				reason: ["Self suspension"]
+			};
+			const response = await service.suspendTransfer(message, "valid-trust-payload");
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(2);
+			for (const record of records) {
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.SUSPENDED);
+			}
+			// The consumer-record leg fired the internal callback.
+			expect(suspendedEvents).toEqual([{ pid: consumerPid, reason: "Self suspension" }]);
+		});
+
+		test("terminateTransfer transitions both role records through the in-process callback delivery", async () => {
+			const { consumerPid, providerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			const service = createSelfService();
+
+			const terminatedPids: string[] = [];
+			service.registerTransferCallback("self-terminate-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onCompleted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: async (pid: string) => {
+					terminatedPids.push(pid);
+				}
+			});
+
+			const message: IDataspaceProtocolTransferTerminationMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferTerminationMessage",
+				consumerPid,
+				providerPid,
+				reason: ["Self termination"]
+			};
+			const response = await service.terminateTransfer(message, "valid-trust-payload");
+
+			expect(response["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+			const records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(2);
+			for (const record of records) {
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.TERMINATED);
+			}
+			expect(terminatedPids).toEqual([consumerPid]);
+		});
+
+		test("completeTransfer completes the consumer record first, then the provider record on a second call", async () => {
+			const { consumerPid, providerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.STARTED
+			);
+			const service = createSelfService();
+
+			const completedPids: string[] = [];
+			service.registerTransferCallback("self-complete-listener", {
+				onStateChanged: vi.fn().mockResolvedValue(undefined),
+				onStarted: vi.fn().mockResolvedValue(undefined),
+				onSuspended: vi.fn().mockResolvedValue(undefined),
+				onTerminated: vi.fn().mockResolvedValue(undefined),
+				onCompleted: async (pid: string) => {
+					completedPids.push(pid);
+				}
+			});
+
+			const message: IDataspaceProtocolTransferCompletionMessage = {
+				"@context": [DataspaceProtocolContexts.JsonLdContext],
+				"@type": "TransferCompletionMessage",
+				consumerPid,
+				providerPid
+			};
+
+			// First call: the consumer record completes (and internal callbacks fire); completion
+			// has no onward delivery, so the provider record intentionally stays STARTED.
+			const firstResponse = await service.completeTransfer(message, "valid-trust-payload");
+			expect(firstResponse["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			let records = await getSelfRecords(consumerPid);
+			const consumerRecord = records.find(
+				record => record.localRole === TransferProcessRole.Consumer
+			);
+			const providerRecord = records.find(
+				record => record.localRole === TransferProcessRole.Provider
+			);
+			expect(consumerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.COMPLETED);
+			expect(providerRecord?.state).toBe(DataspaceProtocolTransferProcessStateType.STARTED);
+			expect(completedPids).toEqual([consumerPid]);
+
+			// Second call (the consumer→provider DSP hop): the provider record completes.
+			const secondResponse = await service.completeTransfer(message, "valid-trust-payload");
+			expect(secondResponse["@type"]).not.toBe(DataspaceProtocolTransferProcessTypes.TransferError);
+
+			records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(2);
+			for (const record of records) {
+				expect(record.state).toBe(DataspaceProtocolTransferProcessStateType.COMPLETED);
+			}
+			// The internal callback fired only for the consumer-record leg.
+			expect(completedPids).toEqual([consumerPid]);
+		});
+
+		test("stalled cleanup removes only the consumer record of a self transfer", async () => {
+			const { consumerPid } = await seedSelfTransferPair(
+				DataspaceProtocolTransferProcessStateType.REQUESTED
+			);
+			// Age both records far past any timeout window.
+			for (const record of await getSelfRecords(consumerPid)) {
+				await transferProcessStorage.set({ ...record, dateModified: new Date(0).toISOString() });
+			}
+			const service = createSelfService({ stalledTransferTimeoutMs: 0 });
+
+			await (
+				service as unknown as { cleanupStalledTransfers(): Promise<void> }
+			).cleanupStalledTransfers();
+
+			const records = await getSelfRecords(consumerPid);
+			expect(records).toHaveLength(1);
+			expect(records[0].localRole).toBe(TransferProcessRole.Provider);
 		});
 	});
 });

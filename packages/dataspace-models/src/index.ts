@@ -3,7 +3,10 @@
 
 // Entity exports
 export * from "./entities/dataspaceAppDataset.js";
+export * from "./entities/dataspaceAppDatasetV0.js";
 export * from "./entities/transferProcess.js";
+export * from "./entities/transferProcessV0.js";
+export * from "./entities/transferRetrieval.js";
 
 // Control Plane exports
 export * from "./models/controlPlane/api/ITransferContextResponse.js";
@@ -16,7 +19,9 @@ export * from "./models/controlPlane/INegotiationCallback.js";
 export * from "./models/controlPlane/ITransferCallback.js";
 export * from "./models/controlPlane/ITransferContext.js";
 export * from "./models/controlPlane/ITransferProcess.js";
+export * from "./models/controlPlane/ITransferQueryResult.js";
 export * from "./models/controlPlane/transferProcessRole.js";
+export * from "./models/controlPlane/transferTerminationCode.js";
 
 // Data Plane exports
 export * from "./models/dataPlane/dataspaceDataPlaneMetricIds.js";

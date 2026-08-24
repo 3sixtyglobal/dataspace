@@ -46,7 +46,6 @@ One of: REQUESTED, STARTED, COMPLETED, SUSPENDED, TERMINATED.
 > **agreementId**: `string`
 
 Agreement ID linking to the rights-management Agreement.
-Used to resolve policies and permissions.
 
 ***
 
@@ -64,15 +63,6 @@ Identifies the dataset being transferred.
 > **offerId**: `string`
 
 Offer ID from the original Catalog offer.
-
-***
-
-### policies? {#policies}
-
-> `optional` **policies?**: `IRightsManagementPolicy`[]
-
-Policies from the Agreement.
-Used by DSC for runtime policy enforcement.
 
 ***
 
@@ -134,10 +124,8 @@ Specified by a Distribution for the Dataset associated with the Agreement.
 
 > `optional` **dataAddress?**: `IDataspaceProtocolDataAddress`
 
-Data address for consumer-initiated push transfers (HttpData-PUSH).
-Contains the consumer's /inbox endpoint as supplied in the TransferRequestMessage.
-Absent for PULL (HttpData-PULL) and provider-initiated push (HttpData-POST),
-where the consumer deliberately omits a dataAddress.
+Data address for the transfer: the consumer's inbox for PUSH, or the
+provider-built address persisted at start for PULL/POST; may expire while STARTED.
 
 ***
 

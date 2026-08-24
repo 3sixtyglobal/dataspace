@@ -21,8 +21,7 @@ import {
 	type IExecutionPayload,
 	type IProcessingGroupOptions
 } from "@twin.org/dataspace-models";
-import { EngineCore } from "@twin.org/engine-core";
-import { EngineCoreFactory } from "@twin.org/engine-models";
+import { ModuleHelper } from "@twin.org/modules";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { appRunner, appRunnerEnd, appRunnerStart } from "../src/appRunner.js";
 
@@ -57,12 +56,19 @@ const MOCK_CLONE = {
 } as never;
 
 describe("appRunner - concurrent startup and task dispatch", () => {
+	let mockEngineStart: () => Promise<void>;
+
 	beforeEach(() => {
+		mockEngineStart = vi.fn().mockResolvedValue(undefined);
+
 		DataspaceAppFactory.clear();
 		vi.spyOn(ContextIdStore, "getContextIds").mockResolvedValue({});
-		vi.spyOn(EngineCoreFactory, "register").mockReturnValue(undefined);
-		vi.spyOn(EngineCore.prototype, "populateClone").mockReturnValue(undefined);
-		vi.spyOn(EngineCore.prototype, "stop").mockResolvedValue(undefined);
+
+		vi.spyOn(ModuleHelper, "execModuleMethod").mockImplementation(async () => ({
+			className: () => "MockAppRunnerEngine",
+			start: async () => mockEngineStart(),
+			stop: vi.fn().mockResolvedValue(undefined)
+		}));
 	});
 
 	afterEach(async () => {
@@ -72,16 +78,16 @@ describe("appRunner - concurrent startup and task dispatch", () => {
 	});
 
 	it("appRunner succeeds when called concurrently with appRunnerStart", async () => {
-		let releaseStartup!: () => void;
+		let releaseStartup = (): void => {};
 		const startupBarrier = new Promise<void>(resolve => {
 			releaseStartup = resolve;
 		});
 
 		// Block startup until we explicitly release it, then register the DS App.
-		vi.spyOn(EngineCore.prototype, "start").mockImplementation(async () => {
+		mockEngineStart = async () => {
 			await startupBarrier;
 			DataspaceAppFactory.register(APP_ID, () => MOCK_APP);
-		});
+		};
 
 		// Both calls are fire-and-forget, mirroring BackgroundTaskService dispatch.
 		// appRunner suspends at `await startupPromise` while startup is blocked.
@@ -98,7 +104,9 @@ describe("appRunner - concurrent startup and task dispatch", () => {
 
 	it("appRunner rejects with the same error when startup fails", async () => {
 		const startupError = new Error("engine start failed");
-		vi.spyOn(EngineCore.prototype, "start").mockRejectedValue(startupError);
+		mockEngineStart = async () => {
+			throw startupError;
+		};
 
 		const startupPromise = appRunnerStart(MOCK_CLONE);
 		const runnerPromise = appRunner(MOCK_CLONE, MOCK_PAYLOAD);
@@ -108,9 +116,9 @@ describe("appRunner - concurrent startup and task dispatch", () => {
 	});
 
 	it("appRunner passes through instantly when startupPromise is already resolved", async () => {
-		vi.spyOn(EngineCore.prototype, "start").mockImplementation(async () => {
+		mockEngineStart = async () => {
 			DataspaceAppFactory.register(APP_ID, () => MOCK_APP);
-		});
+		};
 
 		await appRunnerStart(MOCK_CLONE);
 

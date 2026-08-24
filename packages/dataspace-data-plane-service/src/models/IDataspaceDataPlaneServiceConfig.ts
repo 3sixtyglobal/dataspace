@@ -18,7 +18,7 @@ export interface IDataspaceDataPlaneServiceConfig {
 	activityLogsCleanUpIntervalMs?: number;
 
 	/**
-	 * The number of times to retry failed tasks, defaults to forever.
+	 * The number of times to retry failed tasks, defaults to no retries.
 	 * @default undefined.
 	 */
 	retryCount?: number;
@@ -47,4 +47,17 @@ export interface IDataspaceDataPlaneServiceConfig {
 	 * @default 3600000 (1 hour)
 	 */
 	pushSubscriptionCleanupIntervalMs?: number;
+
+	/**
+	 * TTL in ms for the in-memory PAP agreement cache.
+	 * Applies only when a PAP component is registered.
+	 * @default 30000 (30 seconds)
+	 */
+	agreementCacheTtlMs?: number;
+
+	/**
+	 * Maximum time in ms to wait for the agreement cache mutex during a getOrSet call.
+	 * @default undefined (LruCache default)
+	 */
+	agreementCacheMutexTimeoutMs?: number;
 }

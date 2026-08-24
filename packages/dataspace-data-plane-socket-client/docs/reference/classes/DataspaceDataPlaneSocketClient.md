@@ -98,7 +98,7 @@ The activity's id or entry.
 
 > **setupPushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on socket client — push subscriptions are server-side only.
+Not supported on socket client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -122,7 +122,7 @@ Unused.
 
 > **suspendPushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on socket client — push subscriptions are server-side only.
+Not supported on socket client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -146,7 +146,7 @@ Unused.
 
 > **resumePushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on socket client — push subscriptions are server-side only.
+Not supported on socket client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -170,7 +170,7 @@ Unused.
 
 > **teardownPushSubscription**(`consumerPid`): `Promise`\<`void`\>
 
-Not supported on socket client — push subscriptions are server-side only.
+Not supported on socket client - push subscriptions are server-side only.
 
 #### Parameters
 
@@ -194,7 +194,7 @@ Unused.
 
 > **processOutboxActivity**(`activity`): `Promise`\<`void`\>
 
-Not supported on socket client — processOutboxActivity is server-side only.
+Not supported on socket client - processOutboxActivity is server-side only.
 
 #### Parameters
 

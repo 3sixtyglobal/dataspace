@@ -49,6 +49,13 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	pushSubscriptionEntityStorageType?: string;
 
 	/**
+	 * The entity storage type for Transfer Retrieval entities; when not registered no retrievals
+	 * are recorded. Must match the Control Plane's setting.
+	 * @default transfer-retrieval
+	 */
+	transferRetrievalEntityStorageType?: string;
+
+	/**
 	 * The entity storage type for Dataspace App Dataset entities.
 	 * @default dataspace-app-dataset
 	 */
@@ -71,6 +78,14 @@ export interface IDataspaceDataPlaneServiceConstructorOptions {
 	 * @default platform
 	 */
 	platformComponentType?: string;
+
+	/**
+	 * Policy administration point component type.
+	 * The data plane fetches fresh agreements from PAP at access time (with a short-TTL
+	 * in-memory cache) so that revoked or updated agreements take effect promptly.
+	 * @default policy-administration-point
+	 */
+	papComponentType?: string;
 
 	/**
 	 * The component type for the optional telemetry component used for metrics, defaults to no telemetry.

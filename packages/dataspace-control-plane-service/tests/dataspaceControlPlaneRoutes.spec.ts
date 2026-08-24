@@ -265,6 +265,8 @@ describe("dataspaceControlPlaneRoutes", () => {
 			expect(entry?.binding).toBe("HTTPS");
 			expect(typeof entry?.path).toBe("string");
 			expect(entry?.path).toMatch(/^\//);
+			expect(entry?.identifierType).toBe("did:iota");
+			expect(entry?.serviceId).toBe("iota/twin.org/dspace-connector");
 		});
 	});
 
@@ -299,7 +301,7 @@ describe("dataspaceControlPlaneRoutes", () => {
 					consumerPid: "new-consumer-pid-test",
 					agreementId: "agreement-new-test",
 					callbackAddress: "https://callback.example.com",
-					format: "application/json"
+					format: "HttpData-PULL"
 				},
 				headers: {
 					authorization: "Bearer mock-trust-token"
