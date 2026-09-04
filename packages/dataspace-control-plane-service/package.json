@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-control-plane-service",
-	"version": "0.9.2",
+	"version": "0.9.3",
 	"description": "Implements agreement negotiation and transfer process lifecycle management for control plane operations.",
 	"repository": {
 		"type": "git",
@@ -34,7 +34,7 @@
 		"@twin.org/context": "^0.9.2",
 		"@twin.org/core": "^0.9.2",
 		"@twin.org/data-json-ld": "^0.9.2",
-		"@twin.org/dataspace-models": "^0.9.2",
+		"@twin.org/dataspace-models": "^0.9.3",
 		"@twin.org/entity": "^0.9.2",
 		"@twin.org/entity-storage-models": "^0.9.2",
 		"@twin.org/federated-catalogue-models": "^0.9.2",
