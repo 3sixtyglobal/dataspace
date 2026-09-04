@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.9.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.3...dataspace-app-runner-v0.9.3) (2026-09-04)
+
+
+### Features
+
+* add inline tasks and concurrent options ([#104](https://github.com/iotaledger/twin-dataspace/issues/104)) ([2227a21](https://github.com/iotaledger/twin-dataspace/commit/2227a212d906f58ba77850c79bb20bf2cb7195a8))
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+* implement DSP push transfer mode ([#109](https://github.com/iotaledger/twin-dataspace/issues/109)) ([71f5fee](https://github.com/iotaledger/twin-dataspace/commit/71f5feec1d92dfec8ed6899c951809818e1bf2a3))
+* improve error handling and component usage ([544e20e](https://github.com/iotaledger/twin-dataspace/commit/544e20e640d6f09266942bfc698aead6227a7769))
+* improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* release to production ([#243](https://github.com/iotaledger/twin-dataspace/issues/243)) ([9906476](https://github.com/iotaledger/twin-dataspace/commit/9906476c5b9150f0660f7950a3afd4fa87009d14))
+* release to production ([#308](https://github.com/iotaledger/twin-dataspace/issues/308)) ([fba29a0](https://github.com/iotaledger/twin-dataspace/commit/fba29a083d7e4892f1f06b9e2e3faa6a72185cda))
+* release to production ([#359](https://github.com/iotaledger/twin-dataspace/issues/359)) ([3a2c8ae](https://github.com/iotaledger/twin-dataspace/commit/3a2c8aeeab167c5848536b74453953165e3eeb94))
+* release to production ([#368](https://github.com/iotaledger/twin-dataspace/issues/368)) ([7c70a24](https://github.com/iotaledger/twin-dataspace/commit/7c70a24b24a3d2bc7624cb9c1a80b6eeefb1453d))
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+* unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+* update dependencies ([55cb41c](https://github.com/iotaledger/twin-dataspace/commit/55cb41c1d0ce7ebddcce41c60fe944650bcf0499))
+
+
+### Bug Fixes
+
+* avoid compaction of incoming activities ([#77](https://github.com/iotaledger/twin-dataspace/issues/77)) ([ff43d6a](https://github.com/iotaledger/twin-dataspace/commit/ff43d6a3e1563eb9cb185501134b2a53ae88787c))
+* await startup promise before accessing factories ([#131](https://github.com/iotaledger/twin-dataspace/issues/131)) ([975e5bf](https://github.com/iotaledger/twin-dataspace/commit/975e5bfd39b2278e7e37ee9b8b370ff44117c800))
+* tests ([3a53ecb](https://github.com/iotaledger/twin-dataspace/commit/3a53ecb5f2ead2a8bf00cd46d2bee06c44d4ff0b))
+
 ## [0.9.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.2...dataspace-app-runner-v0.9.2) (2026-08-24)
 
 

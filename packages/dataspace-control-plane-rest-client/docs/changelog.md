@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.9.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.9.3...dataspace-control-plane-rest-client-v0.9.3) (2026-09-04)
+
+
+### Features
+
+* add consumer transfer callbacks and startDataTransfer convenience method ([#151](https://github.com/iotaledger/twin-dataspace/issues/151)) ([0ab66c3](https://github.com/iotaledger/twin-dataspace/commit/0ab66c3636fd1f98f89baca1e99764d77c6f91d9))
+* add transferStarted provider method to start a data transfer ([#206](https://github.com/iotaledger/twin-dataspace/issues/206)) ([3ec2dc8](https://github.com/iotaledger/twin-dataspace/commit/3ec2dc8943c8531cd8d8e4ab07cb970ef7b11090))
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+* cross-node transfer callbacks and DataTransferManager auto-start ([#199](https://github.com/iotaledger/twin-dataspace/issues/199)) ([1089aa3](https://github.com/iotaledger/twin-dataspace/commit/1089aa344e3598e382f37a82ca03230c5cf6cacd))
+* endpoint encryption + getDatasetTargets multi-target fix ([#112](https://github.com/iotaledger/twin-dataspace/issues/112)) ([3288941](https://github.com/iotaledger/twin-dataspace/commit/328894113c19c7402f7d00dfa77b6a97ae40ca91))
+* improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* provider-side transfer auto-start and negotiation/transfer timeout callbacks ([#227](https://github.com/iotaledger/twin-dataspace/issues/227)) ([619d858](https://github.com/iotaledger/twin-dataspace/commit/619d858e8d44e59744dc8a0f73e06be976932b53))
+* release to production ([#243](https://github.com/iotaledger/twin-dataspace/issues/243)) ([9906476](https://github.com/iotaledger/twin-dataspace/commit/9906476c5b9150f0660f7950a3afd4fa87009d14))
+* release to production ([#308](https://github.com/iotaledger/twin-dataspace/issues/308)) ([fba29a0](https://github.com/iotaledger/twin-dataspace/commit/fba29a083d7e4892f1f06b9e2e3faa6a72185cda))
+* release to production ([#359](https://github.com/iotaledger/twin-dataspace/issues/359)) ([3a2c8ae](https://github.com/iotaledger/twin-dataspace/commit/3a2c8aeeab167c5848536b74453953165e3eeb94))
+* release to production ([#368](https://github.com/iotaledger/twin-dataspace/issues/368)) ([7c70a24](https://github.com/iotaledger/twin-dataspace/commit/7c70a24b24a3d2bc7624cb9c1a80b6eeefb1453d))
+* remove hosting component ([#209](https://github.com/iotaledger/twin-dataspace/issues/209)) ([5e19328](https://github.com/iotaledger/twin-dataspace/commit/5e1932823aa8a0f88f559f096610b9df1f3b8615))
+* shortcut implicit trust ([#215](https://github.com/iotaledger/twin-dataspace/issues/215)) ([f9bcfea](https://github.com/iotaledger/twin-dataspace/commit/f9bcfeab8f069b62017502833c108b4ee3791414))
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+* unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+
+
+### Bug Fixes
+
+* docs and component init ([8557233](https://github.com/iotaledger/twin-dataspace/commit/8557233fb3b8273c5c9a5b580fb43061f8efe47c))
+* incorrect docs ([754aa8d](https://github.com/iotaledger/twin-dataspace/commit/754aa8d032a5dfefa69072aa460106badfa41ac9))
+* throw not supported error for in-process only control plane methods ([#185](https://github.com/iotaledger/twin-dataspace/issues/185)) ([130f00a](https://github.com/iotaledger/twin-dataspace/commit/130f00a87412b34defde891855bee7aa3ac34130))
+
 ## [0.9.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-rest-client-v0.9.2...dataspace-control-plane-rest-client-v0.9.2) (2026-08-24)
 
 
