@@ -2,7 +2,7 @@
 
 > `const` **AgreementSweepReason**: `object`
 
-Classification reasons for the unused agreement sweep, reported in logs.
+Reasons an agreement is skipped or removed by the control plane, reported in logs.
 
 ## Type Declaration
 
@@ -47,3 +47,9 @@ Every referencing transfer is terminal and stale beyond the unused window.
 > `readonly` **NeverReferenced**: `"neverReferenced"` = `"neverReferenced"`
 
 No transfer references the agreement and it is older than the unused window.
+
+### UnknownAtProvider {#unknownatprovider}
+
+> `readonly` **UnknownAtProvider**: `"unknownAtProvider"` = `"unknownAtProvider"`
+
+The provider rejected a transfer request because it no longer holds the agreement.

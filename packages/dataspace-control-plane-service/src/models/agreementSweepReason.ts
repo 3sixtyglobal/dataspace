@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 
 /**
- * Classification reasons for the unused agreement sweep, reported in logs.
+ * Reasons an agreement is skipped or removed by the control plane, reported in logs.
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const AgreementSweepReason = {
@@ -39,10 +39,15 @@ export const AgreementSweepReason = {
 	/**
 	 * No transfer references the agreement and it is older than the unused window.
 	 */
-	NeverReferenced: "neverReferenced"
+	NeverReferenced: "neverReferenced",
+
+	/**
+	 * The provider rejected a transfer request because it no longer holds the agreement.
+	 */
+	UnknownAtProvider: "unknownAtProvider"
 } as const;
 
 /**
- * Classification reasons for the unused agreement sweep, reported in logs.
+ * Reasons an agreement is skipped or removed by the control plane, reported in logs.
  */
 export type AgreementSweepReason = (typeof AgreementSweepReason)[keyof typeof AgreementSweepReason];

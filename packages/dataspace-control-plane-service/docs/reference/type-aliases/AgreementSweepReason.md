@@ -2,4 +2,4 @@
 
 > **AgreementSweepReason** = *typeof* [`AgreementSweepReason`](../variables/AgreementSweepReason.md)\[keyof *typeof* [`AgreementSweepReason`](../variables/AgreementSweepReason.md)\]
 
-Classification reasons for the unused agreement sweep, reported in logs.
+Reasons an agreement is skipped or removed by the control plane, reported in logs.
