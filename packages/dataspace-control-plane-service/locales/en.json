@@ -27,7 +27,7 @@
 			"providerTransferPolicySweepComplete": "Provider transfer policy sweep completed (terminated: {terminated})",
 			"preparingTransfer": "Preparing consumer-initiated data transfer (agreementId: {agreementId}, providerEndpoint: {providerEndpoint}, format: {format})",
 			"transferPrepared": "Consumer data transfer prepared successfully (consumerPid: {consumerPid}, providerPid: {providerPid}, agreementId: {agreementId}, format: {format})",
-			"agreementSwept": "Unused agreement removed by the sweep (agreementId: {agreementId}, reason: {reason})",
+			"agreementSwept": "Agreement removed (agreementId: {agreementId}, reason: {reason})",
 			"agreementSweepComplete": "Agreement sweep completed (scanned: {scanned}, skipped: {skipped}, candidates: {candidates}, swept: {swept})"
 		},
 		"dataspaceControlPlanePolicyRequester": {

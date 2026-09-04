@@ -13,6 +13,7 @@ import {
 	Factory,
 	GeneralError,
 	Guards,
+	type IError,
 	Is,
 	NotFoundError,
 	ObjectHelper,
@@ -926,6 +927,15 @@ export class DataspaceControlPlaneService
 		);
 
 		if (isTransferError(result)) {
+			// A copy the provider no longer holds can never transfer again; drop it so the next
+			// negotiation for this offer picks another agreement or negotiates a fresh one.
+			if (this.isAgreementUnknownAtProvider(result, agreementId)) {
+				await this.removeSweptAgreement({
+					agreementId,
+					reason: AgreementSweepReason.UnknownAtProvider
+				});
+			}
+
 			throw new GeneralError(
 				DataspaceControlPlaneService.CLASS_NAME,
 				"transferRequestRejectedByProvider",
@@ -3182,9 +3192,9 @@ export class DataspaceControlPlaneService
 	}
 
 	/**
-	 * Remove a sweep candidate from the PAP; removal of a missing id is a storage-level no-op, so
+	 * Remove an agreement from the PAP; removal of a missing id is a storage-level no-op, so
 	 * reruns stay idempotent. A removal failure is logged and reported as not swept.
-	 * @param candidate The sweep candidate.
+	 * @param candidate The agreement to remove.
 	 * @param candidate.agreementId The agreement ID to remove.
 	 * @param candidate.reason The selection reason, forwarded to the log.
 	 * @returns True when the agreement was removed.
@@ -3220,6 +3230,26 @@ export class DataspaceControlPlaneService
 			data: { agreementId: candidate.agreementId, reason: candidate.reason }
 		});
 		return true;
+	}
+
+	/**
+	 * Whether the provider rejected a transfer request because it does not hold the agreement.
+	 * @param result The provider's transfer error.
+	 * @param agreementId The agreement the request referenced.
+	 * @returns True when the error chain reports that agreement as not found.
+	 * @internal
+	 */
+	private isAgreementUnknownAtProvider(
+		result: IDataspaceProtocolTransferError,
+		agreementId: string
+	): boolean {
+		return (
+			Is.arrayValue<IError>(result.reason) &&
+			result.reason.some(
+				error =>
+					error.name === NotFoundError.CLASS_NAME && error.properties?.notFoundId === agreementId
+			)
+		);
 	}
 
 	/**
@@ -4277,12 +4307,25 @@ export class DataspaceControlPlaneService
 		assignee: string,
 		datasetId: string
 	): Promise<string | undefined> {
-		const { policies } = await this._policyAdministrationPointComponent.query({
-			type: OdrlPolicyType.Agreement,
-			assigner,
-			assignee,
-			target: datasetId
-		});
+		const policies: IRightsManagementPolicy[] = [];
+		let cursor: string | undefined;
+
+		do {
+			const page = await this._policyAdministrationPointComponent.query(
+				{
+					type: OdrlPolicyType.Agreement,
+					assigner,
+					assignee,
+					target: datasetId
+				},
+				undefined,
+				cursor,
+				undefined,
+				["dateCreated"]
+			);
+			policies.push(...page.policies);
+			cursor = page.cursor;
+		} while (Is.stringValue(cursor));
 
 		if (policies.length === 0) {
 			return undefined;

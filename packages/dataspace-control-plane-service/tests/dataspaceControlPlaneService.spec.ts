@@ -64,6 +64,7 @@ import {
 	DEFAULT_SERVICE_OPTIONS,
 	setupTestEnv
 } from "./setupTestEnv.js";
+import { transformToTransferError } from "../src/utils/transferErrorUtils.js";
 
 /**
  * Mocks sendRequestToProvider to return the negotiation ID.
@@ -4878,6 +4879,34 @@ describe("DataspaceControlPlaneService", () => {
 			expect(result.agreementId).toBe("cross-org-newer-agreement");
 			expect(result.negotiationId).toBeUndefined();
 		});
+
+		test("should select the newest agreement when the matches span more than one PAP page", async () => {
+			mockPap.clearAgreements();
+			// The mock PAP pages at 40 in insertion order, so the newest agreement lands on page two.
+			for (let i = 0; i <= 40; i++) {
+				mockPap.addAgreement({
+					"@context": "http://www.w3.org/ns/odrl.jsonld",
+					"@type": "Agreement",
+					"@id": `cross-org-paged-agreement-${i}`,
+					assigner: "did:iota:provider-node-xyz",
+					assignee: "did:iota:provider-node-xyz",
+					target: "urn:uuid:dataset-negotiation-valid",
+					permission: [{ action: "read" }],
+					dateCreated: new Date(Date.UTC(2026, 0, 1 + i)).toISOString()
+				} as unknown as IDataspaceProtocolAgreement);
+			}
+			const service = new DataspaceControlPlaneService(DEFAULT_SERVICE_OPTIONS);
+
+			const result = await service.negotiateAgreement(
+				"urn:uuid:dataset-negotiation-valid",
+				"offer-negotiation-valid",
+				"http://provider.example.com",
+				"valid-trust-payload"
+			);
+
+			expect(result.agreementId).toBe("cross-org-paged-agreement-40");
+			expect(result.negotiationId).toBeUndefined();
+		});
 	});
 
 	describe("Negotiation History", () => {
@@ -6800,7 +6829,7 @@ describe("DataspaceControlPlaneService", () => {
 			ComponentFactory.unregister("test-remote-cp-callback");
 		});
 
-		test("should throw GeneralError when provider returns a TransferError", async () => {
+		test("should throw GeneralError and keep the local agreement when provider returns a TransferError", async () => {
 			const mockRemoteControlPlane = {
 				className: () => "MockRemoteControlPlane",
 				requestTransfer: vi.fn().mockResolvedValue({
@@ -6825,8 +6854,91 @@ describe("DataspaceControlPlaneService", () => {
 					"valid-trust-payload"
 				)
 			).rejects.toThrow();
+			await expect(mockPap.getAgreement("agreement-123")).resolves.toBeDefined();
 
 			ComponentFactory.unregister("test-remote-cp-error");
+		});
+
+		test("should remove the local agreement when the provider reports it unknown", async () => {
+			// Same shape the provider's requestTransfer returns when its PAP lookup rethrows NotFoundError.
+			const mockRemoteControlPlane = {
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi
+					.fn()
+					.mockResolvedValue(
+						transformToTransferError(
+							new NotFoundError(
+								"policyAdministrationPointService",
+								"agreementNotFound",
+								"agreement-123"
+							),
+							{ consumerPid: "urn:uuid:consumer-pid", providerPid: "urn:uuid:provider-pid" }
+						)
+					)
+			};
+
+			ComponentFactory.register("test-remote-cp-unknown-agreement", () => mockRemoteControlPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-remote-cp-unknown-agreement"
+			});
+
+			await expect(
+				service.prepareTransfer(
+					"agreement-123",
+					"http://provider.example.com",
+					"HttpData-PULL",
+					"valid-trust-payload"
+				)
+			).rejects.toMatchObject({
+				name: "GeneralError",
+				message: "dataspaceControlPlaneService.transferRequestRejectedByProvider"
+			});
+			await expect(mockPap.getAgreement("agreement-123")).rejects.toMatchObject({
+				name: "NotFoundError"
+			});
+
+			ComponentFactory.unregister("test-remote-cp-unknown-agreement");
+		});
+
+		test("should keep the local agreement when the provider reports a different id unknown", async () => {
+			// Same shape the provider's requestTransfer returns when the dataset is missing from its catalog.
+			const mockRemoteControlPlane = {
+				className: () => "MockRemoteControlPlane",
+				requestTransfer: vi
+					.fn()
+					.mockResolvedValue(
+						transformToTransferError(
+							new NotFoundError(
+								"dataspaceControlPlaneService",
+								"datasetNotInCatalog",
+								"urn:uuid:dataset-123",
+								{ datasetId: "urn:uuid:dataset-123", agreementId: "agreement-123" }
+							),
+							{ consumerPid: "urn:uuid:consumer-pid", providerPid: "urn:uuid:provider-pid" }
+						)
+					)
+			};
+
+			ComponentFactory.register("test-remote-cp-unknown-dataset", () => mockRemoteControlPlane);
+
+			const service = new DataspaceControlPlaneService({
+				...DEFAULT_SERVICE_OPTIONS,
+				remoteControlPlaneComponentType: "test-remote-cp-unknown-dataset"
+			});
+
+			await expect(
+				service.prepareTransfer(
+					"agreement-123",
+					"http://provider.example.com",
+					"HttpData-PULL",
+					"valid-trust-payload"
+				)
+			).rejects.toMatchObject({ name: "GeneralError" });
+			await expect(mockPap.getAgreement("agreement-123")).resolves.toBeDefined();
+
+			ComponentFactory.unregister("test-remote-cp-unknown-dataset");
 		});
 
 		test("dispatches requestTransfer in-process when providerEndpoint is a local origin", async () => {
