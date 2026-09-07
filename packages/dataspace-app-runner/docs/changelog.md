@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.9.3-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.3-next.0...dataspace-app-runner-v0.9.3-next.1) (2026-09-04)
+## [0.9.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.3...dataspace-app-runner-v0.9.3) (2026-09-04)
 
 
 ### Features
@@ -10,9 +10,10 @@
 * implement DSP push transfer mode ([#109](https://github.com/iotaledger/twin-dataspace/issues/109)) ([71f5fee](https://github.com/iotaledger/twin-dataspace/commit/71f5feec1d92dfec8ed6899c951809818e1bf2a3))
 * improve error handling and component usage ([544e20e](https://github.com/iotaledger/twin-dataspace/commit/544e20e640d6f09266942bfc698aead6227a7769))
 * improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
-* linting and dependency update ([adf8ee0](https://github.com/iotaledger/twin-dataspace/commit/adf8ee04f657f22fb051978591749a4cf19d67a1))
-* reduce engine clone overhead in push delivery runner ([#302](https://github.com/iotaledger/twin-dataspace/issues/302)) ([49538b6](https://github.com/iotaledger/twin-dataspace/commit/49538b6692870e9d8f5709407b33577599757a47))
-* remove engine dependency ([#313](https://github.com/iotaledger/twin-dataspace/issues/313)) ([aec9f60](https://github.com/iotaledger/twin-dataspace/commit/aec9f60d530cd06a73170b3226795a260db8e6f4))
+* release to production ([#243](https://github.com/iotaledger/twin-dataspace/issues/243)) ([9906476](https://github.com/iotaledger/twin-dataspace/commit/9906476c5b9150f0660f7950a3afd4fa87009d14))
+* release to production ([#308](https://github.com/iotaledger/twin-dataspace/issues/308)) ([fba29a0](https://github.com/iotaledger/twin-dataspace/commit/fba29a083d7e4892f1f06b9e2e3faa6a72185cda))
+* release to production ([#359](https://github.com/iotaledger/twin-dataspace/issues/359)) ([3a2c8ae](https://github.com/iotaledger/twin-dataspace/commit/3a2c8aeeab167c5848536b74453953165e3eeb94))
+* release to production ([#368](https://github.com/iotaledger/twin-dataspace/issues/368)) ([7c70a24](https://github.com/iotaledger/twin-dataspace/commit/7c70a24b24a3d2bc7624cb9c1a80b6eeefb1453d))
 * typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
 * unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
 * update dependencies ([55cb41c](https://github.com/iotaledger/twin-dataspace/commit/55cb41c1d0ce7ebddcce41c60fe944650bcf0499))
@@ -22,18 +23,7 @@
 
 * avoid compaction of incoming activities ([#77](https://github.com/iotaledger/twin-dataspace/issues/77)) ([ff43d6a](https://github.com/iotaledger/twin-dataspace/commit/ff43d6a3e1563eb9cb185501134b2a53ae88787c))
 * await startup promise before accessing factories ([#131](https://github.com/iotaledger/twin-dataspace/issues/131)) ([975e5bf](https://github.com/iotaledger/twin-dataspace/commit/975e5bfd39b2278e7e37ee9b8b370ff44117c800))
-* forward agreement trustData to the PEP at data-plane enforcement ([#269](https://github.com/iotaledger/twin-dataspace/issues/269)) ([fa538e7](https://github.com/iotaledger/twin-dataspace/commit/fa538e7f1834bb3eb11452865055d18dfe7a70fa))
-* missing type definition ([28be53e](https://github.com/iotaledger/twin-dataspace/commit/28be53ed045b78f435af32d08dc60bc8eefc2f1e))
-* missing type definition ([e1baec0](https://github.com/iotaledger/twin-dataspace/commit/e1baec06b840ecdb7650a5dfa57cbf6018537f4f))
-* retain cursor after pep enforcement ([#296](https://github.com/iotaledger/twin-dataspace/issues/296)) ([5198cd2](https://github.com/iotaledger/twin-dataspace/commit/5198cd29505ceffa532fa4fa18c97a5c8e78f663))
-* tests ([a2e7542](https://github.com/iotaledger/twin-dataspace/commit/a2e7542a65384d9acd9bc8a595de49dadb14aa31))
-
-
-### Dependencies
-
-* The following workspace dependencies were updated
-  * dependencies
-    * @twin.org/dataspace-models bumped from 0.9.3-next.0 to 0.9.3-next.1
+* tests ([3a53ecb](https://github.com/iotaledger/twin-dataspace/commit/3a53ecb5f2ead2a8bf00cd46d2bee06c44d4ff0b))
 
 ## [0.9.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-app-runner-v0.9.2...dataspace-app-runner-v0.9.2) (2026-08-24)
 

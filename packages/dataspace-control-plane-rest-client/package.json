@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-control-plane-rest-client",
-	"version": "0.9.3-next.1",
+	"version": "0.9.4-next.0",
 	"description": "Provides an HTTP client for invoking control plane transfer process endpoints.",
 	"repository": {
 		"type": "git",
@@ -37,7 +37,7 @@
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {
-		"@twin.org/dataspace-models": "0.9.3-next.1",
+		"@twin.org/dataspace-models": "0.9.4-next.0",
 		"@twin.org/nameof-transformer": "next",
 		"@twin.org/nameof-vitest-plugin": "next",
 		"@twin.org/standards-dataspace-protocol": "next",
