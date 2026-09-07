@@ -4882,7 +4882,8 @@ describe("DataspaceControlPlaneService", () => {
 
 		test("should select the newest agreement when the matches span more than one PAP page", async () => {
 			mockPap.clearAgreements();
-			// The mock PAP pages at 40 in insertion order, so the newest agreement lands on page two.
+			// More matches than the mock PAP default page size of 40, with the newest agreement added
+			// last so insertion order alone would not surface it.
 			for (let i = 0; i <= 40; i++) {
 				mockPap.addAgreement({
 					"@context": "http://www.w3.org/ns/odrl.jsonld",

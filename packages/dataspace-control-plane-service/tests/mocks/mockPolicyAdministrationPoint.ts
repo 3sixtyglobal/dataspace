@@ -1,6 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { Is, NotFoundError } from "@twin.org/core";
+import { EntitySchemaPropertyType, EntitySorter, SortDirection } from "@twin.org/entity";
 import { nameof } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
@@ -190,6 +191,8 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * @param limit The page size; defaults to 40 like the memory entity storage connector.
 	 * @param properties Optional reduced property list, mirroring the real PAP: both the model and
 	 * storage key forms are accepted and the policy "@id" is always included.
+	 * @param orderBy Optional policy property to order the results by, applied before paging.
+	 * @param orderByDirection The direction for the order, defaults to descending.
 	 * @returns Object with policies array and optional cursor.
 	 */
 	public async query(
@@ -197,7 +200,9 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 		conditions?: unknown,
 		cursor?: string,
 		limit?: number,
-		properties?: (keyof IRightsManagementPolicy)[]
+		properties?: (keyof IRightsManagementPolicy)[],
+		orderBy?: keyof IRightsManagementPolicy,
+		orderByDirection?: SortDirection
 	): Promise<{ cursor?: string; policies: IRightsManagementPolicy[] }> {
 		let policies = [...this._policies.values()];
 
@@ -223,6 +228,16 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 					OdrlPolicyHelper.getDatasetTargets(p).includes(wantedTarget)
 				);
 			}
+		}
+
+		if (Is.stringValue(orderBy)) {
+			policies = EntitySorter.sort(policies, [
+				{
+					property: orderBy,
+					type: EntitySchemaPropertyType.String,
+					sortDirection: orderByDirection ?? SortDirection.Descending
+				}
+			]);
 		}
 
 		const pageSize = limit ?? 40;

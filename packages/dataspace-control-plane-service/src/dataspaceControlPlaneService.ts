@@ -53,8 +53,6 @@ import {
 } from "@twin.org/dataspace-models";
 import {
 	ComparisonOperator,
-	EntitySchemaPropertyType,
-	EntitySorter,
 	LogicalOperator,
 	SortDirection,
 	type EntityCondition
@@ -4307,39 +4305,26 @@ export class DataspaceControlPlaneService
 		assignee: string,
 		datasetId: string
 	): Promise<string | undefined> {
-		const policies: IRightsManagementPolicy[] = [];
-		let cursor: string | undefined;
+		const page = await this._policyAdministrationPointComponent.query(
+			{
+				type: OdrlPolicyType.Agreement,
+				assigner,
+				assignee,
+				target: datasetId
+			},
+			undefined,
+			undefined,
+			1,
+			["@id"],
+			"dateCreated",
+			SortDirection.Descending
+		);
 
-		do {
-			const page = await this._policyAdministrationPointComponent.query(
-				{
-					type: OdrlPolicyType.Agreement,
-					assigner,
-					assignee,
-					target: datasetId
-				},
-				undefined,
-				cursor,
-				undefined,
-				["dateCreated"]
-			);
-			policies.push(...page.policies);
-			cursor = page.cursor;
-		} while (Is.stringValue(cursor));
-
-		if (policies.length === 0) {
+		if (page.policies.length === 0) {
 			return undefined;
 		}
 
-		const sorted = EntitySorter.sort(policies, [
-			{
-				property: "dateCreated",
-				type: EntitySchemaPropertyType.String,
-				sortDirection: SortDirection.Descending
-			}
-		]);
-
-		return OdrlPolicyHelper.getUid(sorted[0]);
+		return OdrlPolicyHelper.getUid(page.policies[0]);
 	}
 
 	/**
