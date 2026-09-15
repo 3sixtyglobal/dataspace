@@ -160,7 +160,25 @@ A permission gated on verified attributes uses a constraint over the information
 }
 ```
 
-ODRL party collections are not the mechanism for attribute conditions: the default arbiter rejects a `PartyCollection` carrying a `source` value, and a refinement-only party collection resolves to no party identifiers and therefore never grants, so attribute conditions belong in rule constraints as shown above.
+The same condition can scope the rule to a party instead: an ODRL `PartyCollection` with a `refinement` as the rule's `assignee` (or `assigner`) applies the rule to any party whose attributes satisfy the refinement. A refinement-only collection (no `source`) contributes no party identifier, so the default arbiter decides whether the rule applies by evaluating the `refinement` against the same sources ordinary constraints use; both forms express the same attribute conditions, and the party-scoped one is the ODRL-idiomatic shape. A `PartyCollection` carrying a `source` value is rejected by the default arbiter.
+
+```json
+{
+  "action": "read",
+  "assignee": {
+    "@type": "PartyCollection",
+    "refinement": [
+      {
+        "leftOperand": "twin:jsonPath",
+        "twin:jsonPathDataSource": "information",
+        "twin:jsonPathExpression": "$.subject.region",
+        "operator": "eq",
+        "rightOperand": "EU"
+      }
+    ]
+  }
+}
+```
 
 Policies may also inherit from other stored policies via `inheritFrom`, with parent rules merged into the child during evaluation (cycle detection and a depth limit apply). ODRL features that the engine does not support, such as `rightOperandReference` and the constraint `unit` and `dataType` attributes, are rejected explicitly rather than silently ignored, so a policy either evaluates with full fidelity or fails loudly.
 
