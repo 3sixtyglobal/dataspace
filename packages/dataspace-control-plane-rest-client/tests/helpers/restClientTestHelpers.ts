@@ -74,6 +74,23 @@ export function createdResponse(location: string): object {
 }
 
 /**
+ * Minimal non-2xx JSON response accepted by BaseRestClient.
+ * BaseRestClient reads the body with response.json() on any failure status.
+ * @param status The HTTP status code to report.
+ * @param jsonBody The error body returned by response.json().
+ * @returns A fake failure response object.
+ */
+export function errorResponse(status: HttpStatusCode, jsonBody: unknown): object {
+	return {
+		ok: false,
+		status,
+		statusText: "Error",
+		headers: new Headers({ [HeaderTypes.ContentType]: MimeTypes.Json }),
+		json: async () => jsonBody
+	};
+}
+
+/**
  * Assigns the given mock as the global fetch implementation.
  * Call in beforeEach alongside any client construction.
  * @param mock The vi.fn() mock to install as globalThis.fetch.

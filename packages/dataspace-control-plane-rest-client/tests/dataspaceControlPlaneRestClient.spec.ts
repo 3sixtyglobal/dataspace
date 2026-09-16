@@ -13,6 +13,7 @@ import {
 import type {
 	IDataspaceProtocolDataset,
 	IDataspaceProtocolTransferCompletionMessage,
+	IDataspaceProtocolTransferError,
 	IDataspaceProtocolTransferProcess,
 	IDataspaceProtocolTransferRequestMessage,
 	IDataspaceProtocolTransferStartMessage,
@@ -20,10 +21,11 @@ import type {
 	IDataspaceProtocolTransferTerminationMessage,
 	IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
-import { HttpMethod } from "@twin.org/web";
+import { FetchError, HttpMethod, HttpStatusCode } from "@twin.org/web";
 import { DataspaceControlPlaneRestClient } from "../src/dataspaceControlPlaneRestClient.js";
 import {
 	createdResponse,
+	errorResponse,
 	jsonResponse,
 	noContentResponse,
 	setupFetchMock,
@@ -106,6 +108,21 @@ const TEST_TRANSFER_PROCESS: IDataspaceProtocolTransferProcess = {
 	consumerPid: TEST_CONSUMER_PID,
 	providerPid: TEST_PROVIDER_PID,
 	state: DataspaceProtocolTransferProcessStateType.REQUESTED
+};
+
+const TEST_TRANSFER_ERROR: IDataspaceProtocolTransferError = {
+	"@context": DataspaceProtocolContexts.Context,
+	"@type": DataspaceProtocolTransferProcessTypes.TransferError,
+	consumerPid: TEST_CONSUMER_PID,
+	providerPid: TEST_PROVIDER_PID,
+	code: "NotFoundError:policyAdministrationPointService.agreementNotFound",
+	reason: [
+		{
+			name: "NotFoundError",
+			message: "policyAdministrationPointService.agreementNotFound",
+			properties: { notFoundId: TEST_AGREEMENT_ID }
+		}
+	]
 };
 
 const TEST_APP_DATASET = {
@@ -522,6 +539,114 @@ describe("DataspaceControlPlaneRestClient", () => {
 			const result = await client.getTransferProcess(TEST_CONSUMER_PID, TEST_TRUST_PAYLOAD);
 
 			expect(result).toEqual(TEST_TRANSFER_PROCESS);
+		});
+	});
+
+	describe("provider TransferError responses", () => {
+		test("requestTransfer returns the TransferError body from a 404", async () => {
+			fetchMock.mockResolvedValueOnce(errorResponse(HttpStatusCode.notFound, TEST_TRANSFER_ERROR));
+
+			const result = await client.requestTransfer(TEST_TRANSFER_REQUEST, TEST_TRUST_PAYLOAD);
+
+			expect(result).toEqual(TEST_TRANSFER_ERROR);
+		});
+
+		test("startTransfer returns the TransferError body from a 400", async () => {
+			fetchMock.mockResolvedValueOnce(
+				errorResponse(HttpStatusCode.badRequest, TEST_TRANSFER_ERROR)
+			);
+
+			const result = await client.startTransfer(TEST_TRANSFER_START, TEST_TRUST_PAYLOAD);
+
+			expect(result).toEqual(TEST_TRANSFER_ERROR);
+		});
+
+		test("completeTransfer returns the TransferError body from a 400", async () => {
+			fetchMock.mockResolvedValueOnce(
+				errorResponse(HttpStatusCode.badRequest, TEST_TRANSFER_ERROR)
+			);
+
+			const result = await client.completeTransfer(TEST_TRANSFER_COMPLETION, TEST_TRUST_PAYLOAD);
+
+			expect(result).toEqual(TEST_TRANSFER_ERROR);
+		});
+
+		test("suspendTransfer returns the TransferError body from a 400", async () => {
+			fetchMock.mockResolvedValueOnce(
+				errorResponse(HttpStatusCode.badRequest, TEST_TRANSFER_ERROR)
+			);
+
+			const result = await client.suspendTransfer(TEST_TRANSFER_SUSPENSION, TEST_TRUST_PAYLOAD);
+
+			expect(result).toEqual(TEST_TRANSFER_ERROR);
+		});
+
+		test("terminateTransfer returns the TransferError body from a 400", async () => {
+			fetchMock.mockResolvedValueOnce(
+				errorResponse(HttpStatusCode.badRequest, TEST_TRANSFER_ERROR)
+			);
+
+			const result = await client.terminateTransfer(TEST_TRANSFER_TERMINATION, TEST_TRUST_PAYLOAD);
+
+			expect(result).toEqual(TEST_TRANSFER_ERROR);
+		});
+
+		test("getTransferProcess returns the TransferError body from a 404", async () => {
+			fetchMock.mockResolvedValueOnce(errorResponse(HttpStatusCode.notFound, TEST_TRANSFER_ERROR));
+
+			const result = await client.getTransferProcess(TEST_CONSUMER_PID, TEST_TRUST_PAYLOAD);
+
+			expect(result).toEqual(TEST_TRANSFER_ERROR);
+		});
+
+		test("preserves the reason chain so callers can read the error properties", async () => {
+			fetchMock.mockResolvedValueOnce(errorResponse(HttpStatusCode.notFound, TEST_TRANSFER_ERROR));
+
+			const result = await client.requestTransfer(TEST_TRANSFER_REQUEST, TEST_TRUST_PAYLOAD);
+
+			expect((result as IDataspaceProtocolTransferError).code).toBe(
+				"NotFoundError:policyAdministrationPointService.agreementNotFound"
+			);
+			expect((result as IDataspaceProtocolTransferError).reason?.[0].properties.notFoundId).toBe(
+				TEST_AGREEMENT_ID
+			);
+		});
+
+		test("rethrows the FetchError when the error body is not a TransferError", async () => {
+			fetchMock.mockResolvedValueOnce(
+				errorResponse(HttpStatusCode.internalServerError, { unexpected: "body" })
+			);
+
+			await expect(
+				client.requestTransfer(TEST_TRANSFER_REQUEST, TEST_TRUST_PAYLOAD)
+			).rejects.toMatchObject({
+				name: FetchError.CLASS_NAME,
+				message: "baseRestClient.failureStatusText"
+			});
+		});
+
+		test("rethrows a serialized error body carrying a message", async () => {
+			fetchMock.mockResolvedValueOnce(
+				errorResponse(HttpStatusCode.badRequest, {
+					name: "GeneralError",
+					message: "dataspaceControlPlaneService.transferFailed"
+				})
+			);
+
+			await expect(
+				client.requestTransfer(TEST_TRANSFER_REQUEST, TEST_TRUST_PAYLOAD)
+			).rejects.toMatchObject({
+				name: "GeneralError",
+				message: "dataspaceControlPlaneService.transferFailed"
+			});
+		});
+
+		test("rethrows a transport failure", async () => {
+			fetchMock.mockRejectedValueOnce(new Error("Failed to fetch"));
+
+			await expect(
+				client.requestTransfer(TEST_TRANSFER_REQUEST, TEST_TRUST_PAYLOAD)
+			).rejects.toMatchObject({ name: FetchError.CLASS_NAME });
 		});
 	});
 

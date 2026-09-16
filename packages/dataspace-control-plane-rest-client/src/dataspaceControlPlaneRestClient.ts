@@ -6,7 +6,8 @@ import {
 	type IBaseRestClientConfig,
 	type INoContentRequest
 } from "@twin.org/api-models";
-import { Guards, NotSupportedError } from "@twin.org/core";
+import { BaseError, Guards, NotSupportedError } from "@twin.org/core";
+import { getJsonLdType } from "@twin.org/dataspace-models";
 import type {
 	IAppDatasetCreateRequest,
 	IAppDatasetCreateResponse,
@@ -36,6 +37,7 @@ import type {
 	ITransferQueryResult
 } from "@twin.org/dataspace-models";
 import { nameof } from "@twin.org/nameof";
+import { DataspaceProtocolTransferProcessTypes } from "@twin.org/standards-dataspace-protocol";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolContractNegotiation,
@@ -50,7 +52,7 @@ import type {
 	IDataspaceProtocolTransferTerminationMessage,
 	IDataspaceProtocolVersionResponse
 } from "@twin.org/standards-dataspace-protocol";
-import { HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
+import { FetchError, HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
 
 /**
  * Client for performing dataspace control plane operations through REST endpoints.
@@ -258,18 +260,22 @@ export class DataspaceControlPlaneRestClient
 			trustPayload
 		);
 
-		const response = await this.fetch<IRequestTransferRequest, IRequestTransferResponse>(
-			"/transfers/request",
-			HttpMethod.POST,
-			{
-				body: request,
-				headers: {
-					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+		try {
+			const response = await this.fetch<IRequestTransferRequest, IRequestTransferResponse>(
+				"/transfers/request",
+				HttpMethod.POST,
+				{
+					body: request,
+					headers: {
+						[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+					}
 				}
-			}
-		);
+			);
 
-		return response.body;
+			return response.body;
+		} catch (err) {
+			return this.toTransferError(err);
+		}
 	}
 
 	/**
@@ -289,19 +295,23 @@ export class DataspaceControlPlaneRestClient
 			trustPayload
 		);
 
-		const response = await this.fetch<IStartTransferRequest, IStartTransferResponse>(
-			"/transfers/:pid/start",
-			HttpMethod.POST,
-			{
-				pathParams: { pid: message.consumerPid },
-				body: message,
-				headers: {
-					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+		try {
+			const response = await this.fetch<IStartTransferRequest, IStartTransferResponse>(
+				"/transfers/:pid/start",
+				HttpMethod.POST,
+				{
+					pathParams: { pid: message.consumerPid },
+					body: message,
+					headers: {
+						[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+					}
 				}
-			}
-		);
+			);
 
-		return response.body;
+			return response.body;
+		} catch (err) {
+			return this.toTransferError(err);
+		}
 	}
 
 	/**
@@ -340,19 +350,23 @@ export class DataspaceControlPlaneRestClient
 			trustPayload
 		);
 
-		const response = await this.fetch<ICompleteTransferRequest, ICompleteTransferResponse>(
-			"/transfers/:pid/complete",
-			HttpMethod.POST,
-			{
-				pathParams: { pid: message.consumerPid },
-				body: message,
-				headers: {
-					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+		try {
+			const response = await this.fetch<ICompleteTransferRequest, ICompleteTransferResponse>(
+				"/transfers/:pid/complete",
+				HttpMethod.POST,
+				{
+					pathParams: { pid: message.consumerPid },
+					body: message,
+					headers: {
+						[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+					}
 				}
-			}
-		);
+			);
 
-		return response.body;
+			return response.body;
+		} catch (err) {
+			return this.toTransferError(err);
+		}
 	}
 
 	/**
@@ -372,19 +386,23 @@ export class DataspaceControlPlaneRestClient
 			trustPayload
 		);
 
-		const response = await this.fetch<ISuspendTransferRequest, ISuspendTransferResponse>(
-			"/transfers/:pid/suspend",
-			HttpMethod.POST,
-			{
-				pathParams: { pid: message.consumerPid },
-				body: message,
-				headers: {
-					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+		try {
+			const response = await this.fetch<ISuspendTransferRequest, ISuspendTransferResponse>(
+				"/transfers/:pid/suspend",
+				HttpMethod.POST,
+				{
+					pathParams: { pid: message.consumerPid },
+					body: message,
+					headers: {
+						[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+					}
 				}
-			}
-		);
+			);
 
-		return response.body;
+			return response.body;
+		} catch (err) {
+			return this.toTransferError(err);
+		}
 	}
 
 	/**
@@ -404,19 +422,23 @@ export class DataspaceControlPlaneRestClient
 			trustPayload
 		);
 
-		const response = await this.fetch<ITerminateTransferRequest, ITerminateTransferResponse>(
-			"/transfers/:pid/terminate",
-			HttpMethod.POST,
-			{
-				pathParams: { pid: message.consumerPid },
-				body: message,
-				headers: {
-					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+		try {
+			const response = await this.fetch<ITerminateTransferRequest, ITerminateTransferResponse>(
+				"/transfers/:pid/terminate",
+				HttpMethod.POST,
+				{
+					pathParams: { pid: message.consumerPid },
+					body: message,
+					headers: {
+						[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+					}
 				}
-			}
-		);
+			);
 
-		return response.body;
+			return response.body;
+		} catch (err) {
+			return this.toTransferError(err);
+		}
 	}
 
 	/**
@@ -436,18 +458,22 @@ export class DataspaceControlPlaneRestClient
 			trustPayload
 		);
 
-		const response = await this.fetch<IGetTransferProcessRequest, IGetTransferProcessResponse>(
-			"/transfers/:pid",
-			HttpMethod.GET,
-			{
-				pathParams: { pid },
-				headers: {
-					[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+		try {
+			const response = await this.fetch<IGetTransferProcessRequest, IGetTransferProcessResponse>(
+				"/transfers/:pid",
+				HttpMethod.GET,
+				{
+					pathParams: { pid },
+					headers: {
+						[HeaderTypes.Authorization]: HeaderHelper.createBearer(trustPayload)
+					}
 				}
-			}
-		);
+			);
 
-		return response.body;
+			return response.body;
+		} catch (err) {
+			return this.toTransferError(err);
+		}
 	}
 
 	/**
@@ -610,5 +636,25 @@ export class DataspaceControlPlaneRestClient
 			{ overridePrefix: "" }
 		);
 		return response.body;
+	}
+
+	/**
+	 * Recover the provider's DSP TransferError from a failed fetch. BaseRestClient throws a
+	 * FetchError for any non-2xx response whose body has no string message, which is the shape of
+	 * a DSP TransferError, so without this the documented TransferError result would never reach
+	 * callers over REST.
+	 * @param err The error thrown by the fetch.
+	 * @returns The TransferError carried by the error response body.
+	 * @throws The original error when the body is not a DSP TransferError.
+	 * @internal
+	 */
+	private toTransferError(err: unknown): IDataspaceProtocolTransferError {
+		if (BaseError.isErrorName(err, FetchError.CLASS_NAME)) {
+			const errorResponse = err.properties?.response;
+			if (getJsonLdType(errorResponse) === DataspaceProtocolTransferProcessTypes.TransferError) {
+				return errorResponse as IDataspaceProtocolTransferError;
+			}
+		}
+		throw err;
 	}
 }
