@@ -20,4 +20,11 @@ export interface IProcessingGroupOptions {
 	 * The number of times a task in this processing group should be retried in case of failure.
 	 */
 	retryCount?: number;
+
+	/**
+	 * The component types to exclude from the engine clone used by the workers of this processing group.
+	 * Each entry is a regular expression matched against the engine config type keys, for example
+	 * "^rightsManagement"; entries the engine marks as always cloned are kept even when their key matches.
+	 */
+	excludeCloneComponents?: string[];
 }

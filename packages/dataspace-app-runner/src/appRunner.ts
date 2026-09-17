@@ -7,6 +7,7 @@ import {
 	type IDataspaceApp,
 	type IExecutionPayload
 } from "@twin.org/dataspace-models";
+import { EngineCloneHelper, type IEngineCoreClone } from "@twin.org/engine-models";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof } from "@twin.org/nameof";
 
@@ -26,17 +27,22 @@ let startupPromise: Promise<void> | undefined;
 /**
  * Dataspace Task Startup Method.
  * @param engineCloneData Engine clone data used to initialise a worker-thread engine instance.
+ * @param excludeComponents Verified regular expression patterns for component types to exclude from the clone.
  * @returns A promise that resolves when the engine has started and is ready to process tasks.
  */
-export async function appRunnerStart(engineCloneData: unknown): Promise<void> {
+export async function appRunnerStart(
+	engineCloneData: unknown,
+	excludeComponents?: string[]
+): Promise<void> {
 	startupPromise = (async () => {
 		if (!Is.empty(engineCloneData)) {
+			Guards.object<IEngineCoreClone>(APP_RUNNER_SOURCE, nameof(engineCloneData), engineCloneData);
 			engine = await ModuleHelper.execModuleMethod<{
 				start: () => Promise<void>;
 				stop: () => Promise<void>;
 			}>("@twin.org/engine-core", "EngineCoreBuilder.fromClone", [
 				"engine",
-				engineCloneData,
+				EngineCloneHelper.filterCloneComponents(engineCloneData, excludeComponents, true),
 				await ContextIdStore.getContextIds(),
 				{ logLevel: "error" }
 			]);

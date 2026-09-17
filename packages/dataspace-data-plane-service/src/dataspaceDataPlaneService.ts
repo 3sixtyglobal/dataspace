@@ -71,6 +71,7 @@ import {
 	type TransferProcess,
 	type TransferRetrieval
 } from "@twin.org/dataspace-models";
+import { EngineCloneHelper } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
@@ -2526,6 +2527,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 
 			const processingGroupOptions = processingGroups[processingGroupId];
+			const excludeCloneComponents = EngineCloneHelper.verifyExcludeCloneComponents(
+				processingGroupOptions?.excludeCloneComponents
+			);
 
 			const taskType = `${dataspaceAppId}${processingGroupId ? `-${processingGroupId}` : ""}`;
 
@@ -2552,6 +2556,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 						maxWorkerCount: processingGroupOptions?.concurrentTasks,
 						idleShutdownTimeout: processingGroupOptions?.idleShutdownTimeout,
 						initialiseMethod: "appRunnerStart",
+						initialiseMethodParams: async () => [excludeCloneComponents],
 						shutdownMethod: "appRunnerEnd"
 					}
 				);
