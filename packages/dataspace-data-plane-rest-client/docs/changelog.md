@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.10.1-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.10.1-next.0...dataspace-data-plane-rest-client-v0.10.1-next.1) (2026-09-17)
+
+
+### Features
+
+* add inline tasks and concurrent options ([#104](https://github.com/iotaledger/twin-dataspace/issues/104)) ([2227a21](https://github.com/iotaledger/twin-dataspace/commit/2227a212d906f58ba77850c79bb20bf2cb7195a8))
+* align all config times to ms ([40238d5](https://github.com/iotaledger/twin-dataspace/commit/40238d59a2b45caedc01792b682ce7206815dfd1))
+* enhanced rest testing ([#255](https://github.com/iotaledger/twin-dataspace/issues/255)) ([264f91e](https://github.com/iotaledger/twin-dataspace/commit/264f91ea3a6501a13da51e7accbe9035e5ac4cef))
+* get activity log add trust payload ([#201](https://github.com/iotaledger/twin-dataspace/issues/201)) ([cdb5486](https://github.com/iotaledger/twin-dataspace/commit/cdb5486942c1b94ddf6435236b9b9d190bea0407))
+* implement DSP push transfer mode ([#109](https://github.com/iotaledger/twin-dataspace/issues/109)) ([71f5fee](https://github.com/iotaledger/twin-dataspace/commit/71f5feec1d92dfec8ed6899c951809818e1bf2a3))
+* improve open-api examples ([1368dbe](https://github.com/iotaledger/twin-dataspace/commit/1368dbed5c36e074b4854942304a19b9ce51e088))
+* linting and dependency update ([adf8ee0](https://github.com/iotaledger/twin-dataspace/commit/adf8ee04f657f22fb051978591749a4cf19d67a1))
+* rest enhancements ([f6dbd24](https://github.com/iotaledger/twin-dataspace/commit/f6dbd24c186a382769c97e697e54f0b6e28488a9))
+* typescript 6 update ([340f10e](https://github.com/iotaledger/twin-dataspace/commit/340f10e4767f6285c694938944f7e044474f9aaa))
+* unification of the data exchange and the data space connector ([#57](https://github.com/iotaledger/twin-dataspace/issues/57)) ([df2644d](https://github.com/iotaledger/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
+* update dependencies ([55cb41c](https://github.com/iotaledger/twin-dataspace/commit/55cb41c1d0ce7ebddcce41c60fe944650bcf0499))
+
+
+### Bug Fixes
+
+* always verify trust in notifyActivity, no internal by ([#192](https://github.com/iotaledger/twin-dataspace/issues/192)) ([2cfc160](https://github.com/iotaledger/twin-dataspace/commit/2cfc16082a7c9d417f0b05f90f123e40f47d1e05))
+* examples with trust payload ([111f9a0](https://github.com/iotaledger/twin-dataspace/commit/111f9a04396f5b1c6506ffc14827667a570b39df))
+* get activity log auth ([#343](https://github.com/iotaledger/twin-dataspace/issues/343)) ([9514679](https://github.com/iotaledger/twin-dataspace/commit/95146790ccf7b54fd5dce923af64fdaa607ca555))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @twin.org/dataspace-models bumped from 0.10.1-next.0 to 0.10.1-next.1
+
 ## [0.10.0](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-rest-client-v0.10.0...dataspace-data-plane-rest-client-v0.10.0) (2026-09-16)
 
 

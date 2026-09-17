@@ -1,6 +1,6 @@
 {
 	"name": "@twin.org/dataspace-data-plane-rest-client",
-	"version": "0.10.1-next.0",
+	"version": "0.10.1-next.1",
 	"description": "Provides an HTTP client for querying data assets and activity logs from data plane endpoints.",
 	"repository": {
 		"type": "git",
@@ -38,7 +38,7 @@
 		"@twin.org/web": "next"
 	},
 	"devDependencies": {
-		"@twin.org/dataspace-models": "0.10.1-next.0",
+		"@twin.org/dataspace-models": "0.10.1-next.1",
 		"@twin.org/nameof-transformer": "next",
 		"@twin.org/nameof-vitest-plugin": "next",
 		"@twin.org/standards-schema-org": "next",
