@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.10.1-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.10.1-next.1...dataspace-data-plane-service-v0.10.1-next.2) (2026-09-18)
+
+
+### Features
+
+* improve entity schemas ([#384](https://github.com/iotaledger/twin-dataspace/issues/384)) ([2ee1cd6](https://github.com/iotaledger/twin-dataspace/commit/2ee1cd65c0017d665c895449d8c3136c8726664a))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-app-runner bumped from 0.10.1-next.1 to 0.10.1-next.2
+    * @twin.org/dataspace-models bumped from 0.10.1-next.1 to 0.10.1-next.2
+  * devDependencies
+    * @twin.org/dataspace-test-app bumped from 0.10.1-next.1 to 0.10.1-next.2
+
 ## [0.10.1-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-data-plane-service-v0.10.1-next.0...dataspace-data-plane-service-v0.10.1-next.1) (2026-09-17)
 
 

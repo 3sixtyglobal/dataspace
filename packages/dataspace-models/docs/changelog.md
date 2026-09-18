@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.10.1-next.1...dataspace-models-v0.10.1-next.2) (2026-09-18)
+
+
+### Features
+
+* improve entity schemas ([#384](https://github.com/iotaledger/twin-dataspace/issues/384)) ([2ee1cd6](https://github.com/iotaledger/twin-dataspace/commit/2ee1cd65c0017d665c895449d8c3136c8726664a))
+
 ## [0.10.1-next.1](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.10.1-next.0...dataspace-models-v0.10.1-next.1) (2026-09-17)
 
 
