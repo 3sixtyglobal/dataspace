@@ -32,7 +32,6 @@
 		"@twin.org/context": "next",
 		"@twin.org/core": "next",
 		"@twin.org/dataspace-models": "0.10.1-next.1",
-		"@twin.org/engine-models": "next",
 		"@twin.org/logging-models": "next",
 		"@twin.org/modules": "next",
 		"@twin.org/nameof": "next",

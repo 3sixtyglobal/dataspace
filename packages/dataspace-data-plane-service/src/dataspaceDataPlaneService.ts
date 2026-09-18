@@ -71,13 +71,13 @@ import {
 	type TransferProcess,
 	type TransferRetrieval
 } from "@twin.org/dataspace-models";
-import { EngineCloneHelper } from "@twin.org/engine-models";
 import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
 } from "@twin.org/entity-storage-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
+import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
@@ -2527,8 +2527,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 
 			const processingGroupOptions = processingGroups[processingGroupId];
-			const excludeCloneComponents = EngineCloneHelper.verifyExcludeCloneComponents(
-				processingGroupOptions?.excludeCloneComponents
+			const excludeCloneComponents = await ModuleHelper.execModuleMethod<string[] | undefined>(
+				"@twin.org/engine-models",
+				"EngineCloneHelper.verifyExcludeCloneComponents",
+				[processingGroupOptions?.excludeCloneComponents]
 			);
 
 			const taskType = `${dataspaceAppId}${processingGroupId ? `-${processingGroupId}` : ""}`;

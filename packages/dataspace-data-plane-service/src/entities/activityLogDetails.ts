@@ -10,19 +10,19 @@ export class ActivityLogDetails {
 	/**
 	 * The entry Id.
 	 */
-	@property({ type: "string", isPrimary: true })
+	@property({ type: "string", isPrimary: true, maxLength: 255 })
 	public id!: string;
 
 	/**
 	 * The Activity Id.
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", maxLength: 255, optional: true })
 	public activityId?: string;
 
 	/**
 	 * The generator of the Activity (different than the Actor)
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public generator!: string;
 
 	/**

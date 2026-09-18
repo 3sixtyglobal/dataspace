@@ -10,13 +10,13 @@ export class DataspaceAppDataset {
 	/**
 	 * The unique identifier for the dataset.
 	 */
-	@property({ type: "string", isPrimary: true })
+	@property({ type: "string", isPrimary: true, maxLength: 255 })
 	public id!: string;
 
 	/**
 	 * The identity of the organization that owns this entity.
 	 */
-	@property({ type: "string", isSecondary: true })
+	@property({ type: "string", maxLength: 255, isSecondary: true })
 	public organizationIdentity!: string;
 
 	/**
@@ -24,14 +24,14 @@ export class DataspaceAppDataset {
 	 * write time. Optional - single-tenant nodes (no `TWIN_TENANT_ENABLED`)
 	 * register datasets without a tenant context.
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", maxLength: 32, optional: true })
 	public tenantId?: string;
 
 	/**
 	 * The dataspace app that this dataset belongs to. Matches the app's
 	 * registered name in `DataspaceAppFactory` (typically the app's URI).
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public appId!: string;
 
 	/**

@@ -7,7 +7,6 @@ import {
 	type IDataspaceApp,
 	type IExecutionPayload
 } from "@twin.org/dataspace-models";
-import { EngineCloneHelper, type IEngineCoreClone } from "@twin.org/engine-models";
 import { ModuleHelper } from "@twin.org/modules";
 import { nameof } from "@twin.org/nameof";
 
@@ -36,13 +35,18 @@ export async function appRunnerStart(
 ): Promise<void> {
 	startupPromise = (async () => {
 		if (!Is.empty(engineCloneData)) {
-			Guards.object<IEngineCoreClone>(APP_RUNNER_SOURCE, nameof(engineCloneData), engineCloneData);
+			Guards.object(APP_RUNNER_SOURCE, nameof(engineCloneData), engineCloneData);
+			const filteredCloneData = await ModuleHelper.execModuleMethod<unknown>(
+				"@twin.org/engine-models",
+				"EngineCloneHelper.filterCloneComponents",
+				[engineCloneData, excludeComponents, true]
+			);
 			engine = await ModuleHelper.execModuleMethod<{
 				start: () => Promise<void>;
 				stop: () => Promise<void>;
 			}>("@twin.org/engine-core", "EngineCoreBuilder.fromClone", [
 				"engine",
-				EngineCloneHelper.filterCloneComponents(engineCloneData, excludeComponents, true),
+				filteredCloneData,
 				await ContextIdStore.getContextIds(),
 				{ logLevel: "error" }
 			]);

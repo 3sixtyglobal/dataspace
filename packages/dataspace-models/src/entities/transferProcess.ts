@@ -17,58 +17,58 @@ export class TransferProcess {
 	 * Internal id, the primary key. Both role records of a self transfer share consumerPid and
 	 * providerPid, so only the internal id is collision-free within one partition.
 	 */
-	@property({ type: "string", isPrimary: true })
+	@property({ type: "string", isPrimary: true, maxLength: 255 })
 	public id!: string;
 
 	/**
 	 * Consumer Process ID from the DSP protocol.
 	 * Indexed for lookup by consumerPid.
 	 */
-	@property({ type: "string", isSecondary: true })
+	@property({ type: "string", maxLength: 255, isSecondary: true })
 	public consumerPid!: string;
 
 	/**
 	 * Provider Process ID from the DSP protocol.
 	 * Indexed for lookup by providerPid.
 	 */
-	@property({ type: "string", isSecondary: true })
+	@property({ type: "string", maxLength: 255, isSecondary: true })
 	public providerPid!: string;
 
 	/**
 	 * Agreement ID linking to the rights-management Agreement.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public agreementId!: string;
 
 	/**
 	 * Transfer Process state from the DSP protocol.
 	 * One of: REQUESTED, STARTED, COMPLETED, SUSPENDED, TERMINATED.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 16 })
 	public state!: DataspaceProtocolTransferProcessStateType;
 
 	/**
 	 * Dataset ID for DSC resolution.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public datasetId!: string;
 
 	/**
 	 * Offer ID from the original Catalog offer.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public offerId!: string;
 
 	/**
 	 * Consumer identity (DID or URI).
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", maxLength: 255, optional: true })
 	public consumerIdentity?: string;
 
 	/**
 	 * Provider identity (DID or URI).
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", maxLength: 255, optional: true })
 	public providerIdentity?: string;
 
 	/**
@@ -76,25 +76,25 @@ export class TransferProcess {
 	 * can tell which party we are without inferring it from the matched PID (a self transfer stores two
 	 * records sharing both pids). Optional for back-compat with records written before this field existed.
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", maxLength: 128, optional: true })
 	public localRole?: TransferProcessRole;
 
 	/**
 	 * Data format from the Dataset Distribution.
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", maxLength: 128, optional: true })
 	public format?: string;
 
 	/**
 	 * Callback address for Consumer notifications.
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", format: "uri", optional: true })
 	public callbackAddress?: string;
 
 	/**
 	 * The organization that owns this transfer process, captured from the request context at write time.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public organizationIdentity!: string;
 
 	/**
