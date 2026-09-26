@@ -33,6 +33,7 @@ export * from "./models/dataspaceTransferFormat.js";
 export * from "./models/dataspaceTypes.js";
 export * from "./models/IDataspaceActivity.js";
 
+export * from "./compiled/validators.js";
 export * from "./dataTypes/dataspaceDataTypes.js";
 
 // App exports

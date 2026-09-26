@@ -14,8 +14,8 @@
 		"node": ">=24.0.0"
 	},
 	"scripts": {
-		"clean": "rimraf dist coverage src/schemas",
-		"build:schema": "ts-to-schema ./ts-to-schema.json ./src/schemas",
+		"clean": "rimraf dist coverage src/schemas src/compiled",
+		"build:schema": "ts-to-schema ./ts-to-schema.json ./src/schemas ./src/compiled",
 		"build:compile": "tspc",
 		"build": "pnpm run build:schema && pnpm run build:compile",
 		"dev": "nodemon --watch src --ext ts --exec \"pnpm run build\"",

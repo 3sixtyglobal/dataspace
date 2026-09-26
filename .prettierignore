@@ -4,3 +4,5 @@ pnpm-lock.yaml
 **/docs/open-api
 changelog.md
 **/schemas
+**/src/compiled/
+_tmp_*
