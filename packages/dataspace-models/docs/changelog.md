@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1-next.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.10.1-next.2...dataspace-models-v0.10.1-next.3) (2026-09-26)
+
+
+### Features
+
+* compiles schemas ([b0aa08c](https://github.com/iotaledger/twin-dataspace/commit/b0aa08cc054ef1f78bea2484d57351c5ca661cd8))
+
 ## [0.10.1-next.2](https://github.com/iotaledger/twin-dataspace/compare/dataspace-models-v0.10.1-next.1...dataspace-models-v0.10.1-next.2) (2026-09-18)
 
 
