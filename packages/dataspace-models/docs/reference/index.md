@@ -88,6 +88,7 @@
 
 ## Variables
 
+- [CompiledDataspaceActivity](variables/CompiledDataspaceActivity.md)
 - [DataspaceAppFactory](variables/DataspaceAppFactory.md)
 - [ActivityProcessingStatus](variables/ActivityProcessingStatus.md)
 - [ActivityTaskStatus](variables/ActivityTaskStatus.md)
