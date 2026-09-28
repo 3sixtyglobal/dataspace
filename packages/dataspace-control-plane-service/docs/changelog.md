@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.1-next.4](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.10.1-next.3...dataspace-control-plane-service-v0.10.1-next.4) (2026-09-28)
+
+
+### Features
+
+* add retention and cleanup for TransferProcess records ([#387](https://github.com/iotaledger/twin-dataspace/issues/387)) ([a1c44d0](https://github.com/iotaledger/twin-dataspace/commit/a1c44d04366d492594cb737fe306b16f8409d6f7))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @twin.org/dataspace-models bumped from 0.10.1-next.3 to 0.10.1-next.4
+
 ## [0.10.1-next.3](https://github.com/iotaledger/twin-dataspace/compare/dataspace-control-plane-service-v0.10.1-next.2...dataspace-control-plane-service-v0.10.1-next.3) (2026-09-26)
 
 
