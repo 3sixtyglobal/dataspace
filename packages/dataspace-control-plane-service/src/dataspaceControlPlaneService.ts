@@ -149,6 +149,12 @@ export class DataspaceControlPlaneService
 	private static readonly _STALLED_TRANSFER_THRESHOLD_MS = 30 * 60 * 1000;
 
 	/**
+	 * Default retention for terminal transfers in milliseconds (30 days).
+	 * @internal
+	 */
+	private static readonly _TERMINAL_TRANSFER_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+	/**
 	 * Default provider transfer policy sweep interval in milliseconds (5 minutes).
 	 * @internal
 	 */
@@ -306,6 +312,12 @@ export class DataspaceControlPlaneService
 	private readonly _stalledTransferTimeoutMs: number;
 
 	/**
+	 * How long (ms) a COMPLETED or TERMINATED transfer is retained; -1 keeps it forever.
+	 * @internal
+	 */
+	private readonly _retainTerminalTransfersForMs: number;
+
+	/**
 	 * Idle window (ms) for Provider-side STARTED PULL transfers; undefined disables the policy
 	 * node-wide.
 	 * @internal
@@ -398,6 +410,10 @@ export class DataspaceControlPlaneService
 		this._stalledTransferTimeoutMs =
 			options?.config?.stalledTransferTimeoutMs ??
 			DataspaceControlPlaneService._STALLED_TRANSFER_THRESHOLD_MS;
+
+		this._retainTerminalTransfersForMs =
+			options?.config?.retainTerminalTransfersForMs ??
+			DataspaceControlPlaneService._TERMINAL_TRANSFER_RETENTION_MS;
 
 		this._providerTransferIdleTimeoutMs = options?.config?.providerTransferIdleTimeoutMs;
 
@@ -567,6 +583,21 @@ export class DataspaceControlPlaneService
 			}
 		);
 
+		if (this._retainTerminalTransfersForMs !== -1) {
+			await this._taskScheduler.addTask(
+				"control-plane-transfer-retention",
+				[
+					{
+						nextTriggerTime: Date.now(),
+						intervalMinutes: 60
+					}
+				],
+				async () => {
+					await this.cleanupRetainedTransfers();
+				}
+			);
+		}
+
 		await this._taskScheduler.addTask(
 			"control-plane-transfer-policy",
 			[
@@ -610,6 +641,9 @@ export class DataspaceControlPlaneService
 	public async stop(nodeLoggingComponentType?: string): Promise<void> {
 		await this._taskScheduler.removeTask("control-plane-negotiation-cleanup");
 		await this._taskScheduler.removeTask("control-plane-transfer-cleanup");
+		if (this._retainTerminalTransfersForMs !== -1) {
+			await this._taskScheduler.removeTask("control-plane-transfer-retention");
+		}
 		await this._taskScheduler.removeTask("control-plane-transfer-policy");
 		if (Is.integer(this._agreementUnusedThresholdMs)) {
 			await this._taskScheduler.removeTask("control-plane-agreement-sweep");
@@ -2809,6 +2843,69 @@ export class DataspaceControlPlaneService
 					ts: Date.now(),
 					message: "stalledTransfersCleanupComplete",
 					data: { cleanedUp: stalled.length }
+				});
+			}
+		});
+	}
+
+	/**
+	 * Remove terminal transfers whose retention period has passed.
+	 * Called periodically by the task scheduler. Age is measured from dateModified, the time of the
+	 * transfer's last transition.
+	 * @returns A promise that resolves when expired transfers have been removed.
+	 * @internal
+	 */
+	private async cleanupRetainedTransfers(): Promise<void> {
+		const expiredBefore = new Date(Date.now() - this._retainTerminalTransfersForMs).toISOString();
+
+		// Runs per tenant so the storage access inherits the correct [Node, Tenant] + org partition.
+		await this._platformComponent.execute(async () => {
+			const expired: string[] = [];
+			let cursor: string | undefined;
+
+			do {
+				const page = await this._transferProcessStorage.query(
+					{
+						conditions: [
+							{
+								property: "state",
+								value: [
+									DataspaceProtocolTransferProcessStateType.COMPLETED,
+									DataspaceProtocolTransferProcessStateType.TERMINATED
+								],
+								comparison: ComparisonOperator.In
+							},
+							{
+								property: "dateModified",
+								value: expiredBefore,
+								comparison: ComparisonOperator.LessThan
+							}
+						],
+						logicalOperator: LogicalOperator.And
+					},
+					undefined,
+					["id"],
+					cursor
+				);
+
+				for (const entity of page.entities) {
+					if (Is.stringValue(entity.id)) {
+						expired.push(entity.id);
+					}
+				}
+
+				cursor = page.cursor;
+			} while (Is.stringValue(cursor));
+
+			if (Is.arrayValue(expired)) {
+				await this._transferProcessStorage.removeBatch(expired);
+
+				await this._loggingComponent?.log({
+					level: "info",
+					source: DataspaceControlPlaneService.CLASS_NAME,
+					ts: Date.now(),
+					message: "retainedTransfersCleanupComplete",
+					data: { cleanedUp: expired.length }
 				});
 			}
 		});

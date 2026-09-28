@@ -7770,14 +7770,14 @@ describe("DataspaceControlPlaneService", () => {
 					taskSchedulerComponentType: "test-task-scheduler"
 				});
 				await defaultService.start();
-				expect(addTask).toHaveBeenCalledTimes(3);
+				expect(addTask).toHaveBeenCalledTimes(4);
 				expect(addTask).toHaveBeenCalledWith(
 					"control-plane-transfer-policy",
 					expect.anything(),
 					expect.any(Function)
 				);
 				await defaultService.stop();
-				expect(removeTask).toHaveBeenCalledTimes(3);
+				expect(removeTask).toHaveBeenCalledTimes(4);
 
 				addTask.mockClear();
 
