@@ -61,6 +61,15 @@ removes it and notifies the registered callbacks. Defaults to 1800000 (30 minute
 
 ***
 
+### retainTerminalTransfersForMs? {#retainterminaltransfersforms}
+
+> `optional` **retainTerminalTransfersForMs?**: `number`
+
+How long (ms) a COMPLETED or TERMINATED transfer is retained before the periodic cleanup
+removes it. Set to -1 to keep terminal transfers forever. Defaults to 2592000000 (30 days).
+
+***
+
 ### providerTransferIdleTimeoutMs? {#providertransferidletimeoutms}
 
 > `optional` **providerTransferIdleTimeoutMs?**: `number`
