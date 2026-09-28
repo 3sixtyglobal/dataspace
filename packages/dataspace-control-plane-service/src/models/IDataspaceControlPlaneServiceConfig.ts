@@ -45,6 +45,12 @@ export interface IDataspaceControlPlaneServiceConfig {
 	stalledTransferTimeoutMs?: number;
 
 	/**
+	 * How long (ms) a COMPLETED or TERMINATED transfer is retained before the periodic cleanup
+	 * removes it. Set to -1 to keep terminal transfers forever. Defaults to 2592000000 (30 days).
+	 */
+	retainTerminalTransfersForMs?: number;
+
+	/**
 	 * Idle window (ms) after which a Provider-side STARTED PULL transfer with no data-plane
 	 * activity is terminated. Overridable per app dataset via its transferIdleTimeoutMs (0 disables
 	 * for that dataset); unset (the default) disables the policy node-wide.

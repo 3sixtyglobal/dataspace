@@ -273,14 +273,14 @@ describe("DataspaceControlPlaneService unused agreement sweep", () => {
 				taskSchedulerComponentType: "test-task-scheduler"
 			});
 			await service.start();
-			expect(addTask).toHaveBeenCalledTimes(3);
+			expect(addTask).toHaveBeenCalledTimes(4);
 			expect(addTask).not.toHaveBeenCalledWith(
 				"control-plane-agreement-sweep",
 				expect.anything(),
 				expect.anything()
 			);
 			await service.stop();
-			expect(removeTask).toHaveBeenCalledTimes(3);
+			expect(removeTask).toHaveBeenCalledTimes(4);
 
 			addTask.mockClear();
 			const zeroService = new DataspaceControlPlaneService({
