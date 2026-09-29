@@ -9,16 +9,18 @@ import { nameof } from "@twin.org/nameof";
 import type { IPolicyAdministrationPointComponent } from "@twin.org/rights-management-models";
 import {
 	OdrlPolicy,
+	OdrlPolicyIndex,
 	PolicyAdministrationPointService
 } from "@twin.org/rights-management-pap-service";
 
 /**
  * Create a real PolicyAdministrationPointService with memory storage for integration tests.
- * @returns Configured PAP service instance and storage connector for inspection.
+ * @returns Configured PAP service instance and storage connectors for inspection.
  */
 export function createRealPolicyAdministrationPoint(): {
 	pap: PolicyAdministrationPointService;
 	policyStorage: MemoryEntityStorageConnector<OdrlPolicy>;
+	policyIndexStorage: MemoryEntityStorageConnector<OdrlPolicyIndex>;
 } {
 	// Create memory storage for policies
 	const policyStorage = new MemoryEntityStorageConnector<OdrlPolicy>({
@@ -26,17 +28,26 @@ export function createRealPolicyAdministrationPoint(): {
 		config: { storageKey: "odrl-policy" }
 	});
 
-	// Register the storage connector
+	// Create memory storage for the policy query index
+	const policyIndexStorage = new MemoryEntityStorageConnector<OdrlPolicyIndex>({
+		entitySchema: nameof<OdrlPolicyIndex>(),
+		config: { storageKey: "odrl-policy-index" }
+	});
+
+	// Register the storage connectors
 	EntityStorageConnectorFactory.register("odrl-policy", () => policyStorage);
+	EntityStorageConnectorFactory.register("odrl-policy-index", () => policyIndexStorage);
 
 	// Create the real PAP service
 	const pap = new PolicyAdministrationPointService({
-		odrlPolicyEntityStorageType: "odrl-policy"
+		odrlPolicyEntityStorageType: "odrl-policy",
+		odrlPolicyIndexEntityStorageType: "odrl-policy-index"
 	});
 
 	return {
 		pap,
-		policyStorage
+		policyStorage,
+		policyIndexStorage
 	};
 }
 
@@ -49,19 +60,24 @@ export function createRealPolicyAdministrationPoint(): {
 export function setupPapIntegration(componentName: string = "test-pap"): {
 	pap: IPolicyAdministrationPointComponent;
 	policyStorage: MemoryEntityStorageConnector<OdrlPolicy>;
+	policyIndexStorage: MemoryEntityStorageConnector<OdrlPolicyIndex>;
 } {
-	// Register entity schema for OdrlPolicy
+	// Register entity schemas for OdrlPolicy and its query index
 	EntitySchemaFactory.register(nameof<OdrlPolicy>(), () =>
 		EntitySchemaHelper.getSchema(OdrlPolicy)
 	);
+	EntitySchemaFactory.register(nameof<OdrlPolicyIndex>(), () =>
+		EntitySchemaHelper.getSchema(OdrlPolicyIndex)
+	);
 
 	// Create and register the PAP service
-	const { pap, policyStorage } = createRealPolicyAdministrationPoint();
+	const { pap, policyStorage, policyIndexStorage } = createRealPolicyAdministrationPoint();
 	ComponentFactory.register(componentName, () => pap);
 
 	return {
 		pap,
-		policyStorage
+		policyStorage,
+		policyIndexStorage
 	};
 }
 
@@ -71,12 +87,18 @@ export function setupPapIntegration(componentName: string = "test-pap"): {
  * @param componentName - The component name to unregister (default: "test-pap").
  */
 export async function cleanupPapIntegration(componentName: string = "test-pap"): Promise<void> {
-	// Teardown clears SharedObjectBuffer["odrl-policy"] so subsequent tests start with an empty store.
+	// Teardown clears the SharedObjectBuffer entries so subsequent tests start with empty stores.
 	const tempStorage = new MemoryEntityStorageConnector<OdrlPolicy>({
 		entitySchema: nameof<OdrlPolicy>(),
 		config: { storageKey: "odrl-policy" }
 	});
 	await tempStorage.teardown();
+	const tempIndexStorage = new MemoryEntityStorageConnector<OdrlPolicyIndex>({
+		entitySchema: nameof<OdrlPolicyIndex>(),
+		config: { storageKey: "odrl-policy-index" }
+	});
+	await tempIndexStorage.teardown();
 	ComponentFactory.unregister(componentName);
 	EntityStorageConnectorFactory.unregister("odrl-policy");
+	EntityStorageConnectorFactory.unregister("odrl-policy-index");
 }

@@ -11,26 +11,26 @@ export class PushSubscription {
 	/**
 	 * Consumer process ID identifying the transfer. Also the primary key for this entity.
 	 */
-	@property({ type: "string", isPrimary: true })
+	@property({ type: "string", isPrimary: true, maxLength: 255 })
 	public consumerPid!: string;
 
 	/**
 	 * Provider process ID from the DSP Transfer Process.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public providerPid!: string;
 
 	/**
 	 * ID of the Follow activity that created this subscription.
 	 * Used by Undo to reference it on teardown.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public followActivityId!: string;
 
 	/**
 	 * Dataset ID identifying which dataset is being delivered.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", maxLength: 255 })
 	public datasetId!: string;
 
 	/**
@@ -39,13 +39,13 @@ export class PushSubscription {
 	 * subscriptions without a tenant context. The encrypted tenant token is also baked
 	 * into `consumerEndpoint` so cross-node push deliveries route to the right tenant.
 	 */
-	@property({ type: "string", optional: true })
+	@property({ type: "string", maxLength: 32, optional: true })
 	public tenantId?: string;
 
 	/**
 	 * The consumer's /inbox endpoint URL where activities are POSTed.
 	 */
-	@property({ type: "string" })
+	@property({ type: "string", format: "uri" })
 	public consumerEndpoint!: string;
 
 	/**

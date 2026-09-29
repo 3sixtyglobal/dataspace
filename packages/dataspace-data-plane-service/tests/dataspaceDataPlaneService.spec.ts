@@ -4271,6 +4271,127 @@ describe("DataspaceDataPlaneService", () => {
 		expect(lastCall?.[4]?.idleShutdownTimeout).toBeUndefined();
 	});
 
+	describe("processTask() - engine clone exclusions", () => {
+		function makePushAuthActivity(generatorPid: string): IActivityStreamsActivity {
+			return {
+				"@context": "https://www.w3.org/ns/activitystreams",
+				type: "Create",
+				generator: generatorPid,
+				object: {
+					"@context": "https://vocabulary.uncefact.org/unece-context-D23B.jsonld",
+					type: "Consignment",
+					globalId: "24KEP051219453I002610796"
+				},
+				updated: new Date().toISOString()
+			} as unknown as IActivityStreamsActivity;
+		}
+
+		function makeTrustComponent(identity: string): ITrustComponent {
+			return {
+				className: () => "MockTrustComponent",
+				verify: vi.fn().mockResolvedValue({ verified: true, info: { identity } }),
+				generate: vi.fn()
+			};
+		}
+
+		test("forwards the processing group excludeCloneComponents to the app runner initialise params", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			testApp.activitiesHandled = () => [
+				{
+					objectType: "https://vocabulary.uncefact.org/Consignment",
+					processingGroupId: "exclude-group"
+				}
+			];
+			testApp.processingGroups = () => ({
+				"exclude-group": {
+					concurrentTasks: 1,
+					excludeCloneComponents: ["^rightsManagement", "^vaultConnector$"]
+				}
+			});
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			const appRunnerCall = registerHandlerSpy.mock.calls.find(
+				call => call[0] === `${TestDataspaceDataPlaneApp.APP_ID}-exclude-group`
+			);
+			expect(appRunnerCall?.[2]).toBe("appRunner");
+			expect(appRunnerCall?.[4]).toMatchObject({
+				maxWorkerCount: 1,
+				initialiseMethod: "appRunnerStart",
+				shutdownMethod: "appRunnerEnd"
+			});
+			await expect(appRunnerCall?.[4]?.initialiseMethodParams?.()).resolves.toEqual([
+				["^rightsManagement", "^vaultConnector$"]
+			]);
+		});
+
+		test("leaves the app runner initialise params empty when the processing group declares no exclusions", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			await service.notifyActivity(makePushAuthActivity(TEST_CONSUMER_PID), "Bearer test-token");
+
+			const appRunnerCall = registerHandlerSpy.mock.calls.find(
+				call => call[0] === `${TestDataspaceDataPlaneApp.APP_ID}-test-default`
+			);
+			expect(appRunnerCall?.[4]).toMatchObject({ initialiseMethod: "appRunnerStart" });
+			await expect(appRunnerCall?.[4]?.initialiseMethodParams?.()).resolves.toEqual([undefined]);
+		});
+
+		test("rejects an invalid excludeCloneComponents pattern before creating a task", async () => {
+			ComponentFactory.register("trust", () => makeTrustComponent(DATA_CONSUMER_IDENTITY));
+			const registerHandlerSpy = vi.spyOn(backgroundTaskService, "registerHandler");
+			const service = new DataspaceDataPlaneService(options);
+
+			const testApp = new TestDataspaceDataPlaneApp();
+			testApp.activitiesHandled = () => [
+				{
+					objectType: "https://vocabulary.uncefact.org/Consignment",
+					processingGroupId: "invalid-exclude-group"
+				}
+			];
+			testApp.processingGroups = () => ({
+				"invalid-exclude-group": {
+					excludeCloneComponents: ["^rightsManagement", "["]
+				}
+			});
+			DataspaceAppFactory.register(TestDataspaceDataPlaneApp.APP_ID, () => testApp);
+			await testApp.start();
+
+			await transferProcessStorage.set(createTestTransferProcess());
+
+			const notify = service.notifyActivity(
+				makePushAuthActivity(TEST_CONSUMER_PID),
+				"Bearer test-token"
+			);
+			await expect(notify).rejects.toThrow("invalidExcludeCloneComponent");
+			await expect(notify).rejects.toMatchObject({
+				name: "GeneralError",
+				properties: { pattern: "[" }
+			});
+
+			const taskType = `${TestDataspaceDataPlaneApp.APP_ID}-invalid-exclude-group`;
+			expect(registerHandlerSpy.mock.calls.some(call => call[0] === taskType)).toBe(false);
+			const tasks = await backgroundTaskStorage.query();
+			expect(tasks.entities.some(task => task.type === taskType)).toBe(false);
+		});
+	});
+
 	test.skip("idleShutdownTimeout 0 shuts down workers between sequential tasks", async () => {
 		await startBackgroundTaskService();
 

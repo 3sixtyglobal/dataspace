@@ -77,6 +77,7 @@ import {
 	type IEntityStorageConnector
 } from "@twin.org/entity-storage-models";
 import type { ILoggingComponent } from "@twin.org/logging-models";
+import { ModuleHelper } from "@twin.org/modules";
 import { nameof, nameofKebabCase } from "@twin.org/nameof";
 import {
 	OdrlPolicyHelper,
@@ -2526,6 +2527,11 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			}
 
 			const processingGroupOptions = processingGroups[processingGroupId];
+			const excludeCloneComponents = await ModuleHelper.execModuleMethod<string[] | undefined>(
+				"@twin.org/engine-models",
+				"EngineCloneHelper.verifyExcludeCloneComponents",
+				[processingGroupOptions?.excludeCloneComponents]
+			);
 
 			const taskType = `${dataspaceAppId}${processingGroupId ? `-${processingGroupId}` : ""}`;
 
@@ -2552,6 +2558,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 						maxWorkerCount: processingGroupOptions?.concurrentTasks,
 						idleShutdownTimeout: processingGroupOptions?.idleShutdownTimeout,
 						initialiseMethod: "appRunnerStart",
+						initialiseMethodParams: async () => [excludeCloneComponents],
 						shutdownMethod: "appRunnerEnd"
 					}
 				);

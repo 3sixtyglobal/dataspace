@@ -11,7 +11,7 @@ export class TransferRetrieval {
 	/**
 	 * The consumer PID of the transfer, primary key.
 	 */
-	@property({ type: "string", isPrimary: true })
+	@property({ type: "string", isPrimary: true, maxLength: 255 })
 	public consumerPid!: string;
 
 	/**

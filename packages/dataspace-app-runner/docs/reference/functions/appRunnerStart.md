@@ -1,6 +1,6 @@
 # Function: appRunnerStart()
 
-> **appRunnerStart**(`engineCloneData`): `Promise`\<`void`\>
+> **appRunnerStart**(`engineCloneData`, `excludeComponents?`): `Promise`\<`void`\>
 
 Dataspace Task Startup Method.
 
@@ -11,6 +11,12 @@ Dataspace Task Startup Method.
 `unknown`
 
 Engine clone data used to initialise a worker-thread engine instance.
+
+### excludeComponents?
+
+`string`[]
+
+Verified regular expression patterns for component types to exclude from the clone.
 
 ## Returns
 
