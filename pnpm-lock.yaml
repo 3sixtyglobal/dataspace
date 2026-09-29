@@ -248,7 +248,7 @@ importers:
         specifier: next
         version: 0.10.1-next.12
       '@twin.org/dataspace-models':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-models
       '@twin.org/logging-models':
         specifier: next
@@ -345,7 +345,7 @@ importers:
         specifier: next
         version: 0.10.1-next.2
       '@twin.org/dataspace-models':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-models
       '@twin.org/entity':
         specifier: next
@@ -421,7 +421,7 @@ importers:
         specifier: next
         version: 0.10.1-next.2
       '@twin.org/dataspace-models':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-models
       '@twin.org/entity':
         specifier: next
@@ -573,7 +573,7 @@ importers:
         version: 0.10.1-next.12
     devDependencies:
       '@twin.org/dataspace-models':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-models
       '@twin.org/nameof-transformer':
         specifier: next
@@ -645,10 +645,10 @@ importers:
         specifier: next
         version: 0.10.1-next.2
       '@twin.org/dataspace-app-runner':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-app-runner
       '@twin.org/dataspace-models':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-models
       '@twin.org/entity':
         specifier: next
@@ -700,7 +700,7 @@ importers:
         specifier: next
         version: 0.10.1-next.1
       '@twin.org/dataspace-test-app':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-test-app
       '@twin.org/entity-storage-connector-memory':
         specifier: next
@@ -775,7 +775,7 @@ importers:
         specifier: next
         version: 0.10.1-next.2
       '@twin.org/dataspace-models':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-models
       '@twin.org/logging-models':
         specifier: next
@@ -933,7 +933,7 @@ importers:
         specifier: next
         version: 0.10.1-next.2
       '@twin.org/dataspace-models':
-        specifier: 0.10.1-next.4
+        specifier: 0.11.1-next.0
         version: link:../dataspace-models
       '@twin.org/logging-models':
         specifier: next
