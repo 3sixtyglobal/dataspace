@@ -13,7 +13,15 @@ import {
 	type BackgroundTask
 } from "@twin.org/background-task-service";
 import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ArrayHelper, ComponentFactory, Is, NotFoundError, ObjectHelper } from "@twin.org/core";
+import {
+	ArrayHelper,
+	BaseError,
+	ComponentFactory,
+	GeneralError,
+	Is,
+	NotFoundError,
+	ObjectHelper
+} from "@twin.org/core";
 import { JsonLdDataTypes, type JsonLdObjectWithContext } from "@twin.org/data-json-ld";
 import {
 	ActivityProcessingStatus,
@@ -123,6 +131,29 @@ async function seedTestAppDataset(
 		},
 		dateCreated: now,
 		dateModified: now
+	});
+}
+
+/**
+ * Stand-in for EngineCloneHelper.verifyExcludeCloneComponents.
+ * @param excludeCloneComponents The patterns to verify.
+ * @returns The verified pattern sources.
+ */
+function verifyExcludeCloneComponents(excludeCloneComponents?: string[]): string[] | undefined {
+	if (Is.empty(excludeCloneComponents)) {
+		return undefined;
+	}
+	return excludeCloneComponents.map(pattern => {
+		try {
+			return new RegExp(pattern).source;
+		} catch (err) {
+			throw new GeneralError(
+				"EngineCloneHelper",
+				"invalidExcludeCloneComponent",
+				{ pattern },
+				BaseError.fromError(err)
+			);
+		}
 	});
 }
 
@@ -303,6 +334,22 @@ describe("DataspaceDataPlaneService", () => {
 
 		// Load all JSON-LD contexts
 		await addAllContextsToDocumentCache();
+
+		// Stub EngineCloneHelper so tests don't depend on the transitively installed engine-models version
+		const execModuleMethod = ModuleHelper.execModuleMethod.bind(ModuleHelper);
+		ModuleHelper.execModuleMethod = async <T>(
+			module: string,
+			method: string,
+			args?: unknown[]
+		): Promise<T> => {
+			if (
+				module === "@twin.org/engine-models" &&
+				method === "EngineCloneHelper.verifyExcludeCloneComponents"
+			) {
+				return verifyExcludeCloneComponents(args?.[0] as string[] | undefined) as T;
+			}
+			return execModuleMethod<T>(module, method, args);
+		};
 
 		// Mock the module helper to execute the method in the same thread, so we don't have to create an engine
 		// and the background tasks will run in this thread
