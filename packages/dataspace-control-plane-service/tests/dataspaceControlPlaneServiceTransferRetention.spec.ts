@@ -29,7 +29,8 @@ import {
 } from "./setupTestEnv.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const OLD_DATE = new Date(Date.now() - (2 * DAY_MS)).toISOString();
+const DAY_MS_2 = 2 * DAY_MS;
+const OLD_DATE = new Date(Date.now() - DAY_MS_2).toISOString();
 
 /**
  * Test suite for terminal transfer retention.
