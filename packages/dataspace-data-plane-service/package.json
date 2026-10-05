@@ -4,7 +4,7 @@
 	"description": "Processes activities and data requests while enforcing transfer and policy constraints in the data plane.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/twin-dataspace.git",
+		"url": "git+https://github.com/3sixtyglobal/twin-dataspace.git",
 		"directory": "packages/dataspace-data-plane-service"
 	},
 	"author": "jose.cantera@iota.org",
@@ -107,7 +107,7 @@
 		"integration"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
+		"url": "git+https://github.com/3sixtyglobal/twin-dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }

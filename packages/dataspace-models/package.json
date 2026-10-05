@@ -4,7 +4,7 @@
 	"description": "Defines shared entities, interfaces, and data types used by control plane and data plane components.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/iotaledger/twin-dataspace.git",
+		"url": "git+https://github.com/3sixtyglobal/twin-dataspace.git",
 		"directory": "packages/dataspace-models"
 	},
 	"author": "jose.cantera@iota.org",
@@ -91,7 +91,7 @@
 		"schemas"
 	],
 	"bugs": {
-		"url": "git+https://github.com/iotaledger/twin-dataspace/issues"
+		"url": "git+https://github.com/3sixtyglobal/twin-dataspace/issues"
 	},
 	"homepage": "https://twindev.org"
 }
