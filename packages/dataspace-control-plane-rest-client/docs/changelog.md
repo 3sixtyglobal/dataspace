@@ -1262,25 +1262,3 @@
 
 * unification of the data exchange and the data space connector ([#57](https://github.com/3sixtyglobal/twin-dataspace/issues/57)) ([df2644d](https://github.com/3sixtyglobal/twin-dataspace/commit/df2644d989471e07dadd83d27bef736179e31bf4))
 
-
-### Dependencies
-
-* The following workspace dependencies were updated
-  * dependencies
-    * @twin.org/dataspace-models bumped from 0.0.3-next.14 to 0.0.3-next.15
-
-## [0.0.3-next.1](https://github.com/iotaledger/twin-data-exchange/compare/data-exchange-rest-client-v0.0.3-next.0...data-exchange-rest-client-v0.0.3-next.1) (2026-01-19)
-
-
-### Features
-
-* mocking data exchange basic methods ([#5](https://github.com/iotaledger/twin-data-exchange/issues/5)) ([6cb00c0](https://github.com/iotaledger/twin-data-exchange/commit/6cb00c029aacf46da7bed0b3c97a21ef4102784a))
-
-
-### Dependencies
-
-* The following workspace dependencies were updated
-  * dependencies
-    * @twin.org/data-exchange-models bumped from 0.0.3-next.0 to 0.0.3-next.1
-
-## Changelog
