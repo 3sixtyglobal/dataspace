@@ -1,4 +1,4 @@
-# @twin.org/dataspace-control-plane-service
+# @3sixty/dataspace-control-plane-service
 
 ## Classes
 

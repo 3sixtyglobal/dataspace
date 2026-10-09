@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpContextIdKeys } from "@twin.org/api-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
+import { HttpContextIdKeys } from "@3sixty/api-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
 import {
 	ComponentFactory,
 	Converter,
@@ -10,8 +10,8 @@ import {
 	Is,
 	NotFoundError,
 	RandomHelper
-} from "@twin.org/core";
-import type { IJsonLdNodeObject } from "@twin.org/data-json-ld";
+} from "@3sixty/core";
+import type { IJsonLdNodeObject } from "@3sixty/data-json-ld";
 import {
 	DataspaceAppFactory,
 	DataspaceTransferFormat,
@@ -22,11 +22,11 @@ import {
 	type ITransferCallback,
 	type TransferProcess,
 	type TransferRetrieval
-} from "@twin.org/dataspace-models";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import { PolicyRequesterFactory } from "@twin.org/rights-management-models";
+} from "@3sixty/dataspace-models";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import { PolicyRequesterFactory } from "@3sixty/rights-management-models";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolContexts,
@@ -45,9 +45,9 @@ import {
 	type IDataspaceProtocolTransferStartMessage,
 	type IDataspaceProtocolTransferSuspensionMessage,
 	type IDataspaceProtocolTransferTerminationMessage
-} from "@twin.org/standards-dataspace-protocol";
-import { JwtVerifiableCredentialGenerator } from "@twin.org/trust-generators";
-import type { ITrustComponent } from "@twin.org/trust-models";
+} from "@3sixty/standards-dataspace-protocol";
+import { JwtVerifiableCredentialGenerator } from "@3sixty/trust-generators";
+import type { ITrustComponent } from "@3sixty/trust-models";
 import type { DataspaceControlPlanePolicyRequester } from "../src/dataspaceControlPlanePolicyRequester.js";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";

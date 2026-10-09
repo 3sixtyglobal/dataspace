@@ -1,15 +1,15 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 
-import { GuardError, NotSupportedError } from "@twin.org/core";
-import type { INegotiationCallback, ITransferCallback } from "@twin.org/dataspace-models";
+import { GuardError, NotSupportedError } from "@3sixty/core";
+import type { INegotiationCallback, ITransferCallback } from "@3sixty/dataspace-models";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes,
 	DataspaceProtocolVersionBindingType
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import type {
 	IDataspaceProtocolDataset,
 	IDataspaceProtocolTransferCompletionMessage,
@@ -20,8 +20,8 @@ import type {
 	IDataspaceProtocolTransferSuspensionMessage,
 	IDataspaceProtocolTransferTerminationMessage,
 	IDataspaceProtocolVersionResponse
-} from "@twin.org/standards-dataspace-protocol";
-import { FetchError, HttpMethod, HttpStatusCode } from "@twin.org/web";
+} from "@3sixty/standards-dataspace-protocol";
+import { FetchError, HttpMethod, HttpStatusCode } from "@3sixty/web";
 import { DataspaceControlPlaneRestClient } from "../src/dataspaceControlPlaneRestClient.js";
 import {
 	createdResponse,

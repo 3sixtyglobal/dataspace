@@ -1,18 +1,18 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Is } from "@twin.org/core";
-import type { IFederatedCatalogueComponent } from "@twin.org/federated-catalogue-models";
-import { nameof } from "@twin.org/nameof";
+import { Is } from "@3sixty/core";
+import type { IFederatedCatalogueComponent } from "@3sixty/federated-catalogue-models";
+import { nameof } from "@3sixty/nameof";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolContexts
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import type {
 	IDataspaceProtocolCatalog,
 	IDataspaceProtocolCatalogError,
 	IDataspaceProtocolDataset
-} from "@twin.org/standards-dataspace-protocol";
-import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
+} from "@3sixty/standards-dataspace-protocol";
+import type { IDcatDataset } from "@3sixty/standards-w3c-dcat";
 
 /**
  * Mock Federated Catalogue component for testing.

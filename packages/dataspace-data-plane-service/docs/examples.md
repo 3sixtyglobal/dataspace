@@ -5,7 +5,7 @@ Use these snippets to process activities, expose data assets, and model activity
 ## DataspaceDataPlaneService
 
 ```typescript
-import { DataspaceDataPlaneService } from '@twin.org/dataspace-data-plane-service';
+import { DataspaceDataPlaneService } from '@3sixty/dataspace-data-plane-service';
 
 const service = new DataspaceDataPlaneService({
   loggingComponentType: 'logging',
@@ -21,8 +21,8 @@ await service.start();
 ```
 
 ```typescript
-import { DataspaceDataPlaneService } from '@twin.org/dataspace-data-plane-service';
-import type { IActivityStreamsActivity } from '@twin.org/standards-w3c-activity-streams';
+import { DataspaceDataPlaneService } from '@3sixty/dataspace-data-plane-service';
+import type { IActivityStreamsActivity } from '@3sixty/standards-w3c-activity-streams';
 
 const service = new DataspaceDataPlaneService();
 
@@ -52,8 +52,8 @@ await service.unSubscribeToActivityLog(subscriptionId);
 ```
 
 ```typescript
-import { DataspaceDataPlaneService } from '@twin.org/dataspace-data-plane-service';
-import type { IEntitySet, IFilteringQuery } from '@twin.org/dataspace-models';
+import { DataspaceDataPlaneService } from '@3sixty/dataspace-data-plane-service';
+import type { IEntitySet, IFilteringQuery } from '@3sixty/dataspace-models';
 
 const service = new DataspaceDataPlaneService();
 
@@ -90,7 +90,7 @@ console.log(filtered.itemList.length); // 1
 ```
 
 ```typescript
-import { DataspaceDataPlaneService } from '@twin.org/dataspace-data-plane-service';
+import { DataspaceDataPlaneService } from '@3sixty/dataspace-data-plane-service';
 
 const service = new DataspaceDataPlaneService();
 const valid = await service.validateTransfer('consumer-process-id', 'eyJhbGciOi...');
@@ -101,7 +101,7 @@ console.log(valid); // true
 ## ActivityLogDetails
 
 ```typescript
-import { ActivityLogDetails } from '@twin.org/dataspace-data-plane-service';
+import { ActivityLogDetails } from '@3sixty/dataspace-data-plane-service';
 
 const details = new ActivityLogDetails();
 details.id = 'urn:activity-log:1001';
@@ -117,7 +117,7 @@ console.log(details.id); // urn:activity-log:1001
 ## ActivityTask
 
 ```typescript
-import { ActivityTask } from '@twin.org/dataspace-data-plane-service';
+import { ActivityTask } from '@3sixty/dataspace-data-plane-service';
 
 const activityTask = new ActivityTask();
 activityTask.activityLogEntryId = 'urn:activity-log:1001';

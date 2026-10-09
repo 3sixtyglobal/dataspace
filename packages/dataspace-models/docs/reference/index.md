@@ -1,4 +1,4 @@
-# @twin.org/dataspace-models
+# @3sixty/dataspace-models
 
 ## Classes
 

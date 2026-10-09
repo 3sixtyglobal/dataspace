@@ -3,8 +3,8 @@
 import type {
 	IDataspaceProtocolTransferProcess,
 	IDataspaceProtocolTransferError
-} from "@twin.org/standards-dataspace-protocol";
-import type { HttpStatusCode } from "@twin.org/web";
+} from "@3sixty/standards-dataspace-protocol";
+import type { HttpStatusCode } from "@3sixty/web";
 
 /**
  * API response for requesting a transfer process.

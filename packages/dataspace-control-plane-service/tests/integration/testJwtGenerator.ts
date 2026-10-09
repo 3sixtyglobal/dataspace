@@ -11,9 +11,9 @@
  * ⚠️ WARNING: These tokens are for TESTING ONLY.
  */
 
-import { Converter } from "@twin.org/core";
-import type { ITrustGenerator } from "@twin.org/trust-models";
-import { Jwt } from "@twin.org/web";
+import { Converter } from "@3sixty/core";
+import type { ITrustGenerator } from "@3sixty/trust-models";
+import { Jwt } from "@3sixty/web";
 
 const TEST_JWT_KEY = Converter.utf8ToBytes("test-secret-key-for-integration-tests-min-32-chars");
 

@@ -1,14 +1,14 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ContextIdStore } from "@twin.org/context";
-import { Guards, Is } from "@twin.org/core";
+import { ContextIdStore } from "@3sixty/context";
+import { Guards, Is } from "@3sixty/core";
 import {
 	DataspaceAppFactory,
 	type IDataspaceApp,
 	type IExecutionPayload
-} from "@twin.org/dataspace-models";
-import { ModuleHelper } from "@twin.org/modules";
-import { nameof } from "@twin.org/nameof";
+} from "@3sixty/dataspace-models";
+import { ModuleHelper } from "@3sixty/modules";
+import { nameof } from "@3sixty/nameof";
 
 const APP_RUNNER_SOURCE = "appRunner";
 
@@ -37,14 +37,14 @@ export async function appRunnerStart(
 		if (!Is.empty(engineCloneData)) {
 			Guards.object(APP_RUNNER_SOURCE, nameof(engineCloneData), engineCloneData);
 			const filteredCloneData = await ModuleHelper.execModuleMethod<unknown>(
-				"@twin.org/engine-models",
+				"@3sixty/engine-models",
 				"EngineCloneHelper.filterCloneComponents",
 				[engineCloneData, excludeComponents, true]
 			);
 			engine = await ModuleHelper.execModuleMethod<{
 				start: () => Promise<void>;
 				stop: () => Promise<void>;
-			}>("@twin.org/engine-core", "EngineCoreBuilder.fromClone", [
+			}>("@3sixty/engine-core", "EngineCoreBuilder.fromClone", [
 				"engine",
 				filteredCloneData,
 				await ContextIdStore.getContextIds(),

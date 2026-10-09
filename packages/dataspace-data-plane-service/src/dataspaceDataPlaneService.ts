@@ -1,13 +1,13 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpUrlHelper, type IPlatformComponent } from "@twin.org/api-models";
+import { HttpUrlHelper, type IPlatformComponent } from "@3sixty/api-models";
 import {
 	TaskStatus,
 	type IBackgroundTaskComponent,
 	type IScheduledTaskTime,
 	type ITaskSchedulerComponent
-} from "@twin.org/background-task-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
+} from "@3sixty/background-task-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
 import {
 	ArrayHelper,
 	BaseError,
@@ -28,16 +28,16 @@ import {
 	Validation,
 	ValidationError,
 	type IValidationFailure
-} from "@twin.org/core";
-import { Blake2b } from "@twin.org/crypto";
-import { DataTypeHelper, JsonSchemaHelper } from "@twin.org/data-core";
+} from "@3sixty/core";
+import { Blake2b } from "@3sixty/crypto";
+import { DataTypeHelper, JsonSchemaHelper } from "@3sixty/data-core";
 import {
 	JsonLdDataTypes,
 	JsonLdHelper,
 	JsonLdProcessor,
 	type IJsonLdContextDefinitionElement,
 	type IJsonLdNodeObject
-} from "@twin.org/data-json-ld";
+} from "@3sixty/data-json-ld";
 import {
 	ActivityProcessingStatus,
 	ActivityTaskStatus,
@@ -70,39 +70,39 @@ import {
 	type IUndoActivity,
 	type TransferProcess,
 	type TransferRetrieval
-} from "@twin.org/dataspace-models";
-import { ComparisonOperator, LogicalOperator } from "@twin.org/entity";
+} from "@3sixty/dataspace-models";
+import { ComparisonOperator, LogicalOperator } from "@3sixty/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
-} from "@twin.org/entity-storage-models";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { ModuleHelper } from "@twin.org/modules";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
+} from "@3sixty/entity-storage-models";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { ModuleHelper } from "@3sixty/modules";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
 import {
 	OdrlPolicyHelper,
 	type IPolicyAdministrationPointComponent,
 	type IPolicyEnforcementPointComponent,
 	type IRightsManagementAgreement
-} from "@twin.org/rights-management-models";
+} from "@3sixty/rights-management-models";
 import {
 	DataspaceProtocolDataTypes,
 	DataspaceProtocolTransferProcessStateType,
 	type IDataspaceProtocolDataset
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import {
 	SchemaOrgContexts,
 	SchemaOrgDataTypes,
 	SchemaOrgTypes
-} from "@twin.org/standards-schema-org";
+} from "@3sixty/standards-schema-org";
 import {
 	ActivityStreamsContexts,
 	ActivityStreamsTypes,
 	type IActivityStreamsActivity
-} from "@twin.org/standards-w3c-activity-streams";
-import { OdrlActionType } from "@twin.org/standards-w3c-odrl";
-import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
-import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
+} from "@3sixty/standards-w3c-activity-streams";
+import { OdrlActionType } from "@3sixty/standards-w3c-odrl";
+import { MetricHelper, type ITelemetryComponent } from "@3sixty/telemetry-models";
+import { TrustHelper, type ITrustComponent } from "@3sixty/trust-models";
 import type { ActivityLogDetails } from "./entities/activityLogDetails.js";
 import type { ActivityTask } from "./entities/activityTask.js";
 import type { PushSubscription } from "./entities/pushSubscription.js";
@@ -509,7 +509,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		await this._backgroundTaskComponent.registerHandler<IPushDeliveryPayload, unknown>(
 			DataspaceDataPlaneService.PUSH_DELIVERY_TASK_TYPE,
-			"@twin.org/dataspace-app-runner",
+			"@3sixty/dataspace-app-runner",
 			"pushDeliveryRunner",
 			async task => {
 				if (task.status === TaskStatus.Success && !Is.empty(task.payload)) {
@@ -2528,7 +2528,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 			const processingGroupOptions = processingGroups[processingGroupId];
 			const excludeCloneComponents = await ModuleHelper.execModuleMethod<string[] | undefined>(
-				"@twin.org/engine-models",
+				"@3sixty/engine-models",
 				"EngineCloneHelper.verifyExcludeCloneComponents",
 				[processingGroupOptions?.excludeCloneComponents]
 			);
@@ -2549,7 +2549,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 				await this._backgroundTaskComponent.registerHandler<IExecutionPayload, unknown>(
 					taskType,
-					"@twin.org/dataspace-app-runner",
+					"@3sixty/dataspace-app-runner",
 					"appRunner",
 					async task => {
 						await this.finaliseBackgroundTask(task.id, task.status, task.payload);

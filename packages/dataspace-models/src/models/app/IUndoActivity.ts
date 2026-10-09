@@ -3,7 +3,7 @@
 import type {
 	ActivityStreamsTypes,
 	IActivityStreamsActivity
-} from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/standards-w3c-activity-streams";
 
 /**
  * ActivityPub Undo activity used by the DS Connector to unsubscribe

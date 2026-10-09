@@ -5,7 +5,7 @@ Use these snippets to initiate and manage DSP transfer processes through HTTP en
 ## DataspaceControlPlaneRestClient
 
 ```typescript
-import { DataspaceControlPlaneRestClient } from '@twin.org/dataspace-control-plane-rest-client';
+import { DataspaceControlPlaneRestClient } from '@3sixty/dataspace-control-plane-rest-client';
 
 const client = new DataspaceControlPlaneRestClient({
   endpoint: 'http://localhost:8090'
@@ -15,12 +15,12 @@ console.log(client.className()); // DataspaceControlPlaneRestClient
 ```
 
 ```typescript
-import { DataspaceControlPlaneRestClient } from '@twin.org/dataspace-control-plane-rest-client';
+import { DataspaceControlPlaneRestClient } from '@3sixty/dataspace-control-plane-rest-client';
 import type {
   IDataspaceProtocolTransferRequestMessage,
   IDataspaceProtocolTransferStartMessage,
   IDataspaceProtocolTransferCompletionMessage
-} from '@twin.org/standards-dataspace-protocol';
+} from '@3sixty/standards-dataspace-protocol';
 
 const client = new DataspaceControlPlaneRestClient({ endpoint: 'http://localhost:8090' });
 const trustPayload = 'eyJhbGciOi...';
@@ -39,11 +39,11 @@ console.log(completed['@type']); // TransferProcess
 ```
 
 ```typescript
-import { DataspaceControlPlaneRestClient } from '@twin.org/dataspace-control-plane-rest-client';
+import { DataspaceControlPlaneRestClient } from '@3sixty/dataspace-control-plane-rest-client';
 import type {
   IDataspaceProtocolTransferSuspensionMessage,
   IDataspaceProtocolTransferTerminationMessage
-} from '@twin.org/standards-dataspace-protocol';
+} from '@3sixty/standards-dataspace-protocol';
 
 const client = new DataspaceControlPlaneRestClient({ endpoint: 'http://localhost:8090' });
 const trustPayload = 'eyJhbGciOi...';
@@ -59,7 +59,7 @@ console.log(terminated['@type']); // TransferProcess
 ```
 
 ```typescript
-import { DataspaceControlPlaneRestClient } from '@twin.org/dataspace-control-plane-rest-client';
+import { DataspaceControlPlaneRestClient } from '@3sixty/dataspace-control-plane-rest-client';
 
 const client = new DataspaceControlPlaneRestClient({ endpoint: 'http://localhost:8090' });
 const process = await client.getTransferProcess('consumer-process-id', 'eyJhbGciOi...');

@@ -1,10 +1,10 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
+import type { IRightsManagementAgreement } from "@3sixty/rights-management-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolDataAddress
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 
 /**
  * Transfer Context data structure.

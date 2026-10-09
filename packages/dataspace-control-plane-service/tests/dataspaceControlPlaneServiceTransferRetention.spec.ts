@@ -1,19 +1,19 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpContextIdKeys } from "@twin.org/api-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Factory } from "@twin.org/core";
+import { HttpContextIdKeys } from "@3sixty/api-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, Factory } from "@3sixty/core";
 import {
 	DataspaceTransferFormat,
 	TransferProcessRole,
 	type DataspaceAppDataset,
 	type TransferProcess,
 	type TransferRetrieval
-} from "@twin.org/dataspace-models";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import { DataspaceProtocolTransferProcessStateType } from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/dataspace-models";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import { DataspaceProtocolTransferProcessStateType } from "@3sixty/standards-dataspace-protocol";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
 import { MockPolicyAdministrationPointComponent } from "./mocks/mockPolicyAdministrationPoint.js";

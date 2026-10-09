@@ -1,16 +1,16 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IHttpRequest, IHttpRequestContext } from "@twin.org/api-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory } from "@twin.org/core";
-import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
+import type { IHttpRequest, IHttpRequestContext } from "@3sixty/api-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory } from "@3sixty/core";
+import type { DataspaceAppDataset, TransferProcess } from "@3sixty/dataspace-models";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessTypes
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import { vi } from "vitest";
 import { generateRestRoutesDataspaceControlPlane } from "../src/dataspaceControlPlaneRoutes.js";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";

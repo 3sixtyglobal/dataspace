@@ -1,8 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { Is, NotFoundError } from "@twin.org/core";
-import { EntitySchemaPropertyType, EntitySorter, SortDirection } from "@twin.org/entity";
-import { nameof } from "@twin.org/nameof";
+import { Is, NotFoundError } from "@3sixty/core";
+import { EntitySchemaPropertyType, EntitySorter, SortDirection } from "@3sixty/entity";
+import { nameof } from "@3sixty/nameof";
 import {
 	OdrlPolicyHelper,
 	type IPolicyAdministrationPointComponent,
@@ -11,7 +11,7 @@ import {
 	type IRightsManagementOffer,
 	type IRightsManagementPolicy,
 	type IRightsManagementSet
-} from "@twin.org/rights-management-models";
+} from "@3sixty/rights-management-models";
 
 /**
  * Mock Policy Administration Point component for testing.

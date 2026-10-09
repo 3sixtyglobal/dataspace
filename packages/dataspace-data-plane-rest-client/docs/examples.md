@@ -5,7 +5,7 @@ Use these snippets to query entities, run filtered lookups, and inspect activity
 ## DataspaceDataPlaneRestClient
 
 ```typescript
-import { DataspaceDataPlaneRestClient } from '@twin.org/dataspace-data-plane-rest-client';
+import { DataspaceDataPlaneRestClient } from '@3sixty/dataspace-data-plane-rest-client';
 
 const client = new DataspaceDataPlaneRestClient({ endpoint: 'http://localhost:8090' });
 
@@ -13,8 +13,8 @@ console.log(client.className()); // DataspaceDataPlaneRestClient
 ```
 
 ```typescript
-import { DataspaceDataPlaneRestClient } from '@twin.org/dataspace-data-plane-rest-client';
-import type { IEntitySet, IFilteringQuery } from '@twin.org/dataspace-models';
+import { DataspaceDataPlaneRestClient } from '@3sixty/dataspace-data-plane-rest-client';
+import type { IEntitySet, IFilteringQuery } from '@3sixty/dataspace-models';
 
 const client = new DataspaceDataPlaneRestClient({ endpoint: 'http://localhost:8090' });
 const trustPayload = 'eyJhbGciOi...';
@@ -54,8 +54,8 @@ console.log(queryResult.cursor ?? ''); // next-cursor-token
 ```
 
 ```typescript
-import { DataspaceDataPlaneRestClient } from '@twin.org/dataspace-data-plane-rest-client';
-import type { IActivityStreamsActivity } from '@twin.org/standards-w3c-activity-streams';
+import { DataspaceDataPlaneRestClient } from '@3sixty/dataspace-data-plane-rest-client';
+import type { IActivityStreamsActivity } from '@3sixty/standards-w3c-activity-streams';
 
 const client = new DataspaceDataPlaneRestClient({ endpoint: 'http://localhost:8090' });
 
@@ -77,7 +77,7 @@ console.log(logEntry.status); // completed
 ```
 
 ```typescript
-import { DataspaceDataPlaneRestClient } from '@twin.org/dataspace-data-plane-rest-client';
+import { DataspaceDataPlaneRestClient } from '@3sixty/dataspace-data-plane-rest-client';
 
 const client = new DataspaceDataPlaneRestClient({ endpoint: 'http://localhost:8090' });
 

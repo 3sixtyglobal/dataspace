@@ -3,7 +3,7 @@
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolTransferStartMessage
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 
 /**
  * Callback interface for transfer process state change notifications.

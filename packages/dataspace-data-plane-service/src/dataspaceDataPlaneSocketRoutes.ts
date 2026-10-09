@@ -1,14 +1,14 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ISocketRequestContext, ISocketRoute } from "@twin.org/api-models";
-import { ComponentFactory, Guards } from "@twin.org/core";
+import type { ISocketRequestContext, ISocketRoute } from "@3sixty/api-models";
+import { ComponentFactory, Guards } from "@3sixty/core";
 import type {
 	IActivityLogStatusNotificationPayload,
 	IActivityLogStatusRequest,
 	IDataspaceDataPlaneComponent
-} from "@twin.org/dataspace-models";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { nameof } from "@twin.org/nameof";
+} from "@3sixty/dataspace-models";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { nameof } from "@3sixty/nameof";
 
 /**
  * The source used when communicating about these routes.

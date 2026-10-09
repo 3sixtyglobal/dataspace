@@ -1,15 +1,15 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { GuardError, NotSupportedError } from "@twin.org/core";
-import type { IActivityLogEntry } from "@twin.org/dataspace-models";
-import { ActivityProcessingStatus } from "@twin.org/dataspace-models";
-import { SchemaOrgContexts, SchemaOrgTypes } from "@twin.org/standards-schema-org";
+import { GuardError, NotSupportedError } from "@3sixty/core";
+import type { IActivityLogEntry } from "@3sixty/dataspace-models";
+import { ActivityProcessingStatus } from "@3sixty/dataspace-models";
+import { SchemaOrgContexts, SchemaOrgTypes } from "@3sixty/standards-schema-org";
 import {
 	ActivityStreamsContexts,
 	ActivityStreamsTypes
-} from "@twin.org/standards-w3c-activity-streams";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { HttpMethod } from "@twin.org/web";
+} from "@3sixty/standards-w3c-activity-streams";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
+import { HttpMethod } from "@3sixty/web";
 import { DataspaceDataPlaneRestClient } from "../src/dataspaceDataPlaneRestClient.js";
 import {
 	jsonResponse,

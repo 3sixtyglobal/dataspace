@@ -1,12 +1,12 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { GeneralError } from "@twin.org/core";
-import { DataspaceTransferFormat } from "@twin.org/dataspace-models";
+import { GeneralError } from "@3sixty/core";
+import { DataspaceTransferFormat } from "@3sixty/dataspace-models";
 import {
 	DataspaceProtocolEndpointType,
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import { TransferHandlerFactory } from "../../src/factories/transferHandlerFactory.js";
 import { HttpDataPostTransferHandler } from "../../src/handlers/httpDataPostTransferHandler.js";
 import { HttpDataPullTransferHandler } from "../../src/handlers/httpDataPullTransferHandler.js";

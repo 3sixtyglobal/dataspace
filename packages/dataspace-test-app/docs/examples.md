@@ -5,7 +5,7 @@ Use these snippets to prototype datasets, activity handling, and query responses
 ## TestDataspaceDataPlaneApp
 
 ```typescript
-import { TestDataspaceDataPlaneApp } from '@twin.org/dataspace-test-app';
+import { TestDataspaceDataPlaneApp } from '@3sixty/dataspace-test-app';
 
 const app = new TestDataspaceDataPlaneApp({ loggingComponentType: 'logging' });
 
@@ -14,7 +14,7 @@ await app.start();
 ```
 
 ```typescript
-import { TestDataspaceDataPlaneApp } from '@twin.org/dataspace-test-app';
+import { TestDataspaceDataPlaneApp } from '@3sixty/dataspace-test-app';
 
 const app = new TestDataspaceDataPlaneApp();
 
@@ -28,8 +28,8 @@ console.log(activities[0].objectType); // https://vocabulary.uncefact.org/Consig
 ```
 
 ```typescript
-import { TestDataspaceDataPlaneApp } from '@twin.org/dataspace-test-app';
-import type { IDataspaceActivity } from '@twin.org/dataspace-models';
+import { TestDataspaceDataPlaneApp } from '@3sixty/dataspace-test-app';
+import type { IDataspaceActivity } from '@3sixty/dataspace-models';
 
 const app = new TestDataspaceDataPlaneApp();
 
@@ -45,8 +45,8 @@ console.log(activityResult); // 1234
 ```
 
 ```typescript
-import { DataRequestType, type IDataRequest } from '@twin.org/dataspace-models';
-import { TestDataspaceDataPlaneApp } from '@twin.org/dataspace-test-app';
+import { DataRequestType, type IDataRequest } from '@3sixty/dataspace-models';
+import { TestDataspaceDataPlaneApp } from '@3sixty/dataspace-test-app';
 
 const app = new TestDataspaceDataPlaneApp();
 

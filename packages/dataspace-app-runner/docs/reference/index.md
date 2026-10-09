@@ -1,4 +1,4 @@
-# @twin.org/dataspace-app-runner
+# @3sixty/dataspace-app-runner
 
 ## Functions
 

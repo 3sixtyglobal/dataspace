@@ -7,7 +7,7 @@ It complements request-response clients by covering real-time notification scena
 ## Installation
 
 ```shell
-npm install @twin.org/dataspace-data-plane-socket-client
+npm install @3sixty/dataspace-data-plane-socket-client
 ```
 
 ## Examples

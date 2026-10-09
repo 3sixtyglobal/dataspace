@@ -1,8 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ComponentFactory } from "@twin.org/core";
-import type { IPolicyInformationPointComponent } from "@twin.org/rights-management-models";
-import { PolicyInformationPointService } from "@twin.org/rights-management-pip-service";
+import { ComponentFactory } from "@3sixty/core";
+import type { IPolicyInformationPointComponent } from "@3sixty/rights-management-models";
+import { PolicyInformationPointService } from "@3sixty/rights-management-pip-service";
 
 /**
  * Setup PIP (Policy Information Point) for integration tests.

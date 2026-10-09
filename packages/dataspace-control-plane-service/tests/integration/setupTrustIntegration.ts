@@ -11,10 +11,10 @@
  * (it's stateless), so setup is simpler.
  */
 
-import { ComponentFactory } from "@twin.org/core";
-import type { ITrustComponent } from "@twin.org/trust-models";
-import { TrustGeneratorFactory, TrustVerifierFactory } from "@twin.org/trust-models";
-import { TrustService } from "@twin.org/trust-service";
+import { ComponentFactory } from "@3sixty/core";
+import type { ITrustComponent } from "@3sixty/trust-models";
+import { TrustGeneratorFactory, TrustVerifierFactory } from "@3sixty/trust-models";
+import { TrustService } from "@3sixty/trust-service";
 import { TestJwtGenerator } from "./testJwtGenerator.js";
 import { createTestJwtVerifier } from "./testJwtVerifier.js";
 

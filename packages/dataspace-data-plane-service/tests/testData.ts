@@ -3,7 +3,7 @@
 import {
 	ActivityStreamsContexts,
 	type IActivityStreamsActivity
-} from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/standards-w3c-activity-streams";
 
 export const canonicalActivity: IActivityStreamsActivity = {
 	"@context": ActivityStreamsContexts.Context,

@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { TaskStatus } from "@twin.org/background-task-models";
+import type { TaskStatus } from "@3sixty/background-task-models";
 
 /**
  * The status supplied to clients of the Dataspace Data Plane

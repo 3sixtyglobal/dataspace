@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IJsonLdNodeObject } from "@twin.org/data-json-ld";
-import type { SchemaOrgContexts, SchemaOrgTypes } from "@twin.org/standards-schema-org";
+import type { IJsonLdNodeObject } from "@3sixty/data-json-ld";
+import type { SchemaOrgContexts, SchemaOrgTypes } from "@3sixty/standards-schema-org";
 
 /**
  * Interface describing a list of entities that are within a Data Asset.

@@ -1,13 +1,13 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { BaseRestClient } from "@twin.org/api-core";
+import { BaseRestClient } from "@3sixty/api-core";
 import {
 	HttpHeaderHelper,
 	type IBaseRestClientConfig,
 	type INoContentRequest
-} from "@twin.org/api-models";
-import { BaseError, Guards, NotSupportedError } from "@twin.org/core";
-import { getJsonLdType } from "@twin.org/dataspace-models";
+} from "@3sixty/api-models";
+import { BaseError, Guards, NotSupportedError } from "@3sixty/core";
+import { getJsonLdType } from "@3sixty/dataspace-models";
 import type {
 	IAppDatasetCreateRequest,
 	IAppDatasetCreateResponse,
@@ -35,9 +35,9 @@ import type {
 	ITerminateTransferResponse,
 	ITransferCallback,
 	ITransferQueryResult
-} from "@twin.org/dataspace-models";
-import { nameof } from "@twin.org/nameof";
-import { DataspaceProtocolTransferProcessTypes } from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/dataspace-models";
+import { nameof } from "@3sixty/nameof";
+import { DataspaceProtocolTransferProcessTypes } from "@3sixty/standards-dataspace-protocol";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolContractNegotiation,
@@ -51,8 +51,8 @@ import type {
 	IDataspaceProtocolTransferSuspensionMessage,
 	IDataspaceProtocolTransferTerminationMessage,
 	IDataspaceProtocolVersionResponse
-} from "@twin.org/standards-dataspace-protocol";
-import { FetchError, HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
+} from "@3sixty/standards-dataspace-protocol";
+import { FetchError, HeaderHelper, HeaderTypes, HttpMethod } from "@3sixty/web";
 
 /**
  * Client for performing dataspace control plane operations through REST endpoints.

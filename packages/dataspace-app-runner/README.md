@@ -7,7 +7,7 @@ By isolating execution concerns, it helps services schedule and process activity
 ## Installation
 
 ```shell
-npm install @twin.org/dataspace-app-runner
+npm install @3sixty/dataspace-app-runner
 ```
 
 ## Examples

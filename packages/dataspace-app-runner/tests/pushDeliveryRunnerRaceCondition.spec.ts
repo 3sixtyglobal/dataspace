@@ -14,11 +14,11 @@
  * concurrent window and verifies pushDeliveryRunner correctly suspends until startup completes.
  */
 
-import { ContextIdStore } from "@twin.org/context";
-import { ComponentFactory } from "@twin.org/core";
-import type { IPushDeliveryPayload } from "@twin.org/dataspace-models";
-import { ModuleHelper } from "@twin.org/modules";
-import { FetchHelper } from "@twin.org/web";
+import { ContextIdStore } from "@3sixty/context";
+import { ComponentFactory } from "@3sixty/core";
+import type { IPushDeliveryPayload } from "@3sixty/dataspace-models";
+import { ModuleHelper } from "@3sixty/modules";
+import { FetchHelper } from "@3sixty/web";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
 	pushDeliveryRunner,

@@ -19,7 +19,7 @@
 		"types": ["node"],
 		"plugins": [
 			{
-				"transform": "@twin.org/nameof-transformer"
+				"transform": "@3sixty/nameof-transformer"
 			}
 		],
 		"skipLibCheck": true

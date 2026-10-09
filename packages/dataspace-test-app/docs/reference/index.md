@@ -1,4 +1,4 @@
-# @twin.org/dataspace-test-app
+# @3sixty/dataspace-test-app
 
 ## Classes
 

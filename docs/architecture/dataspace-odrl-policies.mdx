@@ -34,7 +34,7 @@ An offer as published in the catalogue, identified by `@id`, with the assigner a
   "@context": "http://www.w3.org/ns/odrl.jsonld",
   "@type": "Offer",
   "@id": "https://example.com/policies/consignment-events-offer",
-  "profile": "https://schema.twindev.org/odrl/v1/profile",
+  "profile": "https://schema.3sixty.global/odrl/v1/profile",
   "assigner": "did:iota:provider-org",
   "permission": [
     {
@@ -58,7 +58,7 @@ The agreement produced from it names both parties. Like the offer, it carries no
   "@context": "http://www.w3.org/ns/odrl.jsonld",
   "@type": "Agreement",
   "@id": "urn:uuid:agreement-12345",
-  "profile": "https://schema.twindev.org/odrl/v1/profile",
+  "profile": "https://schema.3sixty.global/odrl/v1/profile",
   "assigner": "did:iota:provider-org",
   "assignee": "did:iota:consumer-org",
   "permission": [{ "action": "read" }]
@@ -69,10 +69,10 @@ A richer agreement combines all three rule kinds. Because it carries obligations
 
 ```json
 {
-  "@context": ["http://www.w3.org/ns/odrl.jsonld", "https://schema.twindev.org/odrl/v1/"],
+  "@context": ["http://www.w3.org/ns/odrl.jsonld", "https://schema.3sixty.global/odrl/v1/"],
   "@type": "Agreement",
   "@id": "urn:uuid:agreement-67890",
-  "profile": "https://schema.twindev.org/odrl/v1/profile",
+  "profile": "https://schema.3sixty.global/odrl/v1/profile",
   "assigner": "did:iota:provider-org",
   "assignee": "did:iota:consumer-org",
   "permission": [
@@ -135,7 +135,7 @@ For conditions over verified party attributes, see the profile section below.
 
 ## The Dataspace ODRL Profile
 
-Policies evaluated by the platform declare the profile `https://schema.twindev.org/odrl/v1/profile`; the evaluation engine rejects policies declaring any unsupported profile. The profile extends standard ODRL with a JSONPath vocabulary for field-level control, using the additional context entry `https://schema.twindev.org/odrl/v1/` when the extension terms appear:
+Policies evaluated by the platform declare the profile `https://schema.3sixty.global/odrl/v1/profile`; the evaluation engine rejects policies declaring any unsupported profile. The profile extends standard ODRL with a JSONPath vocabulary for field-level control, using the additional context entry `https://schema.3sixty.global/odrl/v1/` when the extension terms appear:
 
 - `twin:jsonPath` as a rule target type or constraint left operand,
 - `twin:jsonPathExpression` holding the JSONPath expression,

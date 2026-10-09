@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 /* eslint-disable @typescript-eslint/member-ordering, no-restricted-syntax -- vi.fn() callback props for tests */
-import type { IPolicyNegotiationPointComponent } from "@twin.org/rights-management-models";
+import type { IPolicyNegotiationPointComponent } from "@3sixty/rights-management-models";
 import type {
 	IDataspaceProtocolContractAgreementMessage,
 	IDataspaceProtocolContractAgreementVerificationMessage,
@@ -11,12 +11,12 @@ import type {
 	IDataspaceProtocolContractNegotiationTerminationMessage,
 	IDataspaceProtocolContractOfferMessage,
 	IDataspaceProtocolContractRequestMessage
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import {
 	DataspaceProtocolContractNegotiationStateType,
 	DataspaceProtocolContractNegotiationTypes,
 	DataspaceProtocolContexts
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 
 /**
  * Mock implementation of IPolicyNegotiationPointComponent for testing.

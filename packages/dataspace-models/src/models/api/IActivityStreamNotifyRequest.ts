@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import type { HeaderTypes } from "@twin.org/web";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
+import type { HeaderTypes } from "@3sixty/web";
 
 /**
  * Activity Stream Notify Request.

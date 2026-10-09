@@ -8,6 +8,7 @@
 	"release-type": "node",
 	"initial-version": "0.0.1",
 	"versioning": "default",
+	"last-release-sha": "f70e99405c3e58627ad1172d36144b462c0dea50",
 	"packages": {
 		"packages/dataspace-models": {
 			"package-name": "dataspace-models",

@@ -1,13 +1,13 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 
-import { ComponentFactory } from "@twin.org/core";
-import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import type { IFederatedCatalogueComponent } from "@twin.org/federated-catalogue-models";
-import { Dataset, FederatedCatalogueService } from "@twin.org/federated-catalogue-service";
-import { nameof } from "@twin.org/nameof";
+import { ComponentFactory } from "@3sixty/core";
+import { EntitySchemaFactory, EntitySchemaHelper } from "@3sixty/entity";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import type { IFederatedCatalogueComponent } from "@3sixty/federated-catalogue-models";
+import { Dataset, FederatedCatalogueService } from "@3sixty/federated-catalogue-service";
+import { nameof } from "@3sixty/nameof";
 
 /**
  * Create a real FederatedCatalogueService with memory storage for integration tests.

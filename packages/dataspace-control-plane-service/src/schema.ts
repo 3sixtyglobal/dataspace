@@ -6,9 +6,9 @@ import {
 	TransferProcess,
 	TransferProcessV0,
 	TransferRetrieval
-} from "@twin.org/dataspace-models";
-import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
-import { nameof } from "@twin.org/nameof";
+} from "@3sixty/dataspace-models";
+import { EntitySchemaFactory, EntitySchemaHelper } from "@3sixty/entity";
+import { nameof } from "@3sixty/nameof";
 
 /**
  * Inits schemas for Control Plane entities.

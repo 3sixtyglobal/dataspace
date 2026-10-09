@@ -3,8 +3,8 @@
 import type {
 	IPolicyNegotiation,
 	IPolicyNegotiationAdminPointComponent
-} from "@twin.org/rights-management-models";
-import { DataspaceProtocolContractNegotiationStateType } from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/rights-management-models";
+import { DataspaceProtocolContractNegotiationStateType } from "@3sixty/standards-dataspace-protocol";
 
 /**
  * Mock implementation of IPolicyNegotiationAdminPointComponent for testing.

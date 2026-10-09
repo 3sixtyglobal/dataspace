@@ -1,8 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpContextIdKeys } from "@twin.org/api-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Converter, Is } from "@twin.org/core";
+import { HttpContextIdKeys } from "@3sixty/api-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, Converter, Is } from "@3sixty/core";
 import {
 	DataspaceTransferFormat,
 	TransferTerminationCode,
@@ -11,18 +11,18 @@ import {
 	type ITransferCallback,
 	type TransferProcess,
 	type TransferRetrieval
-} from "@twin.org/dataspace-models";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import type { ILogEntry, ILoggingComponent } from "@twin.org/logging-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
+} from "@3sixty/dataspace-models";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import type { ILogEntry, ILoggingComponent } from "@3sixty/logging-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes,
 	type IDataspaceProtocolTransferStartMessage
-} from "@twin.org/standards-dataspace-protocol";
-import type { ITrustComponent } from "@twin.org/trust-models";
+} from "@3sixty/standards-dataspace-protocol";
+import type { ITrustComponent } from "@3sixty/trust-models";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
 import { MockPolicyAdministrationPointComponent } from "./mocks/mockPolicyAdministrationPoint.js";

@@ -1,8 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ComponentFactory } from "@twin.org/core";
-import type { IPolicyNegotiationPointComponent } from "@twin.org/rights-management-models";
-import { PolicyNegotiationPointService } from "@twin.org/rights-management-pnp-service";
+import { ComponentFactory } from "@3sixty/core";
+import type { IPolicyNegotiationPointComponent } from "@3sixty/rights-management-models";
+import { PolicyNegotiationPointService } from "@3sixty/rights-management-pnp-service";
 
 /**
  * Setup PNP (Policy Negotiation Point) for integration tests.

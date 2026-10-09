@@ -14,13 +14,13 @@
  * 2. Full DID resolution requires complex IOTA infrastructure
  * 3. The real TrustService handles verification; we just need valid-looking tokens
  *
- * For production, use proper verifiers from @twin.org/trust-verifiers with full
+ * For production, use proper verifiers from @3sixty/trust-verifiers with full
  * DID resolution and signature validation.
  */
 
-import { GeneralError, Is, type IError } from "@twin.org/core";
-import type { ITrustVerificationInfo, ITrustVerifier } from "@twin.org/trust-models";
-import { Jwt } from "@twin.org/web";
+import { GeneralError, Is, type IError } from "@3sixty/core";
+import type { ITrustVerificationInfo, ITrustVerifier } from "@3sixty/trust-models";
+import { Jwt } from "@3sixty/web";
 
 /**
  * Test JWT Verifier for integration tests.

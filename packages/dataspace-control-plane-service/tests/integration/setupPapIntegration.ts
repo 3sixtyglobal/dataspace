@@ -1,17 +1,17 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 
-import { ComponentFactory } from "@twin.org/core";
-import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { nameof } from "@twin.org/nameof";
-import type { IPolicyAdministrationPointComponent } from "@twin.org/rights-management-models";
+import { ComponentFactory } from "@3sixty/core";
+import { EntitySchemaFactory, EntitySchemaHelper } from "@3sixty/entity";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import { nameof } from "@3sixty/nameof";
+import type { IPolicyAdministrationPointComponent } from "@3sixty/rights-management-models";
 import {
 	OdrlPolicy,
 	OdrlPolicyIndex,
 	PolicyAdministrationPointService
-} from "@twin.org/rights-management-pap-service";
+} from "@3sixty/rights-management-pap-service";
 
 /**
  * Create a real PolicyAdministrationPointService with memory storage for integration tests.

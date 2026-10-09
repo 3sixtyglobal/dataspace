@@ -3,7 +3,7 @@
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolDataAddress
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import type { TransferProcessRole } from "./transferProcessRole.js";
 
 /**

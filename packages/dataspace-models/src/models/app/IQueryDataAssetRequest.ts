@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IDataspaceProtocolDataset } from "@twin.org/standards-dataspace-protocol";
+import type { IDataspaceProtocolDataset } from "@3sixty/standards-dataspace-protocol";
 import type { IFilteringQuery } from "../IFilteringQuery.js";
 import type { DataRequestType } from "./dataRequestType.js";
 

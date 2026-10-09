@@ -8,16 +8,9 @@ import {
 	type IHttpRequestContext,
 	type IRestRoute,
 	type ITag
-} from "@twin.org/api-models";
-import { ContextIdStore } from "@twin.org/context";
-import {
-	BaseError,
-	Coerce,
-	ComponentFactory,
-	Guards,
-	Is,
-	UnprocessableError
-} from "@twin.org/core";
+} from "@3sixty/api-models";
+import { ContextIdStore } from "@3sixty/context";
+import { BaseError, Coerce, ComponentFactory, Guards, Is, UnprocessableError } from "@3sixty/core";
 import {
 	ActivityProcessingStatus,
 	ActivityTaskStatus,
@@ -31,16 +24,16 @@ import {
 	type IDataAssetItemList,
 	type IDataAssetQueryRequest,
 	type IDataspaceDataPlaneComponent
-} from "@twin.org/dataspace-models";
-import { nameof } from "@twin.org/nameof";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/dataspace-models";
+import { nameof } from "@3sixty/nameof";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
 import {
 	HeaderHelper,
 	HeaderTypes,
 	HttpStatusCode,
 	type IHttpHeaders,
 	MimeTypes
-} from "@twin.org/web";
+} from "@3sixty/web";
 
 /**
  * The source used when communicating about these routes.

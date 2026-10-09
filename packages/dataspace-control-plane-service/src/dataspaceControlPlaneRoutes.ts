@@ -10,9 +10,9 @@ import {
 	type INotFoundResponse,
 	type IRestRoute,
 	type ITag
-} from "@twin.org/api-models";
-import { ContextIdStore } from "@twin.org/context";
-import { Coerce, ComponentFactory, Guards } from "@twin.org/core";
+} from "@3sixty/api-models";
+import { ContextIdStore } from "@3sixty/context";
+import { Coerce, ComponentFactory, Guards } from "@3sixty/core";
 import type {
 	IAppDatasetCreateRequest,
 	IAppDatasetCreateResponse,
@@ -36,20 +36,20 @@ import type {
 	ISuspendTransferResponse,
 	ITerminateTransferRequest,
 	ITerminateTransferResponse
-} from "@twin.org/dataspace-models";
-import { nameof } from "@twin.org/nameof";
+} from "@3sixty/dataspace-models";
+import { nameof } from "@3sixty/nameof";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import {
 	HeaderHelper,
 	HeaderTypes,
 	HttpStatusCode,
 	type IHttpHeaders,
 	MimeTypes
-} from "@twin.org/web";
+} from "@3sixty/web";
 import { transformErrorToStatusCode } from "./utils/transferErrorUtils.js";
 
 /**

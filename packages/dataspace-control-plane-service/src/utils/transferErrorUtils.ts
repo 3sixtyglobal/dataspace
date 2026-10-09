@@ -1,16 +1,16 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpErrorHelper } from "@twin.org/api-models";
-import { BaseError, type IError, Is } from "@twin.org/core";
-import { getJsonLdType } from "@twin.org/dataspace-models";
+import { HttpErrorHelper } from "@3sixty/api-models";
+import { BaseError, type IError, Is } from "@3sixty/core";
+import { getJsonLdType } from "@3sixty/dataspace-models";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessTypes,
 	type IDataspaceProtocolCatalogError,
 	type IDataspaceProtocolTransferError
-} from "@twin.org/standards-dataspace-protocol";
-import { HttpStatusCode } from "@twin.org/web";
+} from "@3sixty/standards-dataspace-protocol";
+import { HttpStatusCode } from "@3sixty/web";
 
 /**
  * Fallback value used when PIDs cannot be extracted from a malformed message.

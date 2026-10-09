@@ -7,7 +7,7 @@ The client is aligned with the protocol-facing request and response structures u
 ## Installation
 
 ```shell
-npm install @twin.org/dataspace-control-plane-rest-client
+npm install @3sixty/dataspace-control-plane-rest-client
 ```
 
 ## Examples

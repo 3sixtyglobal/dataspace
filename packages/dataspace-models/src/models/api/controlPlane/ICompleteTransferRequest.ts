@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IDataspaceProtocolTransferCompletionMessage } from "@twin.org/standards-dataspace-protocol";
-import type { HeaderTypes } from "@twin.org/web";
+import type { IDataspaceProtocolTransferCompletionMessage } from "@3sixty/standards-dataspace-protocol";
+import type { HeaderTypes } from "@3sixty/web";
 
 /**
  * API request for completing a transfer process.

@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
+import type { IJsonLdContextDefinitionElement } from "@3sixty/data-json-ld";
 
 /**
  * A query over a data asset that to be processed by a Dataspace Data Plane App.

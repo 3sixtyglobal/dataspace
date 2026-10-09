@@ -1,10 +1,10 @@
 {
-	"name": "@twin.org/dataspace",
+	"name": "@3sixty/dataspace",
 	"version": "0.0.0",
 	"description": "Provides coordinated components for secure dataspace data exchange.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/3sixtyglobal/twin-dataspace.git"
+		"url": "git+https://github.com/3sixtyglobal/dataspace.git"
 	},
 	"author": "jose.cantera@iota.org",
 	"contributors": [
@@ -40,7 +40,7 @@
 		"quality:no-test": "pnpm run format && concurrently -g -n lint,compile \"pnpm run lint\" \"pnpm run compile\" && pnpm run validate-locales",
 		"docs": "pnpm -r run docs",
 		"package:update-latest": "pnpm update --recursive --interactive --latest",
-		"package:update-framework": "pnpm update --recursive --no-save \"@twin.org/*\"",
+		"package:update-framework": "pnpm update --recursive --no-save \"@3sixty/*\"",
 		"package:update": "pnpm run package:update-latest && pnpm run package:update-framework",
 		"local-link": "node ./scripts/local-link.mjs",
 		"commitlint": "commitlint --edit",
@@ -83,7 +83,7 @@
 		"dataspace"
 	],
 	"bugs": {
-		"url": "git+https://github.com/3sixtyglobal/twin-dataspace/issues"
+		"url": "git+https://github.com/3sixtyglobal/dataspace/issues"
 	},
-	"homepage": "https://twindev.org"
+	"homepage": "https://3sixty.global"
 }

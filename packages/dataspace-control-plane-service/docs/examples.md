@@ -5,7 +5,7 @@ Use these snippets to negotiate agreements, manage transfer lifecycle, and resol
 ## DataspaceControlPlaneService
 
 ```typescript
-import { DataspaceControlPlaneService } from '@twin.org/dataspace-control-plane-service';
+import { DataspaceControlPlaneService } from '@3sixty/dataspace-control-plane-service';
 
 const service = new DataspaceControlPlaneService({
   loggingComponentType: 'logging',
@@ -19,7 +19,7 @@ console.log(service.className()); // DataspaceControlPlaneService
 ```
 
 ```typescript
-import { DataspaceControlPlaneService } from '@twin.org/dataspace-control-plane-service';
+import { DataspaceControlPlaneService } from '@3sixty/dataspace-control-plane-service';
 
 const service = new DataspaceControlPlaneService();
 
@@ -44,7 +44,7 @@ service.unregisterNegotiationCallback('supply-chain');
 ```
 
 ```typescript
-import { DataspaceControlPlaneService } from '@twin.org/dataspace-control-plane-service';
+import { DataspaceControlPlaneService } from '@3sixty/dataspace-control-plane-service';
 import type {
   IDataspaceProtocolAgreement,
   IDataspaceProtocolTransferRequestMessage,
@@ -52,7 +52,7 @@ import type {
   IDataspaceProtocolTransferCompletionMessage,
   IDataspaceProtocolTransferSuspensionMessage,
   IDataspaceProtocolTransferTerminationMessage
-} from '@twin.org/standards-dataspace-protocol';
+} from '@3sixty/standards-dataspace-protocol';
 
 const service = new DataspaceControlPlaneService();
 const trustPayload = 'eyJhbGciOi...';
@@ -88,7 +88,7 @@ console.log(history.length); // 3
 ```
 
 ```typescript
-import { DataspaceControlPlaneService } from '@twin.org/dataspace-control-plane-service';
+import { DataspaceControlPlaneService } from '@3sixty/dataspace-control-plane-service';
 
 const service = new DataspaceControlPlaneService();
 
@@ -104,11 +104,11 @@ console.log(providerPid); // provider-process-id
 ## DataspaceControlPlanePolicyRequester
 
 ```typescript
-import { DataspaceControlPlanePolicyRequester } from '@twin.org/dataspace-control-plane-service';
+import { DataspaceControlPlanePolicyRequester } from '@3sixty/dataspace-control-plane-service';
 import type {
   IDataspaceProtocolAgreement,
   IDataspaceProtocolOffer
-} from '@twin.org/standards-dataspace-protocol';
+} from '@3sixty/standards-dataspace-protocol';
 
 const requester = new DataspaceControlPlanePolicyRequester('logging', {
   onStateChanged: async (negotiationId, state) => {

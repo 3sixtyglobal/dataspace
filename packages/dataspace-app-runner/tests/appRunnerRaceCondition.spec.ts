@@ -13,15 +13,15 @@
  * concurrent window and verify appRunner correctly suspends until startup completes.
  */
 
-import { ContextIdStore } from "@twin.org/context";
+import { ContextIdStore } from "@3sixty/context";
 import {
 	DataspaceAppFactory,
 	type IActivityQuery,
 	type IDataspaceApp,
 	type IExecutionPayload,
 	type IProcessingGroupOptions
-} from "@twin.org/dataspace-models";
-import { ModuleHelper } from "@twin.org/modules";
+} from "@3sixty/dataspace-models";
+import { ModuleHelper } from "@3sixty/modules";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { appRunner, appRunnerEnd, appRunnerStart } from "../src/appRunner.js";
 

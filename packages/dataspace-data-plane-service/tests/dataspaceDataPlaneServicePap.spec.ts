@@ -1,34 +1,34 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ScheduledTask } from "@twin.org/background-task-scheduler";
+import type { ScheduledTask } from "@3sixty/background-task-scheduler";
 import {
 	TaskSchedulerService,
 	initSchema as initSchemaTaskScheduler
-} from "@twin.org/background-task-scheduler";
+} from "@3sixty/background-task-scheduler";
 import {
 	BackgroundTaskService,
 	initSchema as initSchemaBackgroundTask,
 	type BackgroundTask
-} from "@twin.org/background-task-service";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, NotFoundError } from "@twin.org/core";
+} from "@3sixty/background-task-service";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, NotFoundError } from "@3sixty/core";
 import {
 	DataspaceAppDataset,
 	DataspaceAppFactory,
 	TransferProcess
-} from "@twin.org/dataspace-models";
-import { TestDataspaceDataPlaneApp } from "@twin.org/dataspace-test-app";
-import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
+} from "@3sixty/dataspace-models";
+import { TestDataspaceDataPlaneApp } from "@3sixty/dataspace-test-app";
+import { EntitySchemaFactory, EntitySchemaHelper } from "@3sixty/entity";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import type { IRightsManagementAgreement } from "@3sixty/rights-management-models";
 import {
 	DataspaceProtocolDataTypes,
 	DataspaceProtocolTransferProcessStateType
-} from "@twin.org/standards-dataspace-protocol";
-import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/standards-dataspace-protocol";
+import { addAllContextsToDocumentCache } from "@3sixty/standards-ld-contexts";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
 import {
 	createMockPolicyAdministrationPoint,
 	createMockPolicyEnforcementPoint,

@@ -1,9 +1,9 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 
-import type { ObjectOrArray } from "@twin.org/core";
-import type { JsonLdObjectWithContext } from "@twin.org/data-json-ld";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
+import type { ObjectOrArray } from "@3sixty/core";
+import type { JsonLdObjectWithContext } from "@3sixty/data-json-ld";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
 
 /**
  * A dataspace activity that restricts an activity so that it can be handled by a Dataspace Data Plane

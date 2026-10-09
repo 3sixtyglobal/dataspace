@@ -1,18 +1,18 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IHttpRequestContext } from "@twin.org/api-models";
-import { TaskStatus } from "@twin.org/background-task-models";
-import type { ScheduledTask } from "@twin.org/background-task-scheduler";
+import type { IHttpRequestContext } from "@3sixty/api-models";
+import { TaskStatus } from "@3sixty/background-task-models";
+import type { ScheduledTask } from "@3sixty/background-task-scheduler";
 import {
 	TaskSchedulerService,
 	initSchema as initSchemaTaskScheduler
-} from "@twin.org/background-task-scheduler";
+} from "@3sixty/background-task-scheduler";
 import {
 	BackgroundTaskService,
 	initSchema as initSchemaBackgroundTask,
 	type BackgroundTask
-} from "@twin.org/background-task-service";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
+} from "@3sixty/background-task-service";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
 import {
 	ArrayHelper,
 	BaseError,
@@ -21,8 +21,8 @@ import {
 	Is,
 	NotFoundError,
 	ObjectHelper
-} from "@twin.org/core";
-import { JsonLdDataTypes, type JsonLdObjectWithContext } from "@twin.org/data-json-ld";
+} from "@3sixty/core";
+import { JsonLdDataTypes, type JsonLdObjectWithContext } from "@3sixty/data-json-ld";
 import {
 	ActivityProcessingStatus,
 	ActivityTaskStatus,
@@ -41,28 +41,28 @@ import {
 	type IFollowActivity,
 	type IPushDeliveryPayload,
 	type IUndoActivity
-} from "@twin.org/dataspace-models";
-import { TestDataspaceDataPlaneApp } from "@twin.org/dataspace-test-app";
-import { ComparisonOperator, EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { ModuleHelper } from "@twin.org/modules";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
+} from "@3sixty/dataspace-models";
+import { TestDataspaceDataPlaneApp } from "@3sixty/dataspace-test-app";
+import { ComparisonOperator, EntitySchemaFactory, EntitySchemaHelper } from "@3sixty/entity";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import { ModuleHelper } from "@3sixty/modules";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import type { IRightsManagementAgreement } from "@3sixty/rights-management-models";
 import {
 	DataspaceProtocolCatalogTypes,
 	DataspaceProtocolDataTypes,
 	DataspaceProtocolTransferProcessStateType
-} from "@twin.org/standards-dataspace-protocol";
-import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/standards-dataspace-protocol";
+import { addAllContextsToDocumentCache } from "@3sixty/standards-ld-contexts";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
 import {
 	MetricType,
 	type ITelemetryComponent,
 	type ITelemetryMetric
-} from "@twin.org/telemetry-models";
-import type { ITrustComponent } from "@twin.org/trust-models";
-import { HeaderHelper, HeaderTypes } from "@twin.org/web";
+} from "@3sixty/telemetry-models";
+import type { ITrustComponent } from "@3sixty/trust-models";
+import { HeaderHelper, HeaderTypes } from "@3sixty/web";
 import { createMockPolicyEnforcementPoint } from "./setupTestEnv.js";
 import {
 	activityLdContextArray,
@@ -343,7 +343,7 @@ describe("DataspaceDataPlaneService", () => {
 			args?: unknown[]
 		): Promise<T> => {
 			if (
-				module === "@twin.org/engine-models" &&
+				module === "@3sixty/engine-models" &&
 				method === "EngineCloneHelper.verifyExcludeCloneComponents"
 			) {
 				return verifyExcludeCloneComponents(args?.[0] as string[] | undefined) as T;

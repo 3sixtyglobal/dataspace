@@ -7,7 +7,7 @@ It is useful for validating service wiring and behaviour without building a cust
 ## Installation
 
 ```shell
-npm install @twin.org/dataspace-test-app
+npm install @3sixty/dataspace-test-app
 ```
 
 ## Examples

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0.
 import fs from "node:fs";
 import path from "node:path";
-import { EnvHelper, NotFoundError, RandomHelper } from "@twin.org/core";
-import { nameof } from "@twin.org/nameof";
+import { EnvHelper, NotFoundError, RandomHelper } from "@3sixty/core";
+import { nameof } from "@3sixty/nameof";
 import type {
 	IPolicyAdministrationPointComponent,
 	IPolicyEnforcementPointComponent,
@@ -11,8 +11,8 @@ import type {
 	IRightsManagementOffer,
 	IRightsManagementPolicy,
 	IRightsManagementSet
-} from "@twin.org/rights-management-models";
-import type { ITrustComponent } from "@twin.org/trust-models";
+} from "@3sixty/rights-management-models";
+import type { ITrustComponent } from "@3sixty/trust-models";
 import * as dotenv from "dotenv";
 
 console.debug("Setting up test environment from .env and .env.dev files");

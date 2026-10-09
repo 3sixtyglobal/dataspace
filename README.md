@@ -1,4 +1,4 @@
-# TWIN Dataspace
+# 3Sixty Dataspace
 
 This repository provides a coordinated set of components for secure dataspace data exchange, including control plane lifecycle management, data plane processing, and companion clients for integration.
 

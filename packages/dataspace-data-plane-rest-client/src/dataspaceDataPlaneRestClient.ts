@@ -1,13 +1,13 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { BaseRestClient } from "@twin.org/api-core";
+import { BaseRestClient } from "@3sixty/api-core";
 import {
 	HttpHeaderHelper,
 	HttpParameterHelper,
 	type IBaseRestClientConfig
-} from "@twin.org/api-models";
-import { Coerce, Guards, Is, NotSupportedError } from "@twin.org/core";
-import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
+} from "@3sixty/api-models";
+import { Coerce, Guards, Is, NotSupportedError } from "@3sixty/core";
+import type { IJsonLdContextDefinitionElement } from "@3sixty/data-json-ld";
 import type {
 	IActivityLogEntry,
 	IActivityLogEntryGetRequest,
@@ -22,10 +22,10 @@ import type {
 	IDataspaceDataPlaneComponent,
 	IEntitySet,
 	IFilteringQuery
-} from "@twin.org/dataspace-models";
-import { nameof } from "@twin.org/nameof";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
-import { HeaderHelper, HeaderTypes, HttpMethod } from "@twin.org/web";
+} from "@3sixty/dataspace-models";
+import { nameof } from "@3sixty/nameof";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
+import { HeaderHelper, HeaderTypes, HttpMethod } from "@3sixty/web";
 
 /**
  * The client to connect to the dataspace data plane service.

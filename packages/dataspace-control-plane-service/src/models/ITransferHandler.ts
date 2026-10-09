@@ -1,11 +1,11 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IComponent } from "@twin.org/core";
-import type { IDataspaceDataPlaneComponent } from "@twin.org/dataspace-models";
+import type { IComponent } from "@3sixty/core";
+import type { IDataspaceDataPlaneComponent } from "@3sixty/dataspace-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolDataAddress
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import type { ITransferHandlerPrepareContext } from "./ITransferHandlerPrepareContext.js";
 import type { ITransferHandlerStartContext } from "./ITransferHandlerStartContext.js";
 

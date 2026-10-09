@@ -1,6 +1,6 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ISocketRouteEntryPoint } from "@twin.org/api-models";
+import type { ISocketRouteEntryPoint } from "@3sixty/api-models";
 import { tagsDataspaceDataPlane } from "./dataspaceDataPlaneRoutes.js";
 import { generateSocketRoutesDataspaceDataPlane } from "./dataspaceDataPlaneSocketRoutes.js";
 

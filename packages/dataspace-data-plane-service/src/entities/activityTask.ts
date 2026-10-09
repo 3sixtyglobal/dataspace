@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IActivityTaskEntry } from "@twin.org/dataspace-models";
-import { entity, property } from "@twin.org/entity";
+import type { IActivityTaskEntry } from "@3sixty/dataspace-models";
+import { entity, property } from "@3sixty/entity";
 
 /**
  * Activity Task entity linking activity log entries to their background tasks.

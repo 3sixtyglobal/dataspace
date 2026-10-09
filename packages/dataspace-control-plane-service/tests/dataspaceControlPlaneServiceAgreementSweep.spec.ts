@@ -1,23 +1,23 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpContextIdKeys } from "@twin.org/api-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Converter, Factory, GeneralError, RandomHelper } from "@twin.org/core";
+import { HttpContextIdKeys } from "@3sixty/api-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, Converter, Factory, GeneralError, RandomHelper } from "@3sixty/core";
 import {
 	DataspaceControlPlaneMetricIds,
 	TransferProcessRole,
 	type DataspaceAppDataset,
 	type TransferProcess,
 	type TransferRetrieval
-} from "@twin.org/dataspace-models";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
-import { DataspaceProtocolTransferProcessStateType } from "@twin.org/standards-dataspace-protocol";
-import { OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
-import type { ITelemetryComponent } from "@twin.org/telemetry-models";
+} from "@3sixty/dataspace-models";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import type { IRightsManagementAgreement } from "@3sixty/rights-management-models";
+import { DataspaceProtocolTransferProcessStateType } from "@3sixty/standards-dataspace-protocol";
+import { OdrlPolicyType } from "@3sixty/standards-w3c-odrl";
+import type { ITelemetryComponent } from "@3sixty/telemetry-models";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";
 import { MockPolicyAdministrationPointComponent } from "./mocks/mockPolicyAdministrationPoint.js";

@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { BaseSocketClient } from "@twin.org/api-core";
-import type { IHttpResponse } from "@twin.org/api-models";
+import { BaseSocketClient } from "@3sixty/api-core";
+import type { IHttpResponse } from "@3sixty/api-models";
 import {
 	BaseError,
 	ComponentFactory,
@@ -12,8 +12,8 @@ import {
 	NotImplementedError,
 	NotSupportedError,
 	RandomHelper
-} from "@twin.org/core";
-import type { IJsonLdContextDefinitionElement } from "@twin.org/data-json-ld";
+} from "@3sixty/core";
+import type { IJsonLdContextDefinitionElement } from "@3sixty/data-json-ld";
 import type {
 	IActivityLogEntry,
 	IActivityLogStatusNotification,
@@ -22,10 +22,10 @@ import type {
 	IDataspaceDataPlaneComponent,
 	IEntitySet,
 	IFilteringQuery
-} from "@twin.org/dataspace-models";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { nameof } from "@twin.org/nameof";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/dataspace-models";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { nameof } from "@3sixty/nameof";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
 import type { IDataspaceDataPlaneSocketClientConstructorOptions } from "./models/IDataspaceDataPlaneSocketClientConstructorOptions.js";
 
 /**

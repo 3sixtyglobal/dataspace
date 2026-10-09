@@ -9,25 +9,25 @@
  * FederatedCatalogue behavior and allows inspection of stored dataset state.
  */
 
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Is } from "@twin.org/core";
-import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import type { IFederatedCatalogueComponent } from "@twin.org/federated-catalogue-models";
-import type { Dataset } from "@twin.org/federated-catalogue-service";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import type { IPolicyAdministrationPointComponent } from "@twin.org/rights-management-models";
-import type { IDataspaceProtocolTransferProcess } from "@twin.org/standards-dataspace-protocol";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, Is } from "@3sixty/core";
+import type { DataspaceAppDataset, TransferProcess } from "@3sixty/dataspace-models";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import type { IFederatedCatalogueComponent } from "@3sixty/federated-catalogue-models";
+import type { Dataset } from "@3sixty/federated-catalogue-service";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import type { IPolicyAdministrationPointComponent } from "@3sixty/rights-management-models";
+import type { IDataspaceProtocolTransferProcess } from "@3sixty/standards-dataspace-protocol";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessStateType,
 	DataspaceProtocolTransferProcessTypes
-} from "@twin.org/standards-dataspace-protocol";
-import { DublinCoreContexts } from "@twin.org/standards-dublin-core";
-import type { IDcatDataset } from "@twin.org/standards-w3c-dcat";
-import { DcatClasses, DcatContexts } from "@twin.org/standards-w3c-dcat";
-import { OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
+} from "@3sixty/standards-dataspace-protocol";
+import { DublinCoreContexts } from "@3sixty/standards-dublin-core";
+import type { IDcatDataset } from "@3sixty/standards-w3c-dcat";
+import { DcatClasses, DcatContexts } from "@3sixty/standards-w3c-dcat";
+import { OdrlContexts, OdrlPolicyType } from "@3sixty/standards-w3c-odrl";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import {
 	cleanupFederatedCatalogueIntegration,
@@ -176,7 +176,7 @@ describe("DataspaceControlPlaneService - FederatedCatalogue Integration (Real Se
 		} as unknown as IDcatDataset;
 
 		// ContextIdStore.run() sets AsyncLocalStorage context shared across all module instances,
-		// including the FederatedCatalogueService which resolves @twin.org/context from its own
+		// including the FederatedCatalogueService which resolves @3sixty/context from its own
 		// node_modules. vi.spyOn only patches the local module, so run() is required here.
 		await ContextIdStore.run(
 			{

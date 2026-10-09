@@ -10,6 +10,7 @@
 	"versioning": "prerelease",
 	"prerelease": true,
 	"prerelease-type": "next",
+	"last-release-sha": "e69ac6a7b7a7cd360f581dd2324feee4570c9637",
 	"packages": {
 		"packages/dataspace-models": {
 			"package-name": "dataspace-models",

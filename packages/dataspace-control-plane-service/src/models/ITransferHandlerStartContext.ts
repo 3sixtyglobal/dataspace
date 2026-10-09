@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { ITransferProcess } from "@twin.org/dataspace-models";
-import type { ITrustComponent } from "@twin.org/trust-models";
+import type { ITransferProcess } from "@3sixty/dataspace-models";
+import type { ITrustComponent } from "@3sixty/trust-models";
 
 /**
  * Context supplied to buildProviderStartDataAddress during startTransfer (provider role).

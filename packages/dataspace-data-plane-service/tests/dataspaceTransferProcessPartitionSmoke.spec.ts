@@ -22,12 +22,12 @@
  * matching the Control Plane. Both tests below should pass.
  */
 
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { TransferProcess } from "@twin.org/dataspace-models";
-import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { nameof } from "@twin.org/nameof";
-import { DataspaceProtocolTransferProcessStateType } from "@twin.org/standards-dataspace-protocol";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { TransferProcess } from "@3sixty/dataspace-models";
+import { EntitySchemaFactory, EntitySchemaHelper } from "@3sixty/entity";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { nameof } from "@3sixty/nameof";
+import { DataspaceProtocolTransferProcessStateType } from "@3sixty/standards-dataspace-protocol";
 import { beforeAll, describe, expect, test, vi } from "vitest";
 
 const TEST_NODE_ID = "did:iota:testnet:node-abc";

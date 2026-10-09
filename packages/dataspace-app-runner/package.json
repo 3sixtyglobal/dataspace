@@ -1,10 +1,10 @@
 {
-	"name": "@twin.org/dataspace-app-runner",
-	"version": "0.11.1-next.0",
+	"name": "@3sixty/dataspace-app-runner",
+	"version": "0.20.0-next.0",
 	"description": "Runs dataspace app activity handlers in background execution contexts.",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/3sixtyglobal/twin-dataspace.git",
+		"url": "git+https://github.com/3sixtyglobal/dataspace.git",
 		"directory": "packages/dataspace-app-runner"
 	},
 	"author": "jose.cantera@iota.org",
@@ -29,27 +29,27 @@
 		"dist:no-test": "pnpm run clean && concurrently -g -n build,locales,types \"pnpm run build\" \"pnpm run validate-locales\" \"pnpm run test:build\""
 	},
 	"dependencies": {
-		"@twin.org/context": "next",
-		"@twin.org/core": "next",
-		"@twin.org/dataspace-models": "0.11.1-next.0",
-		"@twin.org/logging-models": "next",
-		"@twin.org/modules": "next",
-		"@twin.org/nameof": "next",
-		"@twin.org/rights-management-models": "next",
-		"@twin.org/standards-w3c-activity-streams": "next",
-		"@twin.org/trust-models": "next",
-		"@twin.org/web": "next"
+		"@3sixty/context": "next",
+		"@3sixty/core": "next",
+		"@3sixty/dataspace-models": "0.20.0-next.0",
+		"@3sixty/logging-models": "next",
+		"@3sixty/modules": "next",
+		"@3sixty/nameof": "next",
+		"@3sixty/rights-management-models": "next",
+		"@3sixty/standards-w3c-activity-streams": "next",
+		"@3sixty/trust-models": "next",
+		"@3sixty/web": "next"
 	},
 	"devDependencies": {
-		"@twin.org/entity-storage-connector-memory": "next",
-		"@twin.org/entity-storage-models": "next",
-		"@twin.org/identity-connector-entity-storage": "next",
-		"@twin.org/identity-models": "next",
-		"@twin.org/nameof-transformer": "next",
-		"@twin.org/nameof-vitest-plugin": "next",
-		"@twin.org/validate-locales": "next",
-		"@twin.org/vault-connector-entity-storage": "next",
-		"@twin.org/vault-models": "next",
+		"@3sixty/entity-storage-connector-memory": "next",
+		"@3sixty/entity-storage-models": "next",
+		"@3sixty/identity-connector-entity-storage": "next",
+		"@3sixty/identity-models": "next",
+		"@3sixty/nameof-transformer": "next",
+		"@3sixty/nameof-vitest-plugin": "next",
+		"@3sixty/validate-locales": "next",
+		"@3sixty/vault-connector-entity-storage": "next",
+		"@3sixty/vault-models": "next",
 		"@types/node": "26.6.2",
 		"concurrently": "10.0.5",
 		"copyfiles": "2.4.1",
@@ -88,7 +88,7 @@
 		"integration"
 	],
 	"bugs": {
-		"url": "git+https://github.com/3sixtyglobal/twin-dataspace/issues"
+		"url": "git+https://github.com/3sixtyglobal/dataspace/issues"
 	},
-	"homepage": "https://twindev.org"
+	"homepage": "https://3sixty.global"
 }

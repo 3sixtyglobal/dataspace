@@ -1,17 +1,17 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Guards, Is } from "@twin.org/core";
-import { getJsonLdId, type IPushDeliveryPayload } from "@twin.org/dataspace-models";
-import { ModuleHelper } from "@twin.org/modules";
-import { nameof } from "@twin.org/nameof";
-import type { IPolicyEnforcementPointComponent } from "@twin.org/rights-management-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, Guards, Is } from "@3sixty/core";
+import { getJsonLdId, type IPushDeliveryPayload } from "@3sixty/dataspace-models";
+import { ModuleHelper } from "@3sixty/modules";
+import { nameof } from "@3sixty/nameof";
+import type { IPolicyEnforcementPointComponent } from "@3sixty/rights-management-models";
 import {
 	ActivityStreamsContexts,
 	ActivityStreamsTypes,
 	type IActivityStreamsActivity
-} from "@twin.org/standards-w3c-activity-streams";
-import type { ITrustComponent } from "@twin.org/trust-models";
+} from "@3sixty/standards-w3c-activity-streams";
+import type { ITrustComponent } from "@3sixty/trust-models";
 import {
 	FetchHelper,
 	HeaderHelper,
@@ -19,7 +19,7 @@ import {
 	HttpMethod,
 	MimeTypes,
 	type IHttpHeaders
-} from "@twin.org/web";
+} from "@3sixty/web";
 
 const PUSH_DELIVERY_RUNNER_SOURCE = "pushDeliveryRunner";
 
@@ -50,7 +50,7 @@ export async function pushDeliveryRunnerStart(engineCloneData: unknown): Promise
 				start: () => Promise<void>;
 				stop: () => Promise<void>;
 				getRegisteredInstanceTypeOptional: (componentConnectorType: string) => string | undefined;
-			}>("@twin.org/engine-core", "EngineCoreBuilder.fromClone", [
+			}>("@3sixty/engine-core", "EngineCoreBuilder.fromClone", [
 				"engine",
 				engineCloneData,
 				await ContextIdStore.getContextIds(),

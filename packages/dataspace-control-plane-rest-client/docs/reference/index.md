@@ -1,4 +1,4 @@
-# @twin.org/dataspace-control-plane-rest-client
+# @3sixty/dataspace-control-plane-rest-client
 
 ## Classes
 

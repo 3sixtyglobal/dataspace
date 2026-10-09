@@ -1,8 +1,8 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { HttpContextIdKeys, HttpUrlHelper, type IPlatformComponent } from "@twin.org/api-models";
-import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
-import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/context";
+import { HttpContextIdKeys, HttpUrlHelper, type IPlatformComponent } from "@3sixty/api-models";
+import type { ITaskSchedulerComponent } from "@3sixty/background-task-models";
+import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@3sixty/context";
 import {
 	AlreadyExistsError,
 	ArrayHelper,
@@ -24,12 +24,12 @@ import {
 	Url,
 	Urn,
 	ValidationError
-} from "@twin.org/core";
+} from "@3sixty/core";
 import {
 	JsonLdHelper,
 	type JsonLdObjectWithNoContext,
 	type JsonLdObjectWithOptionalAtId
-} from "@twin.org/data-json-ld";
+} from "@3sixty/data-json-ld";
 import {
 	DataspaceControlPlaneMetricIds,
 	DataspaceControlPlaneMetrics,
@@ -50,20 +50,20 @@ import {
 	type ITransferQueryResult,
 	type TransferProcess,
 	type TransferRetrieval
-} from "@twin.org/dataspace-models";
+} from "@3sixty/dataspace-models";
 import {
 	ComparisonOperator,
 	LogicalOperator,
 	SortDirection,
 	type EntityCondition
-} from "@twin.org/entity";
+} from "@3sixty/entity";
 import {
 	EntityStorageConnectorFactory,
 	type IEntityStorageConnector
-} from "@twin.org/entity-storage-models";
-import type { IFederatedCatalogueComponent } from "@twin.org/federated-catalogue-models";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
+} from "@3sixty/entity-storage-models";
+import type { IFederatedCatalogueComponent } from "@3sixty/federated-catalogue-models";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
 import {
 	OdrlPolicyHelper,
 	PolicyRequesterFactory,
@@ -72,7 +72,7 @@ import {
 	type IPolicyNegotiationPointComponent,
 	type IRightsManagementAgreement,
 	type IRightsManagementPolicy
-} from "@twin.org/rights-management-models";
+} from "@3sixty/rights-management-models";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolContractNegotiationTypes,
@@ -93,11 +93,11 @@ import {
 	type IDataspaceProtocolTransferSuspensionMessage,
 	type IDataspaceProtocolTransferTerminationMessage,
 	type IDataspaceProtocolVersionResponse
-} from "@twin.org/standards-dataspace-protocol";
-import type { IDcatDataset, IDcatDistributionBase } from "@twin.org/standards-w3c-dcat";
-import { OdrlActionType, OdrlContexts, OdrlPolicyType } from "@twin.org/standards-w3c-odrl";
-import { MetricHelper, type ITelemetryComponent } from "@twin.org/telemetry-models";
-import { TrustHelper, type ITrustComponent } from "@twin.org/trust-models";
+} from "@3sixty/standards-dataspace-protocol";
+import type { IDcatDataset, IDcatDistributionBase } from "@3sixty/standards-w3c-dcat";
+import { OdrlActionType, OdrlContexts, OdrlPolicyType } from "@3sixty/standards-w3c-odrl";
+import { MetricHelper, type ITelemetryComponent } from "@3sixty/telemetry-models";
+import { TrustHelper, type ITrustComponent } from "@3sixty/trust-models";
 import { DataspaceControlPlanePolicyRequester } from "./dataspaceControlPlanePolicyRequester.js";
 import { TransferHandlerFactory } from "./factories/transferHandlerFactory.js";
 import { HttpDataPostTransferHandler } from "./handlers/httpDataPostTransferHandler.js";

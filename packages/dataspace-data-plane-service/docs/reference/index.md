@@ -1,4 +1,4 @@
-# @twin.org/dataspace-data-plane-service
+# @3sixty/dataspace-data-plane-service
 
 ## Classes
 

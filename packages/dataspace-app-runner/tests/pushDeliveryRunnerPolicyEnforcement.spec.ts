@@ -8,12 +8,12 @@
  * boundary the real payload crosses.
  */
 
-import { ContextIdStore } from "@twin.org/context";
-import { ComponentFactory } from "@twin.org/core";
-import type { IPushDeliveryPayload } from "@twin.org/dataspace-models";
-import { ModuleHelper } from "@twin.org/modules";
-import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
-import { FetchHelper } from "@twin.org/web";
+import { ContextIdStore } from "@3sixty/context";
+import { ComponentFactory } from "@3sixty/core";
+import type { IPushDeliveryPayload } from "@3sixty/dataspace-models";
+import { ModuleHelper } from "@3sixty/modules";
+import type { IRightsManagementAgreement } from "@3sixty/rights-management-models";
+import { FetchHelper } from "@3sixty/web";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
 	pushDeliveryRunner,

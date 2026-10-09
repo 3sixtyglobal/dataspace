@@ -7,7 +7,7 @@ The API surface mirrors service operations to reduce translation work in consumi
 ## Installation
 
 ```shell
-npm install @twin.org/dataspace-data-plane-rest-client
+npm install @3sixty/dataspace-data-plane-rest-client
 ```
 
 ## Examples

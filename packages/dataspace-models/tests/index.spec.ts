@@ -4,7 +4,7 @@
 import {
 	ActivityStreamsContexts,
 	ActivityStreamsTypes
-} from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/standards-w3c-activity-streams";
 
 import type { IDataspaceActivity } from "../src/models/IDataspaceActivity.js";
 

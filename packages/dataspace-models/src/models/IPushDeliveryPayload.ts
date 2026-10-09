@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IJsonLdNodeObject } from "@twin.org/data-json-ld";
-import type { IRightsManagementAgreement } from "@twin.org/rights-management-models";
+import type { IJsonLdNodeObject } from "@3sixty/data-json-ld";
+import type { IRightsManagementAgreement } from "@3sixty/rights-management-models";
 
 /**
  * Payload handed to pushDeliveryRunner via a Background Task.

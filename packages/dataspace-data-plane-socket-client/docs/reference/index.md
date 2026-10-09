@@ -1,4 +1,4 @@
-# @twin.org/dataspace-data-plane-socket-client
+# @3sixty/dataspace-data-plane-socket-client
 
 ## Classes
 

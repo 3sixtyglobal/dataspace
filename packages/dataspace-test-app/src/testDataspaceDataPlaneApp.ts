@@ -1,9 +1,9 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Guards } from "@twin.org/core";
-import { DataTypeHandlerFactory } from "@twin.org/data-core";
-import type { IJsonLdDocument } from "@twin.org/data-json-ld";
+import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, Guards } from "@3sixty/core";
+import { DataTypeHandlerFactory } from "@3sixty/data-core";
+import type { IJsonLdDocument } from "@3sixty/data-json-ld";
 import {
 	DataRequestType,
 	type IDataspaceActivity,
@@ -11,10 +11,10 @@ import {
 	type IDataRequest,
 	type IDataspaceApp,
 	type IProcessingGroupOptions
-} from "@twin.org/dataspace-models";
-import type { ILoggingComponent } from "@twin.org/logging-models";
-import { nameof } from "@twin.org/nameof";
-import type { IActivityStreamsActivity } from "@twin.org/standards-w3c-activity-streams";
+} from "@3sixty/dataspace-models";
+import type { ILoggingComponent } from "@3sixty/logging-models";
+import { nameof } from "@3sixty/nameof";
+import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
 import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
 
 // Default consignments - two entries with different port locations for filtering tests.

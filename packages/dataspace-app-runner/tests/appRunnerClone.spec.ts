@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { ContextIdStore } from "@twin.org/context";
-import { ModuleHelper } from "@twin.org/modules";
+import { ContextIdStore } from "@3sixty/context";
+import { ModuleHelper } from "@3sixty/modules";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { appRunnerEnd, appRunnerStart } from "../src/appRunner.js";
 
@@ -61,7 +61,7 @@ describe("appRunner - engine clone exclusions", () => {
 		await appRunnerStart(CLONE_WITH_TYPES, ["^rightsManagement"]);
 
 		expect(filterCall()).toEqual([
-			"@twin.org/engine-models",
+			"@3sixty/engine-models",
 			"EngineCloneHelper.filterCloneComponents",
 			[CLONE_WITH_TYPES, ["^rightsManagement"], true]
 		]);
@@ -71,7 +71,7 @@ describe("appRunner - engine clone exclusions", () => {
 		await appRunnerStart(CLONE_WITH_TYPES);
 
 		expect(filterCall()).toEqual([
-			"@twin.org/engine-models",
+			"@3sixty/engine-models",
 			"EngineCloneHelper.filterCloneComponents",
 			[CLONE_WITH_TYPES, undefined, true]
 		]);
@@ -81,7 +81,7 @@ describe("appRunner - engine clone exclusions", () => {
 		await appRunnerStart(CLONE_WITH_TYPES, ["^rightsManagement"]);
 
 		const call = fromCloneCall();
-		expect(call?.[0]).toBe("@twin.org/engine-core");
+		expect(call?.[0]).toBe("@3sixty/engine-core");
 		expect((call?.[2] as unknown[])[1]).toBe(FILTERED_CLONE);
 		expect(mockEngineStart).toHaveBeenCalledTimes(1);
 	});

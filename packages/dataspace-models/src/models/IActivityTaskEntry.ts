@@ -1,7 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 
-import type { IError } from "@twin.org/core";
+import type { IError } from "@3sixty/core";
 import type { ActivityTaskStatus } from "./activityTaskStatus.js";
 
 /**

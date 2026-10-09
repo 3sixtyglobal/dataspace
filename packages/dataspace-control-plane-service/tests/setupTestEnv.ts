@@ -1,20 +1,20 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import type { IPlatformComponent } from "@twin.org/api-models";
-import type { ITaskSchedulerComponent } from "@twin.org/background-task-models";
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { Converter, ComponentFactory, I18n } from "@twin.org/core";
+import type { IPlatformComponent } from "@3sixty/api-models";
+import type { ITaskSchedulerComponent } from "@3sixty/background-task-models";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { Converter, ComponentFactory, I18n } from "@3sixty/core";
 import {
 	DataspaceAppDataset,
 	TransferProcess,
 	TransferRetrieval,
 	type IDataspaceDataPlaneComponent
-} from "@twin.org/dataspace-models";
-import { EntitySchemaFactory, EntitySchemaHelper } from "@twin.org/entity";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import { DataspaceProtocolDataTypes } from "@twin.org/standards-dataspace-protocol";
-import { addAllContextsToDocumentCache } from "@twin.org/standards-ld-contexts";
-import type { ITrustComponent } from "@twin.org/trust-models";
+} from "@3sixty/dataspace-models";
+import { EntitySchemaFactory, EntitySchemaHelper } from "@3sixty/entity";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import { DataspaceProtocolDataTypes } from "@3sixty/standards-dataspace-protocol";
+import { addAllContextsToDocumentCache } from "@3sixty/standards-ld-contexts";
+import type { ITrustComponent } from "@3sixty/trust-models";
 import { vi } from "vitest";
 import { MockPolicyNegotiationAdminPointComponent } from "./mocks/mockPolicyNegotiationAdminPoint.js";
 import locales from "../locales/en.json" with { type: "json" };

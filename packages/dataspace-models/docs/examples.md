@@ -5,7 +5,7 @@ Use these snippets to register dataspace data types and shape transfer process r
 ## DataspaceDataTypes
 
 ```typescript
-import { DataspaceDataTypes } from '@twin.org/dataspace-models';
+import { DataspaceDataTypes } from '@3sixty/dataspace-models';
 
 DataspaceDataTypes.registerTypes();
 console.log('registered'); // registered
@@ -14,7 +14,7 @@ console.log('registered'); // registered
 ## TransferProcess
 
 ```typescript
-import { TransferProcess } from '@twin.org/dataspace-models';
+import { TransferProcess } from '@3sixty/dataspace-models';
 
 const process = new TransferProcess();
 process.id = 'tp-001';

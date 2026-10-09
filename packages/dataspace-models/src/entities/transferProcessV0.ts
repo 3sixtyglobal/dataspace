@@ -1,11 +1,11 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
-import { entity, property, SortDirection } from "@twin.org/entity";
-import type { IRightsManagementPolicy } from "@twin.org/rights-management-models";
+import { entity, property, SortDirection } from "@3sixty/entity";
+import type { IRightsManagementPolicy } from "@3sixty/rights-management-models";
 import type {
 	DataspaceProtocolTransferProcessStateType,
 	IDataspaceProtocolDataAddress
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 import type { TransferProcessRole } from "../models/controlPlane/transferProcessRole.js";
 
 /**

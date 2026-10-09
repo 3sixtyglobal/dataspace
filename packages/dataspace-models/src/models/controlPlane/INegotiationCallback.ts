@@ -4,7 +4,7 @@ import type {
 	DataspaceProtocolContractNegotiationStateType,
 	IDataspaceProtocolAgreement,
 	IDataspaceProtocolOffer
-} from "@twin.org/standards-dataspace-protocol";
+} from "@3sixty/standards-dataspace-protocol";
 
 /**
  * Callback interface for negotiation state change notifications.

@@ -5,7 +5,7 @@ Use these snippets to consume activity updates over sockets and manage local sub
 ## DataspaceDataPlaneSocketClient
 
 ```typescript
-import { DataspaceDataPlaneSocketClient } from '@twin.org/dataspace-data-plane-socket-client';
+import { DataspaceDataPlaneSocketClient } from '@3sixty/dataspace-data-plane-socket-client';
 
 const client = new DataspaceDataPlaneSocketClient({
   config: {
@@ -18,7 +18,7 @@ console.log(client.className()); // DataspaceDataPlaneSocketClient
 ```
 
 ```typescript
-import { DataspaceDataPlaneSocketClient } from '@twin.org/dataspace-data-plane-socket-client';
+import { DataspaceDataPlaneSocketClient } from '@3sixty/dataspace-data-plane-socket-client';
 
 const client = new DataspaceDataPlaneSocketClient({
   config: {
@@ -35,7 +35,7 @@ await client.unSubscribeToActivityLog(subscriptionId);
 ```
 
 ```typescript
-import { DataspaceDataPlaneRestClient } from '@twin.org/dataspace-data-plane-rest-client';
+import { DataspaceDataPlaneRestClient } from '@3sixty/dataspace-data-plane-rest-client';
 
 const client = new DataspaceDataPlaneRestClient({ endpoint: 'http://localhost:8090' });
 const trustPayload = 'eyJhbGciOi...';
@@ -46,7 +46,7 @@ console.log(logEntry.status); // completed
 ```
 
 ```typescript
-import { DataspaceDataPlaneSocketClient } from '@twin.org/dataspace-data-plane-socket-client';
+import { DataspaceDataPlaneSocketClient } from '@3sixty/dataspace-data-plane-socket-client';
 
 const client = new DataspaceDataPlaneSocketClient({
   config: {
@@ -74,8 +74,8 @@ try {
 ```
 
 ```typescript
-import { DataspaceDataPlaneSocketClient } from '@twin.org/dataspace-data-plane-socket-client';
-import type { IActivityStreamsActivity } from '@twin.org/standards-w3c-activity-streams';
+import { DataspaceDataPlaneSocketClient } from '@3sixty/dataspace-data-plane-socket-client';
+import type { IActivityStreamsActivity } from '@3sixty/standards-w3c-activity-streams';
 
 const client = new DataspaceDataPlaneSocketClient({
   config: {

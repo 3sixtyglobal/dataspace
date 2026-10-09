@@ -9,14 +9,14 @@
  * PAP behavior and allows inspection of stored policy state.
  */
 
-import { ContextIdKeys, ContextIdStore } from "@twin.org/context";
-import { ComponentFactory, Is } from "@twin.org/core";
-import type { DataspaceAppDataset, TransferProcess } from "@twin.org/dataspace-models";
-import { MemoryEntityStorageConnector } from "@twin.org/entity-storage-connector-memory";
-import { EntityStorageConnectorFactory } from "@twin.org/entity-storage-models";
-import { nameof, nameofKebabCase } from "@twin.org/nameof";
-import type { IPolicyAdministrationPointComponent } from "@twin.org/rights-management-models";
-import type { OdrlPolicy } from "@twin.org/rights-management-pap-service";
+import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
+import { ComponentFactory, Is } from "@3sixty/core";
+import type { DataspaceAppDataset, TransferProcess } from "@3sixty/dataspace-models";
+import { MemoryEntityStorageConnector } from "@3sixty/entity-storage-connector-memory";
+import { EntityStorageConnectorFactory } from "@3sixty/entity-storage-models";
+import { nameof, nameofKebabCase } from "@3sixty/nameof";
+import type { IPolicyAdministrationPointComponent } from "@3sixty/rights-management-models";
+import type { OdrlPolicy } from "@3sixty/rights-management-pap-service";
 import {
 	DataspaceProtocolContexts,
 	DataspaceProtocolTransferProcessStateType,
@@ -24,8 +24,8 @@ import {
 	type IDataspaceProtocolTransferError,
 	type IDataspaceProtocolTransferProcess,
 	type IDataspaceProtocolAgreement
-} from "@twin.org/standards-dataspace-protocol";
-import { OdrlContexts } from "@twin.org/standards-w3c-odrl";
+} from "@3sixty/standards-dataspace-protocol";
+import { OdrlContexts } from "@3sixty/standards-w3c-odrl";
 import { DataspaceControlPlaneService } from "../src/dataspaceControlPlaneService.js";
 import { cleanupPapIntegration, setupPapIntegration } from "./integration/setupPapIntegration.js";
 import { MockFederatedCatalogueComponent } from "./mocks/mockFederatedCatalogue.js";

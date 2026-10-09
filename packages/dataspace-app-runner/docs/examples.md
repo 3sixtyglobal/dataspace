@@ -5,9 +5,9 @@ Use these snippets to run application logic in background workers while preservi
 ## App Runner Functions
 
 ```typescript
-import { appRunnerStart, appRunner, appRunnerEnd } from '@twin.org/dataspace-app-runner';
-import type { IExecutionPayload } from '@twin.org/dataspace-models';
-import type { IEngineCoreClone } from '@twin.org/engine-models';
+import { appRunnerStart, appRunner, appRunnerEnd } from '@3sixty/dataspace-app-runner';
+import type { IExecutionPayload } from '@3sixty/dataspace-models';
+import type { IEngineCoreClone } from '@3sixty/engine-models';
 
 declare const engineCloneData: IEngineCoreClone;
 declare const payload: IExecutionPayload;
@@ -19,9 +19,9 @@ await appRunnerEnd();
 ```
 
 ```typescript
-import { appRunner } from '@twin.org/dataspace-app-runner';
-import type { IExecutionPayload } from '@twin.org/dataspace-models';
-import type { IEngineCoreClone } from '@twin.org/engine-models';
+import { appRunner } from '@3sixty/dataspace-app-runner';
+import type { IExecutionPayload } from '@3sixty/dataspace-models';
+import type { IEngineCoreClone } from '@3sixty/engine-models';
 
 declare const engineCloneData: IEngineCoreClone;
 

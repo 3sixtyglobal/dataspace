@@ -7,7 +7,7 @@ The exported interfaces and entities are designed to support consistent integrat
 ## Installation
 
 ```shell
-npm install @twin.org/dataspace-models
+npm install @3sixty/dataspace-models
 ```
 
 ## Examples
