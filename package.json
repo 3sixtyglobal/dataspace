@@ -1,5 +1,5 @@
 {
-	"name": "@3sixty/dataspace",
+	"name": "3sixty-dataspace",
 	"version": "0.0.0",
 	"description": "Provides coordinated components for secure dataspace data exchange.",
 	"repository": {
