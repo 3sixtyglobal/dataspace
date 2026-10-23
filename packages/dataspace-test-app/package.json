@@ -1,6 +1,6 @@
 {
 	"name": "@3sixty/dataspace-test-app",
-	"version": "0.20.0-next.0",
+	"version": "0.20.0-next.1",
 	"description": "Provides a sample dataspace app for local integration tests and development workflows.",
 	"repository": {
 		"type": "git",
@@ -34,7 +34,7 @@
 		"@3sixty/core": "next",
 		"@3sixty/data-core": "next",
 		"@3sixty/data-json-ld": "next",
-		"@3sixty/dataspace-models": "0.20.0-next.0",
+		"@3sixty/dataspace-models": "0.20.0-next.1",
 		"@3sixty/logging-models": "next",
 		"@3sixty/nameof": "next",
 		"@3sixty/standards-dataspace-protocol": "next",

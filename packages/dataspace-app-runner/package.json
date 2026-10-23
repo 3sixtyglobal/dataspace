@@ -1,6 +1,6 @@
 {
 	"name": "@3sixty/dataspace-app-runner",
-	"version": "0.20.0-next.0",
+	"version": "0.20.0-next.1",
 	"description": "Runs dataspace app activity handlers in background execution contexts.",
 	"repository": {
 		"type": "git",
@@ -31,7 +31,7 @@
 	"dependencies": {
 		"@3sixty/context": "next",
 		"@3sixty/core": "next",
-		"@3sixty/dataspace-models": "0.20.0-next.0",
+		"@3sixty/dataspace-models": "0.20.0-next.1",
 		"@3sixty/logging-models": "next",
 		"@3sixty/modules": "next",
 		"@3sixty/nameof": "next",
