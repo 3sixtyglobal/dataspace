@@ -217,7 +217,10 @@ export function createSingleTenantPlatformComponent(localOriginOrg?: string): IP
 		execute: async (method: () => Promise<void>) => {
 			await method();
 		},
-		getLocalOriginContext: async () => localContext
+		getLocalOriginContext: async () => localContext,
+		registerTenantEventCallback: () => {},
+		unregisterTenantEventCallback: () => {},
+		fireTenantEvent: async () => {}
 	};
 }
 
@@ -243,6 +246,9 @@ export function createMultiTenantPlatformComponent(
 				await ContextIdStore.run({ ...baseContextIds, ...tenantContextIds }, method);
 			}
 		},
-		getLocalOriginContext: async () => undefined
+		getLocalOriginContext: async () => undefined,
+		registerTenantEventCallback: () => {},
+		unregisterTenantEventCallback: () => {},
+		fireTenantEvent: async () => {}
 	};
 }
