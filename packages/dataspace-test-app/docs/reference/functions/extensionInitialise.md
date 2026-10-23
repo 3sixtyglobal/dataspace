@@ -8,6 +8,8 @@ Initialise the extension.
 
 ### envVars
 
+\{\[`id`: `string`\]: `unknown`; \}
+
 The environment variables for the node.
 
 ### nodeEngineConfig

@@ -8,11 +8,11 @@ A dataspace activity that restricts an activity so that it can be handled by a D
 
 ## Type Parameters
 
-### O
+### O {#o}
 
 `O` *extends* `object` = `object`
 
-### T
+### T {#t}
 
 `T` *extends* `object` = `object`
 
