@@ -248,7 +248,7 @@ importers:
         specifier: next
         version: 0.20.0-next.2
       '@3sixty/dataspace-models':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-models
       '@3sixty/logging-models':
         specifier: next
@@ -342,7 +342,7 @@ importers:
         specifier: next
         version: 0.20.0-next.3
       '@3sixty/dataspace-models':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-models
       '@3sixty/entity':
         specifier: next
@@ -415,7 +415,7 @@ importers:
         specifier: next
         version: 0.20.0-next.3
       '@3sixty/dataspace-models':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-models
       '@3sixty/entity':
         specifier: next
@@ -564,7 +564,7 @@ importers:
         version: 0.20.0-next.2
     devDependencies:
       '@3sixty/dataspace-models':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-models
       '@3sixty/nameof-transformer':
         specifier: next
@@ -633,10 +633,10 @@ importers:
         specifier: next
         version: 0.20.0-next.3
       '@3sixty/dataspace-app-runner':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-app-runner
       '@3sixty/dataspace-models':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-models
       '@3sixty/entity':
         specifier: next
@@ -688,7 +688,7 @@ importers:
         specifier: next
         version: 0.20.0-next.1
       '@3sixty/dataspace-test-app':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-test-app
       '@3sixty/entity-storage-connector-memory':
         specifier: next
@@ -760,7 +760,7 @@ importers:
         specifier: next
         version: 0.20.0-next.3
       '@3sixty/dataspace-models':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-models
       '@3sixty/logging-models':
         specifier: next
@@ -912,7 +912,7 @@ importers:
         specifier: next
         version: 0.20.0-next.3
       '@3sixty/dataspace-models':
-        specifier: 0.20.0-next.0
+        specifier: 0.20.0-next.1
         version: link:../dataspace-models
       '@3sixty/logging-models':
         specifier: next
