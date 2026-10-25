@@ -11,7 +11,8 @@
 	"license": "Apache-2.0",
 	"type": "module",
 	"engines": {
-		"node": ">=24.0.0"
+		"node": ">=24.0.0",
+		"bun": ">=1.4.4"
 	},
 	"scripts": {
 		"clean": "rimraf dist coverage src/schemas .cache",
@@ -19,6 +20,7 @@
 		"build": "pnpm run build:compile",
 		"dev": "nodemon --watch src --ext ts --exec \"pnpm run build\"",
 		"test": "vitest --run --config ./vitest.config.ts",
+		"test:bun": "bunx --bun vitest --run --config ./vitest.config.ts",
 		"test:coverage": "vitest --run --coverage --config ./vitest.config.ts",
 		"test:build": "tstransform -p ./tests/tsconfig.json",
 		"validate-locales": "validate-locales",
@@ -32,7 +34,6 @@
 		"@3sixty/context": "next",
 		"@3sixty/core": "next",
 		"@3sixty/dataspace-models": "0.20.0-next.1",
-		"@3sixty/logging-models": "next",
 		"@3sixty/modules": "next",
 		"@3sixty/nameof": "next",
 		"@3sixty/rights-management-models": "next",
@@ -41,18 +42,11 @@
 		"@3sixty/web": "next"
 	},
 	"devDependencies": {
-		"@3sixty/entity-storage-connector-memory": "next",
-		"@3sixty/entity-storage-models": "next",
-		"@3sixty/identity-connector-entity-storage": "next",
-		"@3sixty/identity-models": "next",
 		"@3sixty/nameof-transformer": "next",
 		"@3sixty/nameof-vitest-plugin": "next",
 		"@3sixty/validate-locales": "next",
-		"@3sixty/vault-connector-entity-storage": "next",
-		"@3sixty/vault-models": "next",
 		"@types/node": "26.6.5",
 		"concurrently": "10.0.6",
-		"copyfiles": "2.4.1",
 		"nodemon": "3.1.14",
 		"rimraf": "6.1.3",
 		"typedoc": "0.28.20",

@@ -11,13 +11,15 @@
 	"license": "Apache-2.0",
 	"type": "module",
 	"engines": {
-		"node": ">=24.0.0"
+		"node": ">=24.0.0",
+		"bun": ">=1.4.4"
 	},
 	"scripts": {
 		"clean": "rimraf dist coverage .cache",
 		"build": "tstransform",
 		"dev": "nodemon --watch src --ext ts --exec \"pnpm run build\"",
 		"test": "vitest --run --config ./vitest.config.ts",
+		"test:bun": "bunx --bun vitest --run --config ./vitest.config.ts",
 		"test:coverage": "vitest --run --coverage --config ./vitest.config.ts",
 		"test:build": "tstransform -p ./tests/tsconfig.json",
 		"validate-locales": "validate-locales",
@@ -29,7 +31,6 @@
 	},
 	"dependencies": {
 		"@3sixty/api-models": "next",
-		"@3sixty/api-tenant-processor": "next",
 		"@3sixty/background-task-models": "next",
 		"@3sixty/context": "next",
 		"@3sixty/core": "next",
@@ -46,15 +47,11 @@
 		"@3sixty/standards-w3c-odrl": "next",
 		"@3sixty/telemetry-models": "next",
 		"@3sixty/trust-models": "next",
-		"@3sixty/vault-models": "next",
 		"@3sixty/web": "next"
 	},
 	"devDependencies": {
-		"@3sixty/api-processors": "next",
-		"@3sixty/api-server-fastify": "next",
 		"@3sixty/entity-storage-connector-memory": "next",
 		"@3sixty/federated-catalogue-service": "next",
-		"@3sixty/logging-connector-entity-storage": "next",
 		"@3sixty/nameof-transformer": "next",
 		"@3sixty/nameof-vitest-plugin": "next",
 		"@3sixty/rights-management-pap-service": "next",
@@ -64,12 +61,10 @@
 		"@3sixty/standards-ld-contexts": "next",
 		"@3sixty/trust-generators": "next",
 		"@3sixty/trust-service": "next",
-		"@3sixty/trust-verifiers": "next",
 		"@3sixty/validate-locales": "next",
 		"@types/node": "26.6.5",
 		"@vitest/coverage-v8": "5.0.5",
 		"concurrently": "10.0.6",
-		"copyfiles": "2.4.1",
 		"nodemon": "3.1.14",
 		"rimraf": "6.1.3",
 		"typedoc": "0.28.20",
