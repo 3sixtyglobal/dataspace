@@ -1,6 +1,6 @@
 {
 	"name": "@3sixty/dataspace-models",
-	"version": "0.20.0-next.1",
+	"version": "0.20.0-next.2",
 	"description": "Defines shared entities, interfaces, and data types used by control plane and data plane components.",
 	"repository": {
 		"type": "git",
