@@ -10,6 +10,7 @@ import {
 	Coerce,
 	ComponentFactory,
 	Converter,
+	DurationConstants,
 	Factory,
 	GeneralError,
 	Guards,
@@ -139,32 +140,33 @@ export class DataspaceControlPlaneService
 	 * Negotiations that haven't received a state update within this time are considered stalled.
 	 * @internal
 	 */
-	private static readonly _STALLED_NEGOTIATION_THRESHOLD_MS = 30 * 60 * 1000;
+	private static readonly _STALLED_NEGOTIATION_THRESHOLD_MS = 30 * DurationConstants.MsPerMinute;
 
 	/**
 	 * Stalled transfer threshold in milliseconds (30 minutes).
 	 * Consumer-initiated transfers left in REQUESTED beyond this time are considered timed out.
 	 * @internal
 	 */
-	private static readonly _STALLED_TRANSFER_THRESHOLD_MS = 30 * 60 * 1000;
+	private static readonly _STALLED_TRANSFER_THRESHOLD_MS = 30 * DurationConstants.MsPerMinute;
 
 	/**
 	 * Default retention for terminal transfers in milliseconds (30 days).
 	 * @internal
 	 */
-	private static readonly _TERMINAL_TRANSFER_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+	private static readonly _TERMINAL_TRANSFER_RETENTION_MS = 30 * DurationConstants.MsPerDay;
 
 	/**
 	 * Default provider transfer policy sweep interval in milliseconds (5 minutes).
 	 * @internal
 	 */
-	private static readonly _PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+	private static readonly _PROVIDER_TRANSFER_POLICY_SWEEP_INTERVAL_MS =
+		5 * DurationConstants.MsPerMinute;
 
 	/**
 	 * Default agreement sweep interval in milliseconds (1 hour).
 	 * @internal
 	 */
-	private static readonly _AGREEMENT_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+	private static readonly _AGREEMENT_SWEEP_INTERVAL_MS = DurationConstants.MsPerHour;
 
 	/**
 	 * The logging component.
@@ -606,7 +608,7 @@ export class DataspaceControlPlaneService
 					// The scheduler has minute granularity; floor at one minute.
 					intervalMinutes: Math.max(
 						1,
-						Math.round(this._providerTransferPolicySweepIntervalMs / 60000)
+						Math.round(this._providerTransferPolicySweepIntervalMs / DurationConstants.MsPerMinute)
 					)
 				}
 			],
@@ -622,7 +624,10 @@ export class DataspaceControlPlaneService
 					{
 						nextTriggerTime: Date.now(),
 						// The scheduler has minute granularity; floor at one minute.
-						intervalMinutes: Math.max(1, Math.round(this._agreementSweepIntervalMs / 60000))
+						intervalMinutes: Math.max(
+							1,
+							Math.round(this._agreementSweepIntervalMs / DurationConstants.MsPerMinute)
+						)
 					}
 				],
 				async () => {

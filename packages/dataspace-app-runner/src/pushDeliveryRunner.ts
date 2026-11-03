@@ -1,7 +1,7 @@
 // Copyright 2026 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
 import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
-import { ComponentFactory, Guards, Is } from "@3sixty/core";
+import { ComponentFactory, DurationConstants, Guards, Is } from "@3sixty/core";
 import { getJsonLdId, type IPushDeliveryPayload } from "@3sixty/dataspace-models";
 import { ModuleHelper } from "@3sixty/modules";
 import { nameof } from "@3sixty/nameof";
@@ -207,9 +207,9 @@ async function pushDeliveryRunnerBody(payload: IPushDeliveryPayload): Promise<un
 		activity,
 		{
 			headers,
-			timeoutMs: payload.pushTimeoutMs ?? 30000,
+			timeoutMs: payload.pushTimeoutMs ?? 30 * DurationConstants.MsPerSecond,
 			retryCount: payload.pushRetryCount ?? 3,
-			retryDelayMs: payload.pushRetryBaseDelayMs ?? 1000
+			retryDelayMs: payload.pushRetryBaseDelayMs ?? DurationConstants.MsPerSecond
 		}
 	);
 

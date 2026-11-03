@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { HttpContextIdKeys } from "@3sixty/api-models";
 import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
-import { ComponentFactory, Converter, Is } from "@3sixty/core";
+import { ComponentFactory, Converter, DurationConstants, Is } from "@3sixty/core";
 import {
 	DataspaceTransferFormat,
 	TransferTerminationCode,
@@ -106,8 +106,9 @@ function createDecodingTrustComponent(): ITrustComponent {
 			const payload = {
 				iss: issuerIdentity,
 				sub: options?.subject ?? {},
-				iat: Math.floor(Date.now() / 1000),
-				exp: Math.floor(Date.now() / 1000) + 86400
+				iat: Math.floor(Date.now() / DurationConstants.MsPerSecond),
+				exp:
+					Math.floor(Date.now() / DurationConstants.MsPerSecond) + DurationConstants.SecondsPerDay
 			};
 			const payloadBase64 = Converter.bytesToBase64(Converter.utf8ToBytes(JSON.stringify(payload)));
 			return `mock-jwt.${payloadBase64}.mock-signature`;
@@ -314,7 +315,10 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
+				setTimeout(
+					() => reject(new Error("Timed out waiting for consumer onStarted")),
+					10 * DurationConstants.MsPerSecond
+				);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(
@@ -404,7 +408,10 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
+				setTimeout(
+					() => reject(new Error("Timed out waiting for consumer onStarted")),
+					10 * DurationConstants.MsPerSecond
+				);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
@@ -464,7 +471,10 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		let resolveFailed: (entry: ILogEntry) => void = () => {};
 		const autoStartFailedLogged = new Promise<ILogEntry>((resolve, reject) => {
 			resolveFailed = resolve;
-			setTimeout(() => reject(new Error("Timed out waiting for the autoStartFailed log")), 10000);
+			setTimeout(
+				() => reject(new Error("Timed out waiting for the autoStartFailed log")),
+				10 * DurationConstants.MsPerSecond
+			);
 		});
 		vi.mocked(loggingComponent.log).mockImplementation(async entry => {
 			if (entry.message === "autoStartFailed") {
@@ -559,7 +569,10 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		let resolveStarted: (message: IDataspaceProtocolTransferStartMessage) => void = () => {};
 		const fired = new Promise<IDataspaceProtocolTransferStartMessage>((resolve, reject) => {
 			resolveStarted = resolve;
-			setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
+			setTimeout(
+				() => reject(new Error("Timed out waiting for consumer onStarted")),
+				10 * DurationConstants.MsPerSecond
+			);
 		});
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
 			resolveStarted(message);
@@ -700,7 +713,10 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 		const onStartedFired = new Promise<IDataspaceProtocolTransferStartMessage>(
 			(resolve, reject) => {
 				resolveStarted = resolve;
-				setTimeout(() => reject(new Error("Timed out waiting for consumer onStarted")), 10000);
+				setTimeout(
+					() => reject(new Error("Timed out waiting for consumer onStarted")),
+					10 * DurationConstants.MsPerSecond
+				);
 			}
 		);
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async (consumerPid, message) => {
@@ -843,7 +859,7 @@ describe("DataspaceControlPlaneService - two-node transfer start integration (au
 			resolveResumed = resolve;
 			setTimeout(
 				() => reject(new Error("Timed out waiting for consumer onStarted (resume)")),
-				10000
+				10 * DurationConstants.MsPerSecond
 			);
 		});
 		vi.mocked(consumerCallback.onStarted).mockImplementation(async () => {

@@ -17,6 +17,7 @@ import {
 	ArrayHelper,
 	BaseError,
 	ComponentFactory,
+	DurationConstants,
 	GeneralError,
 	Is,
 	NotFoundError,
@@ -1244,13 +1245,13 @@ describe("DataspaceDataPlaneService", () => {
 			expect(payload.consumerPid).toBe(TEST_CONSUMER_PID);
 			expect(payload.generatorPid).toBe(TEST_PROVIDER_PID);
 			expect(payload.consumerEndpoint).toBe("https://consumer.example.com/inbox");
-			expect(payload.pushTimeoutMs).toBe(30000);
+			expect(payload.pushTimeoutMs).toBe(30 * DurationConstants.MsPerSecond);
 		});
 
 		test.skip("packages custom pushTimeoutMs from config into payload", async () => {
 			const service = new DataspaceDataPlaneService({
 				...options,
-				config: { pushTimeoutMs: 5000 }
+				config: { pushTimeoutMs: 5 * DurationConstants.MsPerSecond }
 			});
 			await pushSubscriptionStorage.set(seedActiveSubscription());
 			await transferProcessStorage.set(createTestTransferProcess());
@@ -1265,7 +1266,7 @@ describe("DataspaceDataPlaneService", () => {
 
 			const tasks = await backgroundTaskStorage.query();
 			const payload = tasks.entities[0].payload as IPushDeliveryPayload;
-			expect(payload.pushTimeoutMs).toBe(5000);
+			expect(payload.pushTimeoutMs).toBe(5 * DurationConstants.MsPerSecond);
 		});
 
 		test.skip("resolves without task when activity.to is missing", async () => {
@@ -2036,7 +2037,7 @@ describe("DataspaceDataPlaneService", () => {
 		activityCopy.updated = new Date().toISOString();
 
 		const result = await dataspaceDataPlaneService.notifyActivity(activityCopy);
-		await sleep(1000);
+		await sleep(DurationConstants.MsPerSecond);
 
 		const entry = await dataspaceDataPlaneService.getActivityLogEntry(
 			Is.stringValue(result) ? result : result.id
@@ -2061,7 +2062,7 @@ describe("DataspaceDataPlaneService", () => {
 		await seedTestAppDataset(dataspaceAppDatasetStorage);
 
 		const result = await dataspaceDataPlaneService.notifyActivity(extendedActivity);
-		await sleep(1000);
+		await sleep(DurationConstants.MsPerSecond);
 
 		const entry = await dataspaceDataPlaneService.getActivityLogEntry(
 			Is.stringValue(result) ? result : result.id

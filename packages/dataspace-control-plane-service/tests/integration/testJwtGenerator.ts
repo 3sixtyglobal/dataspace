@@ -11,7 +11,7 @@
  * ⚠️ WARNING: These tokens are for TESTING ONLY.
  */
 
-import { Converter } from "@3sixty/core";
+import { Converter, DurationConstants } from "@3sixty/core";
 import type { ITrustGenerator } from "@3sixty/trust-models";
 import { Jwt } from "@3sixty/web";
 
@@ -29,11 +29,11 @@ export class TestJwtGenerator implements ITrustGenerator {
 	}
 
 	public async generate(identity: string, info?: { [key: string]: unknown }): Promise<unknown> {
-		const now = Math.floor(Date.now() / 1000);
+		const now = Math.floor(Date.now() / DurationConstants.MsPerSecond);
 		const payload: { [key: string]: unknown } = {
 			sub: identity,
 			iat: now,
-			exp: now + 3600,
+			exp: now + DurationConstants.SecondsPerHour,
 			iss: "test-generator",
 			...info
 		};
@@ -53,9 +53,9 @@ export class TestJwtGenerator implements ITrustGenerator {
  */
 export async function generateTestJwt(
 	identity: string,
-	expiresInSeconds: number = 3600
+	expiresInSeconds: number = DurationConstants.SecondsPerHour
 ): Promise<string> {
-	const now = Math.floor(Date.now() / 1000);
+	const now = Math.floor(Date.now() / DurationConstants.MsPerSecond);
 
 	// JWT header
 	const header = {
@@ -87,13 +87,13 @@ export async function generateTestJwt(
  * @returns Expired JWT token string.
  */
 export async function generateExpiredTestJwt(identity: string): Promise<string> {
-	const now = Math.floor(Date.now() / 1000);
+	const now = Math.floor(Date.now() / DurationConstants.MsPerSecond);
 
 	const header = { alg: "HS256", typ: "JWT" };
 	const payload = {
 		sub: identity, // Subject (DID identity as string)
 		iat: now - 7200, // Issued 2 hours ago
-		exp: now - 3600, // Expired 1 hour ago
+		exp: now - DurationConstants.SecondsPerHour, // Expired 1 hour ago
 		iss: "test-issuer",
 		aud: "test-audience"
 	};
@@ -109,13 +109,13 @@ export async function generateExpiredTestJwt(identity: string): Promise<string> 
  * @returns JWT token without identity claim.
  */
 export async function generateTestJwtWithoutIdentity(): Promise<string> {
-	const now = Math.floor(Date.now() / 1000);
+	const now = Math.floor(Date.now() / DurationConstants.MsPerSecond);
 
 	const header = { alg: "HS256", typ: "JWT" };
 	const payload = {
 		sub: "", // Empty subject (invalid)
 		iat: now,
-		exp: now + 3600,
+		exp: now + DurationConstants.SecondsPerHour,
 		iss: "test-issuer",
 		aud: "test-audience"
 	};

@@ -11,7 +11,7 @@ import {
 	type BackgroundTask
 } from "@3sixty/background-task-service";
 import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
-import { ComponentFactory, NotFoundError } from "@3sixty/core";
+import { ComponentFactory, DurationConstants, NotFoundError } from "@3sixty/core";
 import {
 	DataspaceAppDataset,
 	DataspaceAppFactory,
@@ -293,7 +293,7 @@ describe("DataspaceDataPlaneService PAP Integration Tests", () => {
 				trustComponentType: TRUST_COMPONENT_TYPE,
 				papComponentType: PAP_COMPONENT_TYPE,
 				// Use an extremely long TTL so the cache does not expire between calls
-				config: { agreementCacheTtlMs: 60_000 },
+				config: { agreementCacheTtlMs: DurationConstants.MsPerMinute },
 				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
 				pushSubscriptionEntityStorageType: nameofKebabCase<PushSubscription>()
 			});
@@ -309,7 +309,7 @@ describe("DataspaceDataPlaneService PAP Integration Tests", () => {
 			const serviceNoCache = new DataspaceDataPlaneService({
 				trustComponentType: TRUST_COMPONENT_TYPE,
 				papComponentType: PAP_COMPONENT_TYPE,
-				config: { agreementCacheTtlMs: 60_000 },
+				config: { agreementCacheTtlMs: DurationConstants.MsPerMinute },
 				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
 				pushSubscriptionEntityStorageType: nameofKebabCase<PushSubscription>()
 			});
@@ -329,7 +329,7 @@ describe("DataspaceDataPlaneService PAP Integration Tests", () => {
 			const service = new DataspaceDataPlaneService({
 				trustComponentType: TRUST_COMPONENT_TYPE,
 				papComponentType: PAP_COMPONENT_TYPE,
-				config: { agreementCacheTtlMs: 60_000 },
+				config: { agreementCacheTtlMs: DurationConstants.MsPerMinute },
 				transferProcessEntityStorageType: nameofKebabCase<TransferProcess>(),
 				pushSubscriptionEntityStorageType: nameofKebabCase<PushSubscription>()
 			});

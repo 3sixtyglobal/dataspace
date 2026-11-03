@@ -14,6 +14,7 @@ import {
 	ComponentFactory,
 	ConflictError,
 	Converter,
+	DurationConstants,
 	Factory,
 	GeneralError,
 	GuardError,
@@ -131,25 +132,26 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * The default cleanup interval in ms. (1 hour)
 	 * @internal
 	 */
-	private static readonly _DEFAULT_CLEANUP_INTERVAL_MS: number = 60 * 60 * 1000;
+	private static readonly _DEFAULT_CLEANUP_INTERVAL_MS: number = DurationConstants.MsPerHour;
 
 	/**
 	 * The default retain interval in ms. (10 minutes)
 	 * @internal
 	 */
-	private static readonly _DEFAULT_RETAIN_INTERVAL_MS: number = 10 * 60 * 1000;
+	private static readonly _DEFAULT_RETAIN_INTERVAL_MS: number = 10 * DurationConstants.MsPerMinute;
 
 	/**
 	 * The margin in ms added to task retention over activity log retention. (5 minutes)
 	 * @internal
 	 */
-	private static readonly _TASK_RETENTION_MARGIN_MS: number = 5 * 60 * 1000;
+	private static readonly _TASK_RETENTION_MARGIN_MS: number = 5 * DurationConstants.MsPerMinute;
 
 	/**
 	 * The default push subscription cleanup interval in ms. (1 hour)
 	 * @internal
 	 */
-	private static readonly _DEFAULT_PUSH_SUBSCRIPTION_CLEANUP_INTERVAL_MS: number = 60 * 60 * 1000;
+	private static readonly _DEFAULT_PUSH_SUBSCRIPTION_CLEANUP_INTERVAL_MS: number =
+		DurationConstants.MsPerHour;
 
 	/**
 	 * The maximum number of agreements held in-memory for PAP lookups.
@@ -394,7 +396,7 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		);
 		this._agreementCacheTtlMs = Is.integer(options?.config?.agreementCacheTtlMs)
 			? options.config.agreementCacheTtlMs
-			: 30_000;
+			: 30 * DurationConstants.MsPerSecond;
 		if (this._agreementCacheTtlMs > 0) {
 			this._agreementCache = new LruCache<IRightsManagementAgreement>({
 				capacity: DataspaceDataPlaneService._DEFAULT_AGREEMENT_CACHE_CAPACITY,
@@ -416,8 +418,9 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 		this._retainActivityLogsForMs = DataspaceDataPlaneService._DEFAULT_RETAIN_INTERVAL_MS;
 		this._retryCount = options?.config?.retryCount;
 		this._pushRetryCount = options?.config?.pushRetryCount ?? 3;
-		this._pushRetryBaseDelayMs = options?.config?.pushRetryBaseDelayMs ?? 1000;
-		this._pushTimeoutMs = options?.config?.pushTimeoutMs ?? 30000;
+		this._pushRetryBaseDelayMs =
+			options?.config?.pushRetryBaseDelayMs ?? DurationConstants.MsPerSecond;
+		this._pushTimeoutMs = options?.config?.pushTimeoutMs ?? 30 * DurationConstants.MsPerSecond;
 		this._activityLogCleanUpIntervalMs = DataspaceDataPlaneService._DEFAULT_CLEANUP_INTERVAL_MS;
 		this._pushSubscriptionCleanupIntervalMs =
 			options?.config?.pushSubscriptionCleanupIntervalMs ??
@@ -539,9 +542,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 
 		// Only we have a task scheduler if there is a retention different than -1
 		if (this._retainActivityLogsForMs !== -1) {
+			const startDelayMs = 5 * DurationConstants.MsPerSecond;
 			const taskTime: IScheduledTaskTime[] = [
 				{
-					nextTriggerTime: Date.now() + 5000,
+					nextTriggerTime: Date.now() + startDelayMs,
 					...this.calculateCleaningTaskSchedule(this._activityLogCleanUpIntervalMs)
 				}
 			];
@@ -566,9 +570,10 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 			});
 		}
 
+		const pushCleanupStartDelayMs = 10 * DurationConstants.MsPerSecond;
 		const pushCleanupTaskTime: IScheduledTaskTime[] = [
 			{
-				nextTriggerTime: Date.now() + 10_000,
+				nextTriggerTime: Date.now() + pushCleanupStartDelayMs,
 				...this.calculateCleaningTaskSchedule(this._pushSubscriptionCleanupIntervalMs)
 			}
 		];
@@ -1996,16 +2001,12 @@ export class DataspaceDataPlaneService implements IDataspaceDataPlaneComponent {
 	 * @internal
 	 */
 	private calculateCleaningTaskSchedule(ms: number): IScheduledTaskTime {
-		const msPerMinute = 60_000;
-		const msPerHour = 60 * msPerMinute;
-		const msPerDay = 24 * msPerHour;
-
 		let remain = ms;
-		const days = Math.floor(remain / msPerDay);
-		remain %= msPerDay;
-		const hours = Math.floor(remain / msPerHour);
-		remain %= msPerHour;
-		const minutes = Math.floor(remain / msPerMinute);
+		const days = Math.floor(remain / DurationConstants.MsPerDay);
+		remain %= DurationConstants.MsPerDay;
+		const hours = Math.floor(remain / DurationConstants.MsPerHour);
+		remain %= DurationConstants.MsPerHour;
+		const minutes = Math.floor(remain / DurationConstants.MsPerMinute);
 
 		return { intervalDays: days, intervalHours: hours, intervalMinutes: minutes };
 	}

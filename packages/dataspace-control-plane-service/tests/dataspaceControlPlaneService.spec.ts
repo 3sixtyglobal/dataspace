@@ -5,6 +5,7 @@ import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
 import {
 	ComponentFactory,
 	Converter,
+	DurationConstants,
 	Factory,
 	GeneralError,
 	Is,
@@ -7541,7 +7542,7 @@ describe("DataspaceControlPlaneService", () => {
 		});
 
 		test("applyProviderTransferPolicies leaves a transfer with a recent state change alone", async () => {
-			const service = createPolicyService(60 * 60 * 1000);
+			const service = createPolicyService(DurationConstants.MsPerHour);
 			const consumerPid = "urn:uuid:policy-recent-001";
 			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
 				dateModified: new Date().toISOString()
@@ -7562,7 +7563,10 @@ describe("DataspaceControlPlaneService", () => {
 			const service = createPolicyService(1);
 			const consumerPid = "urn:uuid:policy-active-001";
 			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider);
-			await seedRetrieval(consumerPid, new Date(Date.now() + 60000).toISOString());
+			await seedRetrieval(
+				consumerPid,
+				new Date(Date.now() + DurationConstants.MsPerMinute).toISOString()
+			);
 
 			await runSweep(service);
 
@@ -7590,7 +7594,7 @@ describe("DataspaceControlPlaneService", () => {
 			const service = createPolicyService(1);
 			const consumerPid = "urn:uuid:policy-resumed-001";
 			await seedPolicyTransfer(consumerPid, TransferProcessRole.Provider, {
-				dateModified: new Date(Date.now() + 60000).toISOString()
+				dateModified: new Date(Date.now() + DurationConstants.MsPerMinute).toISOString()
 			});
 			await seedRetrieval(consumerPid, new Date(0).toISOString());
 

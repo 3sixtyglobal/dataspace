@@ -3,7 +3,7 @@
 import type { IPlatformComponent } from "@3sixty/api-models";
 import type { ITaskSchedulerComponent } from "@3sixty/background-task-models";
 import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
-import { Converter, ComponentFactory, I18n } from "@3sixty/core";
+import { Converter, ComponentFactory, DurationConstants, I18n } from "@3sixty/core";
 import {
 	DataspaceAppDataset,
 	TransferProcess,
@@ -50,8 +50,9 @@ export function createMockTrustComponent(
 			const payload = {
 				iss: issuerIdentity,
 				sub: subject,
-				iat: Math.floor(Date.now() / 1000),
-				exp: Math.floor(Date.now() / 1000) + 86400 // 24 hours
+				iat: Math.floor(Date.now() / DurationConstants.MsPerSecond),
+				exp:
+					Math.floor(Date.now() / DurationConstants.MsPerSecond) + DurationConstants.SecondsPerDay
 			};
 			// Return a base64-encoded mock token (simulating JWT structure)
 			const payloadBytes = Converter.utf8ToBytes(JSON.stringify(payload));

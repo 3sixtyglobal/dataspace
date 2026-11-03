@@ -18,7 +18,7 @@
  * DID resolution and signature validation.
  */
 
-import { GeneralError, Is, type IError } from "@3sixty/core";
+import { DurationConstants, GeneralError, Is, type IError } from "@3sixty/core";
 import type { ITrustVerificationInfo, ITrustVerifier } from "@3sixty/trust-models";
 import { Jwt } from "@3sixty/web";
 
@@ -74,7 +74,7 @@ export class TestJwtVerifier implements ITrustVerifier {
 
 			// Check expiration (basic security check)
 			if (jwtPayload.exp && Is.number(jwtPayload.exp)) {
-				const expirationTime = jwtPayload.exp * 1000; // Convert to milliseconds
+				const expirationTime = jwtPayload.exp * DurationConstants.MsPerSecond; // Convert to milliseconds
 				if (Date.now() > expirationTime) {
 					const error: IError = new GeneralError(TestJwtVerifier.CLASS_NAME, "tokenExpired", {
 						message: "JWT token has expired"

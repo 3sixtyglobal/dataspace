@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { HttpContextIdKeys } from "@3sixty/api-models";
 import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
-import { ComponentFactory, Factory } from "@3sixty/core";
+import { ComponentFactory, DurationConstants, Factory } from "@3sixty/core";
 import {
 	DataspaceTransferFormat,
 	TransferProcessRole,
@@ -28,7 +28,7 @@ import {
 	setupTestEnv
 } from "./setupTestEnv.js";
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const DAY_MS = DurationConstants.MsPerDay;
 const DAY_MS_2 = 2 * DAY_MS;
 const OLD_DATE = new Date(Date.now() - DAY_MS_2).toISOString();
 

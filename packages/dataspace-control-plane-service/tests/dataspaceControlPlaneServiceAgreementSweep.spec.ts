@@ -2,7 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0.
 import { HttpContextIdKeys } from "@3sixty/api-models";
 import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
-import { ComponentFactory, Converter, Factory, GeneralError, RandomHelper } from "@3sixty/core";
+import {
+	ComponentFactory,
+	Converter,
+	DurationConstants,
+	Factory,
+	GeneralError,
+	RandomHelper
+} from "@3sixty/core";
 import {
 	DataspaceControlPlaneMetricIds,
 	TransferProcessRole,
@@ -33,7 +40,7 @@ import {
 	setupTestEnv
 } from "./setupTestEnv.js";
 
-const HOUR_MS = 60 * 60 * 1000;
+const HOUR_MS = DurationConstants.MsPerHour;
 const OLD_DATE = new Date(0).toISOString();
 
 /**
