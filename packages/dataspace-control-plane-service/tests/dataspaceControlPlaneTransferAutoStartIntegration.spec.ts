@@ -53,7 +53,7 @@ const REMOTE_CP_TYPE = "loopback-remote-control-plane";
 
 /**
  * Decode the `iss` claim embedded by createMockTrustComponent.generate().
- * generate() returns `mock-jwt.<base64(JSON)>.mock-signature` where the JSON
+ * generate() returns `mock-jwt.&lt;base64(JSON)&gt;.mock-signature` where the JSON
  * carries `iss: issuerIdentity`. This lets a token issued by one node verify
  * to the correct issuer identity on the other node, simulating cross-node
  * verifiable trust.

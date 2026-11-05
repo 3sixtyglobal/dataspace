@@ -6,5 +6,4 @@ import type { IDataspaceApp } from "../models/app/IDataspaceApp.js";
 /**
  * Factory for registering and retrieving dataspace app instances by name.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceAppFactory = Factory.createFactory<IDataspaceApp>("dataspace-app");

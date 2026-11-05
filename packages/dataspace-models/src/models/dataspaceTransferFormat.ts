@@ -5,7 +5,6 @@
  * TWIN transfer format identifiers used in TransferRequestMessage.format.
  * Follows the Eclipse EDC canonical pattern: DestinationType-FlowType.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceTransferFormat = {
 	/**
 	 * PULL mode: consumer queries data via a bearer-token-protected endpoint.

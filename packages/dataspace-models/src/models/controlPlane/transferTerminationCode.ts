@@ -5,7 +5,6 @@
  * Machine-readable codes set on provider-initiated TransferTerminationMessages
  * by the control plane's transfer lifecycle policies.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const TransferTerminationCode = {
 	/**
 	 * A Provider-side STARTED transfer had no data-plane activity within the configured idle window.

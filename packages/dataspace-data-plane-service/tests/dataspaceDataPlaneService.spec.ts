@@ -96,7 +96,7 @@ const CONSUMER_INBOX_WITH_ORG_ID = `https://consumer.example.com/inbox?organizat
 /**
  * Waits.
  * @param ms milliseconds to sleep.
- * @returns Promise
+ * @returns A promise that resolves when complete.
  */
 async function sleep(ms: number): Promise<void> {
 	return new Promise(resolve => setTimeout(resolve, ms));

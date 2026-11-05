@@ -5,7 +5,6 @@
  * The role of a participant in a Transfer Process.
  * Determines whether the party is acting as Consumer or Provider.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const TransferProcessRole = {
 	/**
 	 * Consumer role - the party requesting data.

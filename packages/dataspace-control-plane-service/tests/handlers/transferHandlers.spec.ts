@@ -29,7 +29,7 @@ function makeEntity(
 		agreementId: string;
 		datasetId: string;
 		providerIdentity: string;
-		dataAddress: { "@type": string; endpointType: string; endpoint: string } | undefined;
+		dataAddress?: { "@type": string; endpointType: string; endpoint: string };
 	}> = {}
 ): Parameters<HttpDataPullTransferHandler["buildProviderStartDataAddress"]>[0]["entity"] {
 	return {

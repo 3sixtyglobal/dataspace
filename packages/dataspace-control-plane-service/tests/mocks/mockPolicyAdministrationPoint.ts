@@ -50,7 +50,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	/**
 	 * Bootstrap the component (no-op for mock).
 	 * @param nodeLoggingComponentType Optional logging component type.
-	 * @returns Promise that resolves to true.
+	 * @returns A promise that resolves to true.
 	 */
 	public async bootstrap(nodeLoggingComponentType?: string): Promise<boolean> {
 		// No-op for mock
@@ -59,7 +59,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 
 	/**
 	 * Start the component (no-op for mock).
-	 * @returns Promise that resolves when complete.
+	 * @returns A promise that resolves when complete.
 	 */
 	public async start(): Promise<void> {
 		// No-op for mock
@@ -67,7 +67,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 
 	/**
 	 * Stop the component (no-op for mock).
-	 * @returns Promise that resolves when complete.
+	 * @returns A promise that resolves when complete.
 	 */
 	public async stop(): Promise<void> {
 		// No-op for mock
@@ -167,7 +167,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	 * Note: Type assertion is intentionally loose to allow storing
 	 * invalid policy types for error scenario testing.
 	 * @param policy The policy to update.
-	 * @returns Promise that resolves when complete.
+	 * @returns A promise that resolves when complete.
 	 */
 	public async update(policy: IRightsManagementPolicy): Promise<void> {
 		this._policies.set(policy["@id"], policy);
@@ -176,7 +176,7 @@ export class MockPolicyAdministrationPointComponent implements IPolicyAdministra
 	/**
 	 * Remove a policy.
 	 * @param policyId The policy ID.
-	 * @returns Promise that resolves when complete.
+	 * @returns A promise that resolves when complete.
 	 */
 	public async remove(policyId: string): Promise<void> {
 		this._policies.delete(policyId);

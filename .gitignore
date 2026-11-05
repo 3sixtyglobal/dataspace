@@ -21,3 +21,4 @@ vitest.config.ts.timestamp*
 .DS_Store
 
 dataspace-apps*.json
+.claude/settings.local.json

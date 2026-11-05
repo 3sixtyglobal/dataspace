@@ -4,7 +4,6 @@
 /**
  * Metric IDs for the dataspace data plane service.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceDataPlaneMetricIds = {
 	/**
 	 * Number of activities notified.

@@ -20,7 +20,7 @@ export interface ITransferHandlerStartContext {
 	/**
 	 * The data plane path segment, if configured.
 	 */
-	dataPlanePath: string | undefined;
+	dataPlanePath?: string;
 
 	/**
 	 * The organization identity resolved from the current context.
@@ -35,5 +35,5 @@ export interface ITransferHandlerStartContext {
 	/**
 	 * The override trust generator type, if configured.
 	 */
-	overrideTrustGeneratorType: string | undefined;
+	overrideTrustGeneratorType?: string;
 }

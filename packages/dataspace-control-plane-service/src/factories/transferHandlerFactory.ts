@@ -8,5 +8,4 @@ import type { ITransferHandler } from "../models/ITransferHandler.js";
  * Keys are DataspaceTransferFormat values (e.g. "HttpData-PULL").
  * Throws GeneralError when get() is called with an unregistered format.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const TransferHandlerFactory = Factory.createFactory<ITransferHandler>("transfer-handler");

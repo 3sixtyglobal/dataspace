@@ -4,7 +4,6 @@
 /**
  * Reasons an agreement is skipped or removed by the control plane, reported in logs.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const AgreementSweepReason = {
 	/**
 	 * A live transfer (REQUESTED, STARTED or SUSPENDED) references the agreement.

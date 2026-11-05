@@ -6,7 +6,6 @@ import { DataspaceDataPlaneMetricIds } from "./dataspaceDataPlaneMetricIds.js";
 /**
  * Metrics registered by the dataspace data plane service.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceDataPlaneMetrics: ITelemetryMetric[] = [
 	{
 		id: DataspaceDataPlaneMetricIds.ActivitiesNotified,

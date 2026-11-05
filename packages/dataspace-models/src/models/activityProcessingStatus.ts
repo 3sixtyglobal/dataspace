@@ -4,7 +4,6 @@
 /**
  * Activity processing statuses.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const ActivityProcessingStatus = {
 	/**
 	 * Pending: Activity Processing has not started yet.

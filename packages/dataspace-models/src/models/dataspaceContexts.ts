@@ -4,7 +4,6 @@
 /**
  * The contexts related to Dataspace
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceContexts = {
 	/**
 	 * The namespace location of the hosted version of the JSON Schema.

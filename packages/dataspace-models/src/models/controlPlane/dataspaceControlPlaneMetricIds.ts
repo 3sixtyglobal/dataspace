@@ -4,7 +4,6 @@
 /**
  * Metric IDs for the dataspace control plane service.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceControlPlaneMetricIds = {
 	/**
 	 * Number of transfer processes requested.

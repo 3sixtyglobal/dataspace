@@ -97,7 +97,7 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	 * Reads the TransferProcess, builds an IFollowActivity, calls the app's
 	 * subscribeToData, and persists a PushSubscription entity.
 	 * @param consumerPid The consumer process ID identifying the transfer.
-	 * @returns Promise that resolves when the subscription is created.
+	 * @returns A promise that resolves when the subscription is created.
 	 */
 	setupPushSubscription(consumerPid: string): Promise<void>;
 
@@ -105,7 +105,7 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	 * Pause deliveries for a push subscription. The subscription entity stays
 	 * alive with status=Paused. No app unsubscribe call.
 	 * @param consumerPid The consumer process ID identifying the transfer.
-	 * @returns Promise that resolves when the subscription is paused.
+	 * @returns A promise that resolves when the subscription is paused.
 	 */
 	suspendPushSubscription(consumerPid: string): Promise<void>;
 
@@ -113,7 +113,7 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	 * Resume deliveries after a SUSPENDED → STARTED transition. Flips status
 	 * back to Active. No app subscribeToData call.
 	 * @param consumerPid The consumer process ID identifying the transfer.
-	 * @returns Promise that resolves when the subscription is resumed.
+	 * @returns A promise that resolves when the subscription is resumed.
 	 */
 	resumePushSubscription(consumerPid: string): Promise<void>;
 
@@ -121,7 +121,7 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	 * Tear down a push subscription. Builds an IUndoActivity, calls the app's
 	 * unsubscribeToData, and deletes the PushSubscription entity.
 	 * @param consumerPid The consumer process ID identifying the transfer.
-	 * @returns Promise that resolves when the subscription is torn down.
+	 * @returns A promise that resolves when the subscription is torn down.
 	 */
 	teardownPushSubscription(consumerPid: string): Promise<void>;
 
@@ -131,7 +131,7 @@ export interface IDataspaceDataPlaneComponent extends IComponent {
 	 * looks up the matching PushSubscription, validates transfer state, and
 	 * schedules a Background Task that POSTs the activity to the consumer.
 	 * @param activity The outbound activity carrying the data payload.
-	 * @returns Promise that resolves when the delivery task is scheduled.
+	 * @returns A promise that resolves when the delivery task is scheduled.
 	 */
 	processOutboxActivity(activity: IActivityStreamsActivity): Promise<void>;
 }

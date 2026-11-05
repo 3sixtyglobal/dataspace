@@ -5,7 +5,6 @@
  * The properties of an endpoint in a Transfer Process.
  * Determines the configuration and authorization details for the endpoint.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const EndpointProperties = {
 	/**
 	 * Authorization property - the authorization token for the endpoint.

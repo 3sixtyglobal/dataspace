@@ -18,7 +18,7 @@ export interface ITransferHandlerPrepareContext {
 	/**
 	 * The data plane path segment, if configured.
 	 */
-	dataPlanePath: string | undefined;
+	dataPlanePath?: string;
 
 	/**
 	 * The organization identity resolved from the current context.

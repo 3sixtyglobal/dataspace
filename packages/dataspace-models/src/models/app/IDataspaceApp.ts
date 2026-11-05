@@ -55,14 +55,14 @@ export interface IDataspaceApp extends IComponent {
 	 * Subscribe the app to produce data for a follower. Called by the
 	 * DS Connector after a push transfer enters STARTED state.
 	 * @param followActivity The Follow activity describing the follower + filter.
-	 * @returns Promise that resolves when the subscription is set up.
+	 * @returns A promise that resolves when the subscription is set up.
 	 */
 	subscribeToData?(followActivity: IFollowActivity): Promise<void>;
 
 	/**
 	 * Undo a previous subscription. Called on transfer complete/terminate.
 	 * @param undoActivity The Undo activity referencing the original Follow.
-	 * @returns Promise that resolves when the subscription is torn down.
+	 * @returns A promise that resolves when the subscription is torn down.
 	 */
 	unsubscribeToData?(undoActivity: IUndoActivity): Promise<void>;
 }

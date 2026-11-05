@@ -6,7 +6,6 @@ import { DataspaceControlPlaneMetricIds } from "./dataspaceControlPlaneMetricIds
 /**
  * Metrics registered by the dataspace control plane service.
  */
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export const DataspaceControlPlaneMetrics: ITelemetryMetric[] = [
 	{
 		id: DataspaceControlPlaneMetricIds.TransfersRequested,

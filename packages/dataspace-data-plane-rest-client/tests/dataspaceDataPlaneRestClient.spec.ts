@@ -9,7 +9,7 @@ import {
 	ActivityStreamsTypes
 } from "@3sixty/standards-w3c-activity-streams";
 import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
-import { HttpMethod } from "@3sixty/web";
+import { HttpMethod, MimeTypes } from "@3sixty/web";
 import { DataspaceDataPlaneRestClient } from "../src/dataspaceDataPlaneRestClient.js";
 import {
 	jsonResponse,
@@ -245,7 +245,7 @@ describe("DataspaceDataPlaneRestClient", () => {
 				ok: true,
 				status: 200,
 				headers: new Headers({
-					"content-type": "application/json",
+					"content-type": MimeTypes.Json,
 					link: `<${ENDPOINT}/${PREFIX}/entities?cursor=page2>; rel="next"`
 				}),
 				json: async () => TEST_ITEM_LIST
@@ -394,7 +394,7 @@ describe("DataspaceDataPlaneRestClient", () => {
 				ok: true,
 				status: 200,
 				headers: new Headers({
-					"content-type": "application/json",
+					"content-type": MimeTypes.Json,
 					link: `<${ENDPOINT}/${PREFIX}/entities/query?cursor=page4>; rel="next"`
 				}),
 				json: async () => TEST_ITEM_LIST
@@ -435,7 +435,7 @@ describe("DataspaceDataPlaneRestClient", () => {
 				ok: true,
 				status: 201,
 				headers: new Headers({
-					"content-type": "application/json",
+					"content-type": MimeTypes.Json,
 					location: `${ENDPOINT}/${PREFIX}/activity-logs/${TEST_LOG_ENTRY_ID}`
 				}),
 				json: async () => undefined
@@ -453,7 +453,7 @@ describe("DataspaceDataPlaneRestClient", () => {
 				ok: true,
 				status: 201,
 				headers: new Headers({
-					"content-type": "application/json",
+					"content-type": MimeTypes.Json,
 					location: `${ENDPOINT}/${PREFIX}/activity-logs/${TEST_LOG_ENTRY_ID}`
 				}),
 				json: async () => undefined
@@ -472,7 +472,7 @@ describe("DataspaceDataPlaneRestClient", () => {
 				ok: true,
 				status: 201,
 				headers: new Headers({
-					"content-type": "application/json",
+					"content-type": MimeTypes.Json,
 					location: `${ENDPOINT}/${PREFIX}/activity-logs/${TEST_LOG_ENTRY_ID}`
 				}),
 				json: async () => undefined
@@ -488,7 +488,7 @@ describe("DataspaceDataPlaneRestClient", () => {
 				ok: true,
 				status: 201,
 				headers: new Headers({
-					"content-type": "application/json",
+					"content-type": MimeTypes.Json,
 					location: `${ENDPOINT}/${PREFIX}/activity-logs/${TEST_LOG_ENTRY_ID}`
 				}),
 				json: async () => TEST_LOG_ENTRY
