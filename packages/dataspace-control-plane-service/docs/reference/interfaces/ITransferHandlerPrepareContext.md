@@ -20,9 +20,9 @@ The consumer's base origin URL.
 
 ***
 
-### dataPlanePath {#dataplanepath}
+### dataPlanePath? {#dataplanepath}
 
-> **dataPlanePath**: `string` \| `undefined`
+> `optional` **dataPlanePath?**: `string`
 
 The data plane path segment, if configured.
 

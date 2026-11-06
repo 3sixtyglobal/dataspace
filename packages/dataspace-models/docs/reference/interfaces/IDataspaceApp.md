@@ -131,7 +131,7 @@ The Follow activity describing the follower + filter.
 
 `Promise`\<`void`\>
 
-Promise that resolves when the subscription is set up.
+A promise that resolves when the subscription is set up.
 
 ***
 
@@ -153,4 +153,4 @@ The Undo activity referencing the original Follow.
 
 `Promise`\<`void`\>
 
-Promise that resolves when the subscription is torn down.
+A promise that resolves when the subscription is torn down.
