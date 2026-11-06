@@ -1,5 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { Converter, DurationConstants } from "@3sixty/core";
+import { nameof } from "@3sixty/nameof";
 
 /**
  * Test JWT Token Generator for integration tests.
@@ -11,7 +13,6 @@
  * ⚠️ WARNING: These tokens are for TESTING ONLY.
  */
 
-import { Converter, DurationConstants } from "@3sixty/core";
 import type { ITrustGenerator } from "@3sixty/trust-models";
 import { Jwt } from "@3sixty/web";
 
@@ -22,7 +23,7 @@ const TEST_JWT_KEY = Converter.utf8ToBytes("test-secret-key-for-integration-test
  * Generates test JWTs that TestJwtVerifier can verify.
  */
 export class TestJwtGenerator implements ITrustGenerator {
-	public static readonly CLASS_NAME: string = "TestJwtGenerator";
+	public static readonly CLASS_NAME: string = nameof<TestJwtGenerator>();
 
 	public className(): string {
 		return TestJwtGenerator.CLASS_NAME;

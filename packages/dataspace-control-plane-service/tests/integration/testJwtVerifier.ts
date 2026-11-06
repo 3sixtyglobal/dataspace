@@ -1,5 +1,7 @@
 // Copyright 2025 IOTA Stiftung.
 // SPDX-License-Identifier: Apache-2.0.
+import { DurationConstants, GeneralError, Is, type IError } from "@3sixty/core";
+import { nameof } from "@3sixty/nameof";
 
 /**
  * Test-specific JWT Verifier for integration tests.
@@ -18,7 +20,6 @@
  * DID resolution and signature validation.
  */
 
-import { DurationConstants, GeneralError, Is, type IError } from "@3sixty/core";
 import type { ITrustVerificationInfo, ITrustVerifier } from "@3sixty/trust-models";
 import { Jwt } from "@3sixty/web";
 
@@ -30,7 +31,7 @@ export class TestJwtVerifier implements ITrustVerifier {
 	/**
 	 * The class name for logging.
 	 */
-	public static readonly CLASS_NAME: string = "TestJwtVerifier";
+	public static readonly CLASS_NAME: string = nameof<TestJwtVerifier>();
 
 	/**
 	 * Verify a JWT token (test implementation).
