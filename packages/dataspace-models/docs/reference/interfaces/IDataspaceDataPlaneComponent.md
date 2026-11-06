@@ -237,7 +237,7 @@ The consumer process ID identifying the transfer.
 
 `Promise`\<`void`\>
 
-Promise that resolves when the subscription is created.
+A promise that resolves when the subscription is created.
 
 ***
 
@@ -260,7 +260,7 @@ The consumer process ID identifying the transfer.
 
 `Promise`\<`void`\>
 
-Promise that resolves when the subscription is paused.
+A promise that resolves when the subscription is paused.
 
 ***
 
@@ -283,7 +283,7 @@ The consumer process ID identifying the transfer.
 
 `Promise`\<`void`\>
 
-Promise that resolves when the subscription is resumed.
+A promise that resolves when the subscription is resumed.
 
 ***
 
@@ -306,7 +306,7 @@ The consumer process ID identifying the transfer.
 
 `Promise`\<`void`\>
 
-Promise that resolves when the subscription is torn down.
+A promise that resolves when the subscription is torn down.
 
 ***
 
@@ -331,4 +331,4 @@ The outbound activity carrying the data payload.
 
 `Promise`\<`void`\>
 
-Promise that resolves when the delivery task is scheduled.
+A promise that resolves when the delivery task is scheduled.

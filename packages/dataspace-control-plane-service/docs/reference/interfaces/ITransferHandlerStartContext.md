@@ -20,9 +20,9 @@ The provider's public origin URL.
 
 ***
 
-### dataPlanePath {#dataplanepath}
+### dataPlanePath? {#dataplanepath}
 
-> **dataPlanePath**: `string` \| `undefined`
+> `optional` **dataPlanePath?**: `string`
 
 The data plane path segment, if configured.
 
@@ -44,8 +44,8 @@ The trust component for generating access tokens.
 
 ***
 
-### overrideTrustGeneratorType {#overridetrustgeneratortype}
+### overrideTrustGeneratorType? {#overridetrustgeneratortype}
 
-> **overrideTrustGeneratorType**: `string` \| `undefined`
+> `optional` **overrideTrustGeneratorType?**: `string`
 
 The override trust generator type, if configured.
