@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.0-next.3](https://github.com/3sixtyglobal/dataspace/compare/dataspace-models-v0.20.0-next.2...dataspace-models-v0.20.0-next.3) (2026-11-06)
+
+
+### Bug Fixes
+
+* apply the shared lint rules for interface names, model locations and deprecated apis ([e03b40c](https://github.com/3sixtyglobal/dataspace/commit/e03b40c47cc6fab49afc8aefe5d5d8ff690461c8))
+
 ## [0.20.0-next.2](https://github.com/3sixtyglobal/dataspace/compare/dataspace-models-v0.20.0-next.1...dataspace-models-v0.20.0-next.2) (2026-10-26)
 
 
