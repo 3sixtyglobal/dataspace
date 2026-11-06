@@ -1,6 +1,6 @@
 {
 	"name": "@3sixty/dataspace-control-plane-rest-client",
-	"version": "0.20.0-next.2",
+	"version": "0.20.0-next.3",
 	"description": "Provides an HTTP client for invoking control plane transfer process endpoints.",
 	"repository": {
 		"type": "git",
@@ -34,7 +34,7 @@
 		"@3sixty/api-core": "next",
 		"@3sixty/api-models": "next",
 		"@3sixty/core": "next",
-		"@3sixty/dataspace-models": "0.20.0-next.2",
+		"@3sixty/dataspace-models": "0.20.0-next.3",
 		"@3sixty/nameof": "next",
 		"@3sixty/standards-dataspace-protocol": "next",
 		"@3sixty/web": "next"
