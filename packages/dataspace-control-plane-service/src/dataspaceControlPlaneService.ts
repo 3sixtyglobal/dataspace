@@ -1574,7 +1574,7 @@ export class DataspaceControlPlaneService
 				);
 				// DSP reason is typed any[] - forward only the first entry since the callback
 				// contract is reason?: string. Additional entries are intentionally dropped.
-				const suspendReason = Array.isArray(message.reason)
+				const suspendReason = Is.array(message.reason)
 					? (message.reason[0] as string | undefined)
 					: (message.reason as string | undefined);
 				await this._internalTransferCallback.onSuspended(entity.consumerPid, suspendReason);
@@ -1721,7 +1721,7 @@ export class DataspaceControlPlaneService
 				);
 				// DSP reason is typed any[] - forward only the first entry since the callback
 				// contract is reason?: string. Additional entries are intentionally dropped.
-				const terminateReason = Array.isArray(message.reason)
+				const terminateReason = Is.array(message.reason)
 					? (message.reason[0] as string | undefined)
 					: (message.reason as string | undefined);
 				await this._internalTransferCallback.onTerminated(entity.consumerPid, terminateReason);
