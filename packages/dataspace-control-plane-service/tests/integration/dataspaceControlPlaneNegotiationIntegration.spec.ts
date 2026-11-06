@@ -1,4 +1,5 @@
 // Copyright 2025 IOTA Stiftung.
+// Copyright 2026 3Sixty Trade Ltd.
 // SPDX-License-Identifier: Apache-2.0.
 import { setupTestEnv } from "../setupTestEnv.js";
 
@@ -9,7 +10,7 @@ import { setupTestEnv } from "../setupTestEnv.js";
 describe("DataspaceControlPlaneService - Contract Negotiation Integration", () => {
 	beforeEach(async () => {
 		await setupTestEnv();
-		// TODO: Setup real PNP requires PAP, PIP dependencies to be registered first
+		// Setting up a real PNP is not done yet, as it requires the PAP and PIP dependencies to be registered first
 		// await setupRightsManagement();
 	});
 
@@ -18,7 +19,7 @@ describe("DataspaceControlPlaneService - Contract Negotiation Integration", () =
 		expect(true).toBe(true);
 	});
 
-	// TODO: Add integration tests for:
+	// Integration tests still to be added for:
 	// - Full negotiation flow (request → offer → agree → verify → finalize)
 	// - Agreement stored in PAP
 	// - Transfer process created with negotiated agreement

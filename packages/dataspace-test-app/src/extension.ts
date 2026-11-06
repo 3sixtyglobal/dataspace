@@ -1,9 +1,10 @@
 // Copyright 2025 IOTA Stiftung.
+// Copyright 2026 3Sixty Trade Ltd.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IRestRoute } from "@3sixty/api-models";
 import { Is } from "@3sixty/core";
 import { DataspaceAppFactory } from "@3sixty/dataspace-models";
-import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
+import type { ITestAppConstructorOptions } from "./models/ITestAppConstructorOptions.js";
 import { TestDataspaceDataPlaneApp } from "./testDataspaceDataPlaneApp.js";
 
 /**

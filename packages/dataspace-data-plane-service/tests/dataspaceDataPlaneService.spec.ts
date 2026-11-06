@@ -1,4 +1,5 @@
 // Copyright 2025 IOTA Stiftung.
+// Copyright 2026 3Sixty Trade Ltd.
 // SPDX-License-Identifier: Apache-2.0.
 import type { IHttpRequestContext } from "@3sixty/api-models";
 import { TaskStatus } from "@3sixty/background-task-models";
@@ -4563,7 +4564,7 @@ describe("DataspaceDataPlaneService", () => {
 	});
 
 	describe("metrics", () => {
-		interface MetricValueEntry {
+		interface IMetricValueEntry {
 			id: string;
 			value: "inc" | "dec" | number;
 			customData?: { [key: string]: unknown };
@@ -4572,10 +4573,10 @@ describe("DataspaceDataPlaneService", () => {
 		function makeMockTelemetry(): {
 			component: ITelemetryComponent;
 			created: ITelemetryMetric[];
-			values: MetricValueEntry[];
+			values: IMetricValueEntry[];
 		} {
 			const created: ITelemetryMetric[] = [];
-			const values: MetricValueEntry[] = [];
+			const values: IMetricValueEntry[] = [];
 			const component: ITelemetryComponent = {
 				className: () => "MockTelemetry",
 				start: async () => {},

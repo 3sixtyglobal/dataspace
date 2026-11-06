@@ -1,4 +1,5 @@
 // Copyright 2025 IOTA Stiftung.
+// Copyright 2026 3Sixty Trade Ltd.
 // SPDX-License-Identifier: Apache-2.0.
 import { ContextIdKeys, ContextIdStore } from "@3sixty/context";
 import { ComponentFactory, Factory, Is } from "@3sixty/core";
@@ -27,7 +28,7 @@ import { createMockEngineCore, createMockTrustComponent, setupTestEnv } from "./
 
 const TEST_APP_ID = "https://twin.example.org/app1";
 
-interface MetricValueEntry {
+interface IMetricValueEntry {
 	id: string;
 	value: "inc" | "dec" | number;
 	customData?: { [key: string]: unknown };
@@ -40,10 +41,10 @@ interface MetricValueEntry {
 function makeMockTelemetry(): {
 	component: ITelemetryComponent;
 	created: ITelemetryMetric[];
-	values: MetricValueEntry[];
+	values: IMetricValueEntry[];
 } {
 	const created: ITelemetryMetric[] = [];
-	const values: MetricValueEntry[] = [];
+	const values: IMetricValueEntry[] = [];
 	const component: ITelemetryComponent = {
 		className: () => "MockTelemetry",
 		start: async () => {},

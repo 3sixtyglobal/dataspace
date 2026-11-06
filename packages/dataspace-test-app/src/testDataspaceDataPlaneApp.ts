@@ -1,4 +1,5 @@
 // Copyright 2025 IOTA Stiftung.
+// Copyright 2026 3Sixty Trade Ltd.
 // SPDX-License-Identifier: Apache-2.0.
 import { ContextIdHelper, ContextIdKeys, ContextIdStore } from "@3sixty/context";
 import { ComponentFactory, Guards } from "@3sixty/core";
@@ -15,7 +16,7 @@ import {
 import type { ILoggingComponent } from "@3sixty/logging-models";
 import { nameof } from "@3sixty/nameof";
 import type { IActivityStreamsActivity } from "@3sixty/standards-w3c-activity-streams";
-import type { ITestAppConstructorOptions } from "./ITestAppConstructorOptions.js";
+import type { ITestAppConstructorOptions } from "./models/ITestAppConstructorOptions.js";
 
 // Default consignments - two entries with different port locations for filtering tests.
 // Can be overridden via constructor options (e.g. loaded from a JSON file via @json: env syntax).
